@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -396,7 +357,6 @@
             gameStatusDisplay: document.getElementById('game-status-display'),
             lobbyInfoDisplay: document.getElementById('lobby-info-display'),
             gameMessagesDisplay: document.getElementById('game-messages-display'),
-            lobbyActions: document.getElementById('lobby-actions'),
             
             playerAreas: {
                 south: { area: document.getElementById('south-area'), hand: document.getElementById('south-hand'), label: document.getElementById('south-label') },
@@ -482,13 +442,8 @@
 });
         
         socket.on('game_update', (serverState) => {
-            console.log('Game state update received:', {
-                phase: serverState.gamePhase,
-                currentPlayer: serverState.currentPlayer,
-                playerSlots: serverState.playerSlots,
-                upCard: serverState.upCard,
-                myRole: serverState.myRole
-            });
+            console.log('Game state update received. Phase:', serverState.gamePhase, "Current Player:", serverState.currentPlayer);
+            // console.log('Full serverState:', JSON.parse(JSON.stringify(serverState))); // For deep inspection if needed
             currentServerGameState = serverState; 
 
             elements.orderUpModal.classList.add('hidden');
@@ -556,10 +511,6 @@
 
         // --- REFINED updateUI FUNCTION ---
         function updateUI(state) {
-            // Hide lobby elements if not in LOBBY phase
-            elements.lobbyInfoDisplay.style.display = state.gamePhase === 'LOBBY' ? 'block' : 'none';
-            elements.lobbyActions.style.display = state.gamePhase === 'LOBBY' ? 'block' : 'none';
-
             elements.team1Score.textContent = state.team1Score;
             elements.team2Score.textContent = state.team2Score;
             elements.currentTrumpDisplay.textContent = state.trump && SUITS_DATA[state.trump] ? `Trump: ${SUITS_DATA[state.trump].symbol} ${state.trump.charAt(0).toUpperCase() + state.trump.slice(1)}` : "Trump: None";
@@ -604,13 +555,7 @@
                     areaElements.label.classList.toggle('dealer-label', state.dealer === role);
                     areaElements.label.classList.toggle('is-partner', getPartner(myPlayerRole) === role && myPlayerRole !== role);
 
-                    // Ensure hand is rendered even if empty
-                    if (!player.hand) {
-                        console.warn(`Player ${role} has no hand data`);
-                        areaElements.hand.innerHTML = '<div class="text-xs">No cards</div>';
-                    } else {
-                        renderHand(player.hand, areaElements.hand, role === myPlayerRole, state);
-                    }
+                    renderHand(player.hand, areaElements.hand, role === myPlayerRole, state);
                     
                     if (state.goingAlone && state.partnerSittingOut === role) {
                         areaElements.label.textContent += " (Sitting Out)";
@@ -625,17 +570,17 @@
             elements.upCardEl.innerHTML = ''; // Explicitly clear previous content
             elements.upCardEl.className = 'card'; // Reset classes to default 'card'
 
-            if (!state.upCard) {
-                console.warn('No upCard data in game state');
-                elements.upCardEl.classList.add('justify-center', 'items-center', 'text-xs');
-                elements.upCardEl.textContent = 'Kitty';
-            } else if (state.upCard.suit && state.upCard.value) {
-                renderCardDOM(state.upCard, elements.upCardEl, state.trump, false);
+            if (state.upCard && state.upCard.suit && state.upCard.value) { // Check if upCard is a valid card object
+                renderCardDOM(state.upCard, elements.upCardEl, state.trump, false); // isMyCard = false for up-card
                 elements.upCardEl.classList.toggle('is-trump-border', !!(state.trump && state.upCard.suit === state.trump));
-            } else {
+            } else if (state.orderUpRound === 2 && state.gamePhase === 'ORDER_UP_ROUND2') { // Specifically for when up-card is turned down
                 elements.upCardEl.classList.add('card-back');
-                elements.upCardEl.innerHTML = '<span></span>';
+                elements.upCardEl.innerHTML = '<span></span>'; // Render as a card back
+            } else { // Default if no specific up-card state (e.g., before deal or after pickup)
+                elements.upCardEl.classList.add('justify-center', 'items-center', 'text-xs');
+                elements.upCardEl.textContent = 'Kitty'; // Or some other placeholder
             }
+            // --- End Refined Up-Card Rendering ---
 
             elements.trickArea.innerHTML = '';
             state.currentTrickPlays.forEach(play => {
@@ -859,5 +804,5 @@
 
         elements.gameStatusDisplay.textContent = "Initializing...";
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93e4cda70c56452c',t:'MTc0Njk5OTI5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>

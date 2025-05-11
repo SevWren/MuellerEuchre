@@ -1,0 +1,85 @@
+[INFO] Euchre server listening on port 3000
+[INFO] Access game at http://localhost:3000 or http://<your-local-ip>:3000
+[INFO] A user connected: VAn4jtlqlccnYUPMAAAB
+[INFO] South (south) joined
+[INFO] South (south) disconnected
+[INFO] A user connected: kkNQ-j86FBxl4zP2AAAD
+[INFO] South (south) joined
+[INFO] A user connected: 9qn6IWfMsWuWEeTtAAAF
+[INFO] West (west) joined
+[INFO] South (south) disconnected
+[INFO] A user connected: lmUbOEIjn55Int1VAAAH
+[INFO] South (south) joined
+[INFO] South (south) disconnected
+[INFO] A user connected: 0Ky6o6c06a00nLWkAAAJ
+[INFO] South (south) joined
+[INFO] A user connected: 0orE7bzXl8v5LCv5AAAL
+[INFO] North (north) joined
+[INFO] A user connected: MlisuYeATN2npebcAAAN
+[INFO] East (east) joined
+[INFO] Game start requested
+[INFO] Game phase changed to DEALING
+[INFO] Dealer assigned: north
+[INFO] Up-card: A of hearts
+[INFO] Game phase changed to ORDER_UP_ROUND1
+[INFO] North (north) disconnected
+[INFO] Game reset to LOBBY due to player leaving
+[INFO] A user connected: aj89rYWsaGSipqnDAAAP
+[INFO] South (south) joined
+[INFO] A user connected: gry0c87ezk0-YYDaAAAR
+[INFO] West (west) joined
+[INFO] A user connected: 1InZAkWeUo84Zs5EAAAT
+[INFO] North (north) joined
+[INFO] A user connected: 3t5lJaK56pcO7n1BAAAV
+[INFO] East (east) joined
+[INFO] Game start requested
+[INFO] Game phase changed to DEALING
+[INFO] Dealer assigned: north
+[INFO] Up-card: Q of clubs
+[INFO] Game phase changed to ORDER_UP_ROUND1
+[INFO] Euchre server listening on port 3000
+[INFO] Access game at http://localhost:3000 or http://<your-local-ip>:3000
+[INFO] A user connected: rNZj8jtgHFuHreibAAAB
+[INFO] South (south) joined
+[INFO] A user connected: lib248HyfR0_rqjHAAAE
+[INFO] West (west) joined
+[INFO] A user connected: iF4mITf_pWeqflehAAAF
+[INFO] North (north) joined
+[INFO] A user connected: O7bRXpdtI6-Fv7oxAAAH
+[INFO] East (east) joined
+[INFO] North (north) requested to start the game
+[INFO] Game start requested
+[INFO] Game phase changed to DEALING
+[INFO] Dealer assigned: east
+[INFO] Up-card: 9 of diamonds
+[INFO] Game phase changed to ORDER_UP_ROUND1
+[INFO] Euchre server listening on port 3000
+[INFO] Access game at http://localhost:3000 or http://<your-local-ip>:3000
+[INFO] A user connected: LmEk78TI0cy2B4z9AAAC
+[INFO] South (south) joined
+[INFO] A user connected: hFoVqA7zf_UJLK8VAAAD
+[INFO] West (west) joined
+[INFO] West (west) disconnected
+[INFO] A user connected: _lkmVPOVNMa03qTqAAAF
+[INFO] West (west) joined
+[INFO] West (west) disconnected
+[INFO] A user connected: w3OVwAVtxzTFalY0AAAH
+[INFO] West (west) joined
+[INFO] South (south) disconnected
+[INFO] A user connected: puiQrREDVFjXfV1nAAAJ
+[INFO] South (south) joined
+[INFO] A user connected: n2SE1NcwBJaP027PAAAM
+[INFO] North (north) joined
+[INFO] A user connected: 6KLYoxfLCi41HbOpAAAN
+[INFO] East (east) joined
+[INFO] South (south) disconnected
+[INFO] A user connected: 9paIRTz0q9Gh-N0-AAAP
+[INFO] South (south) joined
+[INFO] West (west) requested to start the game
+[INFO] Game start requested
+[INFO] Game phase changed to DEALING
+[INFO] Dealer assigned: east
+[INFO] Up-card: 9 of spades
+[INFO] Game phase changed to ORDER_UP_ROUND1
+[INFO] West (west) disconnected
+[INFO] Game reset to LOBBY due to player leaving

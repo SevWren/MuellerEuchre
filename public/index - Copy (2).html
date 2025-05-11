@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euchre Card Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script> <!-- Added Socket.IO client -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cardo:wght@400;700&display=swap');
+        
+        :root {
+            --card-width: 100px; /* Slightly smaller for multiplayer view */
+            --card-height: 150px;
+            --card-radius: 8px;
+            --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            --red: #e74c3c;
+            --black: #2c3e50;
+            --green: #27ae60;
+            --blue: #3498db;
+            --yellow: #f1c40f;
+        }
+        
+        body {
+            font-family: 'Cardo', serif;
+            background-color: #1a5f2b; /* Darker green */
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-top: 60px; /* Space for score area */
+        }
+        
+        .card {
+            width: var(--card-width);
+            height: var(--card-height);
+            border-radius: var(--card-radius);
+            background: white;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: default; /* Default, becomes pointer if playable */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 5px;
+            color: var(--black); /* Default text color for cards */
+        }
+        
+        .card.playable:hover {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card.selected-for-discard {
+            transform: translateY(-15px);
+            box-shadow: 0 0 15px 3px gold;
+        }
+        
+        .card-back {
+            background: linear-gradient(135deg, #607D8B, #455A64); /* Darker blue/grey back */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            color: #B0BEC5;
+        }
+        .card-back span { /* Inner element for better pattern */
+            width: 80%;
+            height: 80%;
+            border: 2px dashed #78909C;
+            border-radius: var(--card-radius);
+        }
+        
+        .card-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+        
+        .card-suit-symbol { /* For the small suit symbols */
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+        .card-suit-center { /* For the large center suit symbol */
+            font-size: 2.5rem; /* Larger center suit */
+            text-align: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .top-left-info { position: absolute; top: 5px; left: 5px; text-align: center; }
+        .bottom-right-info { position: absolute; bottom: 5px; right: 5px; text-align: center; transform: rotate(180deg); }
+        
+        .red { color: var(--red); }
+        .black { color: var(--black); }
+        
+        .trick-winner-card { /* More subtle highlight for winner's card */
+            box-shadow: 0 0 15px 3px var(--yellow);
+            transform: scale(1.05);
+        }
+        
+        .trump-indicator-text { /* For text on card indicating trump */
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: var(--yellow);
+            background-color: rgba(0,0,0,0.5);
+            padding: 1px 3px;
+            border-radius: 3px;
+            z-index: 1;
+        }
+        
+        .player-area {
+            position: absolute;
+            display: flex;
+            flex-direction: column; /* Label above hand */
+            align-items: center;
+        }
+        
+        .player-hand {
+            display: flex;
+            gap: 5px; /* Smaller gap */
+            padding: 5px;
+            min-height: calc(var(--card-height) + 10px); /* Ensure space even if hand is empty */
+        }
+        
+        .player-label {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            text-align: center;
+            min-width: 80px;
+        }
+        .player-label.current-player {
+            background-color: var(--yellow);
+            color: var(--black);
+            font-weight: bold;
+        }
+        .player-label.dealer-label {
+            border: 2px solid var(--blue);
+        }
+         .player-label.is-partner {
+            border: 2px dashed #90caf9; /* Light blue for partner */
+        }
+
+        /* Positioning Player Areas */
+        #south-area { bottom: 10px; left: 50%; transform: translateX(-50%); }
+        #north-area { top: 50px; left: 50%; transform: translateX(-50%) rotate(180deg); }
+        #north-area .player-label, #north-area .card { transform: rotate(180deg); } /* Counter-rotate elements */
+        #east-area { top: 50%; right: 10px; transform: translateY(-50%) rotate(-90deg); }
+        #east-area .player-label, #east-area .card { transform: rotate(90deg); }
+        #west-area { top: 50%; left: 10px; transform: translateY(-50%) rotate(90deg); }
+        #west-area .player-label, #west-area .card { transform: rotate(-90deg); }
+
+
+        .center-game-area {
+            position: relative;
+            width: calc(var(--card-width) * 3 + 60px); /* Accommodate trick cards */
+            height: calc(var(--card-height) * 2 + 40px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .trick-area {
+            position: relative; /* For absolute positioning of trick cards */
+            width: 100%;
+            height: 100%;
+        }
+        
+        .trick-card-container { /* Container for card + player name who played it */
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .trick-card-player-name {
+            font-size: 0.7rem;
+            background: rgba(0,0,0,0.5);
+            padding: 1px 3px;
+            border-radius: 3px;
+            margin-bottom: 2px;
+        }
+        /* Trick card positions (relative to center) */
+        .trick-south { bottom: 0; left: 50%; transform: translateX(-50%); }
+        .trick-west { top: 50%; left: 0; transform: translateY(-50%) translateX(calc(var(--card-width) * -0.15)) ; }
+        .trick-west .card { transform: rotate(90deg); }
+        .trick-north { top: 0; left: 50%; transform: translateX(-50%) translateY(calc(var(--card-height) * -0.15)); }
+        .trick-north .card { transform: rotate(180deg); }
+        .trick-east { top: 50%; right: 0; transform: translateY(-50%) translateX(calc(var(--card-width) * 0.15)); }
+        .trick-east .card { transform: rotate(-90deg); }
+
+
+        .kitty-area { /* For up-card and kitty pile */
+            position: absolute;
+            top: 10px; /* Above center area, below score */
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .kitty-label { font-size: 0.8rem; }
+        #up-card-container .card { border: 2px solid transparent; }
+        #up-card-container .card.is-trump { border-color: var(--yellow); }
+
+        .score-area {
+            position: fixed; /* Fixed at top */
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            text-align: center;
+            z-index: 50;
+            font-size: 0.9rem;
+        }
+        .score-area div { margin: 2px 0; }
+        
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); display: flex;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal-content {
+            background: #37474F; /* Darker modal */
+            padding: 20px; border-radius: 10px;
+            max-width: 500px; width: 90%; text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        
+        .btn {
+            padding: 8px 15px; border-radius: 5px; font-weight: bold;
+            cursor: pointer; transition: background-color 0.2s; margin: 5px; border: none;
+            min-width: 100px;
+        }
+        .btn:disabled { background-color: #78909C; cursor: not-allowed; opacity: 0.7;}
+        .btn-primary { background: var(--blue); color: white; }
+        .btn-primary:hover:not(:disabled) { background: #2980b9; }
+        .btn-success { background: var(--green); color: white; }
+        .btn-success:hover:not(:disabled) { background: #219653; }
+        .btn-danger { background: var(--red); color: white; }
+        .btn-danger:hover:not(:disabled) { background: #c0392b; }
+        
+        .suit-btn {
+            width: 50px; height: 50px; font-size: 1.8rem; display: inline-flex; /* inline-flex for better layout */
+            justify-content: center; align-items: center; border-radius: 50%;
+            margin: 5px; cursor: pointer; border: 2px solid transparent;
+        }
+        .suit-btn.selected-suit { transform: scale(1.1); border-color: gold; box-shadow: 0 0 10px gold;}
+        .suit-hearts { background-color: #e57373; color: white; } /* Softer red */
+        .suit-diamonds { background-color: #ff8a65; color: white; } /* Softer orange-red */
+        .suit-spades { background-color: #757575; color: white; } /* Greyish black */
+        .suit-clubs { background-color: #5d4037; color: white; } /* Brownish black */
+        
+        .rules-container { max-height: 60vh; overflow-y: auto; padding: 10px; margin-bottom: 15px; text-align: left; }
+
+        #game-status-display { margin-top: 10px; font-style: italic; }
+        #lobby-info-display { position: fixed; top: 60px; left: 10px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; font-size: 0.8rem; z-index: 50;}
+        #game-messages-display { position: fixed; bottom: 10px; left: 10px; width: 250px; max-height: 150px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; font-size: 0.75rem; overflow-y: auto; z-index: 50;}
+        #game-messages-display p { margin-bottom: 3px; word-break: break-word;}
+        #game-messages-display p.important-message { font-weight: bold; color: var(--yellow); }
+    </style>
+</head>
+<body>
+    <div class="score-area">
+        <div>Euchre <span id="my-player-info"></span></div>
+        <div>Team 1 (You & North): <span id="team1-score">0</span> | Team 2 (West & East): <span id="team2-score">0</span></div>
+        <div id="current-trump-display">Trump: None</div>
+        <div id="game-status-display">Connecting...</div>
+    </div>
+    <div id="lobby-info-display">Lobby loading...</div>
+    <div id="lobby-actions" class="fixed top-1/2 left-10 bg-gray-700 p-3 rounded z-50">
+        <button id="actual-start-game-btn" class="btn btn-success" disabled>Start Game (Need 4)</button>
+    </div>
+    
+    <div id="game-messages-display">Welcome!</div>
+    
+    <div class="kitty-area">
+        <div class="kitty-label">Up-Card:</div>
+        <div id="up-card-container">
+            <div id="up-card" class="card card-back"><span></span></div> <!-- Start as back -->
+        </div>
+    </div>
+    
+    <div class="center-game-area">
+        <div class="trick-area" id="trick-area">
+            <!-- Trick cards will be dynamically added here -->
+        </div>
+    </div>
+    
+    <!-- Player areas: South (bottom, always human), West (left), North (top), East (right) -->
+    <div id="south-area" class="player-area">
+        <div class="player-label" id="south-label">South</div>
+        <div class="player-hand" id="south-hand"></div>
+    </div>
+    
+    <div id="west-area" class="player-area">
+        <div class="player-label" id="west-label">West</div>
+        <div class="player-hand" id="west-hand"></div>
+    </div>
+
+    <div id="north-area" class="player-area">
+        <div class="player-label" id="north-label">North</div>
+        <div class="player-hand" id="north-hand"></div>
+    </div>
+    
+    <div id="east-area" class="player-area">
+        <div class="player-label" id="east-label">East</div>
+        <div class="player-hand" id="east-hand"></div>
+    </div>
+    
+    <!-- Game modals -->
+    <div id="order-up-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold mb-3">Order Up or Pass?</h2>
+            <p class="mb-3">The up-card is: <span id="modal-up-card-info"></span>.</p>
+            <p class="mb-1">Make <strong id="modal-up-card-suit"></strong> trump?</p>
+            <div class="flex justify-center mt-4">
+                <button id="order-up-btn" class="btn btn-success">Order Up</button>
+                <button id="pass-btn" class="btn btn-danger">Pass</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dealer-discard-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold mb-3">Dealer: Discard a Card</h2>
+            <p class="mb-3">You picked up the up-card. Your hand has 6 cards. Select one to discard.</p>
+            <div id="dealer-discard-options" class="flex justify-center flex-wrap gap-2 my-3">
+                <!-- Cards to discard will be populated here -->
+            </div>
+            <button id="confirm-discard-btn" class="btn btn-primary" disabled>Confirm Discard</button>
+        </div>
+    </div>
+    
+    <div id="call-trump-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold mb-3">Call Trump or Pass?</h2>
+            <p class="mb-3">The up-card was turned down. Choose a trump suit or pass. You cannot choose <strong id="modal-turndown-suit-info"></strong>.</p>
+            <div id="call-trump-options" class="flex justify-center mt-4">
+                <!-- Suit buttons will be populated here -->
+            </div>
+            <div class="flex justify-center mt-3">
+                <button id="pass-round2-btn" class="btn btn-danger">Pass (Stick the Dealer / Redeal)</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="go-alone-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold mb-3">Go Alone?</h2>
+            <p class="mb-1">Your team (<span id="go-alone-caller-team"></span>) called <strong id="go-alone-trump-suit"></strong> as trump.</p>
+            <p class="mb-3 text-sm italic">Do you want to play this hand alone? (Your partner will sit out)</p>
+            <div class="flex justify-center mt-4">
+                <button id="go-alone-btn" class="btn btn-success">Go Alone!</button>
+                <button id="play-with-partner-btn" class="btn btn-primary">Play With Partner</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="game-over-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-3" id="game-over-title">Game Over!</h2>
+            <p id="game-over-message" class="mb-4"></p>
+            <div class="flex justify-center mt-4">
+                <button id="new-game-btn" class="btn btn-primary">Request New Game</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="rules-modal" class="modal"> <!-- Starts visible -->
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-3">Euchre (Online Multiplayer)</h2>
+            <div class="rules-container">
+                <h3 class="font-bold mt-2">Welcome!</h3>
+                <p>- This is a 4-player game. Wait for all players to join.</p>
+                <p>- The game will start once 4 players are connected and someone clicks "Start Game".</p>
+                <h3 class="font-bold mt-2">Setup</h3>
+                <p>- Partners sit across (You are South, your partner is North).</p>
+                <p>- Euchre deck (9, 10, J, Q, K, A of each suit).</p>
+                <h3 class="font-bold mt-4">Making Trump</h3>
+                <p><strong>Round 1:</strong> Order up the face-up card or pass.</p>
+                <p>- If ordered, dealer takes up-card, discards one. Suit is trump.</p>
+                <p><strong>Round 2 (if all pass R1):</strong> Name any other suit as trump, or pass again. If all pass, dealer is "stuck" or cards are redealt (server decides).</p>
+                <h3 class="font-bold mt-4">Going Alone</h3>
+                <p>- If your team makes trump, the person who made the call (or their partner) can "Go Alone". Partner sits out.</p>
+                <h3 class="font-bold mt-4">Card Rankings (Trump Active)</h3>
+                <p>- Jack of trump (Right Bower) is highest.</p>
+                <p>- Other Jack of same color (Left Bower) is second highest (acts as trump).</p>
+                <p>- Then A, K, Q, 10, 9 of trump.</p>
+                <p>- Other suits: A, K, Q, J, 10, 9.</p>
+                <h3 class="font-bold mt-4">Gameplay</h3>
+                <p>- Player left of dealer leads. Must follow suit if possible. If void, can play any card (trump or off-suit).</p>
+                <p>- Highest trump wins. If no trump, highest card of suit led wins.</p>
+                <p>- Winner of trick leads next.</p>
+                <h3 class="font-bold mt-4">Scoring</h3>
+                <p>- Makers take 3-4 tricks: 1 point.</p>
+                <p>- Makers take 5 tricks (all): 2 points.</p>
+                <p>- Makers go alone & take 3-4 tricks: 1 point (some rules vary, here 1pt).</p>
+                <p>- Makers go alone & take 5 tricks: 4 points.</p>
+                <p>- Makers get less than 3 tricks (Euchred): Opponents get 2 points.</p>
+                <p>- First team to 10 points wins.</p>
+            </div>
+            <div class="flex justify-center mt-4">
+                <button id="close-rules-btn" class="btn btn-primary">Close Rules / Join Game</button>
+                <button id="start-game-btn-lobby" class="btn btn-success ml-2" disabled>Start Game (Need 4)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let myPlayerRole = null;
+        let myName = null;
+        let currentServerGameState = {}; // Store the latest state
+
+        // DOM elements
+        const elements = {
+            myPlayerInfo: document.getElementById('my-player-info'),
+            team1Score: document.getElementById('team1-score'),
+            team2Score: document.getElementById('team2-score'),
+            currentTrumpDisplay: document.getElementById('current-trump-display'),
+            gameStatusDisplay: document.getElementById('game-status-display'),
+            lobbyInfoDisplay: document.getElementById('lobby-info-display'),
+            gameMessagesDisplay: document.getElementById('game-messages-display'),
+            actualStartGameBtn: document.getElementById('actual-start-game-btn'), // For Option 2
+            playerAreas: {
+                south: { area: document.getElementById('south-area'), hand: document.getElementById('south-hand'), label: document.getElementById('south-label') },
+                west:  { area: document.getElementById('west-area'), hand: document.getElementById('west-hand'), label: document.getElementById('west-label') },
+                north: { area: document.getElementById('north-area'), hand: document.getElementById('north-hand'), label: document.getElementById('north-label') },
+                east:  { area: document.getElementById('east-area'), hand: document.getElementById('east-hand'), label: document.getElementById('east-label') }
+            },
+
+            upCardContainer: document.getElementById('up-card-container'),
+            upCardEl: document.getElementById('up-card'),
+            trickArea: document.getElementById('trick-area'),
+            
+            // Modals
+            orderUpModal: document.getElementById('order-up-modal'),
+            modalUpCardInfo: document.getElementById('modal-up-card-info'),
+            modalUpCardSuit: document.getElementById('modal-up-card-suit'),
+            dealerDiscardModal: document.getElementById('dealer-discard-modal'),
+            dealerDiscardOptions: document.getElementById('dealer-discard-options'),
+            confirmDiscardBtn: document.getElementById('confirm-discard-btn'),
+            callTrumpModal: document.getElementById('call-trump-modal'),
+            modalTurndownSuitInfo: document.getElementById('modal-turndown-suit-info'),
+            callTrumpOptions: document.getElementById('call-trump-options'),
+            goAloneModal: document.getElementById('go-alone-modal'),
+            goAloneCallerTeam: document.getElementById('go-alone-caller-team'),
+            goAloneTrumpSuit: document.getElementById('go-alone-trump-suit'),
+            gameOverModal: document.getElementById('game-over-modal'),
+            gameOverTitle: document.getElementById('game-over-title'),
+            gameOverMessage: document.getElementById('game-over-message'),
+            rulesModal: document.getElementById('rules-modal'),
+            
+            // Buttons
+            orderUpBtn: document.getElementById('order-up-btn'),
+            passBtn: document.getElementById('pass-btn'),
+            passRound2Btn: document.getElementById('pass-round2-btn'),
+            goAloneBtn: document.getElementById('go-alone-btn'),
+            playWithPartnerBtn: document.getElementById('play-with-partner-btn'),
+            newGameBtn: document.getElementById('new-game-btn'),
+            closeRulesBtn: document.getElementById('close-rules-btn'),
+            startGameBtnLobby: document.getElementById('start-game-btn-lobby')
+        };
+
+        const SUITS_DATA = {
+            hearts: { symbol: '♥', colorClass: 'red', btnClass: 'suit-hearts' },
+            diamonds: { symbol: '♦', colorClass: 'red', btnClass: 'suit-diamonds' },
+            clubs: { symbol: '♣', colorClass: 'black', btnClass: 'suit-clubs' },
+            spades: { symbol: '♠', colorClass: 'black', btnClass: 'suit-spades' }
+        };
+        
+        // --- Socket Event Handlers ---
+        socket.on('connect', () => {
+            elements.gameStatusDisplay.textContent = "Connected to server. Waiting for role...";
+            console.log('Connected to server with ID:', socket.id);
+        });
+
+        socket.on('assign_role', (data) => {
+            myPlayerRole = data.role;
+            myName = data.name;
+            elements.myPlayerInfo.textContent = `(${myName} - ${myPlayerRole.charAt(0).toUpperCase() + myPlayerRole.slice(1)})`;
+            document.title = `Euchre - ${myName}`;
+            console.log(`Assigned role: ${myPlayerRole} as ${myName}`);
+            //elements.rulesModal.classList.add('hidden'); // Hide rules if assigned role, means joined game
+
+        });
+
+        socket.on('lobby_update', (lobbyData) => {
+            console.log("Lobby update:", lobbyData);
+            currentServerGameState = { ...currentServerGameState, ...lobbyData, gamePhase: 'LOBBY' }; // Merge with existing if any
+
+            //let lobbyHTML = "<strong>Players:</strong><ul>";
+            //let connectedCount = 0;
+            //if (lobbyData.players && Array.isArray(lobbyData.players)) {
+            //    lobbyData.players.forEach(p => {
+            //        lobbyHTML += `<li>${p.role.charAt(0).toUpperCase() + p.role.slice(1)}: ${p.name} ${p.connected ? '✔️' : '(Empty)'}</li>`;
+            //        if (p.connected) connectedCount++;
+            //    });
+            //}
+
+            let connectedCount = 0;
+            if (lobbyData.players && Array.isArray(lobbyData.players)) {
+                lobbyData.players.forEach(p => {
+                    if (p.connected) connectedCount++;
+                });
+            }            
+            lobbyHTML += "</ul>";
+            elements.lobbyInfoDisplay.innerHTML = lobbyHTML;
+            
+            elements.startGameBtnLobby.disabled = !(connectedCount === 4);
+            elements.startGameBtnLobby.textContent = connectedCount === 4 ? "Start Game" : `Waiting (${connectedCount}/4)...`;
+
+            if (lobbyData.canStart && !elements.rulesModal.classList.contains('hidden')) {
+                 // If rules are open and game can start, prompt user
+            }
+             // If not in a game, ensure rules modal can be shown or is shown
+            if (!currentServerGameState.gamePhase || currentServerGameState.gamePhase === 'LOBBY') {
+                if(document.querySelectorAll('.modal:not(.hidden)').length === 0) { // if no other modal is open
+                   // elements.rulesModal.classList.remove('hidden'); // Potentially re-show rules if back in lobby
+                }
+            }
+        });
+        
+        socket.on('game_update', (serverState) => {
+            console.log('Game state update received:', serverState);
+            currentServerGameState = serverState; // Update local snapshot
+
+            // Hide all action modals first
+            elements.orderUpModal.classList.add('hidden');
+            elements.dealerDiscardModal.classList.add('hidden');
+            elements.callTrumpModal.classList.add('hidden');
+            elements.goAloneModal.classList.add('hidden');
+            elements.gameOverModal.classList.add('hidden');
+            // elements.rulesModal.classList.add('hidden'); // Hide rules if game is active
+
+            updateUI(serverState);
+            if (serverState.gamePhase !== 'GAME_OVER' && serverState.gamePhase !== 'LOBBY') {
+                handleTurnSpecificModals(serverState);
+            } else if (serverState.gamePhase === 'GAME_OVER') {
+                 showGameOverModal(serverState);
+            }
+            updateGameMessages(serverState.gameMessages);
+        });
+
+        socket.on('game_full', (message) => {
+            alert(message);
+            elements.gameStatusDisplay.textContent = message;
+        });
+
+        socket.on('action_error', (message) => {
+            alert(`Error: ${message}`);
+            // Optionally, add to game messages
+            const msgDiv = document.createElement('p');
+            msgDiv.textContent = `❗ ${message}`;
+            msgDiv.style.color = 'var(--red)';
+            elements.gameMessagesDisplay.prepend(msgDiv);
+        });
+
+        function updateGameMessages(messagesArray) {
+            elements.gameMessagesDisplay.innerHTML = '';
+            if (messagesArray && Array.isArray(messagesArray)) {
+                messagesArray.forEach(msgObj => {
+                    const p = document.createElement('p');
+                    p.textContent = `[${msgObj.timestamp}] ${msgObj.text}`;
+                    if (msgObj.important) p.classList.add('important-message');
+                    elements.gameMessagesDisplay.appendChild(p); // Add new messages to top
+                });
+            }
+        }
+
+        // --- UI Rendering Functions ---
+        function getPlayerRelativePosition(targetRole) {
+            if (!myPlayerRole) return 'north'; // Default if client role not set
+            const roles = ['south', 'west', 'north', 'east'];
+            const myIdx = roles.indexOf(myPlayerRole);
+            const targetIdx = roles.indexOf(targetRole);
+            
+            const diff = (targetIdx - myIdx + 4) % 4;
+            if (diff === 0) return 'south'; // Current client
+            if (diff === 1) return 'west';  // Player to client's left
+            if (diff === 2) return 'north'; // Partner
+            if (diff === 3) return 'east';  // Player to client's right
+            return 'north'; // Fallback
+        }
+
+        function updateUI(state) {
+            elements.team1Score.textContent = state.team1Score;
+            elements.team2Score.textContent = state.team2Score;
+            elements.currentTrumpDisplay.textContent = state.trump ? `Trump: ${SUITS_DATA[state.trump].symbol} ${state.trump.charAt(0).toUpperCase() + state.trump.slice(1)}` : "Trump: None";
+            elements.gameStatusDisplay.textContent = state.players[state.currentPlayer] ? `Current Player: ${state.players[state.currentPlayer].name} (${state.currentPlayer})` : "Waiting...";
+
+            // Render player hands and labels
+            state.playerSlots.forEach(role => {
+                const player = state.players[role];
+                const relativePos = getPlayerRelativePosition(role); // south, west, north, east
+                const areaElements = elements.playerAreas[relativePos];
+
+                if (areaElements && player) {
+                    areaElements.label.textContent = `${player.name} (${role})`;
+                    areaElements.label.classList.toggle('current-player', state.currentPlayer === role);
+                    areaElements.label.classList.toggle('dealer-label', state.dealer === role);
+                    areaElements.label.classList.toggle('is-partner', getPartner(myPlayerRole) === role && myPlayerRole !== role);
+
+
+                    renderHand(player.hand, areaElements.hand, role === myPlayerRole, state);
+                    
+                    if (state.goingAlone && state.partnerSittingOut === role) {
+                        areaElements.label.textContent += " (Sitting Out)";
+                        areaElements.area.style.opacity = '0.5';
+                    } else {
+                        areaElements.area.style.opacity = '1';
+                    }
+                }
+            });
+
+            // Render Up-Card
+            if (state.upCard) {
+                renderCardDOM(state.upCard, elements.upCardEl, state.trump, false);
+                elements.upCardEl.classList.toggle('is-trump', state.trump && state.upCard.suit === state.trump);
+            } else if (state.kitty && state.kitty.length > 0 && state.orderUpRound === 2) { // Turned down card
+                elements.upCardEl.innerHTML = '';
+                elements.upCardEl.className = 'card card-back';
+                elements.upCardEl.innerHTML = '<span></span>'; // For back pattern
+            } else {
+                elements.upCardEl.innerHTML = 'No Up-Card';
+                elements.upCardEl.className = 'card justify-center items-center text-xs';
+            }
+
+            // Render Trick Area
+            elements.trickArea.innerHTML = '';
+            state.currentTrickPlays.forEach(play => {
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'trick-card-container';
+                
+                const playerNameDiv = document.createElement('div');
+                playerNameDiv.className = 'trick-card-player-name';
+                playerNameDiv.textContent = state.players[play.player].name;
+                cardContainer.appendChild(playerNameDiv);
+
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                renderCardDOM(play.card, cardEl, state.trump, false);
+                cardContainer.appendChild(cardEl);
+                
+                // Position trick card based on who played it relative to current user
+                const playOwnerRelativePos = getPlayerRelativePosition(play.player);
+                cardContainer.classList.add(`trick-${playOwnerRelativePos}`);
+                
+                elements.trickArea.appendChild(cardContainer);
+            });
+        }
+
+        function renderHand(handArray, handContainer, isMyHand, gameState) {
+            handContainer.innerHTML = '';
+            if (!handArray) return;
+
+            handArray.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                renderCardDOM(card, cardEl, gameState.trump, isMyHand);
+
+                if (isMyHand && gameState.currentPlayer === myPlayerRole && gameState.gamePhase === 'PLAYING_TRICKS') {
+                    if (clientIsValidPlay(card, gameState)) {
+                        cardEl.classList.add('playable');
+                        cardEl.style.cursor = 'pointer';
+                        cardEl.addEventListener('click', () => {
+                            socket.emit('action_play_card', { card: { id: card.id, suit: card.suit, value: card.value } });
+                            // Disable further clicks on this hand until server updates
+                            handContainer.querySelectorAll('.card').forEach(c => c.style.pointerEvents = 'none');
+                        });
+                    } else {
+                        cardEl.style.opacity = '0.6';
+                    }
+                }
+                handContainer.appendChild(cardEl);
+            });
+        }
+
+        function renderCardDOM(cardData, cardElement, currentTrump, isMyCard) {
+            cardElement.innerHTML = ''; // Clear existing
+            cardElement.className = 'card'; // Reset classes
+
+            if (cardData.S === 'back') { // Server sends 'back' for hidden cards
+                cardElement.classList.add('card-back');
+                cardElement.innerHTML = '<span></span>';
+                return;
+            }
+
+            const suitInfo = SUITS_DATA[cardData.suit];
+            cardElement.classList.add(suitInfo.colorClass);
+
+            const valueDisplay = cardData.value === '10' ? '10' : cardData.value.charAt(0);
+
+            // Top-left info
+            const topLeft = document.createElement('div');
+            topLeft.className = 'top-left-info';
+            const valTop = document.createElement('div');
+            valTop.className = 'card-value';
+            valTop.textContent = valueDisplay;
+            const suitTop = document.createElement('div');
+            suitTop.className = 'card-suit-symbol';
+            suitTop.textContent = suitInfo.symbol;
+            topLeft.appendChild(valTop);
+            topLeft.appendChild(suitTop);
+            cardElement.appendChild(topLeft);
+
+            // Center suit
+            const centerSuit = document.createElement('div');
+            centerSuit.className = 'card-suit-center';
+            centerSuit.textContent = suitInfo.symbol;
+            cardElement.appendChild(centerSuit);
+
+            // Bottom-right info
+            const bottomRight = document.createElement('div');
+            bottomRight.className = 'bottom-right-info';
+            const valBottom = document.createElement('div');
+            valBottom.className = 'card-value';
+            valBottom.textContent = valueDisplay;
+            const suitBottom = document.createElement('div');
+            suitBottom.className = 'card-suit-symbol';
+            suitBottom.textContent = suitInfo.symbol;
+            bottomRight.appendChild(valBottom);
+            bottomRight.appendChild(suitBottom);
+            cardElement.appendChild(bottomRight);
+
+            // Trump indicator
+            const isTrumpCard = currentTrump && (cardData.suit === currentTrump || clientIsLeftBower(cardData, currentTrump));
+            if (isTrumpCard) {
+                cardElement.classList.add('is-trump-card'); // For potential border or glow
+                const trumpText = document.createElement('div');
+                trumpText.className = 'trump-indicator-text';
+                trumpText.textContent = 'TRUMP';
+                cardElement.appendChild(trumpText);
+            }
+        }
+        
+        function clientIsLeftBower(card, trumpSuit) {
+            if (!trumpSuit || card.value !== 'J') return false;
+            const trumpColor = (trumpSuit === 'hearts' || trumpSuit === 'diamonds') ? 'red' : 'black';
+            const cardColor = (card.suit === 'hearts' || card.suit === 'diamonds') ? 'red' : 'black';
+            return trumpColor === cardColor && card.suit !== trumpSuit;
+        }
+
+        function clientIsValidPlay(cardToPlay, state) {
+            if (state.gamePhase !== 'PLAYING_TRICKS') return false;
+            const hand = state.players[myPlayerRole].hand;
+
+            if (state.currentTrickPlays.length === 0) return true; // Can lead any card
+
+            const ledPlay = state.currentTrickPlays[0];
+            let ledSuitEffective = ledPlay.card.suit;
+            if (clientIsLeftBower(ledPlay.card, state.trump)) {
+                ledSuitEffective = state.trump;
+            }
+
+            const playerHasLedSuit = hand.some(c => {
+                if (clientIsLeftBower(c, state.trump)) return ledSuitEffective === state.trump;
+                return c.suit === ledSuitEffective;
+            });
+
+            if (playerHasLedSuit) {
+                if (clientIsLeftBower(cardToPlay, state.trump)) return ledSuitEffective === state.trump;
+                return cardToPlay.suit === ledSuitEffective;
+            }
+            return true; // Can play anything if void in led suit
+        }
+
+
+        // --- Modal Handling & Actions ---
+        function handleTurnSpecificModals(state) {
+            if (state.currentPlayer !== myPlayerRole) return; // Not my turn to make a decision
+
+            if (state.gamePhase === 'ORDER_UP_ROUND1' && state.upCard) {
+                elements.modalUpCardInfo.textContent = `${state.upCard.value} of ${state.upCard.suit}`;
+                elements.modalUpCardSuit.textContent = SUITS_DATA[state.upCard.suit].symbol + " " + state.upCard.suit;
+                elements.orderUpModal.classList.remove('hidden');
+            } else if (state.gamePhase === 'AWAITING_DEALER_DISCARD' && myPlayerRole === state.dealer) {
+                elements.dealerDiscardOptions.innerHTML = ''; // Clear previous
+                let selectedCardToDiscard = null;
+                elements.confirmDiscardBtn.disabled = true;
+
+                state.players[myPlayerRole].hand.forEach(card => {
+                    const cardDiv = document.createElement('div');
+                    renderCardDOM(card, cardDiv, state.trump, true);
+                    cardDiv.addEventListener('click', () => {
+                        elements.dealerDiscardOptions.querySelectorAll('.card').forEach(c => c.classList.remove('selected-for-discard'));
+                        cardDiv.classList.add('selected-for-discard');
+                        selectedCardToDiscard = card;
+                        elements.confirmDiscardBtn.disabled = false;
+                    });
+                    elements.dealerDiscardOptions.appendChild(cardDiv);
+                });
+                elements.dealerDiscardModal.classList.remove('hidden');
+            } else if (state.gamePhase === 'ORDER_UP_ROUND2') {
+                const turnedDownSuit = state.kitty[0].suit; // upCard is now in kitty after round 1
+                elements.modalTurndownSuitInfo.textContent = SUITS_DATA[turnedDownSuit].symbol + " " + turnedDownSuit;
+                elements.callTrumpOptions.innerHTML = '';
+                Object.keys(SUITS_DATA).forEach(suitKey => {
+                    if (suitKey === turnedDownSuit) return; // Cannot call turned down suit
+
+                    const suitBtn = document.createElement('button');
+                    suitBtn.className = `btn suit-btn ${SUITS_DATA[suitKey].btnClass}`;
+                    suitBtn.textContent = SUITS_DATA[suitKey].symbol;
+                    suitBtn.onclick = () => socket.emit('action_call_trump', { suit: suitKey });
+                    elements.callTrumpOptions.appendChild(suitBtn);
+                });
+                elements.callTrumpModal.classList.remove('hidden');
+            } else if (state.gamePhase === 'AWAITING_GO_ALONE' && (myPlayerRole === state.playerWhoCalledTrump || getPartner(myPlayerRole) === state.playerWhoCalledTrump) ) {
+                 // Simplified: Only playerWhoCalledTrump decides. Could be extended.
+                if (myPlayerRole === state.playerWhoCalledTrump) {
+                    elements.goAloneCallerTeam.textContent = `Team ${state.players[myPlayerRole].team}`;
+                    elements.goAloneTrumpSuit.textContent = SUITS_DATA[state.trump].symbol + " " + state.trump;
+                    elements.goAloneModal.classList.remove('hidden');
+                }
+            }
+        }
+        
+        function showGameOverModal(state) {
+            elements.gameOverTitle.textContent = `Team ${state.winningTeam} Wins!`;
+            elements.gameOverMessage.textContent = `Final Score - Team 1: ${state.team1Score}, Team 2: ${state.team2Score}`;
+            elements.gameOverModal.classList.remove('hidden');
+        }
+
+        // Button Event Listeners
+        elements.closeRulesBtn.addEventListener('click', () => elements.rulesModal.classList.add('hidden'));
+        elements.startGameBtnLobby.addEventListener('click', () => {
+            if (!elements.startGameBtnLobby.disabled) {
+                socket.emit('request_start_game');
+            }
+        });
+
+        elements.orderUpBtn.addEventListener('click', () => socket.emit('action_order_up', { decision: true }));
+        elements.passBtn.addEventListener('click', () => socket.emit('action_order_up', { decision: false }));
+        
+        elements.confirmDiscardBtn.addEventListener('click', () => {
+            const selected = elements.dealerDiscardOptions.querySelector('.selected-for-discard');
+            if (selected && selected.cardData) { // We need to attach cardData to the element
+                 socket.emit('action_dealer_discard', { cardToDiscard: selected.cardData });
+            } else {
+                // This part needs refinement: how to get the card object from the selected DOM element?
+                // For now, this won't work correctly without attaching the card object.
+                // A quick fix in renderCardDOM for discard options:
+                // if rendering for discard modal: cardDiv.cardData = card; (where card is the full card object)
+                console.error("No card selected or cardData missing for discard.");
+                alert("Error: Please re-select card to discard.");
+            }
+        });
+         // Modify renderCardDOM slightly for discard modal to attach data
+        // When populating dealerDiscardOptions:
+        // Inside the forEach loop in handleTurnSpecificModals for AWAITING_DEALER_DISCARD:
+        // cardDiv.cardData = { id: card.id, suit: card.suit, value: card.value }; // Attach data
+        // This is a common pattern: store the data needed for an action directly on the element or via dataset.
+
+
+        elements.passRound2Btn.addEventListener('click', () => socket.emit('action_call_trump', { suit: null }));
+        
+        elements.goAloneBtn.addEventListener('click', () => socket.emit('action_go_alone', { decision: true }));
+        elements.playWithPartnerBtn.addEventListener('click', () => socket.emit('action_go_alone', { decision: false }));
+
+        elements.newGameBtn.addEventListener('click', () => socket.emit('request_new_game_session'));
+
+
+        // Initial setup
+        elements.gameStatusDisplay.textContent = "Initializing...";
+        // Rules modal is shown by default via CSS `hidden` class absence.
+    </script>
+</body>
+</html>

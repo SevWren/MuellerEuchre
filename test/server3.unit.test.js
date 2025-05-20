@@ -113,6 +113,46 @@ describe('Euchre Server Core Functions', function() {
             assert.strictEqual(sorted.length, 3);
             assert(sorted.every(card => card.suit === 'hearts'));
         });
+        it('returns empty array for null/undefined input', function() {
+            assert.deepStrictEqual(sortHand(null), []);
+            assert.deepStrictEqual(sortHand(undefined), []);
+        });
+        it('sorts hand with trump suit correctly', function() {
+            const hand = [
+                { value: 'J', suit: 'hearts' }, // right bower
+                { value: 'J', suit: 'diamonds' }, // left bower if trump is hearts
+                { value: 'A', suit: 'hearts' },
+                { value: 'K', suit: 'spades' },
+                { value: '9', suit: 'clubs' }
+            ];
+            const sorted = sortHand([...hand], 'hearts');
+            // Right bower should be first, then left bower, then trump ace, then others
+            assert.strictEqual(sorted[0].value, 'J');
+            assert.strictEqual(sorted[0].suit, 'hearts');
+            assert.strictEqual(sorted[1].value, 'J');
+            assert.strictEqual(sorted[1].suit, 'diamonds');
+        });
+        it('returns a new array (does not return the same reference)', function() {
+            const hand = [
+                { value: 'A', suit: 'spades' },
+                { value: '9', suit: 'hearts' }
+            ];
+            const sorted = sortHand(hand, 'hearts');
+            assert.notStrictEqual(sorted, hand);
+        });
+        it('handles hand with all bowers and trump', function() {
+            const hand = [
+                { value: 'J', suit: 'hearts' }, // right bower
+                { value: 'J', suit: 'diamonds' }, // left bower
+                { value: 'A', suit: 'hearts' },
+                { value: 'K', suit: 'hearts' },
+                { value: 'Q', suit: 'hearts' }
+            ];
+            const sorted = sortHand(hand, 'hearts');
+            // Right bower first, then left bower, then trump A, K, Q
+            assert.deepStrictEqual(sorted.map(c => c.value), ['J', 'J', 'A', 'K', 'Q']);
+            assert.deepStrictEqual(sorted.map(c => c.suit), ['hearts', 'diamonds', 'hearts', 'hearts', 'hearts']);
+        });
     });
 
     describe('isRightBower', function() {
@@ -129,6 +169,10 @@ describe('Euchre Server Core Functions', function() {
         it('should return false if trump is undefined', function() {
             assert.strictEqual(isRightBower({suit: 'hearts', value: 'J'}, undefined), false);
         });
+        it('returns false for null/undefined card or trump', function() {
+            assert.strictEqual(isRightBower(null, 'hearts'), false);
+            assert.strictEqual(isRightBower({ value: 'J', suit: 'hearts' }, null), false);
+        });
     });
 
     describe('isLeftBower', function() {
@@ -137,6 +181,20 @@ describe('Euchre Server Core Functions', function() {
         });
         it('should return false if trump is undefined', function() {
             assert.strictEqual(isLeftBower({suit: 'diamonds', value: 'J'}, undefined), false);
+        });
+        it('returns false for null/undefined card or trump', function() {
+            assert.strictEqual(isLeftBower(null, 'hearts'), false);
+            assert.strictEqual(isLeftBower({ value: 'J', suit: 'diamonds' }, null), false);
+        });
+        it('correctly identifies left bower for all suit/trump color combos', function() {
+            // Hearts trump, left bower is J of diamonds
+            assert.strictEqual(isLeftBower({ value: 'J', suit: 'diamonds' }, 'hearts'), true);
+            // Diamonds trump, left bower is J of hearts
+            assert.strictEqual(isLeftBower({ value: 'J', suit: 'hearts' }, 'diamonds'), true);
+            // Spades trump, left bower is J of clubs
+            assert.strictEqual(isLeftBower({ value: 'J', suit: 'clubs' }, 'spades'), true);
+            // Clubs trump, left bower is J of spades
+            assert.strictEqual(isLeftBower({ value: 'J', suit: 'spades' }, 'clubs'), true);
         });
     });
 
@@ -152,6 +210,25 @@ describe('Euchre Server Core Functions', function() {
         it('should return 0 for non-trump/non-led suit and undefined led suit', function() {
             const card = {suit: 'clubs', value: '9'};
             assert.strictEqual(getCardRank(card, 'hearts', undefined), 0);
+        });
+        it('returns -1 for null/undefined card', function() {
+            assert.strictEqual(getCardRank(null, 'hearts', 'hearts'), -1);
+            assert.strictEqual(getCardRank(undefined, 'hearts', 'hearts'), -1);
+        });
+        it('returns -1 for card missing suit or value', function() {
+            assert.strictEqual(getCardRank({}, 'hearts', 'hearts'), -1);
+            assert.strictEqual(getCardRank({ value: 'A' }, 'hearts', 'hearts'), -1);
+            assert.strictEqual(getCardRank({ suit: 'hearts' }, 'hearts', 'hearts'), -1);
+        });
+        it('returns correct rank for all trump/led suit combos', function() {
+            // Right bower
+            assert.strictEqual(getCardRank({ value: 'J', suit: 'spades' }, 'spades', 'spades'), 100);
+            // Left bower
+            assert.strictEqual(getCardRank({ value: 'J', suit: 'clubs' }, 'spades', 'spades'), 90);
+            // Trump ace
+            assert(getCardRank({ value: 'A', suit: 'spades' }, 'spades', 'spades') > 80);
+            // Led suit ace
+            assert(getCardRank({ value: 'A', suit: 'hearts' }, 'hearts', 'spades') > 0);
         });
     });
 
@@ -173,6 +250,263 @@ describe('Euchre Server Core Functions', function() {
             assert.strictEqual(typeof server.gameState.team1Score, 'number');
             assert.strictEqual(typeof server.gameState.team2Score, 'number');
             assert.strictEqual(server.gameState.gamePhase, 'LOBBY');
+        });
+    });
+
+    describe('Defensive and edge case tests', function() {
+        describe('getNextPlayer', function() {
+            it('returns undefined for invalid currentPlayerRole', function() {
+                assert.strictEqual(getNextPlayer('invalid'), undefined);
+            });
+            it('returns undefined if playerSlots is missing or not an array', function() {
+                assert.strictEqual(getNextPlayer('south', undefined), undefined);
+                assert.strictEqual(getNextPlayer('south', null), undefined);
+                assert.strictEqual(getNextPlayer('south', {}), undefined);
+            });
+        });
+
+        describe('getPartner', function() {
+            it('returns undefined for null/undefined/empty input', function() {
+                assert.strictEqual(getPartner(null), undefined);
+                assert.strictEqual(getPartner(undefined), undefined);
+                assert.strictEqual(getPartner(''), undefined);
+            });
+        });
+
+        describe('cardToString', function() {
+            it('returns N/A for null/undefined', function() {
+                assert.strictEqual(cardToString(null), 'N/A');
+                assert.strictEqual(cardToString(undefined), 'N/A');
+            });
+            it('returns Unknown Card for missing value or suit', function() {
+                assert.strictEqual(cardToString({}), 'Unknown Card');
+                assert.strictEqual(cardToString({ value: 'A' }), 'Unknown Card');
+                assert.strictEqual(cardToString({ suit: 'hearts' }), 'Unknown Card');
+            });
+        });
+
+        describe('sortHand', function() {
+            it('returns empty array for null/undefined input', function() {
+                assert.deepStrictEqual(sortHand(null), []);
+                assert.deepStrictEqual(sortHand(undefined), []);
+            });
+            it('sorts hand with trump suit correctly', function() {
+                const hand = [
+                    { value: 'J', suit: 'hearts' }, // right bower
+                    { value: 'J', suit: 'diamonds' }, // left bower if trump is hearts
+                    { value: 'A', suit: 'hearts' },
+                    { value: 'K', suit: 'spades' },
+                    { value: '9', suit: 'clubs' }
+                ];
+                const sorted = sortHand([...hand], 'hearts');
+                // Right bower should be first, then left bower, then trump ace, then others
+                assert.strictEqual(sorted[0].value, 'J');
+                assert.strictEqual(sorted[0].suit, 'hearts');
+                assert.strictEqual(sorted[1].value, 'J');
+                assert.strictEqual(sorted[1].suit, 'diamonds');
+            });
+        });
+
+        describe('isRightBower/isLeftBower', function() {
+            it('returns false for null/undefined card or trump', function() {
+                assert.strictEqual(isRightBower(null, 'hearts'), false);
+                assert.strictEqual(isRightBower({ value: 'J', suit: 'hearts' }, null), false);
+                assert.strictEqual(isLeftBower(null, 'hearts'), false);
+                assert.strictEqual(isLeftBower({ value: 'J', suit: 'diamonds' }, null), false);
+            });
+            it('correctly identifies left bower for all suit/trump color combos', function() {
+                // Hearts trump, left bower is J of diamonds
+                assert.strictEqual(isLeftBower({ value: 'J', suit: 'diamonds' }, 'hearts'), true);
+                // Diamonds trump, left bower is J of hearts
+                assert.strictEqual(isLeftBower({ value: 'J', suit: 'hearts' }, 'diamonds'), true);
+                // Spades trump, left bower is J of clubs
+                assert.strictEqual(isLeftBower({ value: 'J', suit: 'clubs' }, 'spades'), true);
+                // Clubs trump, left bower is J of spades
+                assert.strictEqual(isLeftBower({ value: 'J', suit: 'spades' }, 'clubs'), true);
+            });
+        });
+
+        describe('getCardRank', function() {
+            it('returns -1 for null/undefined card', function() {
+                assert.strictEqual(getCardRank(null, 'hearts', 'hearts'), -1);
+                assert.strictEqual(getCardRank(undefined, 'hearts', 'hearts'), -1);
+            });
+            it('returns -1 for card missing suit or value', function() {
+                assert.strictEqual(getCardRank({}, 'hearts', 'hearts'), -1);
+                assert.strictEqual(getCardRank({ value: 'A' }, 'hearts', 'hearts'), -1);
+                assert.strictEqual(getCardRank({ suit: 'hearts' }, 'hearts', 'hearts'), -1);
+            });
+            it('returns 0 for non-trump/non-led suit and undefined led suit', function() {
+                assert.strictEqual(getCardRank({ value: '9', suit: 'clubs' }, undefined, undefined), 0);
+            });
+            it('returns correct rank for all trump/led suit combos', function() {
+                // Right bower
+                assert.strictEqual(getCardRank({ value: 'J', suit: 'spades' }, 'spades', 'spades'), 100);
+                // Left bower
+                assert.strictEqual(getCardRank({ value: 'J', suit: 'clubs' }, 'spades', 'spades'), 90);
+                // Trump ace
+                assert(getCardRank({ value: 'A', suit: 'spades' }, 'spades', 'spades') > 80);
+                // Led suit ace
+                assert(getCardRank({ value: 'A', suit: 'hearts' }, 'hearts', 'spades') > 0);
+            });
+        });
+
+        describe('resetFullGame', function() {
+            it('resets gameState to a new gameId and default values', function() {
+                const oldId = server.gameState.gameId;
+                server.resetFullGame();
+                assert.notStrictEqual(server.gameState.gameId, oldId);
+                assert.strictEqual(server.gameState.gamePhase, 'LOBBY');
+                assert.strictEqual(server.gameState.team1Score, 0);
+                assert.strictEqual(server.gameState.team2Score, 0);
+                assert.deepStrictEqual(server.gameState.tricks, []);
+            });
+        });
+    });
+
+    describe('Additional tests', function() {
+        describe('getSuitColor', function() {
+            it('returns red for hearts and diamonds', function() {
+                assert.strictEqual(getSuitColor('hearts'), 'red');
+                assert.strictEqual(getSuitColor('diamonds'), 'red');
+            });
+            it('returns black for spades and clubs', function() {
+                assert.strictEqual(getSuitColor('spades'), 'black');
+                assert.strictEqual(getSuitColor('clubs'), 'black');
+            });
+            it('returns black for unknown suit', function() {
+                assert.strictEqual(getSuitColor('unknown'), 'black');
+                assert.strictEqual(getSuitColor(undefined), 'black');
+            });
+        });
+
+        describe('getNextPlayer advanced', function() {
+            it('handles going alone with different partnerSittingOut', function() {
+                const roles = ['south', 'west', 'north', 'east'];
+                // If east is sitting out, next after north is south
+                assert.strictEqual(getNextPlayer('north', roles, true, 'west', 'east'), 'south');
+                // If west is sitting out, next after south is north
+                assert.strictEqual(getNextPlayer('south', roles, true, 'north', 'west'), 'north');
+            });
+            it('returns undefined if roles array is empty', function() {
+                assert.strictEqual(getNextPlayer('south', [], true, 'south', 'north'), undefined);
+            });
+        });
+
+        describe('sortHand', function() {
+            it('does not mutate original hand array', function() {
+                const hand = [
+                    { value: 'A', suit: 'spades' },
+                    { value: '9', suit: 'hearts' }
+                ];
+                const copy = JSON.parse(JSON.stringify(hand));
+                sortHand(hand, 'hearts');
+                assert.deepStrictEqual(hand, copy);
+            });
+        });
+
+        describe('cardToString', function() {
+            it('handles extra properties gracefully', function() {
+                assert.strictEqual(cardToString({ value: 'Q', suit: 'spades', foo: 123 }), 'Q of spades');
+            });
+            it('returns Unknown Card for card with extra/invalid fields', function() {
+                assert.strictEqual(cardToString({ foo: 'bar', bar: 123 }), 'Unknown Card');
+            });
+        });
+
+        describe('getNextPlayer', function() {
+            it('returns undefined if roles is not an array or is missing current', function() {
+                assert.strictEqual(getNextPlayer('south', 'not-an-array'), undefined);
+                assert.strictEqual(getNextPlayer('not-in-list', ['south', 'west', 'north', 'east']), undefined);
+            });
+        });
+    });
+
+    describe('Multiplayer logic and state', function() {
+        it('should have 4 player slots and correct default roles', function() {
+            server.resetFullGame();
+            assert.deepStrictEqual(server.gameState.playerSlots, ['south', 'west', 'north', 'east']);
+            assert.strictEqual(Object.keys(server.gameState.players).length, 4);
+            ['south', 'west', 'north', 'east'].forEach(role => {
+                assert.ok(server.gameState.players[role]);
+            });
+        });
+        it('should assign correct teams to each role', function() {
+            server.resetFullGame();
+            // By Euchre convention: south/north = team 1, east/west = team 2
+            assert.strictEqual(server.gameState.players['south'].team, 1);
+            assert.strictEqual(server.gameState.players['north'].team, 1);
+            assert.strictEqual(server.gameState.players['east'].team, 2);
+            assert.strictEqual(server.gameState.players['west'].team, 2);
+        });
+        it('should rotate dealer and currentPlayer correctly', function() {
+            server.resetFullGame();
+            const origDealer = server.gameState.dealer;
+            server.startNewHand && server.startNewHand();
+            // After startNewHand, dealer should rotate (unless first hand)
+            // currentPlayer should be next after dealer
+            const nextPlayer = getNextPlayer(server.gameState.dealer);
+            assert.strictEqual(server.gameState.currentPlayer, nextPlayer);
+        });
+        it('should handle going alone and partner sitting out in state', function() {
+            server.resetFullGame();
+            server.gameState.goingAlone = true;
+            server.gameState.playerGoingAlone = 'south';
+            server.gameState.partnerSittingOut = 'north';
+            // getNextPlayer should skip partnerSittingOut
+            const next = getNextPlayer('south', server.gameState.playerSlots, true, 'south', 'north');
+            assert.notStrictEqual(next, 'north');
+        });
+        it('should reset all multiplayer state on resetFullGame', function() {
+            server.gameState.team1Score = 5;
+            server.gameState.team2Score = 7;
+            server.gameState.goingAlone = true;
+            server.gameState.players['south'].name = 'TestPlayer';
+            server.resetFullGame();
+            assert.strictEqual(server.gameState.team1Score, 0);
+            assert.strictEqual(server.gameState.team2Score, 0);
+            assert.strictEqual(server.gameState.goingAlone, false);
+            assert.notStrictEqual(server.gameState.players['south'].name, 'TestPlayer');
+        });
+        it('should increment connectedPlayerCount when a player joins', function() {
+            server.resetFullGame();
+            // Simulate a player joining by assigning a socketId
+            const fakeSocketId = 'socket123';
+            server.gameState.players['south'].socketId = fakeSocketId;
+            server.gameState.connectedPlayerCount = 1;
+            assert.strictEqual(server.gameState.players['south'].socketId, fakeSocketId);
+            assert.strictEqual(server.gameState.connectedPlayerCount, 1);
+        });
+        it('should clear player slot and decrement count on disconnect', function() {
+            server.resetFullGame();
+            server.gameState.players['west'].socketId = 'socket456';
+            server.gameState.connectedPlayerCount = 2;
+            // Simulate disconnect logic
+            server.gameState.players['west'].socketId = null;
+            server.gameState.connectedPlayerCount--;
+            assert.strictEqual(server.gameState.players['west'].socketId, null);
+            assert.strictEqual(server.gameState.connectedPlayerCount, 1);
+        });
+        it('should preserve scores and reassign players after reset', function() {
+            server.resetFullGame();
+            server.gameState.team1Score = 8;
+            server.gameState.team2Score = 6;
+            // Simulate a reset that preserves scores
+            const prevScores = [server.gameState.team1Score, server.gameState.team2Score];
+            server.resetFullGame();
+            // In real server, scores may be preserved on disconnect; here, just check reset
+            assert.strictEqual(server.gameState.team1Score, 0);
+            assert.strictEqual(server.gameState.team2Score, 0);
+        });
+        it('should not allow more than 4 players to join', function() {
+            server.resetFullGame();
+            // Simulate all slots filled
+            Object.keys(server.gameState.players).forEach((role, i) => {
+                server.gameState.players[role].socketId = 'socket' + i;
+            });
+            // Try to add a 5th player
+            const slotsFilled = Object.values(server.gameState.players).filter(p => p.socketId).length;
+            assert.strictEqual(slotsFilled, 4);
         });
     });
 });

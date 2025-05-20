@@ -9,29 +9,43 @@ describe('Euchre Server Core Functions', function() {
 
     beforeEach(() => {
         // Improved mock for socket.io (prevents io.on errors and mimics structure)
+        const fakeSocket = {
+            emit: () => {},
+            on: () => {},
+            id: 'fakeSocketId'
+        };
         const ioMock = function() {
             return {
-                sockets: { sockets: {} },
+                sockets: {
+                    sockets: {
+                        fakeSocketId: fakeSocket
+                    }
+                },
                 to: () => ({ emit: () => {} }),
                 emit: () => {},
                 on: () => {} // Add on() to prevent io.on is not a function
             };
         };
-        server = proxyquire('../server3', {
-            fs: { appendFileSync: () => {} },
-            'socket.io': ioMock
-        });
-        // Extract functions and state
-        gameState = server.gameState;
-        DEBUG_LEVELS = server.DEBUG_LEVELS;
-        getNextPlayer = server.getNextPlayer;
-        getPartner = server.getPartner;
-        cardToString = server.cardToString;
-        sortHand = server.sortHand;
-        getSuitColor = server.getSuitColor;
-        isRightBower = server.isRightBower;
-        isLeftBower = server.isLeftBower;
-        getCardRank = server.getCardRank;
+        try {
+            server = proxyquire('../server3', {
+                fs: { appendFileSync: () => {} },
+                'socket.io': ioMock
+            });
+            // Extract functions and state
+            gameState = server.gameState;
+            DEBUG_LEVELS = server.DEBUG_LEVELS;
+            getNextPlayer = server.getNextPlayer;
+            getPartner = server.getPartner;
+            cardToString = server.cardToString;
+            sortHand = server.sortHand;
+            getSuitColor = server.getSuitColor;
+            isRightBower = server.isRightBower;
+            isLeftBower = server.isLeftBower;
+            getCardRank = server.getCardRank;
+        } catch (err) {
+            console.error('Error in beforeEach:', err);
+            throw err;
+        }
     });
 
     describe('getNextPlayer', function() {

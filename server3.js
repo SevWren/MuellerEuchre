@@ -16,7 +16,7 @@ const DEBUG_LEVELS = {
     WARNING: 2,
     VERBOSE: 3,
 };
-let currentDebugLevel = DEBUG_LEVELS.INFO;
+let currentDebugLevel = DEBUG_LEVELS.WARNING;
 
 function log(level, message) {
     if (level <= currentDebugLevel) {
@@ -864,7 +864,7 @@ io.on('connection', (socket) => {
     });
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from the 'public' directory
 
 // Only start the server if run directly, not when required for tests
 if (require.main === module) {
@@ -877,12 +877,11 @@ if (require.main === module) {
     });
 }
 
-// Export functions and objects for testing
-/**
- * Module exports for Euchre server core functions and state.
- * These exports are used for game logic and testing purposes.
- */
 module.exports = {
+    /**
+    * Module exports for Euchre server core functions and state.
+    * These exports are used for game logic and testing purposes.
+    */    
     gameState, // The main game state object, representing the current game session.
     DEBUG_LEVELS, // Logging levels for debugging purposes.
     getNextPlayer, // Function to determine the next player's turn.
@@ -897,14 +896,14 @@ module.exports = {
     startNewHand // Prepares the game state for starting a new hand.
 };
 
-/**
- * Returns the color of the given suit, either 'red' or 'black'. If the
- * suit is unknown, returns 'black'.
- *
- * @param {string} suit - the suit to get the color for
- * @returns {string} the color of the suit, either 'red' or 'black'
- */
 function getSuitColor(suit) {
+    /**
+     * Returns the color of the given suit, either 'red' or 'black'. If the
+     * suit is unknown, returns 'black'.
+     *
+     * @param {string} suit - the suit to get the color for
+     * @returns {string} the color of the suit, either 'red' or 'black'
+     */
     if (suit === 'hearts' || suit === 'diamonds') return 'red';
     if (suit === 'spades' || suit === 'clubs') return 'black';
     return 'black';

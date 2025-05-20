@@ -2,9 +2,10 @@
   "name": "public",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server3.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server3.js",
+    "test": "mocha test/**/*.test.js --require proxyquire --reporter spec"
   },
   "keywords": [],
   "author": "",
@@ -12,5 +13,9 @@
   "dependencies": {
     "express": "^5.1.0",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "mocha": "^11.4.0",
+    "proxyquire": "^2.1.3"
   }
 }

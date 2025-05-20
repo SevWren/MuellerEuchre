@@ -1,0 +1,204 @@
+Folder PATH listing for volume SSD Windows 10
+Volume serial number is 5A25-ABF3
+G:.
++---assets
++---bak
++---node_modules
+|   +---@socket.io
+|   |   \---component-emitter
+|   |       \---lib
+|   |           +---cjs
+|   |           \---esm
+|   +---@types
+|   |   +---cors
+|   |   \---node
+|   |       +---assert
+|   |       +---compatibility
+|   |       +---dns
+|   |       +---fs
+|   |       +---readline
+|   |       +---stream
+|   |       +---timers
+|   |       \---ts5.6
+|   +---accepts
+|   +---base64id
+|   |   \---lib
+|   +---body-parser
+|   |   \---lib
+|   |       \---types
+|   +---bytes
+|   +---call-bind-apply-helpers
+|   |   +---.github
+|   |   \---test
+|   +---call-bound
+|   |   +---.github
+|   |   \---test
+|   +---content-disposition
+|   +---content-type
+|   +---cookie
+|   +---cookie-signature
+|   +---cors
+|   |   \---lib
+|   +---debug
+|   |   \---src
+|   +---depd
+|   |   \---lib
+|   |       \---browser
+|   +---dunder-proto
+|   |   +---.github
+|   |   \---test
+|   +---ee-first
+|   +---encodeurl
+|   +---engine.io
+|   |   +---build
+|   |   |   +---contrib
+|   |   |   +---parser-v3
+|   |   |   +---transports
+|   |   |   \---transports-uws
+|   |   \---node_modules
+|   |       +---accepts
+|   |       +---debug
+|   |       |   \---src
+|   |       +---mime-db
+|   |       +---mime-types
+|   |       \---negotiator
+|   |           \---lib
+|   +---engine.io-parser
+|   |   \---build
+|   |       +---cjs
+|   |       |   \---contrib
+|   |       \---esm
+|   |           \---contrib
+|   +---es-define-property
+|   |   +---.github
+|   |   \---test
+|   +---es-errors
+|   |   +---.github
+|   |   \---test
+|   +---es-object-atoms
+|   |   +---.github
+|   |   \---test
+|   +---escape-html
+|   +---etag
+|   +---express
+|   |   \---lib
+|   +---finalhandler
+|   +---forwarded
+|   +---fresh
+|   +---function-bind
+|   |   +---.github
+|   |   \---test
+|   +---get-intrinsic
+|   |   +---.github
+|   |   \---test
+|   +---get-proto
+|   |   +---.github
+|   |   \---test
+|   +---gopd
+|   |   +---.github
+|   |   \---test
+|   +---has-symbols
+|   |   +---.github
+|   |   \---test
+|   |       \---shams
+|   +---hasown
+|   |   \---.github
+|   +---http-errors
+|   +---iconv-lite
+|   |   +---.github
+|   |   +---.idea
+|   |   |   +---codeStyles
+|   |   |   \---inspectionProfiles
+|   |   +---encodings
+|   |   |   \---tables
+|   |   \---lib
+|   +---inherits
+|   +---ipaddr.js
+|   |   \---lib
+|   +---is-promise
+|   +---math-intrinsics
+|   |   +---.github
+|   |   +---constants
+|   |   \---test
+|   +---media-typer
+|   +---merge-descriptors
+|   +---mime-db
+|   +---mime-types
+|   +---ms
+|   +---negotiator
+|   |   \---lib
+|   +---object-assign
+|   +---object-inspect
+|   |   +---.github
+|   |   +---example
+|   |   \---test
+|   |       \---browser
+|   +---on-finished
+|   +---once
+|   +---parseurl
+|   +---path-to-regexp
+|   |   \---dist
+|   +---proxy-addr
+|   +---qs
+|   |   +---.github
+|   |   +---dist
+|   |   +---lib
+|   |   \---test
+|   +---range-parser
+|   +---raw-body
+|   +---router
+|   |   \---lib
+|   +---safe-buffer
+|   +---safer-buffer
+|   +---send
+|   +---serve-static
+|   +---setprototypeof
+|   |   \---test
+|   +---side-channel
+|   |   +---.github
+|   |   \---test
+|   +---side-channel-list
+|   |   +---.github
+|   |   \---test
+|   +---side-channel-map
+|   |   +---.github
+|   |   \---test
+|   +---side-channel-weakmap
+|   |   +---.github
+|   |   \---test
+|   +---socket.io
+|   |   +---client-dist
+|   |   +---dist
+|   |   \---node_modules
+|   |       +---accepts
+|   |       +---debug
+|   |       |   \---src
+|   |       +---mime-db
+|   |       +---mime-types
+|   |       \---negotiator
+|   |           \---lib
+|   +---socket.io-adapter
+|   |   +---dist
+|   |   |   \---contrib
+|   |   \---node_modules
+|   |       \---debug
+|   |           \---src
+|   +---socket.io-parser
+|   |   +---build
+|   |   |   +---cjs
+|   |   |   +---esm
+|   |   |   \---esm-debug
+|   |   \---node_modules
+|   |       \---debug
+|   |           \---src
+|   +---statuses
+|   +---toidentifier
+|   +---type-is
+|   +---undici-types
+|   +---unpipe
+|   +---vary
+|   +---wrappy
+|   \---ws
+|       \---lib
++---public
+\---test

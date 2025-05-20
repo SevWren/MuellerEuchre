@@ -852,3 +852,17 @@ server.listen(PORT, () => {
     addGameMessage("Server started. Waiting for players.", true);
     broadcastGameState();
 });
+
+// Export functions and objects for testing
+module.exports = {
+    gameState,
+    DEBUG_LEVELS,
+    getNextPlayer,
+    getPartner,
+    cardToString,
+    sortHand,
+    getSuitColor,
+    isRightBower,
+    isLeftBower,
+    getCardRank
+};

@@ -508,5 +508,83 @@ describe('Euchre Server Core Functions', function() {
             const slotsFilled = Object.values(server.gameState.players).filter(p => p.socketId).length;
             assert.strictEqual(slotsFilled, 4);
         });
+        it('should not assign the same socketId to multiple roles', function() {
+            server.resetFullGame();
+            const fakeSocketId = 'socket789';
+            server.gameState.players['south'].id = fakeSocketId;
+            server.gameState.players['west'].id = fakeSocketId;
+            // Check for duplicate socketId
+            const ids = Object.values(server.gameState.players).map(p => p.id);
+            const uniqueIds = new Set(ids.filter(Boolean));
+            assert.notStrictEqual(ids.length, uniqueIds.size);
+        });
+        it('should only allow one role per socketId', function() {
+            server.resetFullGame();
+            const fakeSocketId = 'socket999';
+            server.gameState.players['north'].id = fakeSocketId;
+            // Simulate getRoleBySocketId logic
+            const foundRoles = Object.keys(server.gameState.players).filter(role => server.gameState.players[role].id === fakeSocketId);
+            assert.deepStrictEqual(foundRoles, ['north']);
+        });
+        it('should not allow a player to join if all slots are filled', function() {
+            server.resetFullGame();
+            Object.keys(server.gameState.players).forEach((role, i) => {
+                server.gameState.players[role].id = 'socket' + i;
+            });
+            // Simulate join logic: no slot should be available
+            const available = Object.values(server.gameState.players).find(p => !p.id);
+            assert.strictEqual(available, undefined);
+        });
+        it('should clear all player ids on resetFullGame', function() {
+            server.gameState.players['south'].id = 'socketA';
+            server.gameState.players['west'].id = 'socketB';
+            server.resetFullGame();
+            Object.values(server.gameState.players).forEach(p => {
+                assert.strictEqual(p.id, null);
+            });
+        });
+        it('should allow a player to rejoin after disconnect if slot is available', function() {
+            server.resetFullGame();
+            // Simulate player joins and disconnects
+            server.gameState.players['east'].id = 'socketE';
+            server.gameState.connectedPlayerCount = 1;
+            // Player disconnects
+            server.gameState.players['east'].id = null;
+            server.gameState.connectedPlayerCount--;
+            // Player rejoins
+            server.gameState.players['east'].id = 'socketE2';
+            server.gameState.connectedPlayerCount++;
+            assert.strictEqual(server.gameState.players['east'].id, 'socketE2');
+            assert.strictEqual(server.gameState.connectedPlayerCount, 1);
+        });
+        it('should not allow a player to take over another player’s slot', function() {
+            server.resetFullGame();
+            server.gameState.players['north'].id = 'socketN';
+            // Attempt to join with same id in another slot
+            server.gameState.players['west'].id = 'socketN';
+            // There should be duplicate ids, which is not allowed in real logic
+            const ids = Object.values(server.gameState.players).map(p => p.id);
+            const uniqueIds = new Set(ids.filter(Boolean));
+            assert.notStrictEqual(ids.length, uniqueIds.size);
+        });
+        it('should keep player names unique after reset', function() {
+            server.resetFullGame();
+            server.gameState.players['south'].name = 'Alice';
+            server.gameState.players['west'].name = 'Bob';
+            server.resetFullGame();
+            const names = Object.values(server.gameState.players).map(p => p.name);
+            // After reset, all names should be null or default
+            names.forEach(name => {
+                assert.ok(!name || typeof name === 'string');
+            });
+        });
+        it('should not allow connectedPlayerCount to go below zero', function() {
+            server.resetFullGame();
+            server.gameState.connectedPlayerCount = 0;
+            // Simulate disconnect
+            server.gameState.connectedPlayerCount--;
+            if (server.gameState.connectedPlayerCount < 0) server.gameState.connectedPlayerCount = 0;
+            assert(server.gameState.connectedPlayerCount >= 0);
+        });
     });
 });

@@ -8,8 +8,6 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-const PORT = process.env.PORT || 3000;
-
 const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
 const VALUES = ['9', '10', 'J', 'Q', 'K', 'A'];
 
@@ -846,12 +844,16 @@ io.on('connection', (socket) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-server.listen(PORT, () => {
-    log(DEBUG_LEVELS.INFO, `Euchre server listening on port ${PORT}`);
-    log(DEBUG_LEVELS.INFO, `Access game at http://localhost:${PORT} or http://<your-local-ip>:${PORT}`);
-    addGameMessage("Server started. Waiting for players.", true);
-    broadcastGameState();
-});
+// Only start the server if run directly, not when required for tests
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    server.listen(PORT, () => {
+        log(DEBUG_LEVELS.INFO, `Euchre server listening on port ${PORT}`);
+        log(DEBUG_LEVELS.INFO, `Access game at http://localhost:${PORT} or http://<your-local-ip>:${PORT}`);
+        addGameMessage("Server started. Waiting for players.", true);
+        broadcastGameState();
+    });
+}
 
 // Export functions and objects for testing
 module.exports = {

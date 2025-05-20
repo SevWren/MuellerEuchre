@@ -215,7 +215,7 @@ function sortHand(hand, trumpSuit) {
         }
         if (suitOrder[a.suit] < suitOrder[b.suit]) return -1;
         if (suitOrder[a.suit] > suitOrder[b.suit]) return 1;
-        return valueOrder[a.value] - valueOrder[b.value];
+        return valueOrder[b.value] - valueOrder[a.value]; // Sort values in descending order (A, K, Q, etc.)
     });
     return copy;
 }
@@ -658,22 +658,35 @@ io.on('connection', (socket) => {
         socket.emit('game_in_progress', 'A game is currently in progress. You can observe or wait for the next game.');
         log(DEBUG_LEVELS.WARNING, `Game in progress for new connection: ${socket.id}`);
     }
-    broadcastGameState();
+    
+    broadcastGameState(); // Broadcast the current game state to all connected clients
 
+    /**
+     * Handles the request to start a new game.
+     * Validates the request to ensure the game is in the correct state before starting.
+     */
     socket.on('request_start_game', () => {
         const playerRole = getRoleBySocketId(socket.id);
+
+        // Check if the request is valid: 4 players are connected and the game is in the 'LOBBY' phase
         if (playerRole && gameState.connectedPlayerCount === 4 && gameState.gamePhase === 'LOBBY') {
             log(DEBUG_LEVELS.INFO, `${gameState.players[playerRole].name} (${playerRole}) requested to start the game`);
             addGameMessage("Attempting to start game...", true);
             log(DEBUG_LEVELS.INFO, "Game start requested");
+
+            // Randomly assign a dealer for the new game session
             const dealers = ['south', 'west', 'north', 'east'];
             gameState.dealer = dealers[Math.floor(Math.random() * dealers.length)];
             gameState.initialDealerForSession = gameState.dealer;
+
+            // Start a new hand, transitioning the game to the 'DEALING' phase
             startNewHand();
         } else if (gameState.connectedPlayerCount < 4) {
+            // Error handling when there are not enough players
             socket.emit('action_error', 'Need 4 players to start.');
             log(DEBUG_LEVELS.WARNING, `Attempt to start game with ${gameState.connectedPlayerCount} players. Need 4`);
         } else if (gameState.gamePhase !== 'LOBBY') {
+            // Error handling if the game is not in the 'LOBBY' phase
             socket.emit('action_error', 'Game not in lobby phase.');
             log(DEBUG_LEVELS.WARNING, `Attempt to start game while not in lobby phase. Current phase: ${gameState.gamePhase}`);
         }
@@ -865,21 +878,32 @@ if (require.main === module) {
 }
 
 // Export functions and objects for testing
+/**
+ * Module exports for Euchre server core functions and state.
+ * These exports are used for game logic and testing purposes.
+ */
 module.exports = {
-    gameState,
-    DEBUG_LEVELS,
-    getNextPlayer,
-    getPartner,
-    cardToString,
-    sortHand,
-    getSuitColor,
-    isRightBower,
-    isLeftBower,
-    getCardRank,
-    resetFullGame,
-    startNewHand
+    gameState, // The main game state object, representing the current game session.
+    DEBUG_LEVELS, // Logging levels for debugging purposes.
+    getNextPlayer, // Function to determine the next player's turn.
+    getPartner, // Function to get the partner of a given player.
+    cardToString, // Converts a card object to its string representation.
+    sortHand, // Sorts a player's hand, considering the trump suit.
+    getSuitColor, // Returns the color of the suit ('red' or 'black').
+    isRightBower, // Checks if a card is the Right Bower in the current trump suit.
+    isLeftBower, // Checks if a card is the Left Bower in the current trump suit.
+    getCardRank, // Determines the rank of a card based on Euchre rules.
+    resetFullGame, // Resets the game state to its initial configuration.
+    startNewHand // Prepares the game state for starting a new hand.
 };
 
+/**
+ * Returns the color of the given suit, either 'red' or 'black'. If the
+ * suit is unknown, returns 'black'.
+ *
+ * @param {string} suit - the suit to get the color for
+ * @returns {string} the color of the suit, either 'red' or 'black'
+ */
 function getSuitColor(suit) {
     if (suit === 'hearts' || suit === 'diamonds') return 'red';
     if (suit === 'spades' || suit === 'clubs') return 'black';

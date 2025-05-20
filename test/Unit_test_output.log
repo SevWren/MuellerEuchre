@@ -1,0 +1,339 @@
+npx mocha G:\Users\mmuel\OneDrive\Documents\GitHub\MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js --timeout 5000 --require proxyquire --reporter spec
+
+
+  Euchre Server Core Functions
+    getNextPlayer
+      ✔ returns the next player in order
+      ✔ should skip partner when going alone (partner sits out)
+    getPartner
+      ✔ returns the correct partner
+      ✔ should return undefined for invalid role
+    cardToString
+      ✔ returns correct string
+      ✔ should handle incomplete card objects
+    sortHand
+      1) sorts by suit and value
+      ✔ should handle empty hand
+      ✔ should handle hand with only one suit
+      ✔ returns empty array for null/undefined input
+      ✔ sorts hand with trump suit correctly
+      ✔ returns a new array (does not return the same reference)
+      2) handles hand with all bowers and trump
+    isRightBower
+      ✔ and isLeftBower work as expected
+      ✔ should return false for non-Jack card
+      ✔ should return false if trump is undefined
+      ✔ returns false for null/undefined card or trump
+    isLeftBower
+      ✔ should return false for non-Jack card
+      ✔ should return false if trump is undefined
+      ✔ returns false for null/undefined card or trump
+      ✔ correctly identifies left bower for all suit/trump color combos
+    getCardRank
+      ✔ returns correct rank for right/left bower and trump
+      3) should return 0 for non-trump/non-led suit and undefined led suit
+      ✔ returns -1 for null/undefined card
+      ✔ returns -1 for card missing suit or value
+      ✔ returns correct rank for all trump/led suit combos
+    exports and gameState
+      ✔ should export all expected functions
+      ✔ should reset gameState to default structure
+    Defensive and edge case tests
+      getNextPlayer
+        ✔ returns undefined for invalid currentPlayerRole
+        4) returns undefined if playerSlots is missing or not an array
+      getPartner
+        ✔ returns undefined for null/undefined/empty input
+      cardToString
+        ✔ returns N/A for null/undefined
+        ✔ returns Unknown Card for missing value or suit
+      sortHand
+        ✔ returns empty array for null/undefined input
+        ✔ sorts hand with trump suit correctly
+      isRightBower/isLeftBower
+        ✔ returns false for null/undefined card or trump
+        ✔ correctly identifies left bower for all suit/trump color combos
+      getCardRank
+        ✔ returns -1 for null/undefined card
+        ✔ returns -1 for card missing suit or value
+        ✔ returns 0 for non-trump/non-led suit and undefined led suit
+        ✔ returns correct rank for all trump/led suit combos
+      resetFullGame
+        5) resets gameState to a new gameId and default values
+    Additional tests
+      getSuitColor
+        ✔ returns red for hearts and diamonds
+        ✔ returns black for spades and clubs
+        ✔ returns black for unknown suit
+      getNextPlayer advanced
+        ✔ handles going alone with different partnerSittingOut
+        ✔ returns undefined if roles array is empty
+      sortHand
+        ✔ does not mutate original hand array
+      cardToString
+        ✔ handles extra properties gracefully
+        ✔ returns Unknown Card for card with extra/invalid fields
+      getNextPlayer
+        6) returns undefined if roles is not an array or is missing current
+    Multiplayer logic and state
+      ✔ should have 4 player slots and correct default roles
+      ✔ should assign correct teams to each role
+[INFO] Game phase changed to DEALING
+
+[INFO] Dealer assigned: south
+
+[INFO] Up-card: A of clubs
+
+[INFO] Game phase changed to ORDER_UP_ROUND1
+
+      7) should rotate dealer and currentPlayer correctly
+      ✔ should handle going alone and partner sitting out in state
+      8) should reset all multiplayer state on resetFullGame
+      ✔ should increment connectedPlayerCount when a player joins
+      ✔ should clear player slot and decrement count on disconnect
+      9) should preserve scores and reassign players after reset
+      ✔ should not allow more than 4 players to join
+      ✔ should not assign the same socketId to multiple roles
+      ✔ should only allow one role per socketId
+      ✔ should not allow a player to join if all slots are filled
+      10) should clear all player ids on resetFullGame
+      ✔ should allow a player to rejoin after disconnect if slot is available
+      ✔ should not allow a player to take over another player’s slot
+      ✔ should keep player names unique after reset
+      ✔ should not allow connectedPlayerCount to go below zero
+    Multiplayer gameplay core scenarios
+[INFO] Game phase changed to DEALING
+
+[INFO] Dealer assigned: south
+
+[INFO] Up-card: J of diamonds
+
+[INFO] Game phase changed to ORDER_UP_ROUND1
+
+      11) rotates dealer after each hand
+[INFO] Game phase changed to DEALING
+
+[INFO] Dealer assigned: south
+
+[INFO] Up-card: A of hearts
+
+[INFO] Game phase changed to ORDER_UP_ROUND1
+
+      ✔ advances currentPlayer after valid play (simulated)
+[INFO] Game phase changed to DEALING
+
+[INFO] Dealer assigned: south
+
+[INFO] Up-card: Q of clubs
+
+[INFO] Game phase changed to ORDER_UP_ROUND1
+
+      12) transitions game phase from LOBBY to DEALING to ORDER_UP_ROUND1
+      ✔ assigns trick winner and next trick leader (simulated)
+      ✔ updates score after hand (simulated)
+      ✔ partner hand remains untouched when going alone
+      ✔ prevents play out of turn
+      ✔ does not allow join during active game
+      ✔ disconnected player hand is not revealed (simulated)
+      ✔ locks out actions after game over
+    Client interface-related server state tests
+      ✔ should update lobby player list and start button state on player join/leave
+      ✔ should reflect correct game status text for each phase
+      ✔ should only reveal current player hand to that player
+      ✔ should set up-card correctly in state and hide when not set
+      ✔ should update trick area with correct plays and player names
+      ✔ should reflect modal state in gamePhase and player turn
+      ✔ should only allow valid plays for current player and trick
+      ✔ should update game messages log in state
+      ✔ should update team scores in state after hand
+      ✔ should assign and display correct player role and name in state
+
+
+  76 passing (5s)
+  12 failing
+
+  1) Euchre Server Core Functions
+       sortHand
+         sorts by suit and value:
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'spades'
+- 'hearts'
+      + expected - actual
+
+      -spades
+      +hearts
+
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:110:20)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  2) Euchre Server Core Functions
+       sortHand
+         handles hand with all bowers and trump:
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
+  [
+    'J',
+    'J',
++   'Q',
+-   'A',
+    'K',
++   'A'
+-   'Q'
+  ]
+      + expected - actual
+
+       [
+         "J"
+         "J"
+      -  "Q"
+      -  "K"
+         "A"
+      +  "K"
+      +  "Q"
+       ]
+
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:167:20)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  3) Euchre Server Core Functions
+       getCardRank
+         should return 0 for non-trump/non-led suit and undefined led suit:
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+-1 !== 0
+
+      + expected - actual
+
+      --1
+      +0
+
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:226:20)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  4) Euchre Server Core Functions
+       Defensive and edge case tests
+         getNextPlayer
+           returns undefined if playerSlots is missing or not an array:
+     AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'west'
+- undefined
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:276:24)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  5) Euchre Server Core Functions
+       Defensive and edge case tests
+         resetFullGame
+           resets gameState to a new gameId and default values:
+
+      AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+
+1747782708917
+      + expected - actual
+
+
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:372:24)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  6) Euchre Server Core Functions
+       Additional tests
+         getNextPlayer
+           returns undefined if roles is not an array or is missing current:
+     AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'west'
+- undefined
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:433:24)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  7) Euchre Server Core Functions
+       Multiplayer logic and state
+         should rotate dealer and currentPlayer correctly:
+     AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+null !== 'west'
+
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:463:20)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  8) Euchre Server Core Functions
+       Multiplayer logic and state
+         should reset all multiplayer state on resetFullGame:
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+5 !== 0
+
+      + expected - actual
+
+      -5
+      +0
+
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:480:20)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  9) Euchre Server Core Functions
+       Multiplayer logic and state
+         should preserve scores and reassign players after reset:
+
+      AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+8 !== 0
+
+      + expected - actual
+
+      -8
+      +0
+
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:512:20)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  10) Euchre Server Core Functions
+       Multiplayer logic and state
+         should clear all player ids on resetFullGame:
+     AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'socketA'
+- null
+      at G:\Users\mmuel\OneDrive\Documents\GitHub\MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:557:24
+      at Array.forEach (<anonymous>)
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:556:53)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  11) Euchre Server Core Functions
+       Multiplayer gameplay core scenarios
+         rotates dealer after each hand:
+
+      AssertionError [ERR_ASSERTION]: Expected "actual" to be strictly unequal to:
+
+'south'
+      + expected - actual
+
+
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:612:24)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  12) Euchre Server Core Functions
+       Multiplayer gameplay core scenarios
+         transitions game phase from LOBBY to DEALING to ORDER_UP_ROUND1:
+
+      AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(['DEALING', 'ORDER_UP_ROUND1', 'ORDER_UP_ROUND2', 'PLAYING_TRICKS'].includes(server.gameState.gamePhase))
+
+      + expected - actual
+
+      -false
+      +true
+
+      at Context.<anonymous> (MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js:629:13)
+      at process.processImmediate (node:internal/timers:478:21)

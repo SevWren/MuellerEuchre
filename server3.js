@@ -163,79 +163,88 @@ function shuffleDeck() {
     log(DEBUG_LEVELS.VERBOSE, `Deck shuffled: ${JSON.stringify(gameState.deck)}`);
 }
 
-function getNextPlayer(currentPlayerRole) {
-    const currentIndex = gameState.playerSlots.indexOf(currentPlayerRole);
-    let nextIndex = (currentIndex + 1) % gameState.playerSlots.length;
-    if (gameState.goingAlone && gameState.playerSlots[nextIndex] === gameState.partnerSittingOut) {
-        nextIndex = (nextIndex + 1) % gameState.playerSlots.length;
+function getNextPlayer(currentPlayerRole, roles, goingAlone, playerGoingAlone, partnerSittingOut) {
+    // Defensive: use explicit args, fallback to gameState for backward compatibility
+    const slots = Array.isArray(roles) ? roles : (gameState && Array.isArray(gameState.playerSlots) ? gameState.playerSlots : undefined);
+    if (!slots || !Array.isArray(slots) || !slots.length) return undefined;
+    const idx = slots.indexOf(currentPlayerRole);
+    if (idx === -1) return undefined;
+    let nextIdx = (idx + 1) % slots.length;
+    if (goingAlone && partnerSittingOut && slots[nextIdx] === partnerSittingOut) {
+        nextIdx = (nextIdx + 1) % slots.length;
+        // If only 2 players left, prevent infinite loop
+        if (slots[nextIdx] === currentPlayerRole) return undefined;
     }
-    return gameState.playerSlots[nextIndex];
+    return slots[nextIdx];
 }
 
 function getPartner(playerRole) {
+    if (!playerRole) return undefined;
     if (playerRole === 'south') return 'north';
     if (playerRole === 'north') return 'south';
     if (playerRole === 'east') return 'west';
     if (playerRole === 'west') return 'east';
-    return null;
+    return undefined;
 }
 
 function cardToString(card) {
-    if (!card) return "N/A";
+    if (card === null || card === undefined) return 'N/A';
+    if (!card || typeof card !== 'object' || !card.value || !card.suit) return 'Unknown Card';
     return `${card.value} of ${card.suit}`;
 }
 
-function sortHand(hand) {
-    hand.sort((a, b) => {
-        const suitOrder = { 'hearts': 0, 'diamonds': 1, 'clubs': 2, 'spades': 3 };
+function sortHand(hand, trumpSuit) {
+    if (!Array.isArray(hand)) return [];
+    // Defensive: do not mutate original
+    const copy = hand.map(card => ({ ...card }));
+    const suitOrder = { 'hearts': 0, 'diamonds': 1, 'clubs': 2, 'spades': 3 };
+    const valueOrder = { '9': 0, '10': 1, 'J': 2, 'Q': 3, 'K': 4, 'A': 5 };
+    copy.sort((a, b) => {
+        // Trump sorting: right bower > left bower > trump > others
+        if (trumpSuit) {
+            const aIsRB = isRightBower(a, trumpSuit);
+            const bIsRB = isRightBower(b, trumpSuit);
+            if (aIsRB && !bIsRB) return -1;
+            if (!aIsRB && bIsRB) return 1;
+            const aIsLB = isLeftBower(a, trumpSuit);
+            const bIsLB = isLeftBower(b, trumpSuit);
+            if (aIsLB && !bIsLB) return -1;
+            if (!aIsLB && bIsLB) return 1;
+            if (a.suit === trumpSuit && b.suit !== trumpSuit) return -1;
+            if (a.suit !== trumpSuit && b.suit === trumpSuit) return 1;
+        }
         if (suitOrder[a.suit] < suitOrder[b.suit]) return -1;
         if (suitOrder[a.suit] > suitOrder[b.suit]) return 1;
-        const valueOrder = { '9': 0, '10': 1, 'J': 2, 'Q': 3, 'K': 4, 'A': 5 };
         return valueOrder[a.value] - valueOrder[b.value];
     });
-}
-
-function getSuitColor(suit) {
-    return (suit === 'hearts' || suit === 'diamonds') ? 'red' : 'black';
+    return copy;
 }
 
 function isRightBower(card, trumpSuit) {
-    return trumpSuit && card.value === 'J' && card.suit === trumpSuit;
+    if (!card || !trumpSuit) return false;
+    return card.value === 'J' && card.suit === trumpSuit;
 }
 
 function isLeftBower(card, trumpSuit) {
-    if (!trumpSuit || card.value !== 'J') return false;
+    if (!card || !trumpSuit || card.value !== 'J') return false;
     const trumpColor = getSuitColor(trumpSuit);
     const cardColor = getSuitColor(card.suit);
     return trumpColor === cardColor && card.suit !== trumpSuit;
 }
 
 function getCardRank(card, ledSuit, trumpSuit) {
-    if (isRightBower(card, trumpSuit)) {
-        log(DEBUG_LEVELS.VERBOSE, `Card rank for ${cardToString(card)}: 100 (Right Bower)`);
-        return 100;
-    }
-    if (isLeftBower(card, trumpSuit)) {
-        log(DEBUG_LEVELS.VERBOSE, `Card rank for ${cardToString(card)}: 90 (Left Bower)`);
-        return 90;
-    }
-
-    if (card.suit === trumpSuit) {
+    if (!card || !card.value || !card.suit) return -1;
+    if (isRightBower(card, trumpSuit)) return 100;
+    if (isLeftBower(card, trumpSuit)) return 90;
+    if (trumpSuit && card.suit === trumpSuit) {
         const trumpValues = { '9': 1, '10': 2, 'Q': 3, 'K': 4, 'A': 5 };
-        const rank = 80 + trumpValues[card.value];
-        log(DEBUG_LEVELS.VERBOSE, `Card rank for ${cardToString(card)}: ${rank} (Trump)`);
-        return rank;
+        return 80 + (trumpValues[card.value] || 0);
     }
-    if (ledSuit) {
-        let effectiveLedSuit = ledSuit;
-        if (card.suit === effectiveLedSuit) {
-            const normalValues = { '9': 1, '10': 2, 'J': 3, 'Q': 4, 'K': 5, 'A': 6 };
-            const rank = normalValues[card.value];
-            log(DEBUG_LEVELS.VERBOSE, `Card rank for ${cardToString(card)}: ${rank} (Led Suit)`);
-            return rank;
-        }
+    if (ledSuit && card.suit === ledSuit) {
+        const normalValues = { '9': 1, '10': 2, 'J': 3, 'Q': 4, 'K': 5, 'A': 6 };
+        return normalValues[card.value] || 0;
     }
-    log(DEBUG_LEVELS.VERBOSE, `Card rank for ${cardToString(card)}: -1 (No Match)`);
+    if (!trumpSuit && !ledSuit) return 0;
     return -1;
 }
 
@@ -866,5 +875,13 @@ module.exports = {
     getSuitColor,
     isRightBower,
     isLeftBower,
-    getCardRank
+    getCardRank,
+    resetFullGame,
+    startNewHand
 };
+
+function getSuitColor(suit) {
+    if (suit === 'hearts' || suit === 'diamonds') return 'red';
+    if (suit === 'spades' || suit === 'clubs') return 'black';
+    return 'black';
+}

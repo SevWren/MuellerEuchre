@@ -23,7 +23,8 @@ describe('Euchre Server Core Functions', function() {
                 },
                 to: () => ({ emit: () => {} }),
                 emit: () => {},
-                on: () => {} // Add on() to prevent io.on is not a function
+                on: () => {}, // Add on() to prevent io.on is not a function
+                in: () => ({ emit: () => {} }) // Add in() for room handling
             };
         };
         try {

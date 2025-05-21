@@ -7,10 +7,25 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "NODE_OPTIONS=--experimental-vm-modules npx mocha \"src/test/**/*.test.js\" --timeout 5000 --reporter spec",
-    "test:watch": "NODE_OPTIONS=--experimental-vm-modules npx mocha \"src/test/**/*.test.js\" --timeout 5000 --watch --reporter min",
+    "test": "npx mocha --require esm \"G:/Users/mmuel/OneDrive/Documents/GitHub/MuellerEuchre/euchre-multiplayer/test/**/*.test.js\"",
+    "test:watch": "npx mocha --require esm --watch \"G:/Users/mmuel/OneDrive/Documents/GitHub/MuellerEuchre/euchre-multiplayer/test/**/*.test.js\"",
+    "test:coverage": "npx c8 --reporter=html --reporter=text --reporter=lcov mocha --require esm \"G:/Users/mmuel/OneDrive/Documents/GitHub/MuellerEuchre/euchre-multiplayer/test/**/*.test.js\"",
+    "test:coverage:ci": "npx c8 --reporter=lcov mocha --require esm \"G:/Users/mmuel/OneDrive/Documents/GitHub/MuellerEuchre/euchre-multiplayer/test/**/*.test.js\"",
+    "coverage:report": "npx c8 report --reporter=text-lcov | npx coveralls",
     "migrate": "node migrate.js",
     "init:modules": "node init-modules.js"
+  },
+  "c8": {
+    "exclude": [
+      "**/test/**",
+      "**/node_modules/**",
+      "**/coverage/**",
+      "**/public/**",
+      "**/.git/**"
+    ],
+    "include": ["src/**/*.js"],
+    "reporter": ["text", "html", "lcov"],
+    "all": true
   },
   "keywords": ["euchre", "card-game", "multiplayer", "nodejs"],
   "author": "",

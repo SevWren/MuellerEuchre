@@ -1,12 +1,53 @@
 import { expect } from 'chai';
 import { handlePlayCard } from '../src/game/phases/playPhase.js';
-import { GAME_PHASES } from '../src/config/constants.js';
+import { GAME_PHASES, TEAMS } from '../src/config/constants.js';
+
+/**
+ * Helper function to create a deep copy of the game state
+ * @param {Object} state - The game state to copy
+ * @returns {Object} A deep copy of the game state
+ */
+function cloneGameState(state) {
+    return JSON.parse(JSON.stringify(state));
+}
+
+/**
+ * Helper function to simulate playing a complete trick
+ * @param {Object} state - The current game state
+ * @param {Array} plays - Array of {player, card} objects representing the plays in order
+ * @returns {Object} The updated game state after the trick
+ */
+function playTrick(state, plays) {
+    return plays.reduce((currentState, play) => 
+        handlePlayCard(currentState, play.player, play.card), 
+    cloneGameState(state));
+}
 
 describe('Play Phase', () => {
      let gameState;
-     
+      
      beforeEach(() => {
-          // Setup a basic game state for testing
+     // Setup a basic game state for testing
+     /**
+     * Sets up a fresh game state before each test case to ensure test isolation.
+     * Initializes a standard Euchre game state with:
+     * - Player order: North, East, South, West (clockwise)
+     * - Dealer: South
+     * - Current player: North (player to the dealer's left)
+     * - Trump suit: hearts
+     * - Maker team: North+South
+     * - Player who called trump: North
+     * - Trick leader: North (first to play in the first trick)
+     * - Empty current trick and tricks array
+     * - Pre-dealt hands for each player with known card distributions:
+     *   - North: Right bower (J♥), Left bower (J♦), A♥, 10♣, Q♠
+     *   - East: K♥, A♦, A♣, A♠, Q♥
+     *   - South: 10♥, K♦, K♣, K♠, 9♥
+     *   - West: Q♦, ... (remaining cards not shown in view)
+     * 
+     * This setup ensures consistent starting conditions for each test case
+     * and includes a variety of card combinations to test different game scenarios.
+     */          
           gameState = {
                playerOrder: ['north', 'east', 'south', 'west'],
                dealer: 'south',
@@ -61,6 +102,37 @@ describe('Play Phase', () => {
      });
 
      describe('handlePlayCard', () => {
+          /**
+          * Test suite for the handlePlayCard function, which manages the core card playing
+          * logic in the Euchre game. This suite verifies:
+          * 
+          * Core Game Mechanics:
+          * - First card play in a trick
+          * - Following suit requirements
+          * - Trick completion and winner determination
+          * - Proper player rotation
+          * - Hand management (card removal after playing)
+          * 
+          * Trump Card Handling:
+          * - Right bower (J of trump suit) as highest card
+          * - Left bower (J of same color) as second highest
+          * - Trump suit cards beating non-trump cards
+          * 
+          * Edge Cases:
+          * - End of hand detection and phase transition to SCORING
+          * - Validation of play rules (enforcing following suit)
+          * - Proper trick winner calculation with mixed suits and trumps
+          * 
+          * Game State Updates:
+          * - Current trick tracking
+          * - Completed tricks history
+          * - Player hand updates
+          * - Game phase transitions
+          * - Informative game messages
+          * 
+          * The tests use a standard Euchre setup with hearts as trump and North as the
+          * player who called trump, ensuring consistent test conditions.
+          */
           it('should handle first card of a trick', () => {
                const cardToPlay = { suit: 'clubs', rank: '10' };
                const result = handlePlayCard(gameState, 'north', cardToPlay);
@@ -146,14 +218,21 @@ describe('Play Phase', () => {
                expect(result.tricks[0].winner).to.equal('north');
           });
           
-          it('should enforce following suit', () => {
+          it('should enforce following suit with specific error message', () => {
                // North leads with clubs
                const result = handlePlayCard(gameState, 'north', { suit: 'clubs', rank: '10' });
                
                // East tries to play a spade but has clubs
-               expect(() => 
-                    handlePlayCard(result, 'east', { suit: 'spades', rank: 'A' })
-               ).to.throw('Must follow suit');
+               try {
+                    handlePlayCard(result, 'east', { suit: 'spades', rank: 'A' });
+                    expect.fail('Expected an error to be thrown');
+               } catch (error) {
+                    expect(error).to.be.an('Error');
+                    expect(error.message).to.include('Must follow suit');
+                    expect(error.message).to.include('east');
+                    expect(error.message).to.include('clubs');
+                    expect(error.message).to.include('spades');
+               }
           });
           
           it('should handle end of hand', () => {
@@ -174,3 +253,4 @@ describe('Play Phase', () => {
           });
      });
 });
+

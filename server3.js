@@ -278,6 +278,8 @@ function createDeck() {
             deck.push({ suit, value, id: `${value}-${suit}` });
         }
     }
+    // Assign to gameState.deck for test compatibility
+    if (gameState) gameState.deck = deck;
     log(DEBUG_LEVELS.VERBOSE, `Deck created: ${JSON.stringify(deck)}`);
     return deck;
 }
@@ -285,29 +287,19 @@ function createDeck() {
 function shuffleDeck(deck) {
     // If no deck is provided, use the gameState deck
     const deckToShuffle = deck || (gameState && gameState.deck);
-    
-    // Validate the deck
     if (!deckToShuffle || !Array.isArray(deckToShuffle)) {
         log(DEBUG_LEVELS.WARNING, `Invalid deck provided to shuffleDeck: ${typeof deckToShuffle}`);
         return [];
     }
-    
-    // Create a copy of the deck to avoid modifying the original array directly
-    const shuffledDeck = [...deckToShuffle];
-    
-    // Fisher-Yates shuffle algorithm
-    for (let i = shuffledDeck.length - 1; i > 0; i--) {
+    // Fisher-Yates shuffle
+    for (let i = deckToShuffle.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [shuffledDeck[i], shuffledDeck[j]] = [shuffledDeck[j], shuffledDeck[i]];
+        [deckToShuffle[i], deckToShuffle[j]] = [deckToShuffle[j], deckToShuffle[i]];
     }
-    
-    // Update the game state if we're using the main deck
-    if (!deck && gameState) {
-        gameState.deck = shuffledDeck;
-    }
-    
-    log(DEBUG_LEVELS.VERBOSE, `Deck shuffled: ${shuffledDeck.length} cards`);
-    return shuffledDeck;
+    // Assign back to gameState.deck for test compatibility
+    if (!deck && gameState) gameState.deck = deckToShuffle;
+    log(DEBUG_LEVELS.VERBOSE, `Deck shuffled: ${deckToShuffle.length} cards`);
+    return deckToShuffle;
 }
 
 function getNextPlayer(currentPlayerRole, playerSlots, goingAlone, playerGoingAlone, partnerSittingOut) {
@@ -1002,7 +994,7 @@ io.on('connection', (socket) => {
 
     socket.on('action_go_alone', ({ decision }) => {
         try {
-            log(DEBUG_LEVELS.VERBOSE, `Received action_go_alone from ${socket.id}: ${decision}`);
+            log(DEBUG_LEVELs.VERBOSE, `Received action_go_alone from ${socket.id}: ${decision}`);
             const playerRole = getRoleBySocketId(socket.id);
             if (playerRole) handleGoAloneDecision(playerRole, decision);
         } catch (error) {

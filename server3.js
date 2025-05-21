@@ -1,4 +1,3 @@
-//npx mocha G:\Users\mmuel\OneDrive\Documents\GitHub\MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js --require proxyquire --reporter spec
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -243,13 +242,14 @@ function broadcastGameState() {
 }
 
 function createDeck() {
-    gameState.deck = [];
+    const deck = [];
     for (const suit of SUITS) {
         for (const value of VALUES) {
-            gameState.deck.push({ suit, value, id: `${value}-${suit}` });
+            deck.push({ suit, value, id: `${value}-${suit}` });
         }
     }
-    log(DEBUG_LEVELS.VERBOSE, `Deck created: ${JSON.stringify(gameState.deck)}`);
+    log(DEBUG_LEVELS.VERBOSE, `Deck created: ${JSON.stringify(deck)}`);
+    return deck;
 }
 
 function shuffleDeck(deck) {
@@ -440,33 +440,16 @@ function getCardRank(card, ledSuit, trumpSuit) {
 
 function startNewHand() {
     log(DEBUG_LEVELS.INFO, 'Starting new hand...');
-    
-    // Ensure we have a valid game state
     if (!gameState) {
         log(DEBUG_LEVELS.WARNING, 'Cannot start new hand: gameState is not initialized');
         return false;
     }
 
-    // Always create a fresh deck for a new hand
-    gameState.deck = createDeck();
-    if (!gameState.deck || !Array.isArray(gameState.deck)) {
-        log(DEBUG_LEVELS.ERROR, 'Failed to create a new deck');
-        return false;
-    }
-    shuffleDeck(gameState.deck);
-    
-    // Reset hand-specific state
-    gameState.tricks = [];
-    gameState.currentTrickPlays = [];
-    gameState.trickLeader = null;
-
     // Rotate dealer before starting new hand
-    const currentDealerIndex = gameState.playerSlots.indexOf(gameState.dealer);
-    const nextDealerIndex = (currentDealerIndex + 1) % gameState.playerSlots.length;
-    
-    // Update dealer
+    const dealerIndex = gameState.playerSlots.indexOf(gameState.dealer);
+    const nextDealerIndex = (dealerIndex + 1) % gameState.playerSlots.length;
     gameState.dealer = gameState.playerSlots[nextDealerIndex];
-    
+
     // If this is the first hand of the session, set the initial dealer
     if (gameState.initialDealerForSession === null) {
         log(DEBUG_LEVELS.INFO, 'Setting initial dealer for session:', gameState.dealer);
@@ -474,55 +457,22 @@ function startNewHand() {
     } else {
         log(DEBUG_LEVELS.INFO, `Rotated dealer to ${gameState.dealer}`);
     }
-    
+
     // Set current player to the player to the left of the dealer
-    const currentPlayerIndex = (nextDealerIndex + 1) % gameState.playerSlots.length;
+    let currentPlayerIndex = (nextDealerIndex + 1) % gameState.playerSlots.length;
     gameState.currentPlayer = gameState.playerSlots[currentPlayerIndex];
     log(DEBUG_LEVELS.INFO, `Set current player to ${gameState.currentPlayer}`);
-    
+
     // Create and shuffle a new deck
     gameState.deck = createDeck();
     shuffleDeck(gameState.deck);
-    
-    // Deal cards to players
-    const numCardsPerPlayer = 5;
-    const numPlayers = gameState.playerSlots.length;
-    
-    // Clear all player hands
-    gameState.playerSlots.forEach(role => {
-        if (gameState.players[role]) {
-            gameState.players[role].hand = [];
-        }
-    });
-    
-    // Deal cards in the correct order (starting with player to dealer's left)
-    currentPlayerIndex = (dealerIndex + 1) % numPlayers;
-    
-    for (let i = 0; i < numCardsPerPlayer; i++) {
-        for (let j = 0; j < numPlayers; j++) {
-            const role = gameState.playerSlots[currentPlayerIndex];
-            if (gameState.deck.length > 0 && gameState.players[role]) {
-                const card = gameState.deck.pop();
-                if (card) {
-                    gameState.players[role].hand.push(card);
-                }
-            }
-            currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
-        }
-    }
-    log(DEBUG_LEVELS.INFO, `Shuffled deck: ${gameState.deck.length} cards`);
-    
-    // Set up the kitty and up card
+
+    // Reset hand-specific state
+    gameState.tricks = [];
+    gameState.currentTrickPlays = [];
+    gameState.trickLeader = null;
     gameState.kitty = [];
-    if (gameState.deck.length > 0) {
-        gameState.kitty = [gameState.deck.pop()];
-        gameState.upCard = gameState.kitty[0];
-    } else {
-        log(DEBUG_LEVELS.ERROR, 'Not enough cards in deck for kitty');
-        return;
-    }
-    
-    // Reset hand state
+    gameState.upCard = null;
     gameState.trump = null;
     gameState.orderUpRound = 1;
     gameState.maker = null;
@@ -531,52 +481,18 @@ function startNewHand() {
     gameState.goingAlone = false;
     gameState.playerGoingAlone = null;
     gameState.partnerSittingOut = null;
-    gameState.tricks = [];
-    gameState.currentTrickPlays = [];
-    gameState.trickLeader = null;
     gameState.winningTeam = null;
 
     // Reset player hands and tricks taken
-    Object.values(gameState.players).forEach(player => {
-        if (player) {
-            player.hand = [];
-            player.tricksTakenThisHand = 0;
-        }
-    });
-
-    // Deal cards
-    let currentPlayer = getNextPlayer(gameState.dealer);
-    log(DEBUG_LEVELS.INFO, `Starting to deal cards from player: ${currentPlayer}`);
-    
-    for (let i = 0; i < 5; i++) {
-        for (let j = 0; j < 4; j++) {
-            if (gameState.deck.length > 0 && gameState.players[currentPlayer]) {
-                const card = gameState.deck.pop();
-                if (card) {
-                    gameState.players[currentPlayer].hand.push(card);
-                    log(DEBUG_LEVELS.VERBOSE, `Dealt ${cardToString(card)} to ${currentPlayer}`);
-                }
-            } else {
-                log(DEBUG_LEVELS.WARNING, `Skipping deal to ${currentPlayer}: no cards left or invalid player`);
-            }
-            currentPlayer = getNextPlayer(currentPlayer);
-        }
-    }
-
-    // Set initial game state
-    gameState.gamePhase = 'DEALING';
-    log(DEBUG_LEVELS.INFO, `Game phase changed to ${gameState.gamePhase}`);
-    
-    // Clear all player hands
     gameState.playerSlots.forEach(role => {
         if (gameState.players[role]) {
             gameState.players[role].hand = [];
+            gameState.players[role].tricksTakenThisHand = 0;
         }
     });
-    
+
     // Deal cards in the correct order (starting with player to dealer's left)
     currentPlayerIndex = (gameState.playerSlots.indexOf(gameState.dealer) + 1) % gameState.playerSlots.length;
-    
     for (let i = 0; i < 5; i++) {
         for (let j = 0; j < gameState.playerSlots.length; j++) {
             const role = gameState.playerSlots[currentPlayerIndex];
@@ -584,54 +500,41 @@ function startNewHand() {
                 const card = gameState.deck.pop();
                 if (card) {
                     gameState.players[role].hand.push(card);
+                    log(DEBUG_LEVELS.VERBOSE, `Dealt ${cardToString(card)} to ${role}`);
                 }
             }
-            currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
+            currentPlayerIndex = (currentPlayerIndex + 1) % gameState.playerSlots.length;
         }
     }
-    
+
     // Set up the kitty (top card of the deck)
-    gameState.kitty = [gameState.deck.pop()];
-    gameState.upCard = gameState.kitty[0];
-    
-    // Move to order up phase
+    if (gameState.deck.length > 0) {
+        gameState.kitty = [gameState.deck.pop()];
+        gameState.upCard = gameState.kitty[0];
+    } else {
+        log(DEBUG_LEVELS.ERROR, 'Not enough cards in deck for kitty');
+        return;
+    }
+
+    // Set initial game state
     gameState.gamePhase = 'ORDER_UP_ROUND1';
     log(DEBUG_LEVELS.INFO, `Game phase changed to ${gameState.gamePhase}`);
-    
-    // Reset hand-specific state
-    gameState.orderUpRound = 1;
-    gameState.maker = null;
-    gameState.playerWhoCalledTrump = null;
-    gameState.dealerHasDiscarded = false;
-    gameState.goingAlone = false;
-    gameState.playerGoingAlone = null;
-    gameState.partnerSittingOut = null;
-    gameState.tricks = [];
-    gameState.currentTrickPlays = [];
-    gameState.trickLeader = null;
-    
-    // Reset player tricks taken this hand
-    gameState.playerSlots.forEach(role => {
-        if (gameState.players[role]) {
-            gameState.players[role].tricksTakenThisHand = 0;
-        }
-    });
-    
+
     // Broadcast the updated game state
     if (typeof broadcastGameState === 'function') {
         broadcastGameState();
     } else {
         log(DEBUG_LEVELS.WARNING, 'broadcastGameState is not a function');
     }
-    
+
     // Add game message for current player's turn
     if (gameState.players[gameState.currentPlayer]) {
         addGameMessage(`${gameState.players[gameState.currentPlayer].name}'s turn to order up or pass.`);
     }
-    
+
     log(DEBUG_LEVELS.INFO, `New hand started. Dealer: ${gameState.dealer}, Current player: ${gameState.currentPlayer}`);
     log(DEBUG_LEVELS.VERBOSE, `Up-card: ${cardToString(gameState.upCard)}`);
-    
+
     return gameState;
 }
 

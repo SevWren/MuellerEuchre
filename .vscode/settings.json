@@ -33,9 +33,6 @@
     "G:\\"
   ],
   
-  // Terminal working directory
-  "terminal.integrated.cwd": "G:\\",
-  
   // Environment variables for terminal
   "terminal.integrated.env.windows": {
     "SystemDrive": "G:",

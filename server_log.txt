@@ -113,3 +113,12 @@
 [WARNING] User disconnected: IU3o_pPdoecR6SbhAAAD
 [WARNING] User disconnected: waDX68PpWh9GO_tBAAAG
 [WARNING] User disconnected: cOqW9d90ebcZhUrWAAAH
+[INFO] Resetting full game state...
+[INFO] New game ID: 1747794686744 (old was: undefined)
+[INFO] Game state reset with new gameId: 1747794686744
+[INFO] Euchre server listening on port 3000
+[INFO] Access game at http://localhost:3000 or http://<your-local-ip>:3000
+[INFO] A user connected: jb8gBpbRmCKVxjhoAAAB
+[INFO] South (south) joined
+[WARNING] User disconnected: jb8gBpbRmCKVxjhoAAAB
+[INFO] South (south) disconnected

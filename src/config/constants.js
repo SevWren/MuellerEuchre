@@ -36,3 +36,6 @@ export const CARD_RANKS = {
     TEN: 40,
     NINE: 30
 };
+
+// Game configuration
+export const WINNING_SCORE = 10;

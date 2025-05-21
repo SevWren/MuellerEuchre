@@ -16,8 +16,15 @@ import { getPartner } from '../../utils/players.js';
 export function scoreCurrentHand(gameState) {
     log(DEBUG_LEVELS.INFO, '[scoreCurrentHand] Calculating hand scores');
     
-    const updatedState = { ...gameState };
-    const { players, tricks, goingAlone, playerGoingAlone } = updatedState;
+    // Create a deep copy of the game state to avoid mutating the original
+    const updatedState = JSON.parse(JSON.stringify(gameState));
+    updatedState.currentPhase = GAME_PHASES.SCORING;
+    
+    // Initialize scores if they don't exist
+    updatedState.scores = updatedState.scores || {
+        'north+south': 0,
+        'east+west': 0
+    };
     
     // Count tricks won by each team
     const teamTricks = {
@@ -26,19 +33,19 @@ export function scoreCurrentHand(gameState) {
     };
     
     // Count tricks won by each player
-    Object.entries(players).forEach(([playerRole, player]) => {
+    Object.entries(updatedState.players).forEach(([playerRole, player]) => {
         const partner = getPartner(playerRole);
         const teamKey = [playerRole, partner].sort().join('+');
-        teamTricks[teamKey] = (teamTricks[teamKey] || 0) + player.tricksWon;
+        teamTricks[teamKey] = (teamTricks[teamKey] || 0) + (player.tricksWon || 0);
     });
     
     // Determine which team was the maker (called trump)
-    const makerTeam = updatedState.makerTeam; // This would be set during bidding
+    const makerTeam = updatedState.makerTeam || 'north+south';
     const makerTeamKey = makerTeam === 'north+south' ? 'north+south' : 'east+west';
     const opponentTeamKey = makerTeam === 'north+south' ? 'east+west' : 'north+south';
     
-    const makerTricks = teamTricks[makerTeamKey];
-    const opponentTricks = teamTricks[opponentTeamKey];
+    const makerTricks = teamTricks[makerTeamKey] || 0;
+    const opponentTricks = teamTricks[opponentTeamKey] || 0;
     
     // Calculate points based on Euchre scoring rules
     let makerPoints = 0;
@@ -49,7 +56,7 @@ export function scoreCurrentHand(gameState) {
         // Maker team made their bid
         if (makerTricks === 5) {
             // March (took all 5 tricks)
-            makerPoints = goingAlone ? 4 : 2;
+            makerPoints = updatedState.goingAlone ? 4 : 2;
             message = `${makerTeam} made a march!`;
         } else {
             // Won 3 or 4 tricks
@@ -63,7 +70,6 @@ export function scoreCurrentHand(gameState) {
     }
     
     // Update team scores
-    updatedState.scores = updatedState.scores || {};
     updatedState.scores[makerTeam] = (updatedState.scores[makerTeam] || 0) + makerPoints;
     updatedState.scores[opponentTeamKey] = (updatedState.scores[opponentTeamKey] || 0) + opponentPoints;
     
@@ -125,7 +131,7 @@ function checkForGameWin(scores) {
  * @param {Object} gameState - Current game state
  * @returns {Object} Reset game state
  */
-export function resetGame(gameState) {
+export function resetGame(gameState = {}) {
     log(DEBUG_LEVELS.INFO, '[resetGame] Resetting game');
     
     return {
@@ -134,12 +140,22 @@ export function resetGame(gameState) {
             'north+south': 0,
             'east+west': 0
         },
-        dealer: 'south', // Or determine randomly
+        dealer: 'south',
         currentPhase: GAME_PHASES.LOBBY,
         messages: [{
             type: 'game',
             text: 'New game started! Waiting for players...'
-        }]
+        }],
+        players: {
+            north: { tricksWon: 0, hand: [] },
+            south: { tricksWon: 0, hand: [] },
+            east: { tricksWon: 0, hand: [] },
+            west: { tricksWon: 0, hand: [] }
+        },
+        playerOrder: ['north', 'east', 'south', 'west'],
+        makerTeam: null,
+        goingAlone: false,
+        playerGoingAlone: null
     };
 }
 

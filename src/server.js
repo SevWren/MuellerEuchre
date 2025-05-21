@@ -1,105 +1,109 @@
+/**
+ * @file Main server file for Euchre Multiplayer
+ * @description Sets up the Express server, initializes socket.io, and manages the game state
+ */
+
 import express from 'express';
 import http from 'http';
-import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GAME_PHASES } from './config/constants.js';
-import { resetFullGame, getGameState, updateGameState } from './game/state.js';
-import { log, setDebugLevel } from './utils/logger.js';
-import { currentDebugLevel } from './utils/logger.js';
+import { dirname } from 'path';
 
-// Initialize Express app and HTTP server
+// Import configuration
+import { DEBUG_LEVELS, PORT } from './config/constants.js';
+import { log } from './utils/logger.js';
+
+// Import game state and socket initialization
+import { initializeGameState, getGameState } from './game/state.js';
+import { initializeSocket } from './socket/index.js';
+
+// Set up __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Initialize Express app
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
 
-// Get __dirname equivalent in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Configure middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from the public directory
-app.use(express.static(path.join(__dirname, '../../public')));
+const publicPath = path.join(__dirname, '../../public');
+app.use(express.static(publicPath));
 
-// Set the view engine to EJS
+// Set view engine (if using server-side rendering)
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, '../views'));
+app.set('views', path.join(__dirname, '../../views'));
 
-// Routes
-app.get('/', (req, res) => {
-    res.render('index', { gameState: getGameState() });
+// API Routes
+app.get('/api/status', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
+
+// Serve the main application
+app.get('*', (req, res) => {
+    res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 // Initialize game state
-resetFullGame();
+initializeGameState();
 
-// Socket.io connection handling
-io.on('connection', (socket) => {
-    log(currentDebugLevel, `New connection: ${socket.id}`);
-    
-    // Handle player joining
-    socket.on('joinGame', (playerData) => {
-        const gameState = getGameState();
-        const availableSlot = Object.entries(gameState.players).find(
-            ([_, player]) => !player.socketId
-        );
-        
-        if (availableSlot) {
-            const [role, player] = availableSlot;
-            player.socketId = socket.id;
-            player.name = playerData.name || role;
-            gameState.connectedPlayerCount++;
-            
-            updateGameState({
-                ...gameState,
-                [`players.${role}`]: player
-            });
-            
-            socket.emit('joinedGame', { role, gameState: getGameState() });
-            io.emit('gameStateUpdate', getGameState());
-            
-            log(currentDebugLevel, `${player.name} joined as ${role}`);
-        } else {
-            socket.emit('gameFull');
-        }
-    });
-    
-    // Handle disconnection
-    socket.on('disconnect', () => {
-        const gameState = getGameState();
-        const playerEntry = Object.entries(gameState.players).find(
-            ([_, player]) => player.socketId === socket.id
-        );
-        
-        if (playerEntry) {
-            const [role, player] = playerEntry;
-            log(currentDebugLevel, `${player.name} (${role}) disconnected`);
-            
-            // Clear the player's socket ID but keep their name
-            player.socketId = null;
-            gameState.connectedPlayerCount--;
-            
-            updateGameState({
-                ...gameState,
-                [`players.${role}`]: player
-            });
-            
-            io.emit('gameStateUpdate', getGameState());
-        }
-    });
-    
-    // Add more socket event handlers here...
+// Initialize Socket.IO with our custom configuration
+initializeSocket(server, getGameState());
+
+// Handle server errors
+server.on('error', (error) => {
+    log(DEBUG_LEVELS.ERROR, `Server error: ${error.message}`);
+    if (error.syscall !== 'listen') {
+        throw error;
+    }
+
+    // Handle specific listen errors with friendly messages
+    switch (error.code) {
+        case 'EACCES':
+            log(DEBUG_LEVELS.ERROR, `Port ${PORT} requires elevated privileges`);
+            process.exit(1);
+            break;
+        case 'EADDRINUSE':
+            log(DEBUG_LEVELS.ERROR, `Port ${PORT} is already in use`);
+            process.exit(1);
+            break;
+        default:
+            throw error;
+    }
 });
 
-// Start the server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    log(currentDebugLevel, `Server running on port ${PORT}`);
-});
-
-// Export for testing
-let exports = {};
-if (process.env.NODE_ENV === 'test') {
-    exports = { app, server, io };
+// Start the server if this file is run directly
+if (process.env.NODE_ENV !== 'test') {
+    server.listen(PORT, () => {
+        log(DEBUG_LEVELS.INFO, `Server running on port ${PORT}`);
+        log(DEBUG_LEVELS.INFO, `Environment: ${process.env.NODE_ENV || 'development'}`);
+        log(DEBUG_LEVELS.INFO, `Debug level: ${DEBUG_LEVELS[process.env.DEBUG_LEVEL] || 'INFO'}`);
+    });
 }
 
-export default exports;
+// Handle process termination
+process.on('SIGTERM', () => {
+    log(DEBUG_LEVELS.INFO, 'SIGTERM received. Shutting down gracefully...');
+    server.close(() => {
+        log(DEBUG_LEVELS.INFO, 'Server closed');
+        process.exit(0);
+    });
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    log(DEBUG_LEVELS.ERROR, 'Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+    log(DEBUG_LEVELS.ERROR, 'Uncaught Exception:', error);
+});
+
+// Export for testing purposes
+export { app, server };

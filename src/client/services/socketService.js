@@ -3,6 +3,14 @@ import ReconnectionHandler from '../../socket/reconnectionHandler.js';
 import { GAME_EVENTS } from '../../config/constants.js';
 import { log } from '../../utils/logger.js';
 
+// Connection quality thresholds (in ms)
+const CONNECTION_QUALITY = {
+    EXCELLENT: 100,
+    GOOD: 200,
+    FAIR: 500,
+    POOR: 1000
+};
+
 class SocketService {
     constructor() {
         this.socket = null;
@@ -13,6 +21,18 @@ class SocketService {
         this.reconnectCallbacks = [];
         this.disconnectCallbacks = [];
         this.connectionPromise = null;
+        
+        // Connection quality tracking
+        this.connectionQuality = {
+            latency: 0,
+            jitter: 0,
+            lastUpdated: null,
+            quality: 'unknown' // 'excellent', 'good', 'fair', 'poor', 'unknown'
+        };
+        
+        // Bind methods
+        this.getConnectionQuality = this.getConnectionQuality.bind(this);
+        this.updateConnectionQuality = this.updateConnectionQuality.bind(this);
     }
 
     /**
@@ -49,6 +69,9 @@ class SocketService {
                 // Set up event forwarding
                 this.setupEventForwarding();
                 
+                // Initialize connection quality monitoring
+                this.setupConnectionMonitoring();
+                
                 // Handle initial connection
                 const onConnect = () => {
                     log(1, 'Successfully connected to WebSocket server');
@@ -81,17 +104,25 @@ class SocketService {
      * Disconnects from the WebSocket server
      */
     disconnect() {
+        if (this.qualityCheckInterval) {
+            clearInterval(this.qualityCheckInterval);
+            this.qualityCheckInterval = null;
+        }
+        
         if (this.socket) {
-            log(1, 'Disconnecting from WebSocket server');
             this.socket.disconnect();
             this.isConnected = false;
-            
-            if (this.reconnectionHandler) {
-                this.reconnectionHandler.dispose();
-                this.reconnectionHandler = null;
-            }
-            
+            this.socket = null;
+            this.reconnectionHandler = null;
             this.connectionPromise = null;
+            
+            // Reset connection quality
+            this.connectionQuality = {
+                latency: 0,
+                jitter: 0,
+                lastUpdated: null,
+                quality: 'unknown'
+            };
         }
     }
 
@@ -233,6 +264,7 @@ class SocketService {
             this.eventListeners.set(event, new Set());
         }
         this.eventListeners.get(event).add(callback);
+        return () => this.off(event, callback);
     }
 
     /**

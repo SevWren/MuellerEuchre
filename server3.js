@@ -1,3 +1,33 @@
+/*
+Euchre Server - Function Overview
+--------------------------------
+- log(level, message): Logging utility with debug levels.
+- setDebugLevel(level): Set the current debug level.
+- resetFullGame(): Reset the entire game state to initial values.
+- addGameMessage(message, important): Add a message to the game log.
+- getPlayerBySocketId(socketId): Get player object by socket ID.
+- getRoleBySocketId(socketId): Get player role by socket ID.
+- broadcastGameState(): Send game state to all connected clients.
+- createDeck(): Generate a Euchre deck.
+- shuffleDeck(deck): Shuffle a deck of cards.
+- getNextPlayer(currentPlayerRole, ...): Get the next player in turn order.
+- getPartner(playerRole): Get the partner role for a player.
+- cardToString(card): Convert a card object to a string.
+- sortHand(hand, trumpSuit): Sort a hand of cards.
+- isRightBower(card, trumpSuit): Check if card is right bower.
+- isLeftBower(card, trumpSuit): Check if card is left bower.
+- getCardRank(card, ledSuit, trumpSuit): Get the rank of a card.
+- startNewHand(): Start a new hand, deal cards, set up state.
+- handleOrderUpDecision(playerRole, orderedUp): Handle order up round logic.
+- handleDealerDiscard(dealerRole, cardToDiscard): Handle dealer discarding a card.
+- handleCallTrumpDecision(playerRole, suitToCall): Handle round 2 trump calling.
+- handleGoAloneDecision(playerRole, decision): Handle go alone logic.
+- serverIsValidPlay(playerRole, cardToPlay): Validate a play.
+- handlePlayCard(playerRole, cardToPlay): Handle a card play action.
+- scoreCurrentHand(): Score the current hand and update scores.
+- (Socket.io event handlers): Manage player connections, actions, and disconnections.
+*/
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -582,6 +612,7 @@ function handleOrderUpDecision(playerRole, orderedUp) {
 }
 
 function handleDealerDiscard(dealerRole, cardToDiscard) {
+    // Only allow in AWAITING_DEALER_DISCARD, dealer's turn, and correct player
     if (gameState.gamePhase !== 'AWAITING_DEALER_DISCARD' || dealerRole !== gameState.dealer || dealerRole !== gameState.currentPlayer) {
         log(DEBUG_LEVELS.WARNING, `Invalid discard attempt by ${dealerRole}`);
         return;
@@ -590,7 +621,9 @@ function handleDealerDiscard(dealerRole, cardToDiscard) {
     const discardIndex = hand.findIndex(c => c.id === cardToDiscard.id);
 
     if (discardIndex === -1 || hand.length !== 6) {
-        io.to(gameState.players[dealerRole].id).emit('action_error', "Invalid discard attempt.");
+        if (gameState.players && gameState.players[dealerRole] && gameState.players[dealerRole].id && io && io.to) {
+            io.to(gameState.players[dealerRole].id).emit('action_error', "Invalid discard attempt.");
+        }
         log(DEBUG_LEVELS.WARNING, `Invalid discard attempt by ${dealerRole}: card not in hand or hand size incorrect`);
         return;
     }
@@ -609,14 +642,21 @@ function handleDealerDiscard(dealerRole, cardToDiscard) {
 }
 
 function handleCallTrumpDecision(playerRole, suitToCall) {
+    // Only allow in ORDER_UP_ROUND2 and if it's the current player's turn
     if (gameState.gamePhase !== 'ORDER_UP_ROUND2' || playerRole !== gameState.currentPlayer) {
         log(DEBUG_LEVELS.WARNING, `Invalid call trump attempt by ${playerRole}`);
+        if (gameState.players && gameState.players[playerRole] && gameState.players[playerRole].id && io && io.to) {
+            io.to(gameState.players[playerRole].id).emit('action_error', 'Invalid call trump attempt.');
+        }
         return;
     }
 
     if (suitToCall) {
+        // Prevent calling the turned-down suit
         if (suitToCall === gameState.kitty[0].suit) {
-            io.to(gameState.players[playerRole].id).emit('action_error', "Cannot call the suit of the turned-down card.");
+            if (gameState.players && gameState.players[playerRole] && gameState.players[playerRole].id && io && io.to) {
+                io.to(gameState.players[playerRole].id).emit('action_error', "Cannot call the suit of the turned-down card.");
+            }
             log(DEBUG_LEVELS.WARNING, `${playerRole} attempted to call turned-down suit: ${suitToCall}`);
             return;
         }
@@ -631,14 +671,19 @@ function handleCallTrumpDecision(playerRole, suitToCall) {
         log(DEBUG_LEVELS.INFO, `Game phase changed to ${gameState.gamePhase}`);
         addGameMessage(`${gameState.players[gameState.playerWhoCalledTrump].name}, do you want to go alone?`);
     } else {
+        // Player passes
         addGameMessage(`${gameState.players[playerRole].name} passed.`);
         log(DEBUG_LEVELS.INFO, `${gameState.players[playerRole].name} passed in Round 2`);
-        gameState.currentPlayer = getNextPlayer(playerRole);
+        // Move to next player
+        const nextPlayer = getNextPlayer(playerRole);
+        // If all have passed (back to dealer), redeal
         if (playerRole === gameState.dealer) {
             addGameMessage("All players passed in the second round. Redealing.", true);
             log(DEBUG_LEVELS.INFO, "All players passed in Round 2. Redealing.");
             startNewHand();
+            return;
         } else {
+            gameState.currentPlayer = nextPlayer;
             addGameMessage(`${gameState.players[gameState.currentPlayer].name}'s turn to call trump or pass.`);
             log(DEBUG_LEVELS.INFO, `${gameState.players[gameState.currentPlayer].name}'s turn to call trump or pass`);
         }

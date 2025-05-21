@@ -122,3 +122,15 @@
 [INFO] South (south) joined
 [WARNING] User disconnected: jb8gBpbRmCKVxjhoAAAB
 [INFO] South (south) disconnected
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [resetGame] Resetting game
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [resetGame] Resetting game

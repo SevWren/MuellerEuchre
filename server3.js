@@ -750,14 +750,27 @@ function serverIsValidPlay(playerRole, cardToPlay) {
 }
 
 function handlePlayCard(playerRole, cardToPlay) {
+    // Validate playerRole and cardToPlay
+    if (!playerRole || !gameState.players[playerRole] || !Array.isArray(gameState.players[playerRole].hand)) {
+        log(DEBUG_LEVELS.WARNING, `Invalid player role or missing player data in handlePlayCard: ${playerRole}`);
+        return;
+    }
+    if (!cardToPlay || typeof cardToPlay !== 'object' || !('id' in cardToPlay)) {
+        log(DEBUG_LEVELS.WARNING, `Invalid card input in handlePlayCard: ${JSON.stringify(cardToPlay)}`);
+        return;
+    }
     if (gameState.gamePhase !== 'PLAYING_TRICKS' || playerRole !== gameState.currentPlayer) {
-        io.to(gameState.players[playerRole]?.id).emit('action_error', "Not your turn or wrong phase.");
         log(DEBUG_LEVELS.WARNING, `Invalid play attempt by ${playerRole}: not their turn or wrong phase`);
+        if (gameState.players[playerRole] && gameState.players[playerRole].id && io && io.to) {
+            io.to(gameState.players[playerRole].id).emit('action_error', "Not your turn or wrong phase.");
+        }
         return;
     }
     if (!serverIsValidPlay(playerRole, cardToPlay)) {
-        io.to(gameState.players[playerRole]?.id).emit('action_error', "Invalid card play.");
         log(DEBUG_LEVELS.WARNING, `Invalid card play attempt by ${playerRole}: ${cardToString(cardToPlay)}`);
+        if (gameState.players[playerRole] && gameState.players[playerRole].id && io && io.to) {
+            io.to(gameState.players[playerRole].id).emit('action_error', "Invalid card play.");
+        }
         return;
     }
 

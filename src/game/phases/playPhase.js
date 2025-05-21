@@ -1,7 +1,39 @@
 import { GAME_PHASES } from '../../config/constants.js';
 import { log } from '../../utils/logger.js';
 import { getNextPlayer, isTeammate } from '../../utils/players.js';
-import { getCardRank, isLeftBower, isRightBower } from '../../utils/cards.js';
+import { isLeftBower as isLeftBowerUtil } from '../../client/utils/cardUtils.js';
+
+// Local implementation of getCardRank since it's not in cardUtils.js
+function getCardRank(card, trumpSuit) {
+    if (!card) return 0;
+    
+    const isTrump = card.suit === trumpSuit || isLeftBower(card, trumpSuit);
+    const isRightBowerCard = card.rank === 'J' && card.suit === trumpSuit;
+    const isLeftBowerCard = isLeftBower(card, trumpSuit);
+    
+    if (isRightBowerCard) return 100; // Right bower is highest
+    if (isLeftBowerCard) return 99;    // Left bower is second highest
+    
+    const rankValues = {
+        'A': 14,
+        'K': 13,
+        'Q': 12,
+        'J': 11,
+        '10': 10,
+        '9': 9
+    };
+    
+    // Add a bonus for trump cards
+    const trumpBonus = isTrump ? 40 : 0;
+    return trumpBonus + (rankValues[card.rank] || 0);
+}
+
+// Alias for compatibility
+const isRightBower = (card, trumpSuit) => 
+    card && card.rank === 'J' && card.suit === trumpSuit;
+
+// Use the utility function for isLeftBower
+const isLeftBower = isLeftBowerUtil;
 
 /**
  * Handles a player playing a card during the trick

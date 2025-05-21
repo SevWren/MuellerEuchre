@@ -1,8 +1,8 @@
-const assert = require('assert');
-const proxyquire = require('proxyquire');
-const sinon = require('sinon');
-const fs = require('fs');
-const path = require('path');
+import assert from "assert";
+import proxyquire from "proxyquire";
+import sinon from "sinon";
+import fs from "fs";
+import path from "path";
 
 describe('Game State Persistence', function() {
     let server, gameState, mockIo, mockSockets = {};

@@ -1,7 +1,7 @@
-const assert = require('assert');
-const proxyquire = require('proxyquire');
-const sinon = require('sinon');
-const { performance, PerformanceObserver } = require('perf_hooks');
+import assert from "assert";
+import proxyquire from "proxyquire";
+import sinon from "sinon";
+import {  performance, PerformanceObserver  } from "perf_hooks";
 
 describe('Performance Testing', function() {
     this.timeout(60000); // Increase timeout for performance tests

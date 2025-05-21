@@ -1,6 +1,6 @@
-const assert = require('assert');
-const proxyquire = require('proxyquire');
-const sinon = require('sinon');
+import assert from "assert";
+import proxyquire from "proxyquire";
+import sinon from "sinon";
 
 describe('Multiple Concurrent Games', function() {
     this.timeout(30000); // Increase timeout for concurrent tests

@@ -1,6 +1,6 @@
-const { startNewHand, dealCards } = require('../src/game/phases/startNewHand.js');
-const { GAME_PHASES } = require('../src/config/constants.js');
-const assert = require('assert');
+import {  startNewHand, dealCards  } from '../src/game/phases/startNewHand.js';
+import {  GAME_PHASES  } from '../src/config/constants.js';
+import assert from "assert";
 
 describe('Start New Hand Module', function() {
     let gameState;

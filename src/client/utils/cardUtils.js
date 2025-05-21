@@ -1,4 +1,22 @@
 /**
+ * Sorts a player's hand by card value
+ * @param {Array} hand - The player's hand to sort
+ * @param {string} trumpSuit - The current trump suit
+ * @param {string} [ledSuit] - Optional: the suit that was led in the current trick
+ * @returns {Array} - The sorted hand
+ */
+export const sortHand = (hand, trumpSuit, ledSuit) => {
+  if (!Array.isArray(hand) || hand.length === 0) return [];
+  
+  // Create a copy of the hand to avoid mutating the original
+  return [...hand].sort((a, b) => {
+    const valueA = getCardValue(a, trumpSuit, ledSuit);
+    const valueB = getCardValue(b, trumpSuit, ledSuit);
+    return valueB - valueA; // Sort in descending order (highest value first)
+  });
+};
+
+/**
  * Get the numeric value of a card for sorting and comparison
  * @param {Object} card - The card object with rank and suit
  * @param {string} trumpSuit - The current trump suit

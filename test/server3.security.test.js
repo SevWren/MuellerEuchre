@@ -1,7 +1,7 @@
-const assert = require('assert');
-const proxyquire = require('proxyquire');
-const sinon = require('sinon');
-const { Buffer } = require('buffer');
+import assert from "assert";
+import proxyquire from "proxyquire";
+import sinon from "sinon";
+import {  Buffer  } from "buffer";
 
 describe('Security Tests', function() {
     let server, gameState, mockIo, mockSockets = {};

@@ -1,5 +1,5 @@
-const assert = require('assert');
-const proxyquire = require('proxyquire');
+import assert from "assert";
+import proxyquire from "proxyquire";
 
 describe('Euchre Server Core Functions', function() {
     let server;

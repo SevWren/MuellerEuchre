@@ -1,6 +1,6 @@
-const assert = require('assert');
-const proxyquire = require('proxyquire');
-const sinon = require('sinon');
+import assert from "assert";
+import proxyquire from "proxyquire";
+import sinon from "sinon";
 
 describe('Game State Management', function() {
     let server;

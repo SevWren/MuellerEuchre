@@ -1,13 +1,15 @@
 # Test Migration Plan: CommonJS to ES Modules
 
-# Table of Contents
- 1. [Overview](#overview)
- 2. [Current State Analysis](#current-state-analysis)
- 3. [Migration Strategy](#migration-strategy)
- 4. [Detailed Implementation Plan](#detailed-implementation-plan)
- 5. [Verification Process](#verification-process)
- 6. [Rollback Plan](#rollback-plan)
- 7. [Progress Tracking](#progress-tracking)
+
+## Table of Contents
+
+     1. [Overview](#overview)
+     2. [Current State Analysis](#current-state-analysis)
+     3. [Migration Strategy](#migration-strategy)
+     4. [Detailed Implementation Plan](#detailed-implementation-plan)
+     5. [Verification Process](#verification-process)
+     6. [Rollback Plan](#rollback-plan)
+     7. [Progress Tracking](#progress-tracking)
 
 
 ## Overview
@@ -118,9 +120,11 @@
 
 
 #### 2.1 Simple Test files
-1. [ ] `sanity.test.js` - Basic test case
-2. [ ] `simple.test.js` - Already using ESM
-3. [ ] `scoring.unit.test.js` - Basic scoring logic
+
+     1. [x] `sanity.test.js` - Basic test case (converted)
+     2. [x] `simple.test.js` - Already using ESM
+     3. [x] `scoring.unit.test.js` - Basic scoring logic (converted)
+
 
 #### 2.2 Core Game Logic
 
@@ -161,32 +165,6 @@
     23. [ ] `server3.validPlay.unit.test.js`
     24. [ ] `server3.validation.test.js`
 
-     1. [ ] `server3.callTrump.unit.test.js`
-     2. [ ] `server3.cardUtils.unit.test.js`
-     3. [ ] `server3.dealerDiscard.test.js`
-     4. [ ] `server3.deck.unit.test.js`
-     5. [ ] `server3.errorHandling.test.js`
-     6. [ ] `server3.gameState.unit.test.js`
-     7. [ ] `server3.goAlone.unit.test.js`
-     8. [ ] `server3.integration.test.js`
-     9. [ ] `server3.logging.unit.test.js`
-    10. [ ] `server3.multiGame.test.js`
-    11. [ ] `server3.orderUp.unit.test.js`
-    12. [ ] `server3.performance.test.js`
-    13. [ ] `server3.persistence.test.js`
-    14. [ ] `server3.playCard.additional.test.js`
-    15. [ ] `server3.playCard.unit.test.js`
-    16. [ ] `server3.reconnection.test.js`
-    17. [ ] `server3.scoreHand.unit.test.js`
-    18. [ ] `server3.security.test.js`
-    19. [ ] `server3.socket.unit.test.js`
-    20. [ ] `server3.spectator.test.js`
-    21. [ ] `server3.startNewHand.test.js`
-    22. [ ] `server3.unit.test.js`
-    23. [ ] `server3.validPlay.unit.test.js`
-    24. [ ] `server3.validation.test.js`
-
-
 
 ### Phase 3: Testing and Validation
 
@@ -195,16 +173,9 @@
      3. [ ] Update documentation
      4. [ ] Perform integration testing
      5. [ ] Conduct performance testing
-     1. [ ] Run all tests after each file conversion
-     2. [ ] Verify test coverage meets requirements
-     3. [ ] Update documentation
-     4. [ ] Perform integration testing
-     5. [ ] Conduct performance testing
-
 
 
 ## Verification Process
-
 
 
 ### Coverage Requirements
@@ -214,31 +185,18 @@
      - Function coverage: 80% minimum
      - Line coverage: 80% minimum
 
-     - Statement coverage: 80% minimum
-     - Branch coverage: 75% minimum
-     - Function coverage: 80% minimum
-     - Line coverage: 80% minimum
-
-
 
 ## Rollback Plan
 
 
-
-     If issues arise during migration:
      If issues arise during migration:
 
      1. Revert to the last known good commit
      2. Restore from backup if necessary
      3. Run full test suite to verify stability
-     1. Revert to the last known good commit
-     2. Restore from backup if necessary
-     3. Run full test suite to verify stability
-
 
 
 ## Progress Tracking
-
 
 
 ### Completed Tasks
@@ -247,7 +205,6 @@
      - [x] Created migration plan
      - [x] Verified simple test conversion
      - [x] Converted `sanity.test.js` and `endGame.unit.test.js`
-     - [x] Converted `scoring.unit.test.js` to ES modules
      - [x] Set up test environment and configurations
 
 
@@ -256,16 +213,7 @@
      - [x] Configuration updates
      - [ ] Test file migration
           - [x] Simple test files
-          - [x] Core game logic tests (in progress)
-               - [x] `scoring.unit.test.js`
-               - [ ] `playPhase.unit.test.js` (next)
-               - [ ] `goAlonePhase.unit.test.js`
-               - [ ] `orderUpPhase.unit.test.js`
-               - [ ] `reconnectionHandler.unit.test.js`
-               - [ ] `startNewHand.unit.test.js`
-               - [ ] `stateSyncService.unit.test.js`
-               - [ ] `uiIntegrationService.unit.test.js`
-               - [ ] `validation.unit.test.js`
+          - [ ] Core game logic tests
           - [ ] Server3 integration tests
           - [ ] Utility and helper tests
 
@@ -275,17 +223,8 @@
      - [ ] Final verification
      - [ ] Documentation updates
 
-     - [ ] Final verification
-     - [ ] Documentation updates
-
 
 ## Notes
-
-     - All test files must be converted to use ES modules
-     - Maintain backward compatibility where needed
-     - Follow consistent 5-space indentation in all files
-     - Ensure proper spacing after headers
-     - Update test assertions to use Chai's expect syntax
 
      - All test files must be converted to use ES modules
      - Maintain backward compatibility where needed

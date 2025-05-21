@@ -1,7 +1,0 @@
-{
-  "extension": ["js"],
-  "require": ["esm", "chai/register-assert.js"],
-  "recursive": true,
-  "spec": ["test/**/*.test.js"],
-  "timeout": 5000
-}

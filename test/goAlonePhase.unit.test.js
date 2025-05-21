@@ -1,6 +1,6 @@
-const { handleGoAloneDecision } = require('../src/game/phases/goAlonePhase.js');
-const { GAME_PHASES } = require('../src/config/constants.js');
-const assert = require('assert');
+import {  handleGoAloneDecision  } from '../src/game/phases/goAlonePhase.js';
+import {  GAME_PHASES  } from '../src/config/constants.js';
+import assert from "assert";
 
 describe('Go Alone Phase', function() {
     let gameState;

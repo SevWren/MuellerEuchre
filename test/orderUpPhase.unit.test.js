@@ -1,11 +1,11 @@
-const { 
+import {  
     handleOrderUpDecision, 
     handleDealerDiscard, 
     handleCallTrumpDecision 
-} = require('../src/game/phases/orderUpPhase.js');
+ } from '../src/game/phases/orderUpPhase.js';
 
-const { GAME_PHASES } = require('../src/config/constants.js');
-const assert = require('assert');
+import {  GAME_PHASES  } from '../src/config/constants.js';
+import assert from "assert";
 
 describe('Order Up Phase', function() {
     let gameState;

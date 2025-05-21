@@ -34,11 +34,22 @@ A full-featured, real-time online Euchre card game with WebSocket support, autom
    http://localhost:3000
    ```
 
-## 🧪 Testing
+## 🚀 CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment. The workflow includes:
+
+- **Test**: Runs on every push and pull request to the `resolve_unit_tests` branch
+  - Tests run on Node.js 18.x and 20.x
+  - Code coverage reporting with Codecov
+  - Linting with ESLint and Prettier
+  - Build verification
+
+### 🧪 Testing
 
 ### Running Tests
 
 This project uses Mocha with Chai for testing. The test suite includes unit tests for game logic and integration tests for server functionality.
+All tests are run against the `resolve_unit_tests` branch.
 
 #### Prerequisites
 
@@ -64,13 +75,13 @@ npm run test:watch
 To run a specific test file, use the following command:
 
 ```bash
-npx mocha --require esm path/to/test/file.test.js
+npx mocha --require esm full_path/to/test/file.test.js
 ```
 
 For example:
 
 ```bash
-npx mocha --require esm test/playPhase.unit.test.js
+npx mocha --require esm full_path/to/test/playPhase.unit.test.js
 ```
 
 #### Test Coverage

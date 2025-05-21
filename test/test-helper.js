@@ -1,20 +1,27 @@
 // Import chai and configure it
-export { expect } from 'chai';
-import chai from 'chai';
+import * as chai from 'chai';
 import sinonChai from 'sinon-chai';
+const { expect } = chai;
 
 // Enable should-style assertions
 chai.should();
 chai.use(sinonChai);
 
 // Global test setup
-global.expect = chai.expect;
+global.expect = expect;
 global.assert = chai.assert;
 
 // Add any global test utilities here
-export const createTestGameState = () => ({
+const createTestGameState = () => ({
   // Add common test game state here
   players: {},
   currentPhase: 'LOBBY',
   // Add other default game state properties
 });
+
+// Export utilities
+export { createTestGameState };
+
+global.expect = expect;
+global.assert = chai.assert;
+chai.should();

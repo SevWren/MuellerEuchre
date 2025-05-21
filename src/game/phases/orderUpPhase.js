@@ -1,7 +1,7 @@
 import { GAME_PHASES } from '../../config/constants.js';
 import { log } from '../../utils/logger.js';
 import { getNextPlayer } from '../../utils/players.js';
-import { sortHand } from '../../utils/cards.js';
+import { sortHand } from '../../client/utils/cardUtils.js';
 
 /**
  * Handles a player's decision to order up or pass during the first round of bidding

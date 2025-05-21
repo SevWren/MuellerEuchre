@@ -7,7 +7,8 @@ A full-featured, real-time online Euchre card game with WebSocket support, autom
 ## 🚀 Features
 
 - **Real-time 4-player Euchre** with WebSocket communication
-- **Automatic reconnection** with exponential backoff
+- **Automatic reconnection** with exponential backoff and connection quality monitoring
+- **Connection status indicator** showing real-time network quality and latency
 - **Persistent game state** with MongoDB storage
 - **Responsive UI** that works on desktop and mobile
 - **Complete Euchre rules** including:
@@ -77,6 +78,34 @@ This project aims to create a web-based, real-time, 4-player Euchre card game. P
 *   Ability for players to request a new game session after a game concludes or from the lobby.
 
 ## 2. File Descriptions
+
+### `src/client/components/ConnectionStatus/`
+
+A reusable React component that provides real-time feedback about the WebSocket connection status:
+
+- Displays current connection state (connected/disconnected/reconnecting)
+- Shows connection quality metrics (latency, jitter)
+- Visual indicators for connection quality
+- Smooth animations for state transitions
+- Responsive design that works on all screen sizes
+
+### `src/client/hooks/useSocket.js`
+
+A custom React hook that provides a clean interface for components to interact with the WebSocket connection:
+
+- Manages connection state
+- Tracks connection quality metrics
+- Provides methods for sending and receiving messages
+- Handles reconnection logic
+
+### `src/client/services/socketService.js`
+
+Enhanced WebSocket service with connection quality monitoring:
+
+- Tracks latency and jitter
+- Implements ping-pong mechanism for connection health
+- Provides detailed connection quality metrics
+- Handles automatic reconnection with exponential backoff
 
 ### `server.js`
 This is the main backend file, running on Node.js. It manages the entire game logic, state, and communication between players.

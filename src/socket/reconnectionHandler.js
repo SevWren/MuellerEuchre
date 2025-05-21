@@ -1,15 +1,24 @@
 import { log } from '../utils/logger.js';
 import { gameStateManager } from '../game/stateManager.js';
-import { GAME_EVENTS } from '../config/constants.js';
+import { GAME_EVENTS, STORAGE_KEYS } from '../config/constants.js';
 
 // Default reconnection settings
 const DEFAULT_RECONNECTION_SETTINGS = {
-    maxReconnectAttempts: 5,           // Maximum number of reconnection attempts
+    maxReconnectAttempts: Infinity,    // Maximum number of reconnection attempts (now unlimited)
     reconnectInterval: 1000,           // Initial delay between reconnection attempts (ms)
-    maxReconnectInterval: 10000,       // Maximum delay between reconnection attempts (ms)
+    maxReconnectInterval: 30000,       // Maximum delay between reconnection attempts (ms)
     reconnectDecay: 1.5,               // Rate of increase of the reconnect delay
-    timeout: 5000,                     // Connection timeout (ms)
+    timeout: 10000,                    // Connection timeout (ms)
     autoReconnect: true,               // Whether to automatically attempt to reconnect
+    pingInterval: 20000,               // Interval for ping messages (ms)
+    pingTimeout: 5000,                 // Time to wait for pong before considering connection dead (ms)
+    backoffMultiplier: 1.5,            // Multiplier for backoff calculation
+    maxBackoffDelay: 60000,            // Maximum backoff delay (1 minute)
+    minReconnectDelay: 1000,           // Minimum delay before attempting to reconnect (ms)
+    maxReconnectDelay: 30000,          // Maximum delay before attempting to reconnect (ms)
+    reconnectJitter: 0.5,              // Randomness factor for reconnect delay (0-1)
+    maxCumulativeBackoff: 300000,      // Maximum cumulative backoff time before giving up (5 minutes)
+    resetBackoffAfter: 60000,          // Reset backoff after being connected for this long (ms)
 };
 
 class ReconnectionHandler {
@@ -21,13 +30,35 @@ class ReconnectionHandler {
     constructor(socket, options = {}) {
         this.socket = socket;
         this.options = { ...DEFAULT_RECONNECTION_SETTINGS, ...options };
+        
+        // Connection state
         this.reconnectAttempts = 0;
         this.reconnectTimer = null;
         this.isReconnecting = false;
+        this.lastConnectedAt = null;
+        this.lastDisconnectedAt = null;
+        this.connectionStable = false;
+        this.cumulativeBackoff = 0;
+        
+        // Message handling
         this.pendingMessages = [];
         this.messageHandlers = new Map();
+        
+        // Health monitoring
         this.connectionCheckInterval = null;
+        this.pingInterval = null;
         this.lastPingTime = null;
+        this.lastPongTime = null;
+        this.pendingPing = null;
+        
+        // State tracking
+        this.connectionStats = {
+            totalConnections: 0,
+            successfulConnections: 0,
+            failedConnections: 0,
+            totalDowntime: 0,
+            lastError: null
+        };
         
         // Bind methods
         this.handleDisconnect = this.handleDisconnect.bind(this);
@@ -36,6 +67,13 @@ class ReconnectionHandler {
         this.checkConnection = this.checkConnection.bind(this);
         this.sendPing = this.sendPing.bind(this);
         this.handlePong = this.handlePong.bind(this);
+        this.scheduleReconnect = this.scheduleReconnect.bind(this);
+        this.calculateReconnectDelay = this.calculateReconnectDelay.bind(this);
+        this.saveConnectionState = this.saveConnectionState.bind(this);
+        this.loadConnectionState = this.loadConnectionState.bind(this);
+        
+        // Load any saved state
+        this.loadConnectionState();
         
         // Setup event listeners
         this.setupEventListeners();
@@ -45,10 +83,22 @@ class ReconnectionHandler {
      * Sets up event listeners on the WebSocket
      */
     setupEventListeners() {
+        // Connection events
         this.socket.on('disconnect', this.handleDisconnect);
         this.socket.on('connect', this.handleConnect);
+        this.socket.on('connect_error', this.handleError);
         this.socket.on('error', this.handleError);
         this.socket.on('pong', this.handlePong);
+        
+        // Custom events for state synchronization
+        this.socket.on('reconnect_attempt', (attempt) => {
+            log(1, `Reconnection attempt ${attempt} of ${this.options.maxReconnectAttempts}`);
+        });
+        
+        this.socket.on('reconnect_failed', () => {
+            log(2, 'Failed to reconnect after maximum attempts');
+            this.emit('reconnect_failed');
+        });
         
         // Start connection health monitoring
         this.startConnectionMonitoring();
@@ -58,20 +108,27 @@ class ReconnectionHandler {
      * Starts monitoring the connection health
      */
     startConnectionMonitoring() {
-        // Clear any existing interval
+        // Clear any existing intervals
         this.stopConnectionMonitoring();
         
         // Set up ping-pong for connection health
-        this.connectionCheckInterval = setInterval(() => {
+        this.pingInterval = setInterval(() => {
             if (this.socket.connected) {
                 this.sendPing();
             }
-        }, 30000); // Send ping every 30 seconds
+        }, this.options.pingInterval);
         
-        // Initial ping
+        // Set up connection stability checker
+        this.connectionCheckInterval = setInterval(() => {
+            this.checkConnectionStability();
+        }, this.options.pingInterval * 2);
+        
+        // Initial ping if connected
         if (this.socket.connected) {
             this.sendPing();
         }
+        
+        log(1, 'Started connection monitoring');
     }
 
     /**
@@ -88,13 +145,24 @@ class ReconnectionHandler {
      * Sends a ping message to the server
      */
     sendPing() {
-        if (this.socket.connected) {
-            this.lastPingTime = Date.now();
-            this.socket.emit('ping');
-            
-            // Check if we got a pong back within the timeout
-            setTimeout(() => this.checkConnection(), this.options.timeout);
+        if (!this.socket.connected || this.pendingPing) {
+            return;
         }
+        
+        this.lastPingTime = Date.now();
+        this.pendingPing = this.lastPingTime;
+        
+        // Set timeout for pong response
+        this.pendingPing.timeout = setTimeout(() => {
+            if (this.pendingPing === this.lastPingTime) {
+                log(2, 'Ping timeout, no pong received');
+                this.handleDisconnect('Ping timeout');
+                this.pendingPing = null;
+            }
+        }, this.options.pingTimeout);
+        
+        // Send the ping
+        this.socket.emit('ping', { timestamp: this.lastPingTime });
     }
 
     /**

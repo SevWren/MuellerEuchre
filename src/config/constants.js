@@ -8,6 +8,38 @@ export const DEBUG_LEVELS = {
     VERBOSE: 3,
 };
 
+// Storage keys for local persistence
+export const STORAGE_KEYS = {
+    GAME_STATE: 'euchre_game_state',
+    OFFLINE_QUEUE: 'euchre_offline_queue',
+    PLAYER_PREFERENCES: 'euchre_player_prefs',
+    CONNECTION_STATE: 'euchre_connection_state'
+};
+
+// Game events for WebSocket communication
+export const GAME_EVENTS = {
+    // State synchronization
+    STATE_UPDATE: 'game_state_update',
+    REQUEST_FULL_STATE: 'request_full_state',
+    PLAYER_ACTION: 'player_action',
+    
+    // Game actions
+    PLAY_CARD: 'play_card',
+    MAKE_BID: 'make_bid',
+    GO_ALONE: 'go_alone',
+    
+    // Connection events
+    PLAYER_CONNECTED: 'player_connected',
+    PLAYER_DISCONNECTED: 'player_disconnected',
+    RECONNECT: 'reconnect',
+    
+    // Game flow
+    GAME_STARTED: 'game_started',
+    ROUND_STARTED: 'round_started',
+    TRICK_COMPLETED: 'trick_completed',
+    GAME_OVER: 'game_over'
+};
+
 export const GAME_PHASES = {
     LOBBY: 'LOBBY',
     DEALING: 'DEALING',

@@ -107,12 +107,12 @@ describe('Euchre Server Core Functions', function() {
                 { value: '10', suit: 'hearts' },
                 { value: 'J', suit: 'diamonds' }
             ];
-            sortHand(hand);
-            assert.strictEqual(hand[0].suit, 'hearts');
-            assert.strictEqual(hand[1].suit, 'hearts');
-            assert.strictEqual(hand[2].suit, 'diamonds');
-            assert.strictEqual(hand[3].suit, 'clubs');
-            assert.strictEqual(hand[4].suit, 'spades');
+            const sorted = sortHand(hand);
+            assert.strictEqual(sorted[0].suit, 'hearts');
+            assert.strictEqual(sorted[1].suit, 'hearts');
+            assert.strictEqual(sorted[2].suit, 'diamonds');
+            assert.strictEqual(sorted[3].suit, 'clubs');
+            assert.strictEqual(sorted[4].suit, 'spades');
         });
 
         it('should handle empty hand', function() {

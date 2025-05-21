@@ -165,17 +165,28 @@ function shuffleDeck() {
 }
 
 function getNextPlayer(currentPlayerRole, roles, goingAlone, playerGoingAlone, partnerSittingOut) {
-    // Defensive: use explicit args, fallback to gameState for backward compatibility
+    // If roles is not provided, use gameState.playerSlots if available
     const slots = Array.isArray(roles) ? roles : (gameState && Array.isArray(gameState.playerSlots) ? gameState.playerSlots : undefined);
-    if (!slots || !Array.isArray(slots) || !slots.length) return undefined;
+    
+    // If no valid slots array, return undefined
+    if (!slots || !slots.length) return undefined;
+    
+    // If currentPlayerRole is not a string or empty, return undefined
+    if (typeof currentPlayerRole !== 'string' || !currentPlayerRole.trim()) return undefined;
+    
     const idx = slots.indexOf(currentPlayerRole);
+    // If currentPlayerRole not found in slots, return undefined
     if (idx === -1) return undefined;
+    
     let nextIdx = (idx + 1) % slots.length;
+    
+    // Handle going alone case where partner is sitting out
     if (goingAlone && partnerSittingOut && slots[nextIdx] === partnerSittingOut) {
         nextIdx = (nextIdx + 1) % slots.length;
-        // If only 2 players left, prevent infinite loop
+        // If we've looped back to the same player, return undefined
         if (slots[nextIdx] === currentPlayerRole) return undefined;
     }
+    
     return slots[nextIdx];
 }
 
@@ -196,29 +207,51 @@ function cardToString(card) {
 
 function sortHand(hand, trumpSuit) {
     if (!Array.isArray(hand)) return [];
-    // Defensive: do not mutate original
-    const copy = hand.map(card => ({ ...card }));
+    
+    // Create a deep copy of the hand to avoid mutating the original array
+    const sortedHand = JSON.parse(JSON.stringify(hand));
+    
+    // Define the correct suit order: hearts, diamonds, clubs, spades
     const suitOrder = { 'hearts': 0, 'diamonds': 1, 'clubs': 2, 'spades': 3 };
+    // Define the value order: 9 (low) to A (high)
     const valueOrder = { '9': 0, '10': 1, 'J': 2, 'Q': 3, 'K': 4, 'A': 5 };
-    copy.sort((a, b) => {
-        // Trump sorting: right bower > left bower > trump > others
-        if (trumpSuit) {
-            const aIsRB = isRightBower(a, trumpSuit);
-            const bIsRB = isRightBower(b, trumpSuit);
-            if (aIsRB && !bIsRB) return -1;
-            if (!aIsRB && bIsRB) return 1;
-            const aIsLB = isLeftBower(a, trumpSuit);
-            const bIsLB = isLeftBower(b, trumpSuit);
-            if (aIsLB && !bIsLB) return -1;
-            if (!aIsLB && bIsLB) return 1;
-            if (a.suit === trumpSuit && b.suit !== trumpSuit) return -1;
-            if (a.suit !== trumpSuit && b.suit === trumpSuit) return 1;
+    
+    // Sort the copy of the array
+    sortedHand.sort((a, b) => {
+        // If no trump suit is provided, just sort by suit and value
+        if (!trumpSuit) {
+            // First sort by suit in the order: hearts, diamonds, clubs, spades
+            if (suitOrder[a.suit] !== suitOrder[b.suit]) {
+                return suitOrder[a.suit] - suitOrder[b.suit];
+            }
+            // If suits are the same, sort by value (9 to A)
+            return valueOrder[a.value] - valueOrder[b.value];
         }
-        if (suitOrder[a.suit] < suitOrder[b.suit]) return -1;
-        if (suitOrder[a.suit] > suitOrder[b.suit]) return 1;
-        return valueOrder[b.value] - valueOrder[a.value]; // Sort values in descending order (A, K, Q, etc.)
+        
+        // Trump sorting: right bower > left bower > trump > others
+        const aIsRB = isRightBower(a, trumpSuit);
+        const bIsRB = isRightBower(b, trumpSuit);
+        if (aIsRB && !bIsRB) return -1;
+        if (!aIsRB && bIsRB) return 1;
+        
+        const aIsLB = isLeftBower(a, trumpSuit);
+        const bIsLB = isLeftBower(b, trumpSuit);
+        if (aIsLB && !bIsLB) return -1;
+        if (!aIsLB && bIsLB) return 1;
+        
+        const aIsTrump = a.suit === trumpSuit || aIsLB;
+        const bIsTrump = b.suit === trumpSuit || bIsLB;
+        if (aIsTrump && !bIsTrump) return -1;
+        if (!aIsTrump && bIsTrump) return 1;
+        
+        // For non-trump cards, sort by suit and then by value
+        if (suitOrder[a.suit] !== suitOrder[b.suit]) {
+            return suitOrder[a.suit] - suitOrder[b.suit];
+        }
+        return valueOrder[a.value] - valueOrder[b.value];
     });
-    return copy;
+    
+    return sortedHand;
 }
 
 function isRightBower(card, trumpSuit) {
@@ -235,6 +268,8 @@ function isLeftBower(card, trumpSuit) {
 
 function getCardRank(card, ledSuit, trumpSuit) {
     if (!card || !card.value || !card.suit) return -1;
+    // If both ledSuit and trumpSuit are undefined, return 0 for non-trump/non-led cards
+    if (ledSuit === undefined && trumpSuit === undefined) return 0;
     if (isRightBower(card, trumpSuit)) return 100;
     if (isLeftBower(card, trumpSuit)) return 90;
     if (trumpSuit && card.suit === trumpSuit) {
@@ -245,8 +280,7 @@ function getCardRank(card, ledSuit, trumpSuit) {
         const normalValues = { '9': 1, '10': 2, 'J': 3, 'Q': 4, 'K': 5, 'A': 6 };
         return normalValues[card.value] || 0;
     }
-    if (!trumpSuit && !ledSuit) return 0;
-    return -1;
+    return 0; // Return 0 for non-trump/non-led cards when either trumpSuit or ledSuit is defined
 }
 
 function startNewHand() {

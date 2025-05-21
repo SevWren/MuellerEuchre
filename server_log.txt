@@ -83,3 +83,33 @@
 [INFO] Game phase changed to ORDER_UP_ROUND1
 [INFO] West (west) disconnected
 [INFO] Game reset to LOBBY due to player leaving
+[INFO] Euchre server listening on port 3000
+[INFO] Access game at http://localhost:3000 or http://<your-local-ip>:3000
+[INFO] A user connected: Hp4HQKRsLulhqZrJAAAB
+[INFO] South (south) joined
+[INFO] A user connected: IU3o_pPdoecR6SbhAAAD
+[INFO] West (west) joined
+[INFO] A user connected: waDX68PpWh9GO_tBAAAG
+[INFO] North (north) joined
+[INFO] A user connected: cOqW9d90ebcZhUrWAAAH
+[INFO] East (east) joined
+[INFO] South (south) requested to start the game
+[INFO] Game start requested
+[INFO] Game phase changed to DEALING
+[INFO] Dealer assigned: west
+[INFO] Up-card: K of clubs
+[INFO] Game phase changed to ORDER_UP_ROUND1
+[WARNING] Attempt to start game while not in lobby phase. Current phase: ORDER_UP_ROUND1
+[WARNING] Attempt to start game while not in lobby phase. Current phase: ORDER_UP_ROUND1
+[WARNING] Attempt to start game while not in lobby phase. Current phase: ORDER_UP_ROUND1
+[WARNING] User disconnected: Hp4HQKRsLulhqZrJAAAB
+[INFO] South (south) disconnected
+[WARNING] Player south disconnected during game. Resetting to LOBBY
+[INFO] Game reset to LOBBY due to player leaving
+[INFO] A user connected: hOgEiZBE6kxW9SG6AAAJ
+[INFO] South (south) joined
+[WARNING] User disconnected: hOgEiZBE6kxW9SG6AAAJ
+[INFO] South (south) disconnected
+[WARNING] User disconnected: IU3o_pPdoecR6SbhAAAD
+[WARNING] User disconnected: waDX68PpWh9GO_tBAAAG
+[WARNING] User disconnected: cOqW9d90ebcZhUrWAAAH

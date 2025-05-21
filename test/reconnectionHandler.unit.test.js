@@ -1,19 +1,61 @@
-import { jest } from '@jest/globals';
+import { expect } from 'chai';
+import sinon from 'sinon';
 import ReconnectionHandler from '../src/socket/reconnectionHandler.js';
 
-// Mock the logger to prevent console output during tests
-jest.mock('../src/utils/logger.js', () => ({
-    log: jest.fn()
-}));
+// Create a sandbox for stubs
+const sandbox = sinon.createSandbox();
+
+// Store the original console methods
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+
+// Suppress console output during tests
+before(() => {
+    console.log = () => {};
+    console.error = () => {};
+});
+
+// Restore console methods after tests
+after(() => {
+    console.log = originalConsoleLog;
+    console.error = originalConsoleError;
+});
 
 describe('ReconnectionHandler', () => {
     let mockSocket;
     let reconnectionHandler;
-    const mockEmit = jest.fn();
-    const mockOn = jest.fn();
-    const mockOff = jest.fn();
-    const mockConnect = jest.fn();
-    const mockDisconnect = jest.fn();
+    let mockEmit;
+    let mockOn;
+    let mockOff;
+    let mockConnect;
+    let mockDisconnect;
+    let clock;
+    
+    beforeEach(() => {
+        // Create fresh stubs before each test
+        mockEmit = sinon.stub();
+        mockOn = sinon.stub();
+        mockOff = sinon.stub();
+        mockConnect = sinon.stub();
+        mockDisconnect = sinon.stub();
+        
+        // Set up the clock for testing timeouts
+        clock = sinon.useFakeTimers();
+        
+                // Reset all stubs
+        sandbox.reset();
+    });
+    
+    afterEach(() => {
+        // Restore the clock and all stubs after each test
+        clock.restore();
+        sandbox.restore();
+    });
+    
+    after(() => {
+        // Clean up sandbox after all tests
+        sandbox.restore();
+    });
     
     beforeEach(() => {
         // Reset all mocks before each test
@@ -32,12 +74,12 @@ describe('ReconnectionHandler', () => {
             off: mockOff,
             connect: mockConnect,
             disconnect: mockDisconnect,
-            once: jest.fn(),
-            removeAllListeners: jest.fn()
+            once: sinon.stub(),
+            removeAllListeners: sinon.stub()
         };
         
         // Mock the emitWithAck method
-        mockEmit.mockImplementation((event, ...args) => {
+        mockEmit.callsFake((event, ...args) => {
             if (event === 'rejoin_game' && typeof args[1] === 'function') {
                 args[1]({ status: 'success' });
             }
@@ -53,42 +95,33 @@ describe('ReconnectionHandler', () => {
             timeout: 500,
             autoReconnect: true
         });
-        
-        // Mock setTimeout and clearTimeout
-        jest.useFakeTimers();
-    });
-    
-    afterEach(() => {
-        // Clean up any pending timers
-        jest.clearAllTimers();
-        jest.useRealTimers();
     });
     
     describe('initialization', () => {
         it('should set up event listeners on the socket', () => {
-            expect(mockOn).toHaveBeenCalledWith('disconnect', expect.any(Function));
-            expect(mockOn).toHaveBeenCalledWith('connect', expect.any(Function));
-            expect(mockOn).toHaveBeenCalledWith('error', expect.any(Function));
-            expect(mockOn).toHaveBeenCalledWith('pong', expect.any(Function));
+            expect(mockOn).toHaveBeenCalledWith('disconnect', sinon.match.func);
+            expect(mockOn).toHaveBeenCalledWith('connect', sinon.match.func);
+            expect(mockOn).toHaveBeenCalledWith('error', sinon.match.func);
+            expect(mockOn).toHaveBeenCalledWith('pong', sinon.match.func);
         });
         
         it('should start connection monitoring', () => {
             // Should set up an interval for sending pings
-            expect(setInterval).toHaveBeenCalled();
+            expect(setInterval).to.have.been.called;
         });
     });
     
     describe('disconnection handling', () => {
         it('should attempt to reconnect when disconnected', () => {
             // Simulate disconnection
-            const disconnectHandler = mockOn.mock.calls.find(
-                call => call[0] === 'disconnect'
-            )[1];
+            const disconnectHandler = mockOn.getCalls().find(
+                call => call.args[0] === 'disconnect'
+            ).args[1];
             
             disconnectHandler('test disconnect reason');
             
             // Should schedule a reconnection attempt
-            expect(setTimeout).toHaveBeenCalled();
+            expect(setTimeout).to.have.been.called;
         });
         
         it('should not attempt to reconnect if already reconnecting', () => {
@@ -96,77 +129,84 @@ describe('ReconnectionHandler', () => {
             reconnectionHandler.isReconnecting = true;
             
             // Simulate disconnection
-            const disconnectHandler = mockOn.mock.calls.find(
-                call => call[0] === 'disconnect'
-            )[1];
+            const disconnectHandler = mockOn.getCalls().find(
+                call => call.args[0] === 'disconnect'
+            ).args[1];
             
             disconnectHandler('test disconnect reason');
             
             // Should not schedule another reconnection attempt
-            expect(setTimeout).not.toHaveBeenCalled();
+            expect(setTimeout).not.to.have.been.called;
         });
     });
     
     describe('reconnection logic', () => {
         it('should attempt to reconnect with exponential backoff', async () => {
             // Mock the connect method to fail on first attempt
-            let connectResolve;
-            mockConnect.mockImplementationOnce(() => {
+            mockConnect.onFirstCall().callsFake(() => {
                 return new Promise((resolve) => {
-                    connectResolve = resolve;
+                    setTimeout(() => {
+                        mockSocket.connected = false;
+                        mockSocket.emit('connect_error', new Error('Connection failed'));
+                        resolve();
+                    }, 10);
                 });
             });
             
             // Simulate disconnection
-            const disconnectHandler = mockOn.mock.calls.find(
-                call => call[0] === 'disconnect'
-            )[1];
+            const disconnectHandler = mockOn.getCalls().find(
+                call => call.args[0] === 'disconnect'
+            ).args[1];
             
             disconnectHandler('test disconnect reason');
             
             // Should schedule first reconnection attempt after initial delay (100ms)
-            expect(setTimeout).toHaveBeenLastCalledWith(expect.any(Function), 100);
+            expect(setTimeout).to.have.been.calledWith(sinon.match.func, 100);
             
             // Fast-forward to trigger the first reconnection attempt
-            jest.advanceTimersByTime(100);
+            clock.tick(100);
             
             // Should have called connect
-            expect(mockConnect).toHaveBeenCalledTimes(1);
+            expect(mockConnect).to.have.been.calledOnce;
             
             // Simulate connection timeout
-            jest.advanceTimersByTime(500); // Timeout is 500ms
+            clock.tick(500); // Timeout is 500ms
             
             // Should schedule next attempt with increased delay (100 * 1.5 = 150ms)
-            expect(setTimeout).toHaveBeenLastCalledWith(expect.any(Function), 150);
+            expect(setTimeout).to.have.been.calledWith(sinon.match.func, 150);
         });
         
         it('should give up after max reconnection attempts', async () => {
             // Mock the connect method to always fail
-            mockConnect.mockImplementation(() => {
-                return new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Connection failed')), 10);
+            mockConnect.callsFake(() => {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        mockSocket.connected = false;
+                        mockSocket.emit('connect_error', new Error('Connection failed'));
+                        resolve();
+                    }, 10);
                 });
             });
             
             // Set up a mock error handler
-            const errorHandler = jest.fn();
+            const errorHandler = sinon.stub();
             reconnectionHandler.on('reconnect_failed', errorHandler);
             
             // Simulate disconnection
-            const disconnectHandler = mockOn.mock.calls.find(
-                call => call[0] === 'disconnect'
-            )[1];
+            const disconnectHandler = mockOn.getCalls().find(
+                call => call.args[0] === 'disconnect'
+            ).args[1];
             disconnectHandler('test disconnect reason');
             
             // Fast-forward through all reconnection attempts
             // 1st attempt: 100ms
             // 2nd attempt: 150ms (100 * 1.5)
             // 3rd attempt: 225ms (150 * 1.5) - but capped at maxReconnectInterval (1000ms)
-            jest.advanceTimersByTime(1000);
+            clock.tick(1000);
             
             // Should have given up after max attempts (3)
-            expect(mockConnect).toHaveBeenCalledTimes(3);
-            expect(errorHandler).toHaveBeenCalled();
+            expect(mockConnect).to.have.been.calledThrice;
+            expect(errorHandler).to.have.been.called;
         });
     });
     
@@ -179,9 +219,9 @@ describe('ReconnectionHandler', () => {
             reconnectionHandler.emit('test_event', { data: 'test' });
             
             // Should queue the message instead of sending
-            expect(mockEmit).not.toHaveBeenCalled();
-            expect(reconnectionHandler.pendingMessages.length).toBe(1);
-            expect(reconnectionHandler.pendingMessages[0].event).toBe('test_event');
+            expect(mockEmit).not.to.have.been.called;
+            expect(reconnectionHandler.pendingMessages.length).to.equal(1);
+            expect(reconnectionHandler.pendingMessages[0].event).to.equal('test_event');
         });
         
         it('should resend queued messages on reconnection', async () => {
@@ -190,17 +230,17 @@ describe('ReconnectionHandler', () => {
             reconnectionHandler.queueMessage('test_event_2', [{ data: 'test2' }]);
             
             // Simulate reconnection
-            const connectHandler = mockOn.mock.calls.find(
-                call => call[0] === 'connect'
-            )[1];
+            const connectHandler = mockOn.getCalls().find(
+                call => call.args[0] === 'connect'
+            ).args[1];
             
             connectHandler();
             
             // Should resend queued messages
-            expect(mockEmit).toHaveBeenCalledTimes(2);
-            expect(mockEmit).toHaveBeenCalledWith('test_event_1', { data: 'test1' });
-            expect(mockEmit).toHaveBeenCalledWith('test_event_2', { data: 'test2' });
-            expect(reconnectionHandler.pendingMessages.length).toBe(0);
+            expect(mockEmit).to.have.been.calledTwice;
+            expect(mockEmit).to.have.been.calledWith('test_event_1', { data: 'test1' });
+            expect(mockEmit).to.have.been.calledWith('test_event_2', { data: 'test2' });
+            expect(reconnectionHandler.pendingMessages.length).to.equal(0);
         });
     });
     

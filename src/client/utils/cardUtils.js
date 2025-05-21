@@ -60,6 +60,17 @@ export const getCardValue = (card, trumpSuit) => {
 };
 
 /**
+ * Check if a card is the right bower (jack of the trump suit)
+ * @param {Object} card - The card to check
+ * @param {string} trumpSuit - The current trump suit
+ * @returns {boolean} - True if the card is the right bower
+ */
+export const isRightBower = (card, trumpSuit) => {
+  if (!card || !card.rank || !card.suit) return false;
+  return card.rank === 'J' && card.suit === trumpSuit;
+};
+
+/**
  * Check if a card is the left bower (jack of the same color as trump)
  * @param {Object} card - The card to check
  * @param {string} trumpSuit - The current trump suit

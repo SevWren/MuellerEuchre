@@ -3,6 +3,11 @@ import proxyquire from "proxyquire";
 import sinon from "sinon";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from 'url';
+
+// Get directory name in ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 describe('Game State Persistence', function() {
     let server, gameState, mockIo, mockSockets = {};

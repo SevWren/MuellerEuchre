@@ -2,6 +2,35 @@ import { PLAYER_ROLES, TEAMS } from '../config/constants.js';
 import { log, currentDebugLevel } from './logger.js';
 
 /**
+ * Checks if two players are on the same team
+ * @param {string} player1Role - The first player's role
+ * @param {string} player2Role - The second player's role
+ * @returns {boolean} - True if the players are on the same team
+ */
+export function isTeammate(player1Role, player2Role) {
+  if (!player1Role || !player2Role) return false;
+  
+  const team1 = getTeamForPlayer(player1Role);
+  const team2 = getTeamForPlayer(player2Role);
+  
+  return team1 === team2;
+}
+
+/**
+ * Gets the team for a player
+ * @param {string} playerRole - The player's role
+ * @returns {string} - The team name
+ */
+function getTeamForPlayer(playerRole) {
+  if (['north', 'south'].includes(playerRole)) {
+    return 'north+south';
+  } else if (['east', 'west'].includes(playerRole)) {
+    return 'east+west';
+  }
+  return '';
+}
+
+/**
  * Gets the partner role for a given player role
  * @param {string} playerRole - The player's role (south, west, north, east)
  * @returns {string} The partner's role

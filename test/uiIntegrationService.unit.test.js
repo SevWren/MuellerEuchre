@@ -1,15 +1,15 @@
-import { jest } from '@jest/globals';
+import { expect } from 'chai';
+import sinon from 'sinon';
 import { UIIntegrationService } from '../src/client/services/uiIntegrationService.js';
 
-// Mock the logger
-jest.mock('../src/utils/logger.js', () => ({
-    log: jest.fn()
-}));
+// Import the logger to mock it
+import * as loggerModule from '../src/utils/logger.js';
 
 describe('UIIntegrationService', () => {
     let mockStateSyncService;
     let mockGameUI;
     let uiIntegrationService;
+    let sandbox;
     
     // Mock game state
     const mockState = {
@@ -25,29 +25,40 @@ describe('UIIntegrationService', () => {
         upCard: { suit: 'hearts', rank: 'A' }
     };
     
+    before(() => {
+        sandbox = sinon.createSandbox();
+        // Stub the logger
+        sandbox.stub(loggerModule, 'log');
+    });
+    
+    afterEach(() => {
+        sandbox.reset();
+    });
+    
+    after(() => {
+        sandbox.restore();
+    });
+    
     beforeEach(() => {
-        // Reset mocks before each test
-        jest.clearAllMocks();
-        
         // Create mock state sync service
         mockStateSyncService = {
-            subscribe: jest.fn(),
-            unsubscribe: jest.fn(),
-            getState: jest.fn(() => mockState),
-            getCurrentPlayerId: jest.fn(() => 'player1')
+            subscribe: sinon.stub(),
+            unsubscribe: sinon.stub(),
+            getState: sinon.stub().returns(mockState),
+            getCurrentPlayerId: sinon.stub().returns('player1')
         };
         
         // Create mock game UI
         mockGameUI = {
-            updateBoard: jest.fn(),
-            updateHands: jest.fn(),
-            updateScores: jest.fn(),
-            updatePlayerInfo: jest.fn(),
-            showLobby: jest.fn(),
-            showDealing: jest.fn(),
-            showBidding: jest.fn(),
-            showPlaying: jest.fn(),
-            showGameOver: jest.fn()
+            updateBoard: sinon.stub(),
+            updateHands: sinon.stub(),
+            updateScores: sinon.stub(),
+            updatePlayerInfo: sinon.stub(),
+            showLobby: sinon.stub(),
+            showDealing: sinon.stub(),
+            showBidding: sinon.stub(),
+            showPlaying: sinon.stub(),
+            showGameOver: sinon.stub()
         };
         
         // Create a new instance for each test
@@ -73,27 +84,48 @@ describe('UIIntegrationService', () => {
         uiIntegrationService.destroy();
     });
     
-    describe('initialization', () => {
+    describe('initialize', () => {
         it('should set up event listeners', () => {
-            expect(mockStateSyncService.subscribe).toHaveBeenCalledWith(
-                'stateChange',
-                expect.any(Function)
-            );
+            uiIntegrationService.initialize();
             
-            expect(mockStateSyncService.subscribe).toHaveBeenCalledWith(
-                'connectionStatus',
-                expect.any(Function)
-            );
+            sinon.assert.calledWith(mockStateSyncService.subscribe, 'stateChange', sinon.match.func);
+            sinon.assert.calledWith(mockStateSyncService.subscribe, 'connectionStatus', sinon.match.func);
         });
         
         it('should create UI elements', () => {
-            expect(document.querySelector('.connection-indicator')).not.toBeNull();
-            expect(document.querySelector('.toast-container')).not.toBeNull();
+            // Create a fake document for testing
+            const fakeDoc = {
+                querySelector: sinon.stub()
+            };
+            fakeDoc.querySelector.withArgs('.connection-indicator').returns({});
+            fakeDoc.querySelector.withArgs('.toast-container').returns({});
+            
+            // Replace the global document for this test
+            const originalDocument = global.document;
+            global.document = fakeDoc;
+            
+            uiIntegrationService.initialize();
+            
+            sinon.assert.calledWith(fakeDoc.querySelector, '.connection-indicator');
+            sinon.assert.calledWith(fakeDoc.querySelector, '.toast-container');
+            
+            // Restore the original document
+            global.document = originalDocument;
         });
         
         it('should add styles to the document', () => {
-            const styles = document.querySelectorAll('style');
-            expect(styles.length).toBeGreaterThan(0);
+            const fakeDoc = {
+                querySelectorAll: sinon.stub().returns([{}, {}])
+            };
+            
+            const originalDocument = global.document;
+            global.document = fakeDoc;
+            
+            uiIntegrationService.initialize();
+            
+            expect(fakeDoc.querySelectorAll('style')).to.have.length.greaterThan(0);
+            
+            global.document = originalDocument;
         });
     });
     
@@ -101,18 +133,15 @@ describe('UIIntegrationService', () => {
         it('should update the game board', () => {
             uiIntegrationService.handleStateChange(mockState);
             
-            expect(mockGameUI.updateBoard).toHaveBeenCalledWith(mockState);
-            expect(mockGameUI.updateHands).toHaveBeenCalledWith(
-                mockState.players,
-                mockState.currentPlayer
-            );
-            expect(mockGameUI.updateScores).toHaveBeenCalledWith(mockState.scores);
+            sinon.assert.calledWith(mockGameUI.updateBoard, mockState);
+            sinon.assert.calledWith(mockGameUI.updateHands, mockState.players, mockState.currentPlayer);
+            sinon.assert.calledWith(mockGameUI.updateScores, mockState.scores);
         });
         
         it('should update player info', () => {
             uiIntegrationService.handleStateChange(mockState);
             
-            expect(mockGameUI.updatePlayerInfo).toHaveBeenCalledWith({
+            sinon.assert.calledWith(mockGameUI.updatePlayerInfo, {
                 currentPlayer: 'player1',
                 dealer: 'player1',
                 players: mockState.players
@@ -125,13 +154,14 @@ describe('UIIntegrationService', () => {
                 ...mockState,
                 gamePhase: 'LOBBY'
             });
-            expect(mockGameUI.showLobby).toHaveBeenCalled();
+            sinon.assert.calledOnce(mockGameUI.showLobby);
             
             // Test Dealing phase
             uiIntegrationService.handleStateChange({
                 ...mockState,
                 gamePhase: 'DEALING'
             });
+            sinon.assert.calledOnce(mockGameUI.showDealing);
             expect(mockGameUI.showDealing).toHaveBeenCalled();
             
             // Test Bidding phase

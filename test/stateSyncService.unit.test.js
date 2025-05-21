@@ -1,15 +1,30 @@
-import { jest } from '@jest/globals';
+import { expect } from 'chai';
+import sinon from 'sinon';
 import StateSyncService from '../src/client/services/stateSyncService.js';
 import { GAME_EVENTS } from '../src/config/constants.js';
 
-// Mock the logger
-jest.mock('../src/utils/logger.js', () => ({
-    log: jest.fn()
-}));
+// Import the logger to mock it
+import * as loggerModule from '../src/utils/logger.js';
 
 describe('StateSyncService', () => {
     let mockSocketService;
     let stateSyncService;
+    let sandbox;
+    
+    // Create a sandbox for stubs
+    before(() => {
+        sandbox = sinon.createSandbox();
+        // Stub the logger
+        sandbox.stub(loggerModule, 'log');
+    });
+    
+    afterEach(() => {
+        sandbox.reset();
+    });
+    
+    after(() => {
+        sandbox.restore();
+    });
     
     // Mock game states
     const initialState = {
@@ -33,14 +48,11 @@ describe('StateSyncService', () => {
     };
     
     beforeEach(() => {
-        // Reset mocks before each test
-        jest.clearAllMocks();
-        
-        // Create a mock socket service
+        // Create a mock socket service with Sinon stubs
         mockSocketService = {
-            on: jest.fn(),
-            off: jest.fn(),
-            send: jest.fn(),
+            on: sinon.stub(),
+            off: sinon.stub(),
+            send: sinon.stub(),
             connected: true,
             id: 'test-socket-id'
         };
@@ -52,18 +64,10 @@ describe('StateSyncService', () => {
     
     describe('initialization', () => {
         it('should set up event listeners', () => {
-            expect(mockSocketService.on).toHaveBeenCalledWith(
-                GAME_EVENTS.STATE_UPDATE,
-                expect.any(Function)
-            );
-            expect(mockSocketService.on).toHaveBeenCalledWith(
-                'reconnect',
-                expect.any(Function)
-            );
-            expect(mockSocketService.on).toHaveBeenCalledWith(
-                'disconnect',
-                expect.any(Function)
-            );
+            // Check if the event listeners were set up with the correct events
+            sinon.assert.calledWith(mockSocketService.on, GAME_EVENTS.STATE_UPDATE, sinon.match.func);
+            sinon.assert.calledWith(mockSocketService.on, 'reconnect', sinon.match.func);
+            sinon.assert.calledWith(mockSocketService.on, 'disconnect', sinon.match.func);
         });
     });
     
@@ -73,7 +77,7 @@ describe('StateSyncService', () => {
             stateSyncService.handleGameUpdate(fullUpdate);
             
             const currentState = stateSyncService.getState();
-            expect(currentState).toEqual(initialState);
+            expect(currentState).to.deep.equal(initialState);
         });
         
         it('should merge partial updates', () => {
@@ -85,9 +89,11 @@ describe('StateSyncService', () => {
             stateSyncService.handleGameUpdate(partialUpdate);
             
             const currentState = stateSyncService.getState();
-            expect(currentState.gamePhase).toBe('PLAYING');
-            expect(currentState.currentPlayer).toBe('player1');
-            expect(currentState.players).toEqual(initialState.players);
+            expect(currentState).to.have.property('gamePhase', 'PLAYING');
+            expect(currentState).to.have.property('currentPlayer', 'player1');
+            // Check that other properties remain unchanged
+            expect(currentState).to.have.property('gameId', initialState.gameId);
+            expect(currentState.players).to.deep.equal(initialState.players);
         });
     });
     

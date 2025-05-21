@@ -40,3 +40,39 @@ export function cardToString(card) {
     if (!card) return 'No card';
     return `${card.value} of ${card.suit}`;
 }
+
+/**
+ * Checks if a card is the right bower (Jack of trump suit)
+ * @param {Object} card - The card to check
+ * @param {string} trumpSuit - The current trump suit
+ * @returns {boolean} True if the card is the right bower
+ */
+export function isRightBower(card, trumpSuit) {
+    return card && 
+           card.value === 'J' && 
+           card.suit === trumpSuit;
+}
+
+/**
+ * Checks if a card is the left bower (Jack of same color as trump)
+ * @param {Object} card - The card to check
+ * @param {string} trumpSuit - The current trump suit
+ * @returns {boolean} True if the card is the left bower
+ */
+export function isLeftBower(card, trumpSuit) {
+    if (!card || card.value !== 'J') return false;
+    
+    // Define card color mappings
+    const suitColors = {
+        'hearts': 'red',
+        'diamonds': 'red',
+        'clubs': 'black',
+        'spades': 'black'
+    };
+    
+    const trumpColor = suitColors[trumpSuit];
+    const cardColor = suitColors[card.suit];
+    
+    return cardColor === trumpColor && 
+           card.suit !== trumpSuit;
+}

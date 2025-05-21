@@ -60,32 +60,48 @@ export function isValidPlay(gameState, playerRole, cardToPlay) {
     const ledPlay = gameState.currentTrick[0];
     let ledSuit = ledPlay.card.suit;
     
-    // If the led card is the left bower, the effective suit is trump
-    if (isLeftBower(ledPlay.card, gameState.trumpSuit)) {
-        ledSuit = gameState.trumpSuit;
-    }
-
-    // Check if player has any cards of the led suit (including left bower)
+    // Check if the led card is the left bower (which counts as trump)
+    const isLedCardLeftBower = isLeftBower(ledPlay.card, gameState.trumpSuit);
+    
+    // If the led card is the left bower or the led suit is trump, the effective suit is trump
+    const effectiveLedSuit = (isLedCardLeftBower || ledSuit === gameState.trumpSuit) ? gameState.trumpSuit : ledSuit;
+    
+    // Check if player has any cards of the led suit (including left bower as trump)
     const playerHasLedSuit = player.hand.some(card => {
-        if (isLeftBower(card, gameState.trumpSuit)) {
-            return ledSuit === gameState.trumpSuit;
+        // If the effective led suit is trump, left bower counts as trump
+        if (effectiveLedSuit === gameState.trumpSuit) {
+            return card.suit === gameState.trumpSuit || isLeftBower(card, gameState.trumpSuit);
         }
-        return card.suit === ledSuit;
+        // Normal case: check if card matches the led suit
+        return card.suit === effectiveLedSuit && !isLeftBower(card, gameState.trumpSuit);
     });
 
-    // If player has cards of the led suit, they must play one
-    if (playerHasLedSuit) {
-        const isPlayingLedSuit = (cardToPlay.suit === ledSuit && 
-                               !isLeftBower(cardToPlay, gameState.trumpSuit)) ||
-                              (isLeftBower(cardToPlay, gameState.trumpSuit) && 
-                               ledSuit === gameState.trumpSuit);
-        
-        if (!isPlayingLedSuit) {
-            return { 
-                isValid: false, 
-                message: `Must follow suit (${ledSuit})` 
-            };
-        }
+    // If player has no cards of the led suit, any card is valid
+    if (!playerHasLedSuit) {
+        return { isValid: true, message: 'Valid play (no cards of led suit)' };
+    }
+    
+    // Check if the played card is the left bower and the led suit is trump
+    if (isLeftBower(cardToPlay, gameState.trumpSuit) && ledSuit === gameState.trumpSuit) {
+        return { isValid: true, message: 'Valid play (left bower as trump)' };
+    }
+    
+    // Check if the played card matches the led suit
+    const isPlayingLedSuit = cardToPlay.suit === effectiveLedSuit;
+    
+    // If the led suit is not trump, check if the card is not a left bower
+    if (ledSuit !== gameState.trumpSuit && isLeftBower(cardToPlay, gameState.trumpSuit)) {
+        return { 
+            isValid: false, 
+            message: `Must follow suit (${effectiveLedSuit})` 
+        };
+    }
+    
+    if (!isPlayingLedSuit) {
+        return { 
+            isValid: false, 
+            message: `Must follow suit (${effectiveLedSuit})` 
+        };
     }
 
     // If we get here, the play is valid

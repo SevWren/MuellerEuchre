@@ -34,6 +34,65 @@ A full-featured, real-time online Euchre card game with WebSocket support, autom
    http://localhost:3000
    ```
 
+## 🧪 Testing
+
+### Running Tests
+
+This project uses Mocha with Chai for testing. The test suite includes unit tests for game logic and integration tests for server functionality.
+
+#### Prerequisites
+
+- Node.js (v14 or higher recommended)
+- npm (comes with Node.js)
+- All project dependencies (install with `npm install`)
+
+#### Running All Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage reporting
+npm run test:coverage
+
+# Run tests in watch mode (automatically re-runs on file changes)
+npm run test:watch
+```
+
+#### Running Specific Test Files
+
+To run a specific test file, use the following command:
+
+```bash
+npx mocha --require esm path/to/test/file.test.js
+```
+
+For example:
+
+```bash
+npx mocha --require esm test/playPhase.unit.test.js
+```
+
+#### Test Coverage
+
+To generate a coverage report:
+
+```bash
+npm run test:coverage
+```
+
+This will generate coverage reports in multiple formats in the `coverage` directory.
+
+#### Debugging Tests
+
+To debug tests, you can use Node's built-in debugger or add `debugger` statements in your test files and run:
+
+```bash
+node --inspect-brk node_modules/mocha/bin/mocha --require esm path/to/test/file.test.js
+```
+
+Then open Chrome DevTools and click on the Node.js icon to start debugging.
+
 ## 📚 API Reference
 
 ### WebSocket Events
@@ -402,51 +461,6 @@ This is the manifest file for the Node.js project.
 - The project is structured for real-time Euchre gameplay with robust server logic and a modern web UI.
 - Unit tests are isolated and require specific mocking for the environment.
 - All instructions and caveats for running and testing the project are included above.
-
-## 3. Current Bugs & Issues Being Addressed
-
-![alt text](image.png)
-![alt text](image-1.png)
-
-1.  **Client UI Not Updating After Game Start / Stale UI:**
-    *   **Description:** After the "Start Game" button is clicked and the server initiates the game (dealing cards, setting the up-card, determining the first player for bidding), the client UIs often do not reflect these changes. They remain stuck displaying a pre-game or lobby state.
-    *   **Symptoms Observed:**
-        *   Game status text (top center) shows "Connected. Waiting for role..." or similar stale message instead of "Current: [PlayerName] - Order up or pass?".
-        *   Player hands are not rendered or show as empty.
-        *   The up-card area does not display the correct up-card dealt by the server.
-        *   Game messages (bottom left) might still show "Welcome!" or only initial connection messages.
-    *   **Potential Causes:**
-        *   The `game_update` event from the server might not be consistently processed by the client's `socket.on('game_update', ...)` handler after the transition from the 'LOBBY' phase.
-        *   The `updateUI(state)` function on the client might have logical errors preventing it from correctly re-rendering the entire UI with the new game state data (player hands, up-card, trick area, status text, etc.).
-        *   The global `currentServerGameState` on the client might not be updating correctly, or `updateUI` might be using an old version.
-        *   CSS or DOM manipulation issues where old elements are not cleared before new ones are rendered, or elements are not being selected/updated correctly.
-        *   The client-side `myPlayerRole` variable might be `null` or incorrect when `updateUI` is called, leading to errors in `getPlayerRelativePosition` and incorrect rendering of player areas.
-
-2.  **Incorrect Up-Card Display ("North" Label Bug):**
-    *   **Description:** A very specific and persistent UI bug where the designated up-card area in the center of the table (`#up-card`) displays a card back with the text "North" (rotated 180 degrees) superimposed on it. This occurs instead of the actual up-card face (e.g., "Ace of Hearts" as per server logs).
-    *   **Symptoms Observed:** The element with `id="up-card"` shows content that seems to originate from or be styled like the `#north-area`'s player label or card elements.
-    *   **Potential Causes:**
-        *   **CSS Conflict/Specificity:** Overly broad CSS selectors targeting `.card` or `.player-label` within `#north-area` (which has `transform: rotate(180deg)`) might be unintentionally affecting the `#up-card` element, especially if `#up-card` also has the class `card`.
-        *   **DOM Manipulation Error:** JavaScript code in `updateUI` or `renderCardDOM` might be incorrectly targeting or populating the `#up-card` element, possibly due to an ID collision (unlikely if IDs are unique as they appear to be) or a faulty logic path when specifically rendering the up-card.
-        *   The logic in `updateUI` for rendering the up-card might be flawed, falling through to a default card back rendering, and then some other part of the UI update (perhaps player area rendering) incorrectly writes "North" into it or applies styles that cause this appearance.
-
-3.  **Inconsistent Client State After "Start Game" Action:**
-    *   **Description:** In some test scenarios, after one client clicks "Start Game," other clients might not transition correctly. For example, one client might show the "Start Game" button as "Starting...", while another client receives an error like "Game not in lobby phase."
-    *   **Symptoms Observed:** Different clients display conflicting UI states immediately after the game start is attempted.
-    *   **Potential Causes:**
-        *   The `game_update` broadcast by the server that changes `gameState.gamePhase` from 'LOBBY' might not be reaching all clients simultaneously or is being processed with errors/delays on some clients.
-        *   Client-side logic for managing the "Start Game" button's state (`disabled`, `textContent`) and its interaction with `lobby_update` vs. `game_update` might be inconsistent across clients or have race conditions.
-
-4.  **Race Condition/State Management Between `lobby_update` and `game_update` (Proactively Addressed):**
-    *   **Description:** A potential issue where a `lobby_update` message (intended for lobby UI) could arrive *after* a `game_update` has already advanced the `gamePhase` beyond 'LOBBY'. If the `lobby_update` handler unconditionally sets `gamePhase` back to 'LOBBY' or overwrites other critical game state, it could disrupt the game flow.
-    *   **Status:** Recent changes in the `index.html` `socket.on('lobby_update', ...)` handler were made to mitigate this by making state updates conditional on `currentServerGameState.gamePhase === 'LOBBY'`. This is more of a bug prevention measure.
-
-5.  **General Robustness of Client-Side State Synchronization:**
-    *   **Description:** Ensuring that all clients maintain an accurate and synchronized view of the game state at all times, especially during rapid phase transitions or when modals for player actions are displayed/hidden.
-    *   **Symptoms Observed:** The UI sometimes feels "stuck" or doesn't immediately reflect whose turn it is, what the valid actions are, or the results of an action.
-    *   **Potential Causes:**
-        *   Timing issues with hiding/showing modals relative to UI updates.
-        *   The client needs to reliably clear previous state (e.g., old cards, old status messages) before rendering new state from `game_update`. The previous version of `updateUI` for up-card was refined to explicitly clear `innerHTML` and `className` for `elements.upCardEl`. This principle might need to be applied more broadly if stale elements persist.
 
 ## 4. Setup & Running
 

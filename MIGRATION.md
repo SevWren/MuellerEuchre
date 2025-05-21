@@ -95,7 +95,14 @@ This document outlines the changes made to restructure the Euchre multiplayer ga
   - Created new test file: `src/test/services/socketService.test.js`
   - Tests cover connection management, message queuing, and reconnection
   - Added connection quality tracking tests
-- [ ] Update integration tests for new module structure
+- [x] Update integration tests for new module structure
+  - Created new test file: `src/test/integration/gameFlow.test.js`
+  - Added test utilities in `src/test/utils/testUtils.js`
+  - Tests cover full game flow including:
+    - Player joining and game start
+    - Bidding phase
+    - Card playing and trick completion
+    - Player disconnection and reconnection
 - [ ] Verify test coverage for all modules
 - [ ] Set up CI/CD pipeline for automated testing
 

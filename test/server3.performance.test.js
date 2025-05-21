@@ -179,7 +179,13 @@ describe('Performance Testing', function() {
             to: sinon.stub().returnsThis(),
             emit: sinon.stub(),
             in: sinon.stub().returnsThis(),
-            on: sinon.stub()
+            on: sinon.stub(),
+        };
+        // Alias for compatibility with other tests
+        mockIo.connectionCallback = function(socket) {
+            if (typeof mockIo.connectionHandler === 'function') {
+                mockIo.connectionHandler(socket);
+            }
         };
         
         // Load the server with mocks

@@ -140,12 +140,13 @@ describe('Euchre Game Integration Tests', function() {
         });
         
         it('should handle a euchre scenario', function() {
-            // Set up a euchre scenario where the calling team gets less than 3 tricks
-            // (Implementation similar to above but with specific card plays)
+            // Skipped: Not implemented
+            this.skip();
         });
         
         it('should handle a loner hand', function() {
-            // Test going alone and winning all 5 tricks
+            // Skipped: Not implemented
+            this.skip();
         });
     });
     

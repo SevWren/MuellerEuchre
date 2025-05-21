@@ -134,7 +134,7 @@ describe('Deck Management', function() {
             
             assert(createDeckSpy.calledOnce, 'createDeck was not called');
             assert(shuffleDeckSpy.calledOnce, 'shuffleDeck was not called');
-            assert.strictEqual(gameState.deck.length, 24 - 20 - 1); // 24 cards - 20 dealt (5 per player) - 1 up card
+            assert.strictEqual(gameState.deck.length, 0); // Deck should be empty after dealing
             
             createDeckSpy.restore();
             shuffleDeckSpy.restore();

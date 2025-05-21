@@ -1,6 +1,7 @@
-const assert = require('assert');
-describe('Sanity Check', function() {
-  it('should run a simple test', function() {
-    assert.strictEqual(1 + 1, 2);
+import { expect } from 'chai';
+
+describe('Sanity Check', () => {
+  it('should run a simple test', () => {
+    expect(1 + 1).to.equal(2);
   });
 });

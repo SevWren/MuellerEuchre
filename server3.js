@@ -46,17 +46,17 @@ function resetFullGame() {
     // Store the old game state for reference
     const oldGameState = { ...gameState };
     
-    // Generate a new game ID that's guaranteed to be different
-    // Use a combination of timestamp and random number to ensure uniqueness
-    // In test mode, we need to ensure the ID is different from the old one
+    // For tests, always generate a new unique ID
     let newGameId;
-    do {
-        newGameId = Date.now() + Math.floor(Math.random() * 10000);
-        // Add a small delay to ensure we get a different timestamp if needed
-        if (process.env.NODE_ENV === 'test') {
-            newGameId += 1000 + Math.floor(Math.random() * 10000);
-        }
-    } while (newGameId === oldGameState.gameId); // Ensure we get a different ID
+    if (process.env.NODE_ENV === 'test') {
+        // In test mode, use a counter to ensure unique IDs
+        resetFullGame.testCounter = (resetFullGame.testCounter || 0) + 1;
+        newGameId = 'test-game-' + resetFullGame.testCounter;
+    } else {
+        // In production, use timestamp + random
+        newGameId = 'game-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+    }
+    
     log(DEBUG_LEVELS.INFO, `New game ID: ${newGameId} (old was: ${oldGameState.gameId})`);
 
     // Create a new deck
@@ -96,13 +96,13 @@ function resetFullGame() {
     // Shuffle the deck
     shuffleDeck(newGameState.deck);
 
-    // Initialize players with default values and clear all connections
+    // Clear all player states and connections
     newGameState.playerSlots.forEach((role) => {
         // Preserve player names if they exist in the old state
         const oldPlayer = oldGameState.players?.[role] || {};
         const playerName = oldPlayer.name || role.charAt(0).toUpperCase() + role.slice(1);
         
-        // Clear any existing player state completely
+        // Create a completely new player object to ensure no references remain
         newGameState.players[role] = {
             id: null,  // Clear any existing connections
             socketId: null, // Clear socket ID
@@ -116,17 +116,24 @@ function resetFullGame() {
             isDealer: role === 'south', // Set initial dealer
             hasPlayed: false,
             hasCalledTrump: false,
-            // Add any other player properties that need to be reset
             isGoingAlone: false,
             isSittingOut: false
         };
         
-        // Explicitly clear any socket references
-        if (oldPlayer.socketId) {
-            const socket = io.sockets.sockets.get(oldPlayer.socketId);
-            if (socket) {
-                socket.leave(role);
-                socket.leave(`game-${oldGameState.gameId}`);
+        // If we have a socket.io instance, clean up old socket references
+        if (io && io.sockets && oldPlayer.socketId) {
+            try {
+                const socket = io.sockets.sockets.get(oldPlayer.socketId);
+                if (socket) {
+                    if (socket.leave) {
+                        socket.leave(role);
+                        socket.leave(`game-${oldGameState.gameId}`);
+                    }
+                    // Force disconnect if needed (uncomment if necessary)
+                    // socket.disconnect(true);
+                }
+            } catch (e) {
+                log(DEBUG_LEVELS.ERROR, `Error cleaning up socket ${oldPlayer.socketId}: ${e.message}`);
             }
         }
         
@@ -460,23 +467,21 @@ function startNewHand() {
     gameState.currentTrickPlays = [];
     gameState.trickLeader = null;
 
-    // Rotate dealer before starting new hand
-    const currentDealerIndex = gameState.playerSlots.indexOf(gameState.dealer);
-    const nextDealerIndex = (currentDealerIndex + 1) % gameState.playerSlots.length;
-    
-    // Update dealer
-    gameState.dealer = gameState.playerSlots[nextDealerIndex];
-    
-    // If this is the first hand of the session, set the initial dealer
+    // For the first hand, set the initial dealer if not already set
     if (gameState.initialDealerForSession === null) {
-        log(DEBUG_LEVELS.INFO, 'Setting initial dealer for session:', gameState.dealer);
         gameState.initialDealerForSession = gameState.dealer;
+        log(DEBUG_LEVELS.INFO, 'Setting initial dealer for session:', gameState.dealer);
     } else {
+        // Rotate dealer to the next player for subsequent hands
+        const currentDealerIndex = gameState.playerSlots.indexOf(gameState.dealer);
+        const nextDealerIndex = (currentDealerIndex + 1) % gameState.playerSlots.length;
+        gameState.dealer = gameState.playerSlots[nextDealerIndex];
         log(DEBUG_LEVELS.INFO, `Rotated dealer to ${gameState.dealer}`);
     }
     
-    // Set current player to the player to the left of the dealer
-    const currentPlayerIndex = (nextDealerIndex + 1) % gameState.playerSlots.length;
+    // Set current player to the player to the left of the dealer (next after dealer)
+    const dealerIndex = gameState.playerSlots.indexOf(gameState.dealer);
+    const currentPlayerIndex = (dealerIndex + 1) % gameState.playerSlots.length;
     gameState.currentPlayer = gameState.playerSlots[currentPlayerIndex];
     log(DEBUG_LEVELS.INFO, `Set current player to ${gameState.currentPlayer}`);
     

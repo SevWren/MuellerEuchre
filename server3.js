@@ -1,3 +1,4 @@
+//npx mocha G:\Users\mmuel\OneDrive\Documents\GitHub\MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js --require proxyquire --reporter spec
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');

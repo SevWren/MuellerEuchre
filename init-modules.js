@@ -1,0 +1,79 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Define the module structure
+const modules = {
+    'game/phases/bidding': [
+        'handleOrderUpDecision',
+        'handleDealerDiscard',
+        'handleCallTrumpDecision',
+        'handleGoAloneDecision'
+    ],
+    'game/phases/playing': [
+        'startNewHand',
+        'handlePlayCard'
+    ],
+    'game/phases/scoring': [
+        'scoreCurrentHand'
+    ],
+    'game/logic/validation': [
+        'serverIsValidPlay'
+    ],
+    'game/state': [
+        'resetFullGame',
+        'broadcastGameState',
+        'addGameMessage'
+    ]
+};
+
+// Create module files with basic structure
+Object.entries(modules).forEach(([modulePath, functions]) => {
+    const dir = path.join(__dirname, 'src', path.dirname(modulePath));
+    const filePath = path.join(dir, `${path.basename(modulePath)}.js`);
+    
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+        console.log(`Created directory: ${dir}`);
+    }
+    
+    // Create module file if it doesn't exist
+    if (!fs.existsSync(filePath)) {
+        let content = `// ${path.basename(filePath)}\n`;
+        content += '// This file contains functions for handling ' + path.basename(modulePath, '.js') + '\n\n';
+        
+        // Add imports
+        content += 'import { log } from \'../../utils/logger.js\';\n';
+        content += 'import { GAME_PHASES } from \'../../config/constants.js\';\n\n';
+        
+        // Add function stubs
+        functions.forEach(func => {
+            content += `/**
+ * ${func} - TODO: Add description
+ * @param {*} params - TODO: Add parameters
+ * @returns {*} TODO: Add return value
+ */
+`;
+            content += `export function ${func}(params) {\n`;
+            content += '    // TODO: Implement this function\n';
+            content += '    log(1, `[${func}] Function not yet implemented`);\n';
+            content += '    throw new Error(\'Not implemented\');\n';
+            content += '}\n\n';
+        });
+        
+        fs.writeFileSync(filePath, content);
+        console.log(`Created file: ${filePath}`);
+    } else {
+        console.log(`File already exists: ${filePath}`);
+    }
+});
+
+console.log('\nModule initialization complete!');
+console.log('Next steps:');
+console.log('1. Implement the functions in each module');
+console.log('2. Update imports in server.js to use the new modules');
+console.log('3. Run tests to ensure everything works as expected');

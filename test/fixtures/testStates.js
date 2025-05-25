@@ -140,61 +140,96 @@ export const TEST_PLAYERS = {
 export { SAMPLE_CARDS };
 
 /**
+ * Generates a timestamp for consistent testing.
+ * @returns {number} A fixed timestamp for testing
+ */
+const generateTestTimestamp = () => 1620000000000; // Fixed timestamp for consistent tests
+
+/**
  * Initial game state for testing purposes.
  * Represents a game in the LOBBY phase with 2 players ready to start.
  * @type {GameState}
- * @property {string} gameId - Unique identifier for the game
+ * @property {string} gameId - Unique identifier for the game (format: 'test-game-{timestamp}')
  * @property {string} gamePhase - Current phase of the game (LOBBY)
- * @property {Object} players - Object containing player objects
+ * @property {Object.<string, Player>} players - Map of player IDs to player objects
  * @property {Object} settings - Game settings including maxPlayers and scoreToWin
  * @property {number} createdAt - Timestamp of when the game was created
+ * @property {string} [dealer] - ID of the current dealer (not set in initial state)
+ * @property {string} [trumpSuit] - Current trump suit (not set in initial state)
  * @example
  * // Using in a test:
- * const gameState = { ...INITIAL_STATE };
- * gameState.players[PLAYER_3.id] = { ...PLAYER_3, ready: true };
+ * import { INITIAL_STATE, TEST_PLAYERS } from './fixtures/testStates';
+ * const gameState = { 
+ *   ...INITIAL_STATE,
+ *   players: {
+ *     ...INITIAL_STATE.players,
+ *     [TEST_PLAYERS.PLAYER_3.id]: { ...TEST_PLAYERS.PLAYER_3, ready: true }
+ *   }
+ * };
  */
-export const INITIAL_STATE = {
-    gameId: 'test-game',
+export const INITIAL_STATE = Object.freeze({
+    gameId: `test-game-${generateTestTimestamp()}`,
     gamePhase: 'LOBBY',
-    players: {
-        [TEST_PLAYERS.PLAYER_1.id]: TEST_PLAYERS.PLAYER_1,
-        [TEST_PLAYERS.PLAYER_2.id]: TEST_PLAYERS.PLAYER_2
-    },
-    settings: {
+    players: Object.freeze({
+        [TEST_PLAYERS.PLAYER_1.id]: Object.freeze({ ...TEST_PLAYERS.PLAYER_1 }),
+        [TEST_PLAYERS.PLAYER_2.id]: Object.freeze({ ...TEST_PLAYERS.PLAYER_2 })
+    }),
+    settings: Object.freeze({
         maxPlayers: 4,
-        scoreToWin: 10
-    },
-    createdAt: Date.now()
-};
+        scoreToWin: 10,
+        allowSpectators: true,
+        autoPlay: false
+    }),
+    createdAt: generateTestTimestamp(),
+    dealer: undefined,
+    trumpSuit: undefined
+});
 
 /**
  * Game state representing an in-progress game.
  * Extends INITIAL_STATE with IN_PROGRESS phase and initial turn setup.
  * @type {GameState}
  * @property {string} gamePhase - Set to 'IN_PROGRESS'
- * @property {number} currentRound - The current round number
+ * @property {number} currentRound - The current round number (starts at 1)
  * @property {string} currentTurn - ID of the player whose turn it is
  * @property {Object} trick - Current trick information
- * @property {Array} trick.cards - Array of cards played in the current trick
+ * @property {Array<Card>} trick.cards - Array of cards played in the current trick
  * @property {string} trick.leader - ID of the player who leads the current trick
+ * @property {string} dealer - ID of the current dealer
+ * @property {string} trumpSuit - Current trump suit (hearts, diamonds, clubs, spades)
+ * @property {Object} scores - Current scores for both teams
+ * @property {number} scores.team1 - Current score for team 1
+ * @property {number} scores.team2 - Current score for team 2
+ * @property {string} [winningTeam] - ID of the team that has won (if any)
  * @example
  * // Using in a test:
+ * import { IN_PROGRESS_STATE, TEST_PLAYERS, SAMPLE_CARDS } from './fixtures/testStates';
  * const gameState = {
  *   ...IN_PROGRESS_STATE,
- *   currentTurn: PLAYER_2.id,
- *   trick: { cards: [card1], leader: PLAYER_1.id }
+ *   currentTurn: TEST_PLAYERS.PLAYER_2.id,
+ *   trick: { 
+ *     cards: [SAMPLE_CARDS.ACE_HEARTS], 
+ *     leader: TEST_PLAYERS.PLAYER_1.id 
+ *   }
  * };
  */
-export const IN_PROGRESS_STATE = {
+export const IN_PROGRESS_STATE = Object.freeze({
     ...INITIAL_STATE,
     gamePhase: 'IN_PROGRESS',
     currentRound: 1,
     currentTurn: TEST_PLAYERS.PLAYER_1.id,
-    trick: {
+    trick: Object.freeze({
         cards: [],
         leader: TEST_PLAYERS.PLAYER_1.id
-    }
-};
+    }),
+    dealer: TEST_PLAYERS.PLAYER_1.id,
+    trumpSuit: 'hearts',
+    scores: Object.freeze({
+        team1: 0,
+        team2: 0
+    }),
+    winningTeam: undefined
+});
 
 /**
  * Game state representing a completed game.
@@ -202,68 +237,153 @@ export const IN_PROGRESS_STATE = {
  * @type {GameState}
  * @property {string} gamePhase - Set to 'COMPLETED'
  * @property {string} winner - ID of the winning team
+ * @property {number} round - The final round number when the game ended
  * @property {Object} scores - Final scores for both teams
  * @property {number} scores.team1 - Final score for team 1
  * @property {number} scores.team2 - Final score for team 2
+ * @property {number} completedAt - Timestamp when the game was completed
+ * @property {Object} stats - Game statistics
+ * @property {number} stats.duration - Game duration in seconds
+ * @property {Object} stats.rounds - Number of rounds played
  * @example
  * // Using in a test:
+ * import { COMPLETED_STATE } from './fixtures/testStates';
  * const gameState = {
  *   ...COMPLETED_STATE,
  *   winner: 'team2',
- *   scores: { team1: 8, team2: 10 }
+ *   scores: { 
+ *     team1: 8, 
+ *     team2: 10 
+ *   },
+ *   completedAt: Date.now()
  * };
  */
-export const COMPLETED_STATE = {
+export const COMPLETED_STATE = Object.freeze({
     ...IN_PROGRESS_STATE,
     gamePhase: 'COMPLETED',
     winner: 'team1',
-    scores: {
+    round: 8,
+    scores: Object.freeze({
         team1: 10,
         team2: 8
-    }
-};
+    }),
+    completedAt: generateTestTimestamp() + 3600000, // 1 hour after creation
+    stats: Object.freeze({
+        duration: 3600, // 1 hour in seconds
+        rounds: 8,
+        tricksWon: {
+            team1: 5,
+            team2: 3
+        },
+        pointsPerRound: {
+            team1: [0, 1, 3, 1, 2, 1, 1, 1],
+            team2: [1, 1, 0, 1, 0, 1, 2, 2]
+        }
+    })
+});
 
 /**
  * Creates a modified game state by deeply merging a base state with modifications.
+ * This function performs a deep merge for nested objects (players and settings) and a shallow merge for other properties.
  * 
  * @param {GameState} baseState - The base game state to modify. This will not be mutated.
  * @param {Object} [modifications={}] - Object containing state modifications to apply
- * @param {Object} [modifications.players] - Optional player modifications to merge with existing players
+ * @param {Object.<string, Player>} [modifications.players] - Optional player modifications to merge with existing players
  * @param {Object} [modifications.settings] - Optional settings modifications to merge with existing settings
+ * @param {Trick} [modifications.trick] - Optional trick modifications
+ * @param {Object} [modifications.scores] - Optional scores modifications
  * @param {*} [modifications...] - Any additional properties to add/override in the state
  * 
  * @returns {GameState} A new game state with modifications applied
  * 
+ * @throws {TypeError} If baseState is not provided or is not an object
+ * @throws {TypeError} If modifications is not an object (when provided)
+ * 
  * @example
  * // Create a new state with additional players
+ * import { createTestState, INITIAL_STATE, TEST_PLAYERS } from './fixtures/testStates';
+ * 
  * const modifiedState = createTestState(INITIAL_STATE, {
  *   players: {
- *     [PLAYER_3.id]: { ...PLAYER_3, ready: true },
- *     [PLAYER_4.id]: { ...PLAYER_4, ready: true }
+ *     [TEST_PLAYERS.PLAYER_3.id]: { ...TEST_PLAYERS.PLAYER_3, ready: true },
+ *     [TEST_PLAYERS.PLAYER_4.id]: { ...TEST_PLAYERS.PLAYER_4, ready: true }
  *   },
- *   settings: { maxPlayers: 4, scoreToWin: 10 },
- *   customProperty: 'value'
+ *   settings: { maxPlayers: 4, scoreToWin: 10, autoPlay: true },
+ *   customProperty: 'value',
+ *   currentTurn: TEST_PLAYERS.PLAYER_3.id
  * });
  * 
  * @example
- * // Extend an in-progress game state
- * const inProgress = createTestState(IN_PROGRESS_STATE, {
- *   currentTurn: PLAYER_2.id,
+ * // Extend an in-progress game state with a new trick
+ * import { createTestState, IN_PROGRESS_STATE, TEST_PLAYERS, SAMPLE_CARDS } from './fixtures/testStates';
+ * 
+ * const gameState = createTestState(IN_PROGRESS_STATE, {
+ *   currentTurn: TEST_PLAYERS.PLAYER_2.id,
  *   trick: {
- *     cards: [card1, card2],
- *     leader: PLAYER_1.id
+ *     cards: [SAMPLE_CARDS.ACE_HEARTS, SAMPLE_CARDS.KING_HEARTS],
+ *     leader: TEST_PLAYERS.PLAYER_1.id
+ *   },
+ *   scores: {
+ *     team1: 3,
+ *     team2: 2
  *   }
  * });
+ * 
+ * @example
+ * // Create a minimal test state with validation
+ * try {
+ *   const minimalState = createTestState(
+ *     { gameId: 'minimal', gamePhase: 'LOBBY', players: {}, settings: {} },
+ *     { custom: 'value' }
+ *   );
+ * } catch (error) {
+ *   console.error('Invalid state:', error.message);
+ * }
  */
-export const createTestState = (baseState, modifications = {}) => ({
-    ...baseState,
-    ...modifications,
-    players: {
-        ...baseState.players,
-        ...(modifications.players || {})
-    },
-    settings: {
-        ...baseState.settings,
-        ...(modifications.settings || {})
+export const createTestState = (baseState, modifications = {}) => {
+    // Input validation
+    if (typeof baseState !== 'object' || baseState === null) {
+        throw new TypeError('baseState must be an object');
     }
-});
+    
+    if (modifications !== undefined && (typeof modifications !== 'object' || modifications === null)) {
+        throw new TypeError('modifications must be an object');
+    }
+
+    // Create a deep copy of the base state
+    const state = { ...baseState };
+    
+    // Apply modifications with special handling for nested objects
+    const result = {
+        ...state,
+        ...modifications,
+        // Deep merge players
+        players: {
+            ...state.players,
+            ...(modifications.players || {})
+        },
+        // Deep merge settings
+        settings: {
+            ...state.settings,
+            ...(modifications.settings || {})
+        },
+        // Deep merge trick if it exists
+        ...(modifications.trick && {
+            trick: {
+                ...(state.trick || {}),
+                ...modifications.trick,
+                // Ensure cards is an array
+                cards: [...(modifications.trick.cards || state.trick?.cards || [])]
+            }
+        }),
+        // Deep merge scores if they exist
+        ...(modifications.scores && {
+            scores: {
+                ...(state.scores || {}),
+                ...modifications.scores
+            }
+        })
+    };
+
+    return result;
+};

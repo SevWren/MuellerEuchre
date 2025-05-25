@@ -30,10 +30,81 @@
         "jsx": "react-jsx",
         "allowImportingTsExtensions": true,
         "strictNullChecks": true,
-        "strictFunctionTypes": true
+        "strictFunctionTypes": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["public/js/*"]
+        }
     },
     "exclude": [
+        // Dependencies
         "node_modules",
-        "**/node_modules/*"
+        "**/node_modules/*",
+        "**/bower_components/*",
+        
+        // Build outputs
+        "dist",
+        "build",
+        "out",
+        
+        // Cache and temp files
+        ".cache",
+        ".temp",
+        "temp",
+        "tmp",
+        "**/*.tmp",
+        
+        // Logs and debug files
+        "logs",
+        "*.log",
+        "npm-debug.log*",
+        "yarn-debug.log*",
+        "yarn-error.log*",
+        "lerna-debug.log*",
+        
+        // Environment and IDE
+        ".env*",
+        ".vscode/*",
+        ".idea",
+        ".DS_Store",
+        "Thumbs.db",
+        
+        // Coverage and reports
+        "coverage",
+        ".nyc_output",
+        "*.lcov",
+        
+        // Package manager specific
+        "package-lock.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+        "shrinkwrap.json",
+        
+        // Production dependencies
+        "**/public/vendor/*",
+        "**/public/libs/*",
+        
+        // Minified files
+        "**/*.min.js",
+        "**/*.min.css",
+        
+        // Config overrides
+        "**/webpack.config.override.js",
+        "**/babel.config.override.js"
+    ],
+    "include": [
+        "**/*.js",
+        "**/*.jsx",
+        "**/*.ts",
+        "**/*.tsx",
+        "**/test",
+        "**/tests",
+        "**/__tests__",
+        "**/__mocks__",
+        "**/cypress",
+        "**/e2e",
+        "**/docs",
+        "**/examples",
+        "**/benchmarks"
     ]
 }

@@ -1,3 +1,11 @@
+/**
+ * @file server3.integration.test.js - Test file
+ * @module Server3IntegrationTest
+ * @description Test file
+ * @requires chai
+ * @see ../src/server3.integration.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

@@ -1,3 +1,11 @@
+/**
+ * @file server3.socket.unit.test.js - Unit tests for the Server3 Socket module
+ * @module Server3SocketUnitTest
+ * @description Unit tests for the Server3 Socket module
+ * @requires chai
+ * @see ../src/server3.socket.unit.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

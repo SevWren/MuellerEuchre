@@ -1,23 +1,63 @@
+/**
+ * @file server3.performance.test.js - Performance test suite for the Euchre server
+ * @module test/server3.performance
+ * @description Comprehensive performance testing suite for the Euchre game server.
+ * This test suite measures and reports on various performance metrics including:
+ * - Game initialization time
+ * - Action response times
+ * - Memory usage patterns
+ * - Concurrency handling
+ * - Stress test scenarios
+ * 
+ * @requires assert
+ * @requires proxyquire
+ * @requires sinon
+ * @requires perf_hooks
+ * @see {@link module:server3} for the implementation being tested
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";
 import {  performance, PerformanceObserver  } from "perf_hooks";
 
+/**
+ * @description Performance test suite for the Euchre server.
+ * This suite focuses on measuring and analyzing the server's performance characteristics
+ * under various conditions and loads.
+ */
 describe('Performance Testing', function() {
-    this.timeout(60000); // Increase timeout for performance tests
+    // Increase timeout for performance tests
+    this.timeout(60000);
     
+    /** @type {Object} server - The server instance being tested */
+    /** @type {Object} gameState - The game state object */
+    /** @type {Object} mockIo - Mocked socket.io instance */
     let server, gameState, mockIo;
+    
+    /** @type {Object} logStub - Stub for console.log */
+    /** @type {Object} appendFileStub - Stub for file system operations */
     let logStub, appendFileStub;
+    
+    /** @type {number} testStartTime - Timestamp when the current test started */
     let testStartTime;
     
-    // Performance metrics
+    /**
+     * @type {Object} metrics - Object to store performance metrics
+     * @property {Array} gameStartTimes - Timestamps of game start events
+     * @property {Object} actionTimes - Measured durations of various actions
+     * @property {Object} memoryUsage - Memory usage measurements
+     */
     const metrics = {
         gameStartTimes: [],
         actionTimes: {},
         memoryUsage: {}
     };
     
-    // Track memory usage
+    /**
+     * Tracks and records memory usage at a specific point in the test.
+     * @param {string} label - Identifier for when this measurement was taken
+     */
     const trackMemory = (label) => {
         const mem = process.memoryUsage();
         metrics.memoryUsage[label] = metrics.memoryUsage[label] || [];
@@ -30,7 +70,12 @@ describe('Performance Testing', function() {
         });
     };
     
-    // Measure operation time
+    /**
+     * Measures the execution time and memory impact of an async operation.
+     * @param {string} label - Name to identify this measurement
+     * @param {Function} fn - Async function to measure
+     * @returns {Promise<*>} The result of the function
+     */
     const measure = async (label, fn) => {
         const start = performance.now();
         const startMem = process.memoryUsage();
@@ -60,7 +105,11 @@ describe('Performance Testing', function() {
         return result;
     };
     
-    // Calculate statistics from measurements
+    /**
+     * Calculates statistical measures from an array of performance measurements.
+     * @param {Array<Object>} measurements - Array of measurement objects
+     * @returns {Object} Statistical summary (min, max, avg, etc.)
+     */
     const calculateStats = (measurements) => {
         if (measurements.length === 0) return {};
         
@@ -86,7 +135,10 @@ describe('Performance Testing', function() {
         };
     };
     
-    // Print performance report
+    /**
+     * Generates and logs a comprehensive performance report.
+     * Includes timing statistics and memory usage information.
+     */
     const printReport = () => {
         console.log('\n=== Performance Report ===');
         console.log(`Test duration: ${((Date.now() - testStartTime) / 1000).toFixed(2)}s`);
@@ -116,7 +168,10 @@ describe('Performance Testing', function() {
         }
     };
     
-    // Helper to simulate multiple concurrent games
+    /**
+     * Helper class to simulate game sessions for performance testing.
+     * Handles player connections, game starts, and card plays.
+     */
     class GameSimulator {
         constructor(server, gameId) {
             this.server = server;
@@ -160,6 +215,9 @@ describe('Performance Testing', function() {
         }
     }
     
+    /**
+     * Before each test, set up the test environment with fresh mocks and stubs.
+     */
     beforeEach(() => {
         testStartTime = Date.now();
         logStub = sinon.stub(console, 'log');

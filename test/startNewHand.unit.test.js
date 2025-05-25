@@ -1,3 +1,11 @@
+/**
+ * @file startNewHand.unit.test.js - Unit tests for the StartNewHand module
+ * @module StartNewHandUnitTest
+ * @description Unit tests for the StartNewHand module
+ * @requires chai
+ * @see ../src/startNewHand.unit.js
+ */
+
 import { startNewHand, dealCards } from '../src/game/phases/startNewHand.js';
 import { GAME_PHASES } from '../src/config/constants.js';
 import assert from "assert";

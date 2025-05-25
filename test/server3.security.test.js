@@ -1,3 +1,11 @@
+/**
+ * @file server3.security.test.js - Test file
+ * @module Server3SecurityTest
+ * @description Test file
+ * @requires chai
+ * @see ../src/server3.security.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

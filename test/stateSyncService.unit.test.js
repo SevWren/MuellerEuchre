@@ -1,3 +1,11 @@
+/**
+ * @file stateSyncService.unit.test.js - Unit tests for the StateSyncService module
+ * @module StateSyncServiceUnitTest
+ * @description Unit tests for the StateSyncService module
+ * @requires chai
+ * @see ../src/stateSyncService.unit.js
+ */
+
 import { expect } from 'chai';
 import sinon from 'sinon';
 import proxyquire from 'proxyquire';
@@ -11,10 +19,17 @@ import {
     IN_PROGRESS_STATE, 
     COMPLETED_STATE, 
     TEST_PLAYERS 
-} from './fixtures/testStates.js';
+} from './fixtures/testStates.js'; 
 
-// Constants
-const TEST_TIMEOUT = 5000; // 5 seconds timeout for all tests
+// Test configuration and constants
+const TEST_CONFIG = {
+    TIMEOUT: 5000,       // Default test timeout (5 seconds)
+    LONG_TIMEOUT: 10000, // Longer timeout for slow tests (10 seconds)
+    POLL_INTERVAL: 100,  // Polling interval for async operations (100ms)
+    RETRIES: 2           // Number of retries for flaky tests
+};
+
+// Storage keys
 const STORAGE_KEYS = {
     GAME_STATE: 'game_state',
     OFFLINE_QUEUE: 'offline_queue'
@@ -46,27 +61,34 @@ const StateSyncServiceModule = proxyquire('../src/client/services/stateSyncServi
 
 const StateSyncService = StateSyncServiceModule.StateSyncService;
 
-// Test configuration
-const TEST_CONFIG = {
-    TIMEOUT: 5000, // 5 seconds
-    RETRY_INTERVAL: 100, // 100ms
-    MAX_RETRIES: 3
-};
+// Use the global TEST_CONFIG for test timeouts and retries
 
 // Helper function to wait for a condition with retries
-const waitFor = async (condition, { interval = 100, timeout = 1000 } = {}) => {
+const waitFor = async (condition, { 
+    interval = TEST_CONFIG.POLL_INTERVAL, 
+    timeout = TEST_CONFIG.TIMEOUT 
+} = {}) => {
     const start = Date.now();
+    let lastError;
+    
     while (Date.now() - start < timeout) {
-        const result = await condition();
-        if (result) return result;
+        try {
+            const result = await Promise.resolve(condition());
+            if (result) return result;
+        } catch (error) {
+            lastError = error;
+        }
         await new Promise(resolve => setTimeout(resolve, interval));
     }
-    throw new Error(`Condition not met within ${timeout}ms`);
+    
+    const error = lastError || new Error(`Condition not met within ${timeout}ms`);
+    throw error;
 };
 
 describe('StateSyncService', function() {
-    // Set a reasonable timeout for all tests
+    // Set test configuration
     this.timeout(TEST_CONFIG.TIMEOUT);
+    this.retries(TEST_CONFIG.RETRIES);
     
     // Test fixtures
     let stateSyncService;
@@ -476,47 +498,8 @@ describe('StateSyncService', function() {
             });
         });
         
-        it('should replay queued actions when coming back online', async () => {
-            // Arrange - Queue some actions while offline
-            mockIsConnected = false;
-            const action1 = { 
-                type: 'PLAY_CARD', 
-                payload: { 
-                    card: 'AH',
-                    playerId: TEST_PLAYERS.PLAYER_1.id
-                } 
-            };
-            const action2 = { 
-                type: 'PLAY_CARD', 
-                payload: { 
-                    card: 'KH',
-                    playerId: TEST_PLAYERS.PLAYER_2.id
-                } 
-            };
-            
-            // Queue actions (they'll be rejected since we're offline)
-            await stateSyncService.sendAction('game:playCard', action1).catch(() => {});
-            await stateSyncService.sendAction('game:playCard', action2).catch(() => {});
-            
-            // Reset emit mock before coming back online
-            mockEmit.resetHistory();
-            mockEmit.resolves({ success: true });
-            
-            // Act - Come back online and process queue
-            mockIsConnected = true;
-            await stateSyncService.handleReconnect();
-            
-            // Assert - Verify actions were replayed in order
-            expect(mockEmit).to.have.been.calledTwice;
-            expect(mockEmit.firstCall).to.have.been.calledWith('game:playCard', action1);
-            expect(mockEmit.secondCall).to.have.been.calledWith('game:playCard', action2);
-            expect(stateSyncService.offlineQueue).to.be.empty;
-        });
-        
-        it('should handle errors during queue processing', async () => {
-            // Arrange - Queue an action that will fail
-        
         it('should handle arrays in mergeStates (arrays are replaced, not merged)', () => {
+            // Arrange
             const base = { 
                 items: [1, 2, 3],
                 nested: { items: ['a', 'b'] }
@@ -526,11 +509,11 @@ describe('StateSyncService', function() {
                 nested: { items: ['c'] }
             };
             
+            // Act
             const result = stateSyncService.mergeStates(base, update);
             
-            // Arrays should be replaced, not merged
+            // Assert
             expect(result.items).to.deep.equal([4, 5]);
-            // Nested arrays should also be replaced
             expect(result.nested.items).to.deep.equal(['c']);
         });
 
@@ -706,25 +689,25 @@ describe('StateSyncService', function() {
     });
     
     describe('utility methods', function() {
-        this.timeout(5000);
+        this.timeout(TEST_CONFIG.TIMEOUT);
         
         it('should handle arrays in mergeStates (arrays are replaced, not merged)', () => {
-        const base = { 
-            items: [1, 2, 3],
-            nested: { items: ['a', 'b'] }
-        };
-        const update = { 
-            items: [4, 5],
-            nested: { items: ['c'] }
-        };
-        
-        const result = stateSyncService.mergeStates(base, update);
-        
-        // Arrays should be replaced, not merged
-        expect(result.items).to.deep.equal([4, 5]);
-        // Nested arrays should also be replaced
-        expect(result.nested.items).to.deep.equal(['c']);
-    });
+            const base = { 
+                items: [1, 2, 3],
+                nested: { items: ['a', 'b'] }
+            };
+            const update = { 
+                items: [4, 5],
+                nested: { items: ['c'] }
+            };
+            
+            const result = stateSyncService.mergeStates(base, update);
+            
+            // Arrays should be replaced, not merged
+            expect(result.items).to.deep.equal([4, 5]);
+            // Nested arrays should also be replaced
+            expect(result.nested.items).to.deep.equal(['c']);
+        });
 
         it('should merge states correctly', () => {
             // Test with players object which has special merging

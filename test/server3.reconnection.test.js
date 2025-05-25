@@ -1,3 +1,11 @@
+/**
+ * @file server3.reconnection.test.js - Test file
+ * @module Server3ReconnectionTest
+ * @description Test file
+ * @requires chai
+ * @see ../src/server3.reconnection.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

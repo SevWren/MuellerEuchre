@@ -1,11 +1,39 @@
+/**
+ * @file server3.playCard.additional.test.js - Additional test cases for Euchre card playing logic
+ * @module test/server3.playCard.additional
+ * @description Extended test suite covering edge cases and advanced scenarios for the Euchre card playing functionality.
+ * 
+ * This test suite focuses on more complex game scenarios that go beyond basic card play validation,
+ * including special card interactions, trick resolution edge cases, and game state transitions.
+ * 
+ * @requires assert
+ * @requires proxyquire
+ * @see {@link module:server3} for the implementation being tested
+ * @see {@link module:test/server3.playCard.unit} for basic card playing tests
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 
+/**
+ * @description Additional test suite for Euchre card playing functionality.
+ * Focuses on edge cases, special card interactions, and complex game scenarios
+ * that aren't covered in the basic unit tests.
+ */
 describe('Euchre Server Play Card Additional Tests', function() {
+    /** @type {Object} server - The server instance being tested */
     let server;
+    
+    /** @type {Object} gameState - The game state object */
     let gameState;
+    
+    /** @type {Array} emittedMessages - Tracks messages emitted during tests */
     let emittedMessages = [];
 
+    /**
+     * Before each test, set up a fresh server instance with mocked dependencies
+     * and reset the test environment.
+     */
     beforeEach(() => {
         emittedMessages = [];
         const fakeSocket = {
@@ -36,7 +64,15 @@ describe('Euchre Server Play Card Additional Tests', function() {
         gameState = server.gameState;
     });
 
+    /**
+     * @description Test suite for additional handlePlayCard scenarios.
+     * Covers edge cases and complex interactions not included in basic tests.
+     */
     describe('handlePlayCard additional scenarios', function() {
+        /**
+         * @test {handlePlayCard}
+         * @description Verifies that a player cannot play when it's not their turn.
+         */
         it('should reject play when not current player', function() {
             gameState.gamePhase = 'PLAYING_TRICKS';
             gameState.currentPlayer = 'north';
@@ -48,6 +84,11 @@ describe('Euchre Server Play Card Additional Tests', function() {
             assert.strictEqual(emittedMessages.some(m => m.event === 'action_error'), true);
         });
 
+        /**
+         * @test {handlePlayCard}
+         * @description Verifies that the left bower (jack of same color as trump)
+         * wins over other cards of the same suit when that suit is not trump.
+         */
         it('should handle left bower winning over ace of same suit', function() {
             gameState.gamePhase = 'PLAYING_TRICKS';
             gameState.trump = 'hearts';
@@ -67,6 +108,11 @@ describe('Euchre Server Play Card Additional Tests', function() {
             assert.strictEqual(gameState.tricks[0].winner, 'east');
         });
 
+        /**
+         * @test {handlePlayCard}
+         * @description Verifies that the standard card hierarchy is respected
+         * when playing non-trump suit cards.
+         */
         it('should properly handle non-trump suit hierarchy', function() {
             gameState.gamePhase = 'PLAYING_TRICKS';
             gameState.trump = 'hearts';
@@ -86,6 +132,11 @@ describe('Euchre Server Play Card Additional Tests', function() {
             assert.strictEqual(gameState.tricks[0].winner, 'east');
         });
 
+        /**
+         * @test {handlePlayCard}
+         * @description Verifies that the game correctly transitions to the scoring
+         * phase when all cards have been played in a hand.
+         */
         it('should transition to scoring when all cards played', function() {
             gameState.gamePhase = 'PLAYING_TRICKS';
             gameState.trump = 'clubs';

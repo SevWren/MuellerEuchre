@@ -1,3 +1,11 @@
+/**
+ * @file server3.multiGame.test.js - Test file
+ * @module Server3MultiGameTest
+ * @description Test file
+ * @requires chai
+ * @see ../src/server3.multiGame.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

@@ -1,34 +1,72 @@
+/**
+ * @file reconnectionHandler.unit.test.js - Unit tests for the ReconnectionHandler module
+ * @module test/reconnectionHandler.unit
+ * @description Comprehensive test suite for the ReconnectionHandler class.
+ * 
+ * This test suite verifies the reconnection logic for WebSocket connections,
+ * including automatic reconnection attempts, exponential backoff, and proper
+ * cleanup of resources.
+ * 
+ * @requires chai
+ * @requires sinon
+ * @requires ../src/socket/reconnectionHandler
+ * @see {@link module:socket/reconnectionHandler} for the implementation being tested
+ */
+
 import { expect } from 'chai';
 import sinon from 'sinon';
 import ReconnectionHandler from '../src/socket/reconnectionHandler.js';
 
-// Create a sandbox for stubs
+/** @type {Object} sandbox - Sinon sandbox for test isolation */
 const sandbox = sinon.createSandbox();
 
-// Store the original console methods
+// Store the original console methods for restoration
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
 
-// Suppress console output during tests
+/**
+ * Before all tests, suppress console output to keep test output clean.
+ */
 before(() => {
     console.log = () => {};
     console.error = () => {};
 });
 
-// Restore console methods after tests
+/**
+ * After all tests, restore the original console methods.
+ */
 after(() => {
     console.log = originalConsoleLog;
     console.error = originalConsoleError;
 });
 
+/**
+ * @description Test suite for the ReconnectionHandler class.
+ * Covers all aspects of WebSocket reconnection logic.
+ */
 describe('ReconnectionHandler', () => {
+    /** @type {Object} mockSocket - Mock WebSocket instance */
     let mockSocket;
+    
+    /** @type {ReconnectionHandler} reconnectionHandler - Instance under test */
     let reconnectionHandler;
+    
+    /** @type {sinon.SinonStub} mockEmit - Stub for socket.emit */
     let mockEmit;
+    
+    /** @type {sinon.SinonStub} mockOn - Stub for socket.on */
     let mockOn;
+    
+    /** @type {sinon.SinonStub} mockOff - Stub for socket.off */
     let mockOff;
+    
+    /** @type {sinon.SinonStub} mockConnect - Stub for socket.connect */
     let mockConnect;
+    
+    /** @type {sinon.SinonStub} mockDisconnect - Stub for socket.disconnect */
     let mockDisconnect;
+    
+    /** @type {Object} clock - Sinon fake timer for testing timeouts */
     let clock;
     
     beforeEach(() => {
@@ -46,12 +84,18 @@ describe('ReconnectionHandler', () => {
         sandbox.reset();
     });
     
+    /**
+     * After each test, clean up timers and restore any stubs.
+     */
     afterEach(() => {
         // Restore the clock and all stubs after each test
         clock.restore();
         sandbox.restore();
     });
     
+    /**
+     * After all tests, clean up the sandbox.
+     */
     after(() => {
         // Clean up sandbox after all tests
         sandbox.restore();
@@ -97,6 +141,10 @@ describe('ReconnectionHandler', () => {
         });
     });
     
+    /**
+     * @description Test suite for ReconnectionHandler initialization.
+     * Verifies proper setup of event listeners and initial state.
+     */
     describe('initialization', () => {
         it('should set up event listeners on the socket', () => {
             expect(mockOn).toHaveBeenCalledWith('disconnect', sinon.match.func);
@@ -111,6 +159,10 @@ describe('ReconnectionHandler', () => {
         });
     });
     
+    /**
+     * @description Test suite for disconnection handling.
+     * Verifies behavior when the WebSocket connection is lost.
+     */
     describe('disconnection handling', () => {
         it('should attempt to reconnect when disconnected', () => {
             // Simulate disconnection
@@ -140,6 +192,10 @@ describe('ReconnectionHandler', () => {
         });
     });
     
+    /**
+     * @description Test suite for reconnection logic.
+     * Verifies the reconnection attempts, backoff strategy, and success/failure handling.
+     */
     describe('reconnection logic', () => {
         it('should attempt to reconnect with exponential backoff', async () => {
             // Mock the connect method to fail on first attempt
@@ -244,6 +300,10 @@ describe('ReconnectionHandler', () => {
         });
     });
     
+    /**
+     * @description Test suite for resource cleanup.
+     * Verifies proper cleanup of timers and event listeners.
+     */
     describe('cleanup', () => {
         it('should clean up resources when disposed', () => {
             // Call dispose

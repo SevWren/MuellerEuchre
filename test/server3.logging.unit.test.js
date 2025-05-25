@@ -1,3 +1,11 @@
+/**
+ * @file server3.logging.unit.test.js - Unit tests for the Server3 Logging module
+ * @module Server3LoggingUnitTest
+ * @description Unit tests for the Server3 Logging module
+ * @requires chai
+ * @see ../src/server3.logging.unit.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

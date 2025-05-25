@@ -1,3 +1,20 @@
+/**
+ * @file server3.persistence.test.js - Test suite for game state persistence
+ * @module test/server3.persistence
+ * @description Comprehensive test suite for the Euchre game state persistence system.
+ * 
+ * This test suite verifies the functionality related to saving and loading game state,
+ * including auto-save features, state restoration, and error handling for persistence
+ * operations.
+ * 
+ * @requires assert
+ * @requires sinon
+ * @requires fs
+ * @requires path
+ * @requires url
+ * @see {@link module:server3} for the implementation being tested
+ */
+
 import assert from "assert";
 import sinon from "sinon";
 import fs from "fs";
@@ -8,7 +25,12 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Mock configuration
+/**
+ * @type {Object} config - Configuration for the persistence system
+ * @property {boolean} SAVE_ON_EXIT - Whether to save state on server shutdown
+ * @property {boolean} AUTO_SAVE - Whether to enable auto-saving
+ * @property {string} SAVE_FILE - Path to the save file
+ */
 const config = {
     SAVE_ON_EXIT: true,
     AUTO_SAVE: true,
@@ -22,7 +44,17 @@ const logger = {
     debug: () => {}
 };
 
-// Mock server implementation for testing
+/**
+ * @class MockServer
+ * @description Mock implementation of the server for testing persistence.
+ * Simulates the core server functionality needed to test state persistence.
+ * @param {Object} options - Configuration options
+ * @param {Object} options.io - Mock socket.io instance
+ * @param {Object} options.config - Server configuration overrides
+ * @param {Object} options.logger - Logger instance
+ * @param {Object} options.initialState - Initial game state
+ * @param {Object} options.fs - File system mock
+ */
 class MockServer {
     constructor(options = {}) {
         this.io = options.io || {};
@@ -117,12 +149,42 @@ class MockServer {
     }
 }
 
+/**
+ * @description Test suite for game state persistence functionality.
+ * Covers saving, loading, and managing game state across server restarts.
+ */
 describe('Game State Persistence', function() {
-    let server, gameState, mockIo, mockSockets = {};
-    let logStub, writeFileSyncStub, readFileSyncStub, existsSyncStub;
+    /** @type {Object} server - The server instance being tested */
+    let server;
+    
+    /** @type {Object} gameState - Reference to the game state */
+    let gameState;
+    
+    /** @type {Object} mockIo - Mock socket.io instance */
+    let mockIo;
+    
+    /** @type {Object} mockSockets - Collection of mock client sockets */
+    let mockSockets = {};
+    
+    /** @type {Object} logStub - Stub for logger methods */
+    let logStub;
+    
+    /** @type {Function} writeFileSyncStub - Stub for file writing */
+    let writeFileSyncStub;
+    
+    /** @type {Function} readFileSyncStub - Stub for file reading */
+    let readFileSyncStub;
+    
+    /** @type {Function} existsSyncStub - Stub for file existence check */
+    let existsSyncStub;
     const SAVE_FILE = path.join(__dirname, '..', 'game_state.json');
     
-    // Helper to create a mock socket
+    /**
+     * Creates a mock socket for testing client connections.
+     * @param {string} id - Unique socket ID
+     * @param {string|null} role - Optional player role (e.g., 'north', 'south')
+     * @returns {Object} Configured mock socket
+     */
     const createMockSocket = (id, role = null) => {
         const socket = {
             id,
@@ -144,7 +206,14 @@ describe('Game State Persistence', function() {
         return socket;
     };
     
-    // Helper to simulate player action
+    /**
+     * Simulates a player action on a socket.
+     * @param {string} socketId - ID of the socket to trigger action on
+     * @param {string} action - Action/event name
+     * @param {Object} data - Data to pass to the handler
+     * @throws {Error} If socket or handler is not found
+     * @returns {*} Result of the action handler
+     */
     const simulateAction = (socketId, action, data) => {
         const socket = mockSockets[socketId];
         if (!socket) throw new Error(`Socket ${socketId} not found`);
@@ -155,6 +224,9 @@ describe('Game State Persistence', function() {
         return handler(data);
     };
 
+    /**
+     * Before each test, set up fresh mocks and reset state.
+     */
     beforeEach(() => {
         // Setup stubs
         logStub = {
@@ -190,6 +262,9 @@ describe('Game State Persistence', function() {
         mockIo.sockets.sockets = {};
     });
     
+    /**
+     * After each test, clean up stubs and timers.
+     */
     afterEach(() => {
         // Clear any intervals
         if (server && server.autoSaveInterval) {
@@ -210,8 +285,15 @@ describe('Game State Persistence', function() {
         sinon.restore();
     });
     
-    // Helper function to setup server with options
-    const setupServer = async (options = {}) => {
+    /**
+     * Helper function to set up the server with custom options.
+     * @param {Object} options - Configuration overrides
+     * @param {boolean} [options.autoSave=true] - Whether to enable auto-save
+     * @param {Object} [options.initialState] - Initial game state
+     * @param {Object} [options.fs] - Custom file system implementation
+     * @returns {Promise<Object>} Configured server instance and dependencies
+     */
+    async function setupServer(options = {}) {
         const {
             saveOnExit = true,
             autoSave = true,

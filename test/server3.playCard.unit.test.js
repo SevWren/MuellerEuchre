@@ -1,20 +1,23 @@
-/*
 /**
- * Test Euchre Server Play Card Functions
- *
- * This file contains tests for the play card functions in the Euchre Server
- * (server3.mjs). These functions are responsible for determining the outcome of
- * a card play, including whether the card is a valid play, whether it takes the
- * current trick, and whether the play ends the hand.
- *
- * The tests cover the following scenarios:
- * 1. A player plays a card that is not a valid play.
- * 2. A player plays a card that is a valid play, but does not take the trick.
- * 3. A player plays a card that is a valid play and takes the trick.
- * 4. A player plays a card that ends the hand.
- *
-
-*/
+ * @file server3.playCard.unit.test.js - Unit tests for Euchre card playing logic
+ * @module test/server3.playCard.unit
+ * @description Comprehensive test suite for the card playing functionality in the Euchre server.
+ * 
+ * This test suite verifies the core game mechanics related to playing cards, including:
+ * - Validation of card plays according to Euchre rules
+ * - Trick resolution and winner determination
+ * - Game state transitions during play
+ * - Special card behaviors (trump, left bower, etc.)
+ * - Error handling for invalid plays
+ * 
+ * @requires chai
+ * @requires module
+ * @see {@link module:server3} for the implementation being tested
+ * 
+ * @test {serverIsValidPlay} - Tests for card play validation
+ * @test {handlePlayCard} - Tests for handling card play actions
+ * @test {determineTrickWinner} - Tests for trick resolution
+ */
 import { expect } from 'chai';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -23,12 +26,21 @@ const require = createRequire(import.meta.url);
 import * as server3 from '../server3.mjs';
 const { gameState, resetFullGame, log } = server3;
 
+/**
+ * @description Test suite for Euchre card playing functionality.
+ * This suite focuses on the core game mechanics related to playing cards,
+ * including validation, trick resolution, and game state management.
+ */
 describe('Euchre Server Play Card Functions', function() {
-    // Alias for easier access
+    /** @type {Object} gameState - Reference to the server's game state */
     const { gameState } = server3;
-    // Save original game state for cleanup
+    
+    /** @type {Object} originalGameState - Snapshot of game state before tests */
     let originalGameState;
     
+    /**
+     * Before all tests, save the original game state and set up test environment.
+     */
     before(() => {
         // Save original game state
         originalGameState = { ...server3.gameState };
@@ -41,6 +53,10 @@ describe('Euchre Server Play Card Functions', function() {
         Object.assign(server3.gameState, originalGameState);
     });
     
+    /**
+     * Before each test, reset the game state to a known good state.
+     * This ensures test isolation and prevents state leakage between tests.
+     */
     beforeEach(() => {
         // Reset game state before each test
         server3.resetFullGame();
@@ -144,7 +160,15 @@ describe('Euchre Server Play Card Functions', function() {
         Object.assign(server3.gameState, originalGameState);
     });
 
+    /**
+     * @description Test suite for the serverIsValidPlay function.
+     * Verifies that the server correctly validates card plays according to Euchre rules.
+     */
     describe('serverIsValidPlay', function() {
+        /**
+         * @test {serverIsValidPlay}
+         * @description Verifies that playing a card not in the player's hand is rejected.
+         */
         it('should reject card not in hand', function() {
             server3.gameState.players.south.hand = [
                 { id: 1, suit: 'hearts', value: 'A' }
@@ -153,6 +177,10 @@ describe('Euchre Server Play Card Functions', function() {
             expect(result).to.be.false;
         });
 
+        /**
+         * @test {serverIsValidPlay}
+         * @description Verifies that any card can be played when leading a trick.
+         */
         it('should allow any card when leading trick', function() {
             server3.gameState.currentTrickPlays = [];
             server3.gameState.players.south.hand = [
@@ -162,6 +190,11 @@ describe('Euchre Server Play Card Functions', function() {
             expect(result).to.be.true;
         });
 
+        /**
+         * @test {serverIsValidPlay}
+         * @description Verifies that the left bower is treated as a trump card
+         * and must follow suit when possible.
+         */
         it('should enforce following suit with left bower', function() {
             server3.gameState.trump = 'hearts';
             server3.gameState.currentTrickPlays = [
@@ -175,6 +208,11 @@ describe('Euchre Server Play Card Functions', function() {
             expect(result).to.be.false;
         });
 
+        /**
+         * @test {serverIsValidPlay}
+         * @description Verifies that a player can play an off-suit card
+         * when they don't have any cards of the led suit.
+         */
         it('should allow off-suit when no matching cards', function() {
             server3.gameState.trump = 'hearts';
             server3.gameState.currentTrickPlays = [
@@ -189,6 +227,10 @@ describe('Euchre Server Play Card Functions', function() {
         });
     });
 
+    /**
+     * @description Test suite for the handlePlayCard function.
+     * Verifies the complete card playing flow, including game state updates.
+     */
     describe('handlePlayCard', function() {
         it('should reject play when not in PLAYING_TRICKS phase', function() {
             // Setup test state

@@ -1,3 +1,11 @@
+/**
+ * @file server3.goAlone.unit.test.js - Unit tests for the Server3 GoAlone module
+ * @module Server3GoAloneUnitTest
+ * @description Unit tests for the Server3 GoAlone module
+ * @requires chai
+ * @see ../src/server3.goAlone.unit.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

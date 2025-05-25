@@ -1,3 +1,11 @@
+/**
+ * @file server3.validation.test.js - Test file
+ * @module Server3ValidationTest
+ * @description Test file
+ * @requires chai
+ * @see ../src/server3.validation.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

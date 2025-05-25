@@ -1,3 +1,11 @@
+/**
+ * @file server3.startNewHand.test.js - Test file
+ * @module Server3StartNewHandTest
+ * @description Test file
+ * @requires chai
+ * @see ../src/server3.startNewHand.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 

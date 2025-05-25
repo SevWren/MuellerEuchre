@@ -1,3 +1,11 @@
+/**
+ * @file server3.scoreHand.unit.test.js - Unit tests for the Server3 ScoreHand module
+ * @module Server3ScoreHandUnitTest
+ * @description Unit tests for the Server3 ScoreHand module
+ * @requires chai
+ * @see ../src/server3.scoreHand.unit.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 

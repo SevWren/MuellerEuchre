@@ -1,3 +1,11 @@
+/**
+ * @file server3.orderUp.unit.test.js - Unit tests for the Server3 OrderUp module
+ * @module Server3OrderUpUnitTest
+ * @description Unit tests for the Server3 OrderUp module
+ * @requires chai
+ * @see ../src/server3.orderUp.unit.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

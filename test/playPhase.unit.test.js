@@ -1,3 +1,21 @@
+/**
+ * @file playPhase.unit.test.js - Unit tests for the PlayPhase module in Euchre
+ * @module test/playPhase.unit
+ * @description Comprehensive test suite for the play phase functionality in the Euchre game.
+ * Tests cover the complete card playing workflow including:
+ * - Validating card plays
+ * - Managing trick-taking
+ * - Enforcing game rules
+ * - Handling turn progression
+ * - Determining trick winners
+ * 
+ * @requires chai
+ * @requires ../server3.mjs
+ * @requires ../src/game/phases/playPhase.js
+ * @requires ../src/game/logic/validation.js
+ * @see {@link module:src/game/phases/playPhase} for the implementation being tested
+ */
+
 import { expect } from 'chai';
 
 // Import the server module and other dependencies dynamically
@@ -5,12 +23,27 @@ let server3;
 let handlePlayCard;
 let serverIsValidPlay;
 
+/**
+ * @description Test suite for the Play Phase functionality in the Euchre game.
+ * This phase handles the core card playing mechanics, including card validation,
+ * trick management, and turn progression.
+ */
 describe('Euchre Server Play Card Functions', function() {
     // Alias for easier access
+    /** @type {Object} gameState - The game state object used across tests */
+    /** @type {Function} resetFullGame - Function to reset the game state */
+    /** @type {Function} log - Logging function */
     let gameState, resetFullGame, log;
     
+    /**
+     * @description Before hook that runs once before all tests.
+     * Initializes the server module and imports required functions.
+     * @async
+     * @function before
+     * @returns {Promise<void>}
+     */
     before(async function() {
-        // Set a longer timeout for the before hook
+        // Set a longer timeout for the before hook to allow for module loading
         this.timeout(10000);
         
         try {
@@ -35,26 +68,38 @@ describe('Euchre Server Play Card Functions', function() {
         }
     });
     
-    // Save original game state for cleanup
+    /** @type {Object} originalGameState - Stores the initial game state for cleanup */
     let originalGameState;
     
+    /**
+     * @description Before hook that runs before all tests.
+     * Saves the original game state and resets the game for testing.
+     */
     before(() => {
-        // Save original game state
+        // Save original game state for restoration after tests
         originalGameState = JSON.parse(JSON.stringify(server3.gameState));
-        // Set up test environment
+        // Set up test environment with a clean game state
         server3.resetFullGame();
     });
     
+    /**
+     * @description After hook that runs after all tests.
+     * Restores the original game state to avoid test pollution.
+     */
     after(() => {
-        // Restore original game state after all tests
+        // Restore original game state after all tests complete
         Object.assign(server3.gameState, originalGameState);
     });
     
+    /**
+     * @description Before each hook that runs before every test.
+     * Resets the game state and sets up a consistent test environment.
+     */
     beforeEach(() => {
-        // Reset game state before each test
+        // Reset game state to a clean slate before each test
         server3.resetFullGame();
         
-        // Set up test-specific state
+        // Set up test-specific state with predefined player hands and game settings
         server3.gameState.players = {
             south: { 
                 id: 'south-socket',
@@ -135,7 +180,16 @@ describe('Euchre Server Play Card Functions', function() {
         };
     });
 
+    /**
+     * @description Test suite for the serverIsValidPlay function.
+     * Tests the validation of card plays according to Euchre rules.
+     */
     describe('serverIsValidPlay', function() {
+        /**
+         * @test {serverIsValidPlay}
+         * @description Verifies that the function correctly validates whether
+         * a card is in the player's hand before allowing it to be played.
+         */
         it('should validate card is in player hand', function() {
             const gameState = {...server3.gameState};
             const playerRole = 'south';
@@ -151,6 +205,11 @@ describe('Euchre Server Play Card Functions', function() {
             expect(invalidResult).to.be.false;
         });
 
+        /**
+         * @test {serverIsValidPlay}
+         * @description Verifies that the function enforces the rule that players
+         * must follow suit when able to do so.
+         */
         it('should enforce following suit when able', function() {
             const gameState = JSON.parse(JSON.stringify(server3.gameState));
             const playerRole = 'west';
@@ -182,7 +241,16 @@ describe('Euchre Server Play Card Functions', function() {
         });
     });
 
+    /**
+     * @description Test suite for the handlePlayCard function.
+     * Tests the core card playing functionality and game state updates.
+     */
     describe('handlePlayCard', function() {
+        /**
+         * @test {handlePlayCard}
+         * @description Verifies that playing a card correctly updates the game state,
+         * including removing the card from the player's hand and adding it to the current trick.
+         */
         it('should update game state when card is played', function() {
             const gameState = { ...server3.gameState };
             const playerRole = 'south';

@@ -1,3 +1,11 @@
+/**
+ * @file coreGameLogic.unit.test.js - Unit tests for the CoreGameLogic module
+ * @module CoreGameLogicUnitTest
+ * @description Unit tests for the CoreGameLogic module
+ * @requires chai
+ * @see ../src/coreGameLogic.unit.js
+ */
+
 import { expect } from 'chai';
 import { 
     getNextPlayer, 

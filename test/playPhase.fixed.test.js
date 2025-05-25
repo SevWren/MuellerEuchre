@@ -1,3 +1,11 @@
+/**
+ * @file playPhase.fixed.test.js - Test file
+ * @module PlayPhaseFixedTest
+ * @description Test file
+ * @requires chai
+ * @see ../src/playPhase.fixed.js
+ */
+
 // This is a fixed version of the test case
 
 it('should complete trick when all players have played', function() {

@@ -20,6 +20,60 @@ global.TEST_TIMEOUT = TEST_TIMEOUT;
 global.expect = expect;
 global.sinon = sinon;
 
+// Mock localStorage
+const localStorageMock = (() => {
+  let store = {};
+  return {
+    getItem: (key) => store[key] || null,
+    setItem: (key, value) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    }
+  };
+})();
+
+// Mock document object
+global.document = {
+  createElement: () => ({
+    classList: {
+      add: () => {},
+      remove: () => {}
+    },
+    style: {},
+    appendChild: () => {},
+    remove: () => {}
+  }),
+  body: {
+    appendChild: () => {},
+    removeChild: () => {}
+  }
+};
+
+// Mock window object
+global.window = {
+  localStorage: localStorageMock,
+  document: global.document,
+  addEventListener: () => {},
+  removeEventListener: () => {}
+};
+
+// Mock requestAnimationFrame
+global.requestAnimationFrame = (callback) => {
+  return setTimeout(callback, 0);
+};
+
+global.cancelAnimationFrame = (id) => {
+  clearTimeout(id);
+};
+
+// Make localStorage available globally
+global.localStorage = localStorageMock;
+
 // Import test helpers
 import './test-helper.js';
 

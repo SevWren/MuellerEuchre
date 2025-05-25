@@ -1,25 +1,39 @@
 /**
- * @file Unit tests for scoring module
- * @module test/scoring.unit.test.js
- * @description Verifies correct scoring of game hands
+ * @file scoring.unit.test.js - Unit tests for the scoring functionality in Euchre
+ * @module test/scoring.unit
+ * @description Comprehensive test suite for the scoring system in the Euchre game.
+ * Tests cover the complete scoring workflow including:
+ * - Standard scoring for making the bid (1 point)
+ * - March (2 points for taking all 5 tricks)
+ * - Lone hand scoring (4 points for a lone march)
+ * - Euchre scenarios (2 points for the opposing team)
+ * - Game reset functionality
  * 
- * Tests cover:
- * - awarding 1 point for making the bid (3 tricks)
- * - awarding 2 points for making the bid and taking all 5 tricks (going alone)
- * - awarding 1 point for going alone and failing to make the bid
- * - awarding 2 points for making the bid and going alone (4 tricks)
- * - resetting the game state (tricks won, player going alone, etc.)
+ * @requires chai
+ * @requires ../src/game/phases/scoring.js
+ * @requires ../src/config/constants.js
+ * @see {@link module:src/game/phases/scoring} for the implementation being tested
  */
 
 import { expect } from 'chai';
 import { scoreCurrentHand, resetGame } from '../src/game/phases/scoring.js';
 import { GAME_PHASES } from '../src/config/constants.js';
 
+/**
+ * @description Test suite for the Scoring Module in the Euchre game.
+ * This module handles all scoring-related functionality including point calculation,
+ * win conditions, and game state transitions based on trick outcomes.
+ */
 describe('Scoring Module', () => {
-     let gameState;
+    /** @type {Object} gameState - The game state object used across tests */
+    let gameState;
 
-     beforeEach(() => {
-          // Setup a basic game state for testing
+    /**
+     * @description Sets up a fresh game state before each test case.
+     * Initializes player order, scores, and other essential game state properties.
+     */
+    beforeEach(() => {
+        // Setup a basic game state for testing with default values
           gameState = {
                currentPhase: GAME_PHASES.PLAYING,
                dealer: 'south',
@@ -37,8 +51,17 @@ describe('Scoring Module', () => {
           };
      });
 
-     describe('scoreCurrentHand', () => {
-          it('should award 1 point for making the bid (3 tricks)', () => {
+    /**
+     * @description Test suite for the scoreCurrentHand function.
+     * Tests various scoring scenarios based on tricks won by each team.
+     */
+    describe('scoreCurrentHand', () => {
+        /**
+         * @test {scoreCurrentHand}
+         * @description Verifies that when the maker team wins exactly 3 tricks,
+         * they are awarded 1 point and the game transitions to BETWEEN_HANDS phase.
+         */
+        it('should award 1 point for making the bid (3 tricks)', () => {
                // Setup - makers take 3 tricks
                gameState.players.north.tricksWon = 2;
                gameState.players.south.tricksWon = 1;
@@ -52,7 +75,12 @@ describe('Scoring Module', () => {
                expect(result.currentPhase).to.equal(GAME_PHASES.BETWEEN_HANDS);
           });
 
-          it('should award 2 points for a march (5 tricks)', () => {
+        /**
+         * @test {scoreCurrentHand}
+         * @description Verifies that when the maker team wins all 5 tricks (a march),
+         * they are awarded 2 points.
+         */
+        it('should award 2 points for a march (5 tricks)', () => {
                // Setup - makers take all 5 tricks
                gameState.players.north.tricksWon = 3;
                gameState.players.south.tricksWon = 2;
@@ -63,7 +91,12 @@ describe('Scoring Module', () => {
                expect(result.scores['east+west']).to.equal(0);
           });
 
-          it('should award 4 points for a lone hand march', () => {
+        /**
+         * @test {scoreCurrentHand}
+         * @description Verifies that when a player goes alone and their team wins all 5 tricks,
+         * they are awarded 4 points (lone march).
+         */
+        it('should award 4 points for a lone hand march', () => {
                // Setup - going alone and taking all 5 tricks
                gameState.goingAlone = true;
                gameState.playerGoingAlone = 'north';
@@ -75,7 +108,12 @@ describe('Scoring Module', () => {
                expect(result.scores['north+south']).to.equal(4);
           });
 
-          it('should euchre the makers if they take < 3 tricks', () => {
+        /**
+         * @test {scoreCurrentHand}
+         * @description Verifies that when the maker team wins fewer than 3 tricks,
+         * the opposing team is awarded 2 points (euchre).
+         */
+        it('should euchre the makers if they take < 3 tricks', () => {
                // Setup - makers take only 2 tricks
                gameState.players.north.tricksWon = 1;
                gameState.players.south.tricksWon = 1;
@@ -88,7 +126,12 @@ describe('Scoring Module', () => {
                expect(result.scores['north+south']).to.equal(0);
           });
 
-          it('should declare a winner if score reaches 10', () => {
+        /**
+         * @test {scoreCurrentHand}
+         * @description Verifies that when a team's score reaches or exceeds 10 points,
+         * the game transitions to GAME_OVER phase with the winning team declared.
+         */
+        it('should declare a winner if score reaches 10', () => {
                // Setup - makers have 9 points and make their bid
                gameState.scores = { 'north+south': 9, 'east+west': 5 };
                gameState.players.north.tricksWon = 3;
@@ -101,8 +144,17 @@ describe('Scoring Module', () => {
           });
      });
 
-     describe('resetGame', () => {
-          it('should reset the game state for a new game', () => {
+    /**
+     * @description Test suite for the resetGame function.
+     * Tests the game state reset functionality for starting a new game.
+     */
+    describe('resetGame', () => {
+        /**
+         * @test {resetGame}
+         * @description Verifies that the game state is properly reset for a new game,
+         * including score reset and appropriate phase transition.
+         */
+        it('should reset the game state for a new game', () => {
                const result = resetGame({
                     scores: { 'north+south': 5, 'east+west': 3 },
                     dealer: 'east',

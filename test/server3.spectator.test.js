@@ -1,3 +1,11 @@
+/**
+ * @file server3.spectator.test.js - Test file
+ * @module Server3SpectatorTest
+ * @description Test file
+ * @requires chai
+ * @see ../src/server3.spectator.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

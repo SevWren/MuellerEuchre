@@ -1,3 +1,16 @@
+# Why: This script is used to verify that the Node.js environment is set up
+#      correctly and to fix any issues that may be preventing the project
+#      from running.
+#
+# When: This script is run automatically by the GitHub Actions CI/CD pipeline
+#      on every push to the main branch.
+#
+# How: To run this script manually, simply execute `.\verify-setup.ps1` from
+#      the command line. The script will check for Node.js installation,
+#      the existence of package.json, and that the project's dependencies are
+#      installed.
+#
+
 # PowerShell script to verify and fix Node.js environment
 Write-Host "=== Node.js Environment Verification ===" -ForegroundColor Cyan
 

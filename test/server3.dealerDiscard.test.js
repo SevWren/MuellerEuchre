@@ -1,25 +1,13 @@
 /**
- * @file server3.dealerDiscard.test.js - Tests for dealer discard functionality in Euchre
- * @module Server3DealerDiscardTest
- * @description 
- * This test suite verifies the dealer discard phase in the Euchre game.
- * It ensures that the dealer can properly discard and pick up the top card.
+ * @file server3.dealerDiscard.test.js - Test suite for Euchre server dealer discard functionality
+ * @module test/server3.dealerDiscard
+ * @description Comprehensive test suite for the dealer discard functionality in the Euchre game.
+ * Ensures that the server correctly handles the dealer's discard phase by:
+ * - Validating discard attempts
+ * - Enforcing game rules during the discard phase
+ * - Updating game state appropriately
+ * - Emitting correct events to clients
  * 
- * Test Coverage Includes:
- * - Dealer discard validation
- * - Card pickup mechanics
- * - Game state after discard
- * - Edge cases in discard phase
- * 
- * @version 1.0.0
- * @since 2024-01-01
- * @license MIT
- * @see {@link ../../src/server3.mjs|Server3 Module}
- * 
- * @requires chai - Assertion library
- * @requires sinon - Test spies, stubs and mocks
- * @requires proxyquire - Module dependency injection
- * @requires buffer - For Buffer operations
  * @requires assert
  * @requires proxyquire
  * @see {@link module:server3} for the implementation being tested

@@ -1,3 +1,13 @@
+/**
+ * Why: This test is used to check if Node.js can execute a simple test using Mocha.
+ *      This is important for serverless deployments where the file system is ephemeral
+ *      and we don't want to write a large amount of data to memory.
+ *
+ * How: To run this test manually, simply execute `node test-simple-run.js`
+ *      from the command line. The test will be executed and the results will be
+ *      output to the console.
+ */
+
 // Simple test runner
 console.log('=== Starting Simple Test Runner ===');
 

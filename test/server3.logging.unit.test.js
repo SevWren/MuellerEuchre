@@ -1,25 +1,9 @@
 /**
- * @file server3.logging.unit.test.js - Tests for logging functionality in Euchre server
- * @module Server3LoggingTest
- * @description 
- * This test suite verifies the logging functionality of the Euchre game server.
- * It ensures that all game events and errors are properly logged.
- * 
- * Test Coverage Includes:
- * - Log message formatting
- * - Log levels (info, warn, error)
- * - Log file rotation
- * - Error handling in logging
- * 
- * @version 1.0.0
- * @since 2024-01-01
- * @license MIT
- * @see {@link ../../src/server3.mjs|Server3 Module}
- * 
- * @requires chai - Assertion library
- * @requires sinon - Test spies, stubs and mocks
- * @requires proxyquire - Module dependency injection
- * @requires assert - Node.js assertion library
+ * @file server3.logging.unit.test.js - Unit tests for the Server3 Logging module
+ * @module Server3LoggingUnitTest
+ * @description Unit tests for the Server3 Logging module
+ * @requires chai
+ * @see ../src/server3.logging.unit.js
  */
 
 import assert from "assert";

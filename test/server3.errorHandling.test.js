@@ -1,3 +1,11 @@
+/**
+ * @file server3.errorHandling.test.js - Test file
+ * @module Server3ErrorHandlingTest
+ * @description Test file
+ * @requires chai
+ * @see ../src/server3.errorHandling.js
+ */
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

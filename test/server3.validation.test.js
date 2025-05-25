@@ -1,9 +1,26 @@
 /**
- * @file server3.validation.test.js - Test file
+ * @file server3.validation.test.js - Comprehensive test suite for input validation in the Euchre game server
  * @module Server3ValidationTest
- * @description Test file
- * @requires chai
- * @see ../src/server3.validation.js
+ * @description 
+ * This test suite validates the input handling and data validation logic for the Euchre game server.
+ * It ensures that all player inputs are properly sanitized and validated before processing.
+ * 
+ * Test Coverage Includes:
+ * - Input sanitization
+ * - Game state validation
+ * - Player action validation
+ * - Error handling for invalid inputs
+ * 
+ * @version 1.0.0
+ * @since 2024-01-01
+ * @license MIT
+ * @see {@link ../src/server3.validation.js|Validation Module}
+ * @see {@link ../../docs/validation.md|Validation Documentation}
+ * 
+ * @requires chai - Assertion library
+ * @requires proxyquire - For module dependency injection
+ * @requires sinon - For test spies, stubs and mocks
+ * @requires buffer - For Buffer operations
  */
 
 import assert from "assert";

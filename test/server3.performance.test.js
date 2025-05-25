@@ -1,19 +1,28 @@
 /**
- * @file server3.performance.test.js - Performance test suite for the Euchre server
- * @module test/server3.performance
- * @description Comprehensive performance testing suite for the Euchre game server.
- * This test suite measures and reports on various performance metrics including:
- * - Game initialization time
- * - Action response times
- * - Memory usage patterns
- * - Concurrency handling
- * - Stress test scenarios
+ * @file server3.performance.test.js - Performance and load testing for Euchre server
+ * @module Server3PerformanceTest
+ * @description 
+ * This test suite verifies the performance characteristics of the Euchre game server.
+ * It includes load testing, stress testing, and performance benchmarking.
  * 
- * @requires assert
- * @requires proxyquire
- * @requires sinon
- * @requires perf_hooks
- * @see {@link module:server3} for the implementation being tested
+ * Test Coverage Includes:
+ * - Response time measurements
+ * - Memory usage under load
+ * - Concurrent user handling
+ * - Stress testing scenarios
+ * - Game initialization performance
+ * - Action response times
+ * 
+ * @version 1.0.0
+ * @since 2024-01-01
+ * @license MIT
+ * @see {@link ../../src/server3.mjs|Server3 Module}
+ * 
+ * @requires chai - Assertion library
+ * @requires sinon - Test spies, stubs and mocks
+ * @requires proxyquire - Module dependency injection
+ * @requires perf_hooks - Performance measurement utilities
+ * @requires assert - Node.js assertion library
  */
 
 import assert from "assert";

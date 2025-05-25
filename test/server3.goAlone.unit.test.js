@@ -1,9 +1,25 @@
 /**
- * @file server3.goAlone.unit.test.js - Unit tests for the Server3 GoAlone module
- * @module Server3GoAloneUnitTest
- * @description Unit tests for the Server3 GoAlone module
- * @requires chai
- * @see ../src/server3.goAlone.unit.js
+ * @file server3.goAlone.unit.test.js - Tests for "Go Alone" functionality in Euchre
+ * @module Server3GoAloneTest
+ * @description 
+ * This test suite verifies the "Go Alone" feature in the Euchre game.
+ * It ensures that players can choose to play alone and that the game state updates correctly.
+ * 
+ * Test Coverage Includes:
+ * - Go Alone declaration
+ * - Score calculation for solo play
+ * - Game state transitions
+ * - Edge cases in solo play
+ * 
+ * @version 1.0.0
+ * @since 2024-01-01
+ * @license MIT
+ * @see {@link ../../src/server3.mjs|Server3 Module}
+ * 
+ * @requires chai - Assertion library
+ * @requires sinon - Test spies, stubs and mocks
+ * @requires proxyquire - Module dependency injection
+ * @requires assert - Node.js assertion library
  */
 
 import assert from "assert";

@@ -1,4 +1,25 @@
-// Simple test file to verify basic functionality
+/**
+ * @file server3.basic.test.mjs - Basic functionality tests for the Euchre game server
+ * @module Server3BasicTest
+ * @description 
+ * This test suite verifies the fundamental operations of the Euchre game server.
+ * It ensures that the server initializes correctly and handles basic game setup.
+ * 
+ * Test Coverage Includes:
+ * - Server initialization
+ * - Basic game setup
+ * - Player connection handling
+ * - Basic game state management
+ * 
+ * @version 1.0.0
+ * @since 2024-01-01
+ * @license MIT
+ * @see {@link ../../README.md|Project Documentation}
+ * 
+ * @requires chai - Assertion library
+ * @requires sinon - Test spies, stubs and mocks
+ * @requires proxyquire - Module dependency injection
+ */
 import { expect } from 'chai';
 import * as server3 from '../server3.mjs';
 

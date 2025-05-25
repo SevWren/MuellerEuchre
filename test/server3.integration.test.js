@@ -1,9 +1,25 @@
 /**
- * @file server3.integration.test.js - Test file
+ * @file server3.integration.test.js - Integration tests for the Euchre game server
  * @module Server3IntegrationTest
- * @description Test file
- * @requires chai
- * @see ../src/server3.integration.js
+ * @description 
+ * This test suite verifies the integration between different components of the Euchre game server.
+ * It ensures that all parts of the system work together correctly.
+ * 
+ * Test Coverage Includes:
+ * - Component interaction
+ * - Data flow between modules
+ * - End-to-end game scenarios
+ * - System behavior under load
+ * 
+ * @version 1.0.0
+ * @since 2024-01-01
+ * @license MIT
+ * @see {@link ../../src/server3.mjs|Server3 Module}
+ * 
+ * @requires chai - Assertion library
+ * @requires sinon - Test spies, stubs and mocks
+ * @requires proxyquire - Module dependency injection
+ * @requires assert - Node.js assertion library
  */
 
 import assert from "assert";

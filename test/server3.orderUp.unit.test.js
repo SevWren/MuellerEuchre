@@ -1,9 +1,25 @@
 /**
- * @file server3.orderUp.unit.test.js - Unit tests for the Server3 OrderUp module
- * @module Server3OrderUpUnitTest
- * @description Unit tests for the Server3 OrderUp module
- * @requires chai
- * @see ../src/server3.orderUp.unit.js
+ * @file server3.orderUp.unit.test.js - Tests for the "Order Up" phase in Euchre
+ * @module Server3OrderUpTest
+ * @description 
+ * This test suite verifies the "Order Up" phase in the Euchre game.
+ * It ensures that players can order up the face-up card and that the game state updates correctly.
+ * 
+ * Test Coverage Includes:
+ * - Order-up validation
+ * - Card picking mechanics
+ * - Game state transitions
+ * - Edge cases in ordering up
+ * 
+ * @version 1.0.0
+ * @since 2024-01-01
+ * @license MIT
+ * @see {@link ../../src/server3.mjs|Server3 Module}
+ * 
+ * @requires chai - Assertion library
+ * @requires sinon - Test spies, stubs and mocks
+ * @requires proxyquire - Module dependency injection
+ * @requires assert - Node.js assertion library
  */
 
 import assert from "assert";

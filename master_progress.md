@@ -88,27 +88,57 @@ A real-time, online multiplayer Euchre card game with WebSocket support, automat
 - Sanity checks
 - Simple test cases
 
-#### 🔧 Needs Attention (26/38 files)
-1. **Server3 Test Suite** (24 files)
-   - Issue: `Proxyquire` compatibility with ES Modules
-   - Error: `Cannot read properties of undefined (reading 'require')`
-   - Affects all server3.*.test.js files
+#### 🔄 In Progress (18 files) - Migrating on May 25, 2025
+1. **Server3 Test Suite**
+   - server3.dealerDiscard.test.js
+   - server3.errorHandling.test.js
+   - server3.goAlone.unit.test.js
+   - server3.integration.test.js
+   - server3.logging.unit.test.js
+   - server3.multiGame.test.js
+   - server3.orderUp.unit.test.js
+   - server3.performance.test.js
+   - server3.persistence.test.js
+   - server3.playCard.additional.test.js
+   - server3.playCard.unit.test.js
+   - server3.reconnection.test.js
+   - server3.scoreHand.unit.test.js
+   - server3.security.test.js
+   - server3.socket.unit.test.js
+   - server3.spectator.test.js
+   - server3.startNewHand.test.js
+   - server3.validation.test.js
+   - **Current Issue**: `Proxyquire` compatibility with ES Modules
+   - **Error**: `Cannot read properties of undefined (reading 'require')`
+
+#### 🔧 Needs Attention (8/38 files)
+1. **Archived Server3 Tests** (6 files)
+   - archived/server3.callTrump.unit.test.js
+   - archived/server3.cardUtils.unit.test.js
+   - archived/server3.deck.unit.test.js
+   - archived/server3.gameState.unit.test.js
+   - archived/server3.unit.test.js
+   - archived/server3.validPlay.unit.test.js
+   - **Issue**: Pending migration after active files
 
 2. **Service Tests** (2 files)
    - stateSyncService.unit.test.js
    - uiIntegrationService.unit.test.js
-   - Issue: `ES Modules cannot be stubbed`
+   - **Issue**: `ES Modules cannot be stubbed`
 
 #### Test Coverage
 - Passing: 12/38 files (32%)
-- Failing: 26/38 files (68%)
+- In Progress: 18/38 files (47%)
+- Remaining: 8/38 files (21%)
 - Total Runtime: ~2.5s (for passing tests)
 
 #### Next Steps
-1. Fix Proxyquire configuration for ES Modules
-2. Update test stubs for ES Modules compatibility
-3. Migrate remaining server3 test files
-4. Update test documentation with new patterns
+1. Complete migration of active Server3 test files
+2. Fix Proxyquire configuration for ES Modules
+3. Update test stubs for ES Modules compatibility
+4. Migrate archived Server3 test files
+5. Resolve Service Test stubbing issues
+6. Update test documentation with new patterns
 
 ### State Management
 - [x] Basic state synchronization

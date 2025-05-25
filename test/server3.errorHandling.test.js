@@ -1,11 +1,26 @@
 /**
- * @file server3.errorHandling.test.js - Test file
+ * @file server3.errorHandling.test.js - Error handling tests for the Euchre game server
  * @module Server3ErrorHandlingTest
- * @description Test file
- * @requires chai
- * @see ../src/server3.errorHandling.js
- */
-
+ * @description 
+ * This test suite verifies the server's error handling mechanisms.
+ * It ensures that the server gracefully handles invalid inputs and edge cases.
+ * 
+ * Test Coverage Includes:
+ * - Invalid input validation
+ * - Error message formatting
+ * - Error recovery mechanisms
+ * - Edge case handling
+ * 
+ * @version 1.0.0
+ * @since 2024-01-01
+ * @license MIT
+ * @see {@link ../../src/server3.mjs|Server3 Module}
+ * 
+ * @requires chai - Assertion library
+ * @requires sinon - Test spies, stubs and mocks
+ * @requires proxyquire - Module dependency injection
+ * @requires assert - Node.js assertion library
+ */ 
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";

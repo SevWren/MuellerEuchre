@@ -1,9 +1,25 @@
 /**
- * @file server3.multiGame.test.js - Test file
+ * @file server3.multiGame.test.js - Tests for multiple concurrent game handling
  * @module Server3MultiGameTest
- * @description Test file
- * @requires chai
- * @see ../src/server3.multiGame.js
+ * @description 
+ * This test suite verifies the server's ability to handle multiple concurrent Euchre games.
+ * It ensures that game states remain isolated and that players can participate in different games simultaneously.
+ * 
+ * Test Coverage Includes:
+ * - Multiple concurrent game sessions
+ * - Game state isolation
+ * - Player management across games
+ * - Resource cleanup between games
+ * 
+ * @version 1.0.0
+ * @since 2024-01-01
+ * @license MIT
+ * @see {@link ../src/server3.multiGame.js|Server3 Module}
+ * 
+ * @requires chai - Assertion library
+ * @requires sinon - Test spies, stubs and mocks
+ * @requires proxyquire - Module dependency injection
+ * @requires assert - Node.js assertion library
  */
 
 import assert from "assert";

@@ -87,10 +87,7 @@ class SocketHandler {
 
     /**
      * Initializes all DOM event listeners for user interactions.
-     * Sets up handlers for:
-     * - Join game form submission
-     * - Card clicks
-     * - Bid actions (pass, order up, go alone, pick suit)
+     * Sets up delegated event handlers for game controls and user inputs.
      * 
      * @private
      * @listens submit#joinForm - Handles player joining the game
@@ -99,6 +96,19 @@ class SocketHandler {
      * @listens click#orderUpBtn - Handles order up bid action
      * @listens click#goAloneBtn - Handles go alone bid action
      * @listens click#pickSuitBtn - Handles suit selection for bid
+     * 
+     * @example
+     * // The following elements require specific data attributes:
+     * // - Cards: data-card-id="AH" (for Ace of Hearts)
+     * // - Buttons: id="passBtn", id="orderUpBtn", etc.
+     * 
+     * @description
+     * Event delegation is used for card clicks to handle dynamically generated elements.
+     * All button handlers are bound to the SocketHandler instance.
+     * 
+     * @see #joinGame - Called when join form is submitted
+     * @see #playCard - Called when a card is clicked
+     * @see #makeBid - Called for all bid-related buttons
      */
     initializeEventListeners() {
         // Join game form submission
@@ -148,6 +158,25 @@ class SocketHandler {
      * @listens trickWon - A trick was won by a player
      * @listens handStarted - A new hand has started
      * @listens gameOver - The game has ended
+     * 
+     * @example
+     * // Example of handling a custom event
+     * this.socket.on('customEvent', (data) => {
+     *   console.log('Custom event received:', data);
+     * });
+     * 
+     * @description
+     * This method sets up all socket event listeners when the SocketHandler is instantiated.
+     * Each event updates the UI accordingly using the provided data.
+     * 
+     * @see #updateUI - Called on most game state changes
+     * @see #showMessage - Used to display game notifications
+     * @see #showGameOverModal - Called when game ends
+     * 
+     * @emits joinGame - When player joins the game
+     * @emits playCard - When a card is played
+     * @emits makeBid - When a bid is made
+     * @emits newGame - When starting a new game
      */
     initializeSocketEvents() {
         // Connection events
@@ -345,14 +374,28 @@ class SocketHandler {
 
     /**
      * Updates the entire UI based on the current game state.
-     * Coordinates updates to all UI components.
+     * Coordinates updates to all UI components in the correct order.
      * 
      * @param {Object} gameState - The current game state from the server
+     * @returns {void}
+     * 
      * @example
      * // Called when receiving a game state update from server
      * socket.on('gameState', (gameState) => {
      *   socketHandler.updateUI(gameState);
      * });
+     * 
+     * @description
+     * The update process follows this order:
+     * 1. Update player information (names, scores, roles)
+     * 2. Update the game board (trick area, messages)
+     * 3. Update controls based on game phase and player turn
+     * 
+     * @see #updatePlayerInfo - Updates player-specific UI elements
+     * @see #updateGameBoard - Updates the main game area
+     * @see #updateControls - Updates interactive elements
+     * 
+     * @fires UI#update - After all UI updates are complete
      */
     updateUI(gameState) {
         this.updatePlayerInfo(gameState);
@@ -365,15 +408,41 @@ class SocketHandler {
      * 
      * @param {Object} gameState - The current game state
      * @private
+     * @returns {void}
+     * 
      * @example
      * // Updates player info when game state changes
      * updatePlayerInfo({
      *   players: {
-     *     PLAYER_1: { name: 'Alice', score: 3 },
-     *     PLAYER_2: { name: 'Bob', score: 2 }
+     *     PLAYER_1: { 
+     *       name: 'Alice', 
+     *       score: 3,
+     *       isDealer: true,
+     *       isLeader: false
+     *     },
+     *     PLAYER_2: { 
+     *       name: 'Bob', 
+     *       score: 2,
+     *       isDealer: false,
+     *       isLeader: true
+     *     }
      *   },
      *   // ... other game state
      * });
+     * 
+     * @description
+     * Updates the following UI elements:
+     * - Player names and scores
+     * - Dealer indicator
+     * - Current turn indicator
+     * - Team information
+     * 
+     * @requires gameState.players - Object containing player data
+     * @requires gameState.currentPlayer - ID of the player whose turn it is
+     * @requires gameState.dealer - ID of the current dealer
+     * 
+     * @see #formatPlayerName - Formats player names with role indicators
+     * @see #updateScoreDisplay - Updates the score display separately
      */
     updatePlayerInfo(gameState) {
         // Update player cards, scores, etc.
@@ -407,6 +476,8 @@ class SocketHandler {
      * 
      * @param {Object} gameState - The current game state
      * @private
+     * @returns {void}
+     * 
      * @example
      * // Updates the game board with current trick and messages
      * updateGameBoard({
@@ -415,10 +486,28 @@ class SocketHandler {
      *       { code: 'AH', player: 'PLAYER_1' },
      *       { code: 'KH', player: 'PLAYER_2' }
      *     ],
-     *     leader: 'PLAYER_1'
+     *     leader: 'PLAYER_1',
+     *     suit: 'HEARTS'
      *   },
-     *   // ... other game state
+     *   currentPlayer: 'PLAYER_3',
+     *   phase: 'PLAYING',
+     *   message: 'Your turn to play'
      * });
+     * 
+     * @description
+     * Handles the following UI updates:
+     * - Current trick display (cards played this round)
+     * - Game messages and status updates
+     * - Trump suit indicator
+     * - Turn indicator
+     * 
+     * @requires gameState.trick - Current trick information
+     * @requires gameState.message - Status message to display
+     * @requires gameState.trumpSuit - Current trump suit
+     * 
+     * @see #updateTrickDisplay - Updates just the trick area
+     * @see #showMessage - Displays game messages
+     * @see #updatePlayerHand - Updates the player's hand display
      */
     updateGameBoard(gameState) {
         // Update trump suit display
@@ -439,17 +528,38 @@ class SocketHandler {
     }
 
     /**
-     * Updates the display of the player's hand.
+     * Updates the display of the player's hand with the current set of cards.
      * 
      * @param {Array<Object>} hand - Array of card objects in the player's hand
      * @private
+     * @returns {void}
+     * 
      * @example
      * // Updates the player's hand with current cards
      * updatePlayerHand([
-     *   { code: 'AH', suit: 'HEARTS', value: 'ACE' },
-     *   { code: 'KH', suit: 'HEARTS', value: 'KING' },
+     *   { 
+     *     code: 'AH', 
+     *     suit: 'HEARTS', 
+     *     rank: 'A',
+     *     value: 'ACE',
+     *     isPlayable: true
+     *   },
      *   // ... other cards
      * ]);
+     * 
+     * @description
+     * This method:
+     * - Clears the current hand display
+     * - Creates card elements for each card in the hand
+     * - Adds appropriate CSS classes based on card properties
+     * - Sets up click handlers for playable cards
+     * - Updates the UI to reflect the current hand
+     * 
+     * @requires hand - Array of card objects with at least 'code' and 'suit' properties
+     * 
+     * @see #formatCard - Formats card for display
+     * @see #playCard - Called when a card is clicked
+     * @see #isMyTurn - Determines if cards should be playable
      */
     updatePlayerHand(hand) {
         const handEl = document.querySelector('.player-hand');
@@ -470,16 +580,34 @@ class SocketHandler {
      * @param {Object} trick - The current trick state
      * @param {Object} trick.cards - Object mapping player roles to their played cards
      * @param {string} [trick.leader] - The player who led the trick
+     * @param {string} [trick.suit] - The leading suit of the trick
      * @private
+     * @returns {void}
+     * 
      * @example
      * // Updates the trick display with two played cards
      * updateTrickDisplay({
      *   cards: {
      *     PLAYER_1: { code: 'AH', suit: 'HEARTS', rank: 'A' },
-     *     PLAYER_2: { code: 'KH', suit: 'HEARTS', rank: 'K' }
+     *     PLAYER_2: { code: 'KH', suit: 'HEARTS', rank: 'K' },
+     *     PLAYER_3: null,
+     *     PLAYER_4: { code: 'QH', suit: 'HEARTS', rank: 'Q' }
      *   },
-     *   leader: 'PLAYER_1'
+     *   leader: 'PLAYER_1',
+     *   suit: 'HEARTS'
      * });
+     * 
+     * @description
+     * This method:
+     * - Clears the previous trick display
+     * - Shows cards played by each player in their respective positions
+     * - Highlights the trick leader
+     * - Indicates the current trick's leading suit
+     * - Handles empty slots for players who haven't played yet
+     * 
+     * @see #formatCard - Formats card for display
+     * @see #getPlayerPosition - Gets screen position for each player
+     * @see #updateGameBoard - Parent method that calls this
      */
     updateTrickDisplay(trick) {
         const trickEl = document.querySelector('.current-trick');
@@ -526,14 +654,35 @@ class SocketHandler {
      * 
      * @param {Object} gameState - The current game state
      * @private
+     * @returns {void}
+     * 
      * @example
      * // Updates controls based on game state
      * updateControls({
-     *   phase: 'PLAYING',
+     *   phase: 'BIDDING',
      *   currentPlayer: 'PLAYER_1',
-     *   trick: { cards: [], leader: 'PLAYER_1' }, // Example trick data
+     *   canOrderUp: true,
+     *   canGoAlone: false,
      *   // ... other game state
      * });
+     * 
+     * @description
+     * This method manages the interactive elements of the UI:
+     * - Enables/disables action buttons based on game phase
+     * - Shows/hides bid controls during bidding phase
+     * - Updates card playability based on game rules
+     * - Manages visibility of game phase-specific UI elements
+     * 
+     * @requires gameState.phase - Current game phase
+     * @requires gameState.currentPlayer - ID of the current player
+     * @requires gameState.canOrderUp - If player can order up the card
+     * @requires gameState.canGoAlone - If player can go alone
+     * 
+     * @see #isMyTurn - Determines if controls should be active
+     * @see #updateButtonStates - Updates individual button states
+     * @see #enableControls - Enables/disables groups of controls
+     * 
+     * @emits controls:updated - When controls have been updated
      */
     updateControls(gameState) {
         const isMyTurn = this.isMyTurn();

@@ -1,11 +1,25 @@
 {
-  "extension": ["js"],
-  "require": [
-    "@babel/register",
-    "./test/setup.js"
+  "extension": ["js", "mjs"],
+  "node-option": [
+    "experimental-vm-modules",
+    "no-warnings"
   ],
-  "recursive": true,
-  "spec": ["test/**/*.test.js"],
+  "recursive": false,
+  "spec": [
+    "test/coreGameLogic.unit.test.js",
+    "test/endGame.unit.test.js",
+    "test/goAlonePhase.unit.test.js",
+    "test/orderUpPhase.unit.test.js",
+    "test/playPhase.unit.test.js",
+    "test/reconnectionHandler.unit.test.js",
+    "test/scoring.unit.test.js",
+    "test/startNewHand.unit.test.js",
+    "test/validation.unit.test.js"
+  ],
+  "exclude": [
+    "test/archived/**/*.test.js",
+    "test/server3.*.test.js"
+  ],
   "timeout": 10000,
   "exit": true,
   "color": true,
@@ -13,5 +27,15 @@
   "slow": 2000,
   "bail": false,
   "parallel": false,
-  "file": ["./test/setup.js"]
+  "loader": "test/loader.mjs",
+  "file": ["test/setup.js"],
+  "watch-files": [
+    "src/**/*.js",
+    "test/*.unit.test.js"
+  ],
+  "watch-ignore": [
+    "node_modules",
+    "test/archived/**/*.js",
+    "test/temp_ignore/**/*.js"
+  ]
 }

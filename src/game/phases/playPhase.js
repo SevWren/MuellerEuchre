@@ -2,6 +2,7 @@ import { GAME_PHASES } from '../../config/constants.js';
 import { log } from '../../utils/logger.js';
 import { getNextPlayer, isTeammate } from '../../utils/players.js';
 import { getCardValue, isLeftBower, isRightBower } from '../../client/utils/cardUtils.js';
+import { getCardRank } from '../logic/gameLogic.js';
 
 /**
  * Handles a player playing a card during the trick
@@ -16,8 +17,11 @@ export function handlePlayCard(gameState, playerRole, card) {
     // Create a deep copy of the game state
     const updatedState = JSON.parse(JSON.stringify(gameState));
     
+    // Get the led suit before the card is played
+    const ledSuit = getLedSuit(updatedState);
+    
     // Validate the play
-    validatePlay(updatedState, playerRole, card);
+    validatePlay(updatedState, playerRole, card, ledSuit);
     
     // Remove card from player's hand
     const cardIndex = updatedState.players[playerRole].hand.findIndex(c => 
@@ -68,19 +72,31 @@ export function handlePlayCard(gameState, playerRole, card) {
  * @returns {Object} Updated game state
  */
 function completeTrick(gameState) {
-    const trickWinner = determineTrickWinner(gameState);
+    // Create a new object to avoid mutating the original state
+    const updatedState = JSON.parse(JSON.stringify(gameState));
+    
+    const trickWinner = determineTrickWinner(updatedState);
+    console.log('completeTrick - determined winner:', trickWinner);
+    console.log('completeTrick - currentTrick:', JSON.stringify(updatedState.currentTrick, null, 2));
+    
     const winningTeam = getTeamForPlayer(trickWinner);
     
     // Update trick count for the winning team
-    gameState.tricks = gameState.tricks || [];
-    gameState.tricks.push({
+    updatedState.tricks = updatedState.tricks || [];
+    const newTrick = {
         winner: trickWinner,
         team: winningTeam,
-        cards: [...gameState.currentTrick]
-    });
+        cards: [...updatedState.currentTrick]
+    };
+    console.log('completeTrick - new trick being added:', JSON.stringify(newTrick, null, 2));
+    updatedState.tricks.push(newTrick);
+    
+    // Clear the current trick
+    updatedState.currentTrick = [];
     
     // Add game message
-    gameState.messages.push({
+    updatedState.messages = updatedState.messages || [];
+    updatedState.messages.push({
         type: 'trick',
         winner: trickWinner,
         team: winningTeam,
@@ -88,28 +104,30 @@ function completeTrick(gameState) {
         important: true
     });
     
+    // Set the current player to the trick winner for the next trick
+    updatedState.currentPlayer = trickWinner;
+    updatedState.trickLeader = trickWinner;
+    
     // Check for end of hand
-    const allPlayersOutOfCards = Object.values(gameState.players).every(
+    const allPlayersOutOfCards = Object.values(updatedState.players).every(
         player => !player.hand || player.hand.length === 0
     );
     
     if (allPlayersOutOfCards) {
         // End of hand - score it
-        gameState.currentPhase = GAME_PHASES.SCORING;
+        updatedState.currentPhase = GAME_PHASES.SCORING;
         // The scoring module will handle the rest
     } else {
         // Start new trick
-        gameState.currentTrick = [];
-        gameState.currentPlayer = trickWinner; // Trick winner leads next trick
-        gameState.trickLeader = trickWinner;
+        updatedState.currentTrick = [];
         
-        gameState.messages.push({
+        updatedState.messages.push({
             type: 'game',
             text: `${trickWinner} leads the next trick.`
         });
     }
     
-    return gameState;
+    return updatedState;
 }
 
 /**
@@ -132,21 +150,55 @@ function determineTrickWinner(gameState) {
     // If the led card is the left bower, the led suit is trump
     if (isLeftBower(ledCard, trumpSuit)) {
         ledSuit = trumpSuit;
+    } else if (ledCard.suit === trumpSuit) {
+        // If the led card is a trump card, the led suit is trump
+        ledSuit = trumpSuit;
+    } else if (ledCard.suit === getSameColorSuit(trumpSuit) && ledCard.rank === 'J') {
+        // If the led card is the left bower (jack of same color as trump), the led suit is trump
+        ledSuit = trumpSuit;
+    }
+    
+    console.log('\n=== Determining Trick Winner ===');
+    console.log(`Trump Suit: ${trumpSuit}, Led Suit: ${ledSuit}`);
+    
+    // Helper function to get the same color suit
+    function getSameColorSuit(suit) {
+        const sameColorSuits = {
+            'hearts': 'diamonds',
+            'diamonds': 'hearts',
+            'clubs': 'spades',
+            'spades': 'clubs'
+        };
+        return sameColorSuits[suit];
     }
     
     // Find the winning card
     let winningCard = currentTrick[0];
+    let winningRank = getCardRank(winningCard.card, ledSuit, trumpSuit);
+    console.log(`\n=== Card Rankings ===`);
+    console.log(`Initial winning card: ${cardToString(winningCard.card)} (${winningRank}) played by ${winningCard.player}`);
+    console.log(`  - isRightBower: ${isRightBower(winningCard.card, trumpSuit)}`);
+    console.log(`  - isLeftBower: ${isLeftBower(winningCard.card, trumpSuit)}`);
+    console.log(`  - suit: ${winningCard.card.suit}, rank: ${winningCard.card.rank}`);
     
+    // Start from the second card (index 1) since we already have the first card as the initial winner
     for (let i = 1; i < currentTrick.length; i++) {
         const currentCard = currentTrick[i];
-        
-        // Get ranks for comparison
-        const winningRank = getCardRank(winningCard.card, ledSuit, trumpSuit);
         const currentRank = getCardRank(currentCard.card, ledSuit, trumpSuit);
+        console.log(`\nComparing to: ${cardToString(currentCard.card)} (${currentRank}) played by ${currentCard.player}`);
+        console.log(`  - isRightBower: ${isRightBower(currentCard.card, trumpSuit)}`);
+        console.log(`  - isLeftBower: ${isLeftBower(currentCard.card, trumpSuit)}`);
+        console.log(`  - suit: ${currentCard.card.suit}, rank: ${currentCard.card.rank}`);
+        console.log(`Current winner: ${winningCard.player} with ${cardToString(winningCard.card)} (${winningRank})`);
         
-        // If current card is higher rank, it's the new winner
+        // Only update the winner if the current card has a higher rank
+        // If ranks are equal, the first card played (earlier in the trick) wins
         if (currentRank > winningRank) {
+            console.log(`  => NEW WINNER: ${currentCard.player} with ${cardToString(currentCard.card)} (${currentRank} > ${winningRank})`);
             winningCard = currentCard;
+            winningRank = currentRank;
+        } else {
+            console.log(`  => KEEP WINNER: ${winningCard.player} with ${cardToString(winningCard.card)} (${winningRank} >= ${currentRank})`);
         }
     }
     
@@ -159,9 +211,10 @@ function determineTrickWinner(gameState) {
  * @param {Object} gameState - Current game state
  * @param {string} playerRole - Role of the player
  * @param {Object} card - Card being played
+ * @param {string} [ledSuit] - The currently led suit (if any)
  * @throws {Error} If the play is invalid
  */
-function validatePlay(gameState, playerRole, card) {
+function validatePlay(gameState, playerRole, card, ledSuit) {
     // Check if it's the player's turn
     if (gameState.currentPlayer !== playerRole) {
         throw new Error(`Not ${playerRole}'s turn to play`);
@@ -182,21 +235,31 @@ function validatePlay(gameState, playerRole, card) {
         throw new Error('Card not in player\'s hand');
     }
     
-    // If not the first player in the trick, validate against led suit
+    // If not the first player in the trick, must follow suit if possible
     if (gameState.currentTrick && gameState.currentTrick.length > 0) {
-        const ledSuit = getLedSuit(gameState);
-        const hasLedSuit = playerHand.some(card => {
-            if (isLeftBower(card, gameState.trumpSuit)) {
+        const playerHand = gameState.players[playerRole].hand;
+        
+        // Check if player has a card of the led suit
+        const hasLedSuit = playerHand.some(c => {
+            // Handle left bower as trump
+            if (isLeftBower(c, gameState.trumpSuit)) {
                 return ledSuit === gameState.trumpSuit;
             }
-            return card.suit === ledSuit;
+            return c.suit === ledSuit;
         });
         
+        // Get the effective suit of the played card
+        const playedSuit = isLeftBower(card, gameState.trumpSuit) 
+            ? gameState.trumpSuit 
+            : card.suit;
+            
+        // Player must follow suit if they can
         if (hasLedSuit) {
-            const playedSuit = isLeftBower(card, gameState.trumpSuit) 
-                ? gameState.trumpSuit 
-                : card.suit;
-                
+            // If they played a trump card, it's always valid
+            if (playedSuit === gameState.trumpSuit) {
+                return;
+            }
+            // Otherwise, must follow the led suit
             if (playedSuit !== ledSuit) {
                 throw new Error(`Must follow suit (${ledSuit})`);
             }

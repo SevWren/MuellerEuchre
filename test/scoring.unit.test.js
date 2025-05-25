@@ -1,3 +1,16 @@
+/**
+ * @file Unit tests for scoring module
+ * @module test/scoring.unit.test.js
+ * @description Verifies correct scoring of game hands
+ * 
+ * Tests cover:
+ * - awarding 1 point for making the bid (3 tricks)
+ * - awarding 2 points for making the bid and taking all 5 tricks (going alone)
+ * - awarding 1 point for going alone and failing to make the bid
+ * - awarding 2 points for making the bid and going alone (4 tricks)
+ * - resetting the game state (tricks won, player going alone, etc.)
+ */
+
 import { expect } from 'chai';
 import { scoreCurrentHand, resetGame } from '../src/game/phases/scoring.js';
 import { GAME_PHASES } from '../src/config/constants.js';

@@ -1,5 +1,10 @@
-import assert from "assert";
-import proxyquire from "proxyquire";
+import { strict as assert } from 'node:assert';
+import proxyquire from 'proxyquire';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe('Euchre Server Core Functions', function() {
     let server;
@@ -7,46 +12,54 @@ describe('Euchre Server Core Functions', function() {
     let DEBUG_LEVELS;
     let getNextPlayer, getPartner, cardToString, sortHand, getSuitColor, isRightBower, isLeftBower, getCardRank;
 
-    beforeEach(() => {
-        // Improved mock for socket.io (prevents io.on errors and mimics structure)
+    let serverModule;
+    
+    before(async () => {
+        // Load the server module with mocks
+        serverModule = await import('../server3.js');
+        
+        // Mock socket.io
         const fakeSocket = {
             emit: () => {},
             on: () => {},
             id: 'fakeSocketId'
         };
-        const ioMock = function() {
-            return {
+        
+        serverModule.io = {
+            sockets: {
                 sockets: {
-                    sockets: {
-                        fakeSocketId: fakeSocket
-                    }
+                    fakeSocketId: fakeSocket
                 },
-                to: () => ({ emit: () => {} }),
-                emit: () => {},
-                on: () => {}, // Add on() to prevent io.on is not a function
-                in: () => ({ emit: () => {} }) // Add in() for room handling
-            };
+                connected: {
+                    fakeSocketId: fakeSocket
+                },
+                emit: () => {}
+            },
+            to: () => ({
+                emit: () => {}
+            })
         };
-        try {
-            server = proxyquire('../server3', {
-                fs: { appendFileSync: () => {} },
-                'socket.io': ioMock
-            });
-            // Extract functions and state
-            gameState = server.gameState;
-            DEBUG_LEVELS = server.DEBUG_LEVELS;
-            getNextPlayer = server.getNextPlayer;
-            getPartner = server.getPartner;
-            cardToString = server.cardToString;
-            sortHand = server.sortHand;
-            getSuitColor = server.getSuitColor;
-            isRightBower = server.isRightBower;
-            isLeftBower = server.isLeftBower;
-            getCardRank = server.getCardRank;
-        } catch (err) {
-            console.error('Error in beforeEach:', err);
-            throw err;
-        }
+        
+        // Mock fs
+        serverModule.fs = {
+            appendFileSync: () => {}
+        };
+    });
+    
+    beforeEach(() => {
+        // Reset server state before each test
+        serverModule.resetFullGame();
+        server = serverModule;
+        gameState = server.gameState;
+        DEBUG_LEVELS = server.DEBUG_LEVELS;
+        getNextPlayer = server.getNextPlayer;
+        getPartner = server.getPartner;
+        cardToString = server.cardToString;
+        sortHand = server.sortHand;
+        getSuitColor = server.getSuitColor;
+        isRightBower = server.isRightBower;
+        isLeftBower = server.isLeftBower;
+        getCardRank = server.getCardRank;
     });
 
     describe('getNextPlayer', function() {
@@ -605,7 +618,6 @@ describe('Euchre Server Core Functions', function() {
 
     describe('Multiplayer gameplay core scenarios', function() {
         it('rotates dealer after each hand', function() {
-            server.resetFullGame();
             const origDealer = server.gameState.dealer;
             if (server.startNewHand) {
                 server.startNewHand();

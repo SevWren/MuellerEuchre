@@ -111,7 +111,7 @@ export function sortHand(hand, trumpSuit) {
  * @returns {boolean} True if right bower
  */
 export function isRightBower(card, trumpSuit) {
-    return card && card.value === 'J' && card.suit === trumpSuit;
+    return card && (card.value === 'J' || card.rank === 'J') && card.suit === trumpSuit;
 }
 
 /**
@@ -121,7 +121,7 @@ export function isRightBower(card, trumpSuit) {
  * @returns {boolean} True if left bower
  */
 export function isLeftBower(card, trumpSuit) {
-    if (!card || card.value !== 'J') return false;
+    if (!card || (card.value !== 'J' && card.rank !== 'J')) return false;
     
     const leftBowerSuits = {
         'hearts': 'diamonds',
@@ -143,26 +143,84 @@ export function isLeftBower(card, trumpSuit) {
 export function getCardRank(card, ledSuit, trumpSuit) {
     if (!card) return -1;
     
-    // Right bower (jack of trump suit)
-    if (isRightBower(card, trumpSuit)) return 100;
+    // Handle right bower (jack of trump suit)
+    if (card.rank === 'J' && card.suit === trumpSuit) {
+        return 1000; // Highest rank
+    }
     
-    // Left bower (jack of same color as trump)
-    if (isLeftBower(card, trumpSuit)) return 90;
+    // Handle left bower (jack of same color as trump suit)
+    if (isLeftBower(card, trumpSuit)) {
+        return 900; // Second highest rank
+    }
     
-    // Other trump cards
+    // If the card is a jack of the same color as trump but not the left bower
+    // (this can happen if the trump suit is not a jack)
+    const sameColorSuits = {
+        'hearts': 'diamonds',
+        'diamonds': 'hearts',
+        'clubs': 'spades',
+        'spades': 'clubs'
+    };
+    
+    if (card.rank === 'J' && sameColorSuits[card.suit] === trumpSuit) {
+        return 0; // Not a left bower, so it's just a normal card
+    }
+    
+    // Handle trump cards (excluding bowers which are handled above)
     if (card.suit === trumpSuit) {
-        const trumpValues = { 'A': 85, 'K': 80, 'Q': 75, 'J': 70, '10': 65, '9': 60 };
-        return trumpValues[card.value] || 55;
+        // For trump cards, use this ranking (highest to lowest):
+        // Right Bower (handled above) > Left Bower (handled above) > A > K > Q > 10 > 9
+        if (card.rank === 'A') {
+            return 800; // Ace is the highest non-bower trump
+        }
+        const trumpValues = { 'K': 70, 'Q': 60, '10': 50, '9': 40 };
+        return trumpValues[card.rank] || 0;
     }
     
-    // Led suit cards (if any)
+    // Handle led suit cards (non-trump)
+    if (card.suit === ledSuit && ledSuit !== trumpSuit) {
+        // For non-trump cards of the led suit, use their face value
+        const ledSuitValues = { 'A': 500, 'K': 400, 'Q': 300, 'J': 200, '10': 100, '9': 50 };
+        return ledSuitValues[card.rank] || 10;
+    }
+    
+    // Handle led suit cards when led suit is the same as trump
     if (card.suit === ledSuit) {
-        const ledValues = { 'A': 30, 'K': 25, 'Q': 20, 'J': 15, '10': 10, '9': 5 };
-        return ledValues[card.value] || 0;
+        // For cards of the led suit that's also trump, they should already be handled by the trump case above
+        // This is just a fallback
+        const ledSuitValues = { 'A': 200, 'K': 50, 'Q': 40, 'J': 30, '10': 20, '9': 10 };
+        return ledSuitValues[card.rank] || 0;
     }
     
-    // Off-suit cards have no rank
+    // If this is the left bower's suit (same color as trump), treat as non-trump, non-led
+    const leftBowerSuit = getLeftBowerSuit(trumpSuit);
+    if (card.suit === leftBowerSuit) {
+        // For the left bower's suit (when not the left bower itself), treat as lowest priority
+        const offSuitValues = { 'A': 25, 'K': 20, 'Q': 15, 'J': 10, '10': 5, '9': 1 };
+        return offSuitValues[card.rank] || 0;
+    }
+    
+    // Non-trump, non-led suit cards have no value in this trick
     return 0;
+    
+    // Off-suit cards - lowest rank, but still need to be comparable
+    const offSuitValues = { 'A': 25, 'K': 20, 'Q': 15, 'J': 10, '10': 5, '9': 1 };
+    return offSuitValues[card.rank] || 0;
+}
+
+/**
+ * Get the suit that would be the left bower for the given trump suit
+ * @param {string} trumpSuit - The current trump suit
+ * @returns {string} The suit of the left bower
+ */
+function getLeftBowerSuit(trumpSuit) {
+    const leftBowerSuits = {
+        'hearts': 'diamonds',
+        'diamonds': 'hearts',
+        'clubs': 'spades',
+        'spades': 'clubs'
+    };
+    return leftBowerSuits[trumpSuit] || '';
 }
 
 /**

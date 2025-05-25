@@ -86,6 +86,15 @@ describe('Validation Module', function() {
         });
 
         it('should validate when player has no cards of led suit', function() {
+            // Update the player's hand to have no clubs
+            gameState.players.south.hand = [
+                { suit: 'hearts', rank: 'J' }, // Right bower
+                { suit: 'diamonds', rank: 'J' }, // Left bower
+                { suit: 'hearts', rank: 'A' },
+                { suit: 'spades', rank: 'K' },
+                { suit: 'diamonds', rank: 'Q' } // Changed from clubs to diamonds
+            ];
+            
             // Setup a trick where clubs was led
             gameState.currentTrick = [{
                 player: 'west',

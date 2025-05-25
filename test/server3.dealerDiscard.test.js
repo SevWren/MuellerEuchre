@@ -1,3 +1,13 @@
+/**
+ * Test suite for Euchre server dealer discard functions.
+ *
+ * Ensures that the server correctly:
+ *  - Selects the correct card to discard
+ *  - Updates game state correctly
+ *  - Emits the correct events
+ */
+
+
 import assert from "assert";
 import proxyquire from "proxyquire";
 

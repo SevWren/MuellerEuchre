@@ -60,7 +60,9 @@ export function isRightBower(card, trumpSuit) {
  * @returns {boolean} True if the card is the left bower
  */
 export function isLeftBower(card, trumpSuit) {
-    if (!card || card.value !== 'J') return false;
+    // Check if card is a jack (using either rank or value)
+    const isJack = card && (card.value === 'J' || card.rank === 'J');
+    if (!isJack) return false;
     
     // Define card color mappings
     const suitColors = {
@@ -73,6 +75,7 @@ export function isLeftBower(card, trumpSuit) {
     const trumpColor = suitColors[trumpSuit];
     const cardColor = suitColors[card.suit];
     
+    // Card is a left bower if it's the same color as trump but a different suit
     return cardColor === trumpColor && 
            card.suit !== trumpSuit;
 }

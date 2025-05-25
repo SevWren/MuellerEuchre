@@ -1,3 +1,16 @@
+// This debug script is used to inspect the environment when running the
+// application in different scenarios:
+// - Locally with npm start
+// - In a Docker container
+// - As a GitHub Actions workflow
+// - With a release build of the application
+//
+// It logs the current Node.js version, platform, and current directory.
+// It also attempts to write a test file to the current directory.
+//
+// To run this script, execute the following command:
+//   node debug-env.js
+
 // Debug script to understand the environment
 const fs = require('fs');
 const path = require('path');

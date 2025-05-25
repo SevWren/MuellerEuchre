@@ -1,3 +1,11 @@
+/**
+ * init-modules.js - Initialize the modules directory structure
+ * @author SevWren
+ * @description This file initializes the module structure for the client-side codebase.
+ * It will be run once to set up the directory structure, and then it should not be run again.
+ * @howto Execute `node init-modules.js` in the project root directory.
+ */
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

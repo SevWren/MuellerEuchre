@@ -1,3 +1,14 @@
+/**
+ * This file sets up the environment for running tests using ES Modules.
+ * It sets global variables, loads utilities, and configures the test
+ * environment.
+ *
+ * To run this file, execute `node test/setup.js` in the project root
+ * directory. This file should only be run once, and it will not be run
+ * during normal development or testing. To run tests, execute `npm run
+ * test`.
+ */
+
 // Test environment setup for ES Modules
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';

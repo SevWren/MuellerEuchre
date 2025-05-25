@@ -1,4 +1,33 @@
 /**
+ * ============================================================================
+ * REFACTORING NOTICE (2025-05-25)
+ * ============================================================================
+ * 
+ * This file has been identified for refactoring into a modular structure to
+ * improve maintainability and AI assistance efficiency. However, the refactoring
+ * is being POSTPONED until core game functionality is more complete.
+ * 
+ * PLANNED REFACTORING STRUCTURE:
+ * /socket/
+ *   /handlers/    # Event handlers (game.js, player.js, chat.js)
+ *   /services/    # Core services (socket.js, state.js)
+ *   /utils/       # Utility functions
+ *   /constants/   # Constants and enums
+ * 
+ * REFACTORING BENEFITS:
+ * - Better code organization and maintainability
+ * - Improved AI/LLM efficiency and accuracy
+ * - Easier testing and debugging
+ * - Better separation of concerns
+ * 
+ * CURRENT STATUS: Postponed
+ * - Focus on implementing core game functionality first
+ * - Will revisit when implementing major new features
+ * - Document any new code with refactoring in mind
+ * ============================================================================
+ */
+
+/**
  * @file Socket Handler for Euchre Multiplayer
  * @module SocketHandler
  * @description Handles all client-side socket.io communications for the Euchre game,
@@ -264,16 +293,78 @@ class SocketHandler {
      * 
      * @see #handleGameState - Handles the game state after joining
      */
+    /**
+     * Joins the game with the specified player name after validating input.
+     * 
+     * @param {string} playerName - The name to join with (will be trimmed)
+     * @returns {boolean} True if join request was sent, false if validation failed
+     * @throws {Error} If playerName is invalid (empty, too long, or contains invalid characters)
+     * @throws {Error} If already in a game and trying to join again
+     * @fires Socket#joinGame - Emits join request to server
+     * 
+     * @example
+     * // Basic usage
+     * try {
+     *   const success = socketHandler.joinGame('Alice');
+     *   if (!success) {
+     *     console.log('Failed to join game');
+     *   }
+     * } catch (error) {
+     *   console.error('Error joining game:', error.message);
+     *   showErrorToUser(error.message);
+     * }
+     * 
+     * @example
+     * // With error handling for specific error types
+     * try {
+     *   socketHandler.joinGame(''); // Will throw 'Player name cannot be empty'
+     * } catch (error) {
+     *   if (error.message.includes('empty')) {
+     *     // Handle empty name case
+     *   }
+     * }
+     */
     joinGame(playerName) {
-        this.socket.emit('joinGame', { name: playerName }, (response) => {
-            if (response.error) {
-                this.showMessage(response.error, 'error');
-                return;
-            }
-            this.role = response.role;
-            this.showMessage(`Joined as ${playerName} (${response.role})`, 'success');
-            this.toggleGameLobby(false);
-        });
+        // Input validation
+        if (!playerName || typeof playerName !== 'string') {
+            throw new Error('Player name must be a non-empty string');
+        }
+        
+        const trimmedName = playerName.trim();
+        if (trimmedName.length === 0) {
+            throw new Error('Player name cannot be empty');
+        }
+        
+        if (trimmedName.length > 20) {
+            throw new Error('Player name must be 20 characters or less');
+        }
+        
+        // Check for invalid characters (alphanumeric and spaces only)
+        if (!/^[a-zA-Z0-9 ]+$/.test(trimmedName)) {
+            throw new Error('Player name can only contain letters, numbers, and spaces');
+        }
+        
+        // Check if already in a game
+        if (this.role) {
+            throw new Error('Already in a game. Please leave the current game before joining another.');
+        }
+        
+        try {
+            this.socket.emit('joinGame', { name: trimmedName }, (response) => {
+                if (response.error) {
+                    this.showMessage(response.error, 'error');
+                    return;
+                }
+                this.role = response.role;
+                this.showMessage(`Joined as ${trimmedName} (${response.role})`, 'success');
+                this.toggleGameLobby(false);
+            });
+            return true;
+        } catch (error) {
+            console.error('Error joining game:', error);
+            this.showMessage('Failed to join game. Please try again.', 'error');
+            return false;
+        }
     }
 
     /**
@@ -304,14 +395,76 @@ class SocketHandler {
      * @see #isMyTurn - Checks if it's the player's turn
      * @see #updateUI - Updates the UI after card is played
      */
+    /**
+     * Attempts to play a card from the player's hand with validation.
+     * 
+     * @param {string} cardId - The ID of the card to play (e.g., 'AH' for Ace of Hearts)
+     * @returns {boolean} True if the card play was attempted, false if validation failed
+     * @throws {Error} If cardId is invalid, it's not the player's turn, or game is not in play
+     * @fires Socket#playCard - Emits card play to server
+     * 
+     * @example
+     * // Basic usage
+     * try {
+     *   const success = socketHandler.playCard('AH');
+     *   if (!success) {
+     *     console.log('Cannot play that card now');
+     *   }
+     * } catch (error) {
+     *   console.error('Error playing card:', error.message);
+     * }
+     * 
+     * @example
+     * // With validation
+     * function handleCardClick(cardId) {
+     *   if (!socketHandler.isMyTurn()) {
+     *     socketHandler.showMessage('Wait for your turn', 'warning');
+     *     return;
+     *   }
+     *   
+     *   try {
+     *     socketHandler.playCard(cardId);
+     *   } catch (error) {
+     *     socketHandler.showMessage(error.message, 'error');
+     *   }
+     * }
+     */
     playCard(cardId) {
-        if (!this.isMyTurn()) return;
+        // Input validation
+        if (!cardId || typeof cardId !== 'string') {
+            throw new Error('Invalid card ID');
+        }
         
-        this.socket.emit('playCard', { cardId }, (response) => {
-            if (response.error) {
-                this.showMessage(response.error, 'error');
-            }
-        });
+        // Game state validation
+        if (!this.gameState) {
+            throw new Error('Game not started');
+        }
+        
+        if (!this.isMyTurn()) {
+            this.showMessage('Please wait for your turn', 'warning');
+            return false;
+        }
+        
+        // Card validation
+        const validCard = /^[2-9TJQKA][HCDS]$/i.test(cardId);
+        if (!validCard) {
+            throw new Error(`Invalid card ID format: ${cardId}. Expected format: [Rank][Suit] (e.g., 'AH' for Ace of Hearts)`);
+        }
+        
+        try {
+            this.socket.emit('playCard', { cardId }, (response) => {
+                if (response?.error) {
+                    this.showMessage(response.error, 'error');
+                    // Re-enable UI if there was an error
+                    this.updateControls(this.gameState);
+                }
+            });
+            return true;
+        } catch (error) {
+            console.error('Error playing card:', error);
+            this.showMessage('Failed to play card. Please try again.', 'error');
+            return false;
+        }
     }
 
     /**
@@ -349,23 +502,105 @@ class SocketHandler {
      * - 'GO_ALONE': Play the hand without partner
      * - 'PICK_SUIT': Choose a trump suit (requires options.suit)
      */
+    /**
+     * Makes a bid action with validation.
+     * 
+     * @param {'PASS'|'ORDER_UP'|'GO_ALONE'|'PICK_SUIT'} bidType - Type of bid
+     * @param {Object} [options={}] - Additional options for the bid
+     * @param {'hearts'|'diamonds'|'clubs'|'spades'} [options.suit] - Required for PICK_SUIT bid type
+     * @returns {boolean} True if bid was attempted, false if validation failed
+     * @throws {Error} If bid is invalid, not allowed, or missing required options
+     * @fires Socket#makeBid - Emits bid to server
+     * 
+     * @example
+     * // Make a pass bid
+     * try {
+     *   socketHandler.makeBid('PASS');
+     * } catch (error) {
+     *   console.error('Bid failed:', error.message);
+     * }
+     * 
+     * @example
+     * // Select a suit after winning the bid
+     * try {
+     *   socketHandler.makeBid('PICK_SUIT', { suit: 'hearts' });
+     * } catch (error) {
+     *   if (error.message.includes('suit')) {
+     *     // Handle missing suit
+     *   }
+     * }
+     */
     makeBid(bidType, options = {}) {
-        this.socket.emit('makeBid', { bidType, ...options }, (response) => {
-            if (response.error) {
-                this.showMessage(response.error, 'error');
+        // Input validation
+        const validBidTypes = ['PASS', 'ORDER_UP', 'GO_ALONE', 'PICK_SUIT'];
+        if (!validBidTypes.includes(bidType)) {
+            throw new Error(`Invalid bid type: ${bidType}. Must be one of: ${validBidTypes.join(', ')}`);
+        }
+        
+        // Game state validation
+        if (!this.gameState) {
+            throw new Error('Game not started');
+        }
+        
+        if (!this.isMyTurn()) {
+            this.showMessage('Please wait for your turn', 'warning');
+            return false;
+        }
+        
+        // Special validation for PICK_SUIT
+        if (bidType === 'PICK_SUIT' && !options.suit) {
+            throw new Error('Must specify a suit when using PICK_SUIT');
+        }
+        
+        // Validate suit if provided
+        if (options.suit) {
+            const validSuits = ['hearts', 'diamonds', 'clubs', 'spades'];
+            if (!validSuits.includes(options.suit.toLowerCase())) {
+                throw new Error(`Invalid suit: ${options.suit}. Must be one of: ${validSuits.join(', ')}`);
             }
-        });
+        }
+        
+        try {
+            this.socket.emit('makeBid', { bidType, ...options }, (response) => {
+                if (response?.error) {
+                    this.showMessage(response.error, 'error');
+                    // Re-enable bidding UI if there was an error
+                    this.updateControls(this.gameState);
+                }
+            });
+            return true;
+        } catch (error) {
+            console.error('Error making bid:', error);
+            this.showMessage('Failed to make bid. Please try again.', 'error');
+            return false;
+        }
     }
 
     /**
-     * Determines if it's currently the player's turn.
+     * Determines if it's currently the player's turn based on the game state.
      * 
      * @returns {boolean} True if it's the current player's turn, false otherwise
      * @example
+     * // Check if it's the player's turn before allowing card play
      * if (socketHandler.isMyTurn()) {
      *   // Enable card selection
      *   enableCardSelection();
+     * } else {
+     *   // Show waiting message
+     *   showMessage('Please wait for your turn', 'info');
      * }
+     * 
+     * @description
+     * This method checks multiple conditions:
+     * - If the game state exists
+     * - If the current player matches this player's role
+     * - If the game is in a playable phase
+     * 
+     * @see #updateControls - Uses this to enable/disable controls
+     * @see #playCard - Uses this to validate card plays
+     * @see #makeBid - Uses this to validate bids
+     * 
+     * @emits turn:changed - When the turn state changes
      */
     isMyTurn() {
         if (!this.gameState || !this.role) return false;
@@ -627,18 +862,38 @@ class SocketHandler {
     }
 
     /**
-     * Updates the score display for both teams.
+     * Updates the score display for both teams in the UI.
      * 
      * @param {Object} scores - The current scores
-     * @param {number} scores.team1 - Score for team 1
-     * @param {number} scores.team2 - Score for team 2
+     * @param {number} scores.team1 - Score for team 1 (0-10)
+     * @param {number} scores.team2 - Score for team 2 (0-10)
+     * @param {string} [scores.winningTeam] - Optional: The team that just won a trick
      * @private
+     * @returns {void}
+     * 
      * @example
-     * // Updates the score display
+     * // Updates the score display with scores
      * updateScoreDisplay({
      *   team1: 3,
-     *   team2: 5
+     *   team2: 5,
+     *   winningTeam: 'team2' // Optional: highlights the winning team
      * });
+     * 
+     * @description
+     * This method:
+     * - Updates the score display for both teams
+     * - Optionally highlights the winning team's score
+     * - Handles score animations if needed
+     * - Ensures scores stay within valid range (0-10)
+     * 
+     * @requires .team1-score - Element displaying team 1's score
+     * @requires .team2-score - Element displaying team 2's score
+     * 
+     * @see #updateUI - Parent method that calls this
+     * @see #showGameOverModal - Called when a team reaches 10 points
+     * 
+     * @emits score:updated - When scores are updated
+     * @emits game:won - When a team reaches 10 points (win condition)
      */
     updateScoreDisplay(scores) {
         const team1ScoreEl = document.querySelector('.team1-score');
@@ -740,22 +995,47 @@ class SocketHandler {
     }
 
     /**
-     * Toggles the visibility of the game lobby.
+     * Toggles the visibility of the game lobby and waiting area.
      * 
-     * @param {boolean} show - Whether to show the lobby
+     * @param {boolean} show - Whether to show (true) or hide (false) the lobby
+     * @param {string} [message] - Optional message to display in the lobby
+     * @returns {void}
      * @private
-     * @example
-     * // Show the game lobby
-     * toggleGameLobby(true);
      * 
-     * // Hide the game lobby
+     * @example
+     * // Show the lobby with a waiting message
+     * toggleGameLobby(true, 'Waiting for players...');
+     * 
+     * // Hide the lobby when game starts
      * toggleGameLobby(false);
+     * 
+     * @description
+     * This method manages the lobby UI:
+     * - Shows/hides the lobby container
+     * - Updates any status messages
+     * - Manages UI state for players waiting in the lobby
+     * - Handles animations for smooth transitions
+     * 
+     * @requires #lobby-container - The lobby container element
+     * @requires .lobby-message - Element for displaying lobby messages
+     * 
+     * @see #joinGame - Shows the lobby when joining
+     * @see #startGame - Hides the lobby when game starts
+     * 
+     * @emits lobby:shown - When the lobby is displayed
+     * @emits lobby:hidden - When the lobby is hidden
      */
-    toggleGameLobby(show) {
+    toggleGameLobby(show, message) {
         const lobbyEl = document.getElementById('lobby');
         const gameEl = document.getElementById('game');
         
-        if (lobbyEl) lobbyEl.style.display = show ? 'block' : 'none';
+        if (lobbyEl) {
+            lobbyEl.style.display = show ? 'block' : 'none';
+            if (message) {
+                const messageEl = lobbyEl.querySelector('.lobby-message');
+                if (messageEl) messageEl.textContent = message;
+            }
+        }
         if (gameEl) gameEl.style.display = show ? 'none' : 'block';
     }
 
@@ -763,11 +1043,23 @@ class SocketHandler {
      * Updates the connection status indicator in the UI.
      * 
      * @param {boolean} connected - Whether the client is connected to the server
+     * @returns {void}
      * @private
+     * 
      * @example
      * // Update UI to show connection status
      * updateConnectionStatus(true);  // Connected
      * updateConnectionStatus(false); // Disconnected
+     * 
+     * @description
+     * This method updates the connection status indicator with appropriate
+     * styling based on the connection state.
+     * 
+     * @requires #connection-status - Element to display connection status
+     * 
+     * @see #initializeSocketEvents - Calls this on connection events
+     * 
+     * @emits connection:status - When connection status changes
      */
     updateConnectionStatus(connected) {
         const statusEl = document.getElementById('connection-status');
@@ -778,102 +1070,90 @@ class SocketHandler {
     }
 
     /**
-     * Displays a message to the player with appropriate styling based on type.
+     * Gets the Unicode symbol for a given card suit.
      * 
-     * @param {string} message - The message text to display
-     * @param {'info'|'success'|'error'} [type='info'] - The type of message
+     * @param {string} suit - The suit name (HEARTS, DIAMONDS, CLUBS, SPADES)
+     * @returns {string} The Unicode symbol for the suit
      * @private
      * @example
-     * // Show different types of messages
-     * showMessage('Game starting!', 'success');
-     * showMessage('Cannot play that card', 'error');
-     * showMessage('Waiting for other players...'); // Defaults to 'info'
-     */
-    showMessage(message, type = 'info') {
-        const messagesEl = document.querySelector('.messages');
-        if (!messagesEl) return;
-        
-        const messageEl = document.createElement('div');
-        messageEl.className = `message ${type}`;
-        messageEl.textContent = message;
-        
-        messagesEl.appendChild(messageEl);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-        
-        // Auto-remove message after delay
-        setTimeout(() => {
-            messageEl.remove();
-        }, 5000);
-    }
-
-    /**
-     * Formats a card object into a human-readable string.
+     * // Returns '♥'
+     * getSuitSymbol('HEARTS');
      * 
-     * @param {Object} card - The card to format
-     * @param {string} card.rank - The card rank (e.g., 'A', 'K', 'Q', 'J', '10')
-     * @param {string} card.suit - The card suit (e.g., 'HEARTS', 'DIAMONDS')
-     * @returns {string} Formatted card string (e.g., 'A♥', 'K♦')
-     * @private
-     * @example
-     * // Format different cards
-     * formatCard({ rank: 'A', suit: 'HEARTS' });   // Returns 'A♥'
-     * formatCard({ rank: '10', suit: 'CLUBS' });   // Returns '10♣'
-     */
-    formatCard(card) {
-        if (!card) return 'unknown card';
-        return `${card.rank}${this.getSuitSymbol(card.suit)}`;
-    }
-
-    /**
-     * Converts a suit name to its corresponding symbol.
+     * @description
+     * This method maps standard suit names to their corresponding
+     * Unicode playing card symbols. It's case-insensitive and
+     * returns a question mark for unknown suits.
      * 
-     * @param {string} suit - The suit name (e.g., 'HEARTS', 'DIAMONDS')
-     * @returns {string} The corresponding symbol (♥, ♦, ♣, ♠)
-     * @private
-     * @example
-     * // Get suit symbols
-     * getSuitSymbol('HEARTS');   // Returns '♥'
-     * getSuitSymbol('SPADES');   // Returns '♠'
+     * @see #formatCard - Uses this to display card suits
+     * @see #updatePlayerHand - Uses this when rendering cards
+     * 
+     * @throws {Error} If suit is not a string
      */
     getSuitSymbol(suit) {
+        if (typeof suit !== 'string') return '?';
+        
         const symbols = {
             'HEARTS': '♥',
             'DIAMONDS': '♦',
             'CLUBS': '♣',
             'SPADES': '♠'
         };
-        return symbols[suit] || suit[0] || '?';
+        return symbols[suit.toUpperCase()] || '?';
     }
 
     /**
      * Displays the game over modal with final scores and winner information.
      * 
      * @param {Object} data - Game over data
-     * @param {string} data.winner - The winning team
-     * @param {number} data.team1Score - Final score for team 1
-     * @param {number} data.team2Score - Final score for team 2
+     * @param {string} data.winningTeam - The winning team name
+     * @param {number} data.team1Score - Final score for team 1 (0-10)
+     * @param {number} data.team2Score - Final score for team 2 (0-10)
      * @param {string} [data.message] - Optional game over message
+     * @returns {void}
      * @private
+     * 
      * @example
      * // Show game over modal
      * showGameOverModal({
-     *   winner: 'Team 1',
+     *   winningTeam: 'Team 1',
      *   team1Score: 10,
      *   team2Score: 7,
      *   message: 'Congratulations to Team 1!'
      * });
+     * 
+     * @description
+     * This method:
+     * - Creates and displays a modal dialog
+     * - Shows the winning team and final scores
+     * - Provides a button to start a new game
+     * - Handles cleanup when the modal is closed
+     * 
+     * @requires .modal - CSS class for the modal container
+     * @requires .modal-content - CSS class for the modal content
+     * 
+     * @see #startNewGame - Called when new game is requested
+     * 
+     * @emits game:over - When the game over modal is shown
+     * @emits game:new - When starting a new game
      */
     showGameOverModal(data) {
+        // Create modal element
         const modal = document.createElement('div');
         modal.className = 'modal';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-labelledby', 'gameOverTitle');
+        
+        // Set modal content
         modal.innerHTML = `
             <div class="modal-content">
-                <h2>Game Over!</h2>
-                <p>${data.winningTeam} wins ${data.score}-${data.opponentScore}!</p>
-                <button id="newGameBtn">Play Again</button>
+                <h2 id="gameOverTitle">Game Over!</h2>
+                <p>${data.winningTeam} wins ${data.team1Score}-${data.team2Score}!</p>
+                ${data.message ? `<p class="game-message">${data.message}</p>` : ''}
+                <button id="newGameBtn" class="btn btn-primary">Play Again</button>
             </div>
         `;
         
+        // Add to document
         document.body.appendChild(modal);
         
         // Handle new game button
@@ -884,6 +1164,47 @@ class SocketHandler {
                 modal.remove();
             });
         }
+        
+        // Focus the button for better keyboard navigation
+        newGameBtn.focus();
+        
+        // Dispatch event that modal was shown
+        document.dispatchEvent(new CustomEvent('game:over', { detail: data }));
+    }
+    
+    /**
+     * Starts a new game by resetting the UI and notifying the server.
+     * 
+     * @returns {void}
+     * @public
+     * 
+     * @example
+     * // Start a new game
+     * socketHandler.startNewGame();
+     * 
+     * @description
+     * This method:
+     * - Resets the game UI to its initial state
+     * - Emits a 'newGame' event to the server
+     * - Shows the lobby while waiting for players
+     * 
+     * @see #toggleGameLobby - Used to show the lobby
+     * @see #resetUI - Resets the game interface
+     * 
+     * @emits game:new - When a new game is started
+     */
+    startNewGame() {
+        // Reset UI state
+        this.resetUI();
+        
+        // Show lobby
+        this.toggleGameLobby(true, 'Starting new game...');
+        
+        // Notify server
+        this.socket.emit('newGame');
+        
+        // Dispatch event
+        document.dispatchEvent(new CustomEvent('game:new'));
     }
 }
 

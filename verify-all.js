@@ -1,3 +1,19 @@
+/**
+ * Runs all verification scripts in the project. This is useful for CI/CD and
+ * should not be run as part of the normal development workflow.
+ *
+ * To run this file, you can use the following command:
+ *
+ *     node verify-all.js
+ *
+ * This will run all of the verification scripts in the project and log the
+ * results to the console.
+ *
+ * If any of the verification scripts fail, the script will exit with a
+ * non-zero status code.
+ */
+
+
 import { exec } from 'child_process';
 import { promisify } from 'util';
 const execPromise = promisify(exec);

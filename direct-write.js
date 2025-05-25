@@ -1,3 +1,16 @@
+/*
+ * Why: This test uses low-level file operations to check if Node.js can write
+ *      directly to a file without buffering. This is important for serverless
+ *      deployments where the file system is ephemeral and we don't want to
+ *      write a large amount of data to memory.
+ *
+ * When: This test is run automatically by the GitHub Actions CI/CD pipeline
+ *      on every push to the main branch.
+ *
+ * How: To run this test manually, simply execute `node direct-write.js`
+ *      from the command line.
+ */
+
 // Use low-level file operations to write directly to a file
 const fs = require('fs');
 const path = require('path');

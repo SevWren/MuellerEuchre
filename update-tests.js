@@ -1,3 +1,12 @@
+// This script updates all test files to use ES modules instead of CommonJS
+// requires. It is only necessary to run this once, and it will not be run
+// during normal development or testing. To run this script, execute `node
+// update-tests.js` in the project root directory. This script will overwrite
+// all test files, so make sure to back up your changes or commit them before
+// running this script.
+
+
+
 const fs = require('fs');
 const path = require('path');
 

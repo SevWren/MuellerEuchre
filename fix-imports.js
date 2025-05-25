@@ -1,3 +1,18 @@
+/**
+ * This script updates all test files to include the .js extension in relative
+ * imports. This is necessary because Mocha was updated to ESM support in
+ * version 9, and the default behavior of Mocha is to treat imports without
+ * extensions as ESM modules. To maintain compatibility with older Node.js
+ * versions, we need to explicitly specify the .js extension in all relative
+ * imports.
+ * 
+ * To run this script, execute `node fix-imports.js` in the project root
+ * directory. This script will overwrite all test files, so make sure to back up
+ * your changes or commit them before running this script.
+ * 
+ * Date: 2025-05-25
+ */
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

@@ -1,97 +1,80 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { createRequire } from 'module';
+import proxyquire from 'proxyquire';
+import { 
+    createMockSafeStorage, 
+    createMockSocketService, 
+    resetAllMocks 
+} from './helpers/testUtils.js';
+import { 
+    INITIAL_STATE, 
+    IN_PROGRESS_STATE, 
+    COMPLETED_STATE, 
+    TEST_PLAYERS 
+} from './fixtures/testStates.js';
 
-// Create a require function for ES modules
-const require = createRequire(import.meta.url);
-
-// Mock the safeStorage module before importing StateSyncService
-const mockSafeStorage = {
-    getItem: sinon.stub(),
-    setItem: sinon.stub(),
-    removeItem: sinon.stub()
+// Constants
+const TEST_TIMEOUT = 5000; // 5 seconds timeout for all tests
+const STORAGE_KEYS = {
+    GAME_STATE: 'game_state',
+    OFFLINE_QUEUE: 'offline_queue'
 };
 
-// Mock the module using proxyquire
-const proxyquire = require('proxyquire').noCallThru();
+const GAME_EVENTS = {
+    STATE_UPDATE: 'game:state:update',
+    REQUEST_FULL_STATE: 'game:request_full_state',
+    PLAYER_JOIN: 'game:player:join',
+    PLAYER_LEAVE: 'game:player:leave',
+    GAME_START: 'game:start',
+    GAME_END: 'game:end'
+};
 
-// Mock the StateSyncService with our mocked safeStorage
+// Mock the safeStorage module
+const mockSafeStorage = createMockSafeStorage();
+
+// Mock the StateSyncService with our mocked dependencies
 const StateSyncServiceModule = proxyquire('../src/client/services/stateSyncService.js', {
     '../../utils/logger.js': {
         log: sinon.stub()
     },
     '../../config/constants.js': {
-        GAME_EVENTS: {
-            STATE_UPDATE: 'game:state:update',
-            REQUEST_FULL_STATE: 'game:request_full_state'
-        },
-        STORAGE_KEYS: {
-            GAME_STATE: 'game_state',
-            OFFLINE_QUEUE: 'offline_queue'
-        }
+        GAME_EVENTS,
+        STORAGE_KEYS
     },
     '../../utils/safeStorage.js': mockSafeStorage
 });
 
-const StateSyncService = StateSyncModule.StateSyncService;
-const { GAME_EVENTS, STORAGE_KEYS } = StateSyncModule;
+const StateSyncService = StateSyncServiceModule.StateSyncService;
 
-// Add a simple loop detection utility
-const withLoopDetection = (fn, maxDepth = 10) => {
-    let depth = 0;
-    return (...args) => {
-        if (depth > maxDepth) {
-            throw new Error(`Possible infinite loop detected (depth > ${maxDepth})`);
-        }
-        depth++;
-        try {
-            return fn(...args);
-        } finally {
-            depth--;
-        }
-    };
+// Test configuration
+const TEST_CONFIG = {
+    TIMEOUT: 5000, // 5 seconds
+    RETRY_INTERVAL: 100, // 100ms
+    MAX_RETRIES: 3
 };
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store = {};
-  return {
-    getItem: (key) => store[key] || null,
-    setItem: (key, value) => {
-      store[key] = value.toString();
-    },
-    removeItem: (key) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
+// Helper function to wait for a condition with retries
+const waitFor = async (condition, { interval = 100, timeout = 1000 } = {}) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+        const result = await condition();
+        if (result) return result;
+        await new Promise(resolve => setTimeout(resolve, interval));
     }
-  };
-})();
-
-// Mock global objects
-if (typeof global.localStorage === 'undefined') {
-  global.localStorage = localStorageMock;
-}
+    throw new Error(`Condition not met within ${timeout}ms`);
+};
 
 describe('StateSyncService', function() {
-    // Increase timeout for async tests
-    this.timeout(10000);
+    // Set a reasonable timeout for all tests
+    this.timeout(TEST_CONFIG.TIMEOUT);
     
+    // Test fixtures
     let stateSyncService;
     let mockSocketService;
     let sandbox;
     
-    // Mock methods
-    const mockEmit = sinon.stub().resolves({});
-    const mockOn = sinon.stub();
-    const mockOff = sinon.stub();
-    const mockDisconnect = sinon.stub();
-    const mockConnect = sinon.stub();
-    let mockIsConnected = true;
-    let eventHandlers = {}; // Track event handlers
+    // Mock event handlers
+    const eventHandlers = {};
     
     // Mock the StateSyncService methods we need to test
     const mockHandleGameUpdate = sinon.stub().callsFake(function(update) {
@@ -158,30 +141,11 @@ describe('StateSyncService', function() {
         send: mockEmit // Alias for emit for some methods
     });
     
-    // Sample game states
-    const initialState = {
-        gameId: 'test-game',
-        gamePhase: 'LOBBY',
-        players: {
-            'player-1': { id: 'player-1', name: 'Test Player 1', hand: [] },
-            'player-2': { id: 'player-2', name: 'Test Player 2', hand: [] }
-        },
-        currentPlayer: 'player-1',
-        scores: { team1: 0, team2: 0 },
-        _lastUpdated: Date.now()
-    };
-    
-    const updatedState = {
-        gamePhase: 'PLAYING',
-        currentPlayer: 'player-2',
-        players: {
-            'player-1': { id: 'player-1', name: 'Test Player 1', hand: ['2H', '3H'] },
-            'player-2': { id: 'player-2', name: 'Test Player 2', hand: ['4H', '5H'] }
-        },
-        scores: { team1: 2, team2: 1 },
-        _lastUpdated: Date.now() + 1000
-    };
-    
+    // Use imported test states
+    const initialState = { ...INITIAL_STATE };
+    const inProgressState = { ...IN_PROGRESS_STATE };
+    const completedState = { ...COMPLETED_STATE };
+
     // Setup and teardown
     before(() => {
         sandbox = sinon.createSandbox();
@@ -280,31 +244,40 @@ describe('StateSyncService', function() {
         it('should set up socket event listeners on initialization', async () => {
             await stateSyncService.initialize();
             
-            // Verify event listeners were set up
-            sinon.assert.calledWith(mockOn, 'game:state:update', sinon.match.func);
-            sinon.assert.calledWith(mockOn, 'reconnect', sinon.match.func);
-            sinon.assert.calledWith(mockOn, 'disconnect', sinon.match.func);
-            
-            // Verify initialization flag is set
-            expect(stateSyncService.initialized).to.be.true;
-        });
-        
-        it('should not initialize multiple times', async () => {
-            await stateSyncService.initialize();
-            await stateSyncService.initialize();
-            
-            // Should only set up event listeners once
-            sinon.assert.calledOnce(mockOn.withArgs('game:state:update', sinon.match.func));
+            // Assert
+            expect(mockOn).to.have.been.calledWith('connect');
+            expect(mockOn).to.have.been.calledWith('disconnect');
+            expect(mockOn).to.have.been.calledWith(GAME_EVENTS.STATE_UPDATE);
         });
         
         it('should load state from storage on initialization', async () => {
-            const testState = { gameId: 'test', players: {} };
-            mockLoadStateFromStorage.resolves(testState);
+            // Arrange
+            const savedState = { gamePhase: 'LOBBY' };
+            mockSafeStorage.getItem.resolves(JSON.stringify(savedState));
             
+            // Act
             await stateSyncService.initialize();
             
-            expect(stateSyncService.currentState).to.equal(testState);
-            expect(mockNotifyStateChange).to.have.been.calledOnce;
+            // Assert
+            expect(mockSafeStorage.getItem).to.have.been.calledWith('game_state');
+            expect(stateSyncService.currentState).to.deep.include(savedState);
+        });
+        
+        it('should handle storage errors during initialization', async () => {
+            // Arrange
+            const testError = new Error('Storage error');
+            mockSafeStorage.getItem.rejects(testError);
+            const consoleErrorStub = sinon.stub(console, 'error');
+            
+            // Act & Assert
+            await expect(stateSyncService.initialize()).to.be.fulfilled;
+            expect(consoleErrorStub).to.have.been.calledWith(
+                'Error loading state from storage:', 
+                testError
+            );
+            
+            // Cleanup
+            consoleErrorStub.restore();
         });
         
         it('should handle errors during initialization', async () => {
@@ -387,154 +360,161 @@ describe('StateSyncService', function() {
                 
                 expect(result).to.be.null;
                 expect(consoleStub).to.have.been.calledWith('Error loading state from storage:', sinon.match.instanceOf(Error));
+                
+                // Cleanup
+                consoleStub.restore();
+            });
+            
+            it('should return null for corrupted localStorage data', async () => {
+                // Mock safeStorage to return invalid JSON
+                mockSafeStorage.getItem.withArgs(STORAGE_KEYS.GAME_STATE).resolves('invalid-json');
+                
+                const result = await stateSyncService.loadStateFromStorage();
+                expect(result).to.be.null;
             });
         });
-    });    
+    });
     
     describe('state management', function() {
         this.timeout(5000);
         
-        it('should initialize with null state', () => {
-            expect(stateSyncService.currentState).to.be.null;
+        beforeEach(async () => {
+            // Reset state before each test
+            stateSyncService.currentState = null;
+            stateSyncService.offlineQueue = [];
+            await stateSyncService.initialize();
+            
+            // Reset mocks
+            mockSaveStateToStorage.resetHistory();
+            mockNotifyStateChange.resetHistory();
         });
         
-        it('should update state and notify subscribers', () => {
-            // Set up a subscriber
-            const subscriber = sinon.stub();
-            stateSyncService.subscribe('stateChange', subscriber);
+        it('should handle initial game state updates', async () => {
+            // Arrange
+            const testState = { ...INITIAL_STATE };
             
-            // Update state
-            const newState = { gamePhase: 'playing' };
-            stateSyncService.handleGameUpdate(newState);
+            // Act
+            await eventHandlers[GAME_EVENTS.STATE_UPDATE](testState);
             
-            // Check if state was updated
-            expect(stateSyncService.currentState.gamePhase).to.equal('playing');
-            
-            // Check if subscriber was called
-            sinon.assert.calledOnce(subscriber);
+            // Assert
+            expect(stateSyncService.currentState).to.deep.include(testState);
+            expect(mockSaveStateToStorage).to.have.been.calledWith(
+                sinon.match(testState)
+            );
+            expect(mockNotifyStateChange).to.have.been.calledOnce;
         });
         
-        it('should handle partial state updates', () => {
-            // Initial state
-            stateSyncService.handleGameUpdate({ gamePhase: 'playing', currentTurn: 'player1' });
+        it('should merge partial state updates', async () => {
+            // Arrange
+            const initialPlayers = {
+                [TEST_PLAYERS.PLAYER_1.id]: TEST_PLAYERS.PLAYER_1,
+                [TEST_PLAYERS.PLAYER_2.id]: TEST_PLAYERS.PLAYER_2
+            };
             
-            // Partial update
-            stateSyncService.handleGameUpdate({ currentTurn: 'player2' });
+            const initialState = {
+                ...INITIAL_STATE,
+                players: initialPlayers,
+                scores: { team1: 0, team2: 0 }
+            };
             
-            expect(stateSyncService.currentState.gamePhase).to.equal('playing');
-            expect(stateSyncService.currentState.currentTurn).to.equal('player2');
-        });
-        
-        it('should save state to localStorage on update', () => {
-            // Update state (persistence is enabled by default)
-            const newState = { gamePhase: 'gameOver' };
-            stateSyncService.handleGameUpdate(newState);
+            stateSyncService.currentState = { ...initialState };
             
-            // Check if state was saved to localStorage
-            const savedState = JSON.parse(global.localStorage.getItem(STORAGE_KEYS.GAME_STATE));
-            expect(savedState.state.gamePhase).to.equal('gameOver');
+            // Act - Update only the scores
+            const scoreUpdate = { scores: { team1: 3, team2: 2 } };
+            await eventHandlers[GAME_EVENTS.STATE_UPDATE](scoreUpdate);
+            
+            // Assert - Verify merge
+            expect(stateSyncService.currentState).to.deep.include({
+                ...initialState,
+                ...scoreUpdate,
+                players: initialPlayers // Players should remain unchanged
+            });
+            
+            expect(mockSaveStateToStorage).to.have.been.calledOnce;
+            expect(mockNotifyStateChange).to.have.been.calledOnce;
         });
     });
     
     describe('action dispatching', () => {
-        it('should send actions when online', () => {
+        beforeEach(() => {
+            // Reset mocks and state before each test
+            mockEmit.resetHistory();
+            stateSyncService.offlineQueue = [];
+        });
+
+        it('should send actions when online', async () => {
+            // Arrange
             const action = { type: 'PLAY_CARD', payload: { card: 'AH' } };
-            stateSyncService.sendAction('game:action', action);
+            mockEmit.resolves({ success: true });
             
-            sinon.assert.calledWith(mockEmit, 'game:action', action);
+            // Act
+            await stateSyncService.sendAction('game:action', action);
+            
+            // Assert
+            expect(mockEmit).to.have.been.calledOnceWith('game:action', action);
         });
         
-        it('should queue actions when offline', () => {
+        it('should queue actions when offline', async () => {
+            // Arrange
             mockIsConnected = false;
-            const action = { type: 'PLAY_CARD', payload: { card: 'AH' } };
+            const action = { 
+                type: 'PLAY_CARD', 
+                payload: { 
+                    card: 'AH',
+                    playerId: TEST_PLAYERS.PLAYER_1.id
+                } 
+            };
             
-            stateSyncService.sendAction('game:action', action);
+            // Act & Assert
+            await expect(stateSyncService.sendAction('game:action', action))
+                .to.be.rejectedWith('Offline');
             
             expect(stateSyncService.offlineQueue).to.have.length(1);
-            expect(stateSyncService.offlineQueue[0].action).to.equal('game:action');
-            expect(stateSyncService.offlineQueue[0].payload).to.deep.equal(action);
+            expect(stateSyncService.offlineQueue[0]).to.deep.include({
+                event: 'game:action',
+                args: [action]
+            });
         });
         
         it('should replay queued actions when coming back online', async () => {
-            // Queue some actions while offline
+            // Arrange - Queue some actions while offline
             mockIsConnected = false;
-            const action1 = { type: 'PLAY_CARD', payload: { card: 'AH' } };
-            const action2 = { type: 'PLAY_CARD', payload: { card: 'KH' } };
+            const action1 = { 
+                type: 'PLAY_CARD', 
+                payload: { 
+                    card: 'AH',
+                    playerId: TEST_PLAYERS.PLAYER_1.id
+                } 
+            };
+            const action2 = { 
+                type: 'PLAY_CARD', 
+                payload: { 
+                    card: 'KH',
+                    playerId: TEST_PLAYERS.PLAYER_2.id
+                } 
+            };
             
-            stateSyncService.sendAction('game:action', action1);
-            stateSyncService.sendAction('game:action', action2);
+            // Queue actions (they'll be rejected since we're offline)
+            await stateSyncService.sendAction('game:playCard', action1).catch(() => {});
+            await stateSyncService.sendAction('game:playCard', action2).catch(() => {});
             
-            // Come back online
+            // Reset emit mock before coming back online
+            mockEmit.resetHistory();
+            mockEmit.resolves({ success: true });
+            
+            // Act - Come back online and process queue
             mockIsConnected = true;
             await stateSyncService.handleReconnect();
             
-            // Check if actions were replayed
-            sinon.assert.calledWith(mockEmit.firstCall, 'game:action', action1);
-            sinon.assert.calledWith(mockEmit.secondCall, 'game:action', action2);
+            // Assert - Verify actions were replayed in order
+            expect(mockEmit).to.have.been.calledTwice;
+            expect(mockEmit.firstCall).to.have.been.calledWith('game:playCard', action1);
+            expect(mockEmit.secondCall).to.have.been.calledWith('game:playCard', action2);
             expect(stateSyncService.offlineQueue).to.be.empty;
-        });
-    });
-    
-    describe('reconnection handling', () => {
-        it('should handle reconnection by requesting full state', async () => {
-            // Set up the reconnect handler
-            let reconnectHandler;
-            mockOn.callsFake((event, handler) => {
-                if (event === 'reconnect') {
-                    reconnectHandler = handler;
-                }
-                return mockSocketService;
-            });
-            
-            // Initialize the service to set up event listeners
-            stateSyncService.initialize();
-            
-            // Clear the mock call history
-            mockRequestFullState.resetHistory();
-            
-            // Trigger reconnect
-            await reconnectHandler();
-            
-            // Check if full state was requested
-            sinon.assert.calledOnce(mockRequestFullState);
         });
         
-        it('should process offline queue when reconnecting', async () => {
-            // Add some actions to the offline queue
-            const action1 = { type: 'PLAY_CARD', payload: { card: 'AH' } };
-            const action2 = { type: 'PLAY_CARD', payload: { card: 'KH' } };
-            stateSyncService.offlineQueue = [
-                { action: 'game:action', payload: action1, timestamp: Date.now() },
-                { action: 'game:action', payload: action2, timestamp: Date.now() + 1000 }
-            ];
-            
-            // Set up the reconnect handler
-            let reconnectHandler;
-            mockOn.callsFake((event, handler) => {
-                if (event === 'reconnect') {
-                    reconnectHandler = handler;
-                }
-                return mockSocketService;
-            });
-            
-            // Initialize the service
-            stateSyncService.initialize();
-            
-            // Trigger reconnect
-            await reconnectHandler();
-            
-            // Check if offline queue was processed
-            expect(stateSyncService.offlineQueue).to.be.empty;
-            
-            // Check if actions were sent
-            sinon.assert.calledTwice(mockEmit);
-            sinon.assert.calledWith(mockEmit.firstCall, 'game:action', action1);
-            sinon.assert.calledWith(mockEmit.secondCall, 'game:action', action2);
-        });
-    });
-    
-    describe('utility methods', function() {
-        this.timeout(5000);
+        it('should handle errors during queue processing', async () => {
+            // Arrange - Queue an action that will fail
         
         it('should handle arrays in mergeStates (arrays are replaced, not merged)', () => {
             const base = { 

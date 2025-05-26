@@ -44,7 +44,7 @@
                 "${file}"
             ],
             "cwd": "${workspaceFolder}",
-            "console": "externalTerminal",
+            "console": "integratedTerminal",
             "outputCapture": "std",
             "skipFiles": ["<node_internals>/**"],
             "env": {
@@ -62,7 +62,7 @@
             "name": "Debug Server",
             "program": "${workspaceFolder}/src/server.js",
             "cwd": "${workspaceFolder}",
-            "console": "externalTerminal",
+            "console": "integratedTerminal",
             "outputCapture": "std",
             "runtimeArgs": [
                 "--experimental-modules",
@@ -76,6 +76,17 @@
             "sourceMaps": true
         },
 
+        // Terminal Test Configuration
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Terminal Test",
+            "program": "${workspaceFolder}/terminal_test.js",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "outputCapture": "std"
+        },
+
         // NPM Script Launcher
         {
             "type": "node",
@@ -84,7 +95,7 @@
             "runtimeExecutable": "npm",
             "runtimeArgs": ["run", "${input:npmScript}", "--"],
             "cwd": "${workspaceFolder}",
-            "console": "externalTerminal",
+            "console": "integratedTerminal",
             "outputCapture": "std",
             "env": {
                 "NODE_OPTIONS": "--experimental-modules --es-module-specifier-resolution=node"

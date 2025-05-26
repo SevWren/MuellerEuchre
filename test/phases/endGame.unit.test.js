@@ -15,8 +15,8 @@
  */
 
 import { expect } from 'chai';
-import { checkGameOver, handleEndOfHand, startNewGame } from '../src/game/phases/endGame.js';
-import { GAME_PHASES, WINNING_SCORE } from '../src/config/constants.js';
+import { checkGameOver, handleEndOfHand, startNewGame } from '../../src/game/phases/endGame.js';
+import { GAME_PHASES, WINNING_SCORE } from '../../src/config/constants.js';
 
 /**
  * @description Test suite for the End Game Phase of the Euchre game.

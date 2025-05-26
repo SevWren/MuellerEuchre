@@ -1,2 +1,0 @@
-G:\Program Files\nodejs\npm
-G:\Program Files\nodejs\npm.cmd

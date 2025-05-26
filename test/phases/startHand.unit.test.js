@@ -36,17 +36,59 @@ describe('Start New Hand Module', function() {
     beforeEach(function() {
         gameState = {
             players: {
-                north: { hand: [] },
-                east: { hand: [] },
-                south: { hand: [] },
-                west: { hand: [] }
+                north: { 
+                    hand: [],
+                    id: 'north',
+                    name: 'North',
+                    team: 'us'
+                },
+                east: { 
+                    hand: [],
+                    id: 'east',
+                    name: 'East',
+                    team: 'them'
+                },
+                south: { 
+                    hand: [],
+                    id: 'south',
+                    name: 'South',
+                    team: 'us'
+                },
+                west: { 
+                    hand: [],
+                    id: 'west',
+                    name: 'West',
+                    team: 'them'
+                }
             },
             playerOrder: ['north', 'east', 'south', 'west'],
             dealer: 'north',
-            initialDealerForSession: 'north',
-            currentPhase: GAME_PHASES.ROUND_END,
+            initialDealerForSession: null,
+            currentPhase: 'round_end',
             currentPlayer: 'east',
-            deck: []
+            deck: createDeck(),
+            game: {
+                phase: 'round_end',
+                trumpSuit: null,
+                calledCard: null,
+                calledBy: null,
+                currentTrick: {
+                    cards: {},
+                    leader: null
+                },
+                tricks: {
+                    us: 0,
+                    them: 0
+                },
+                score: {
+                    us: 0,
+                    them: 0
+                },
+                handNumber: 0,
+                roundNumber: 0,
+                lastHand: false,
+                gameOver: false
+            }
         };
     });
 

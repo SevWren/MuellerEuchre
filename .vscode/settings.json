@@ -45,5 +45,7 @@
   "terminal.integrated.cursorStyle": "line",
   "terminal.integrated.cursorBlinking": true,
   "terminal.integrated.scrollback": 10000,
-  "terminal.integrated.shellIntegration.enabled": true
+  "terminal.integrated.shellIntegration.enabled": true,
+  "files.autoSave": "onWindowChange",
+  "typescript.tsserver.maxTsServerMemory": 4096
 }

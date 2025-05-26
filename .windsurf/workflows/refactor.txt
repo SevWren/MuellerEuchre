@@ -1,0 +1,18 @@
+Objective: Refactor my project by identifying all source code files that exceed 300 lines and split them into smaller, modular files based on functional or feature-based separation.
+
+Instructions:
+
+1.  Scan all source code files in the project directory.
+2.  For any file exceeding 300 lines, analyze the logical structure (e.g., grouped functions, components, classes, handlers, utilities).
+3.  Split the file into multiple smaller files based on:
+    *   Independent functions or functional groups
+    *   UI components
+    *   Feature-specific logic
+    *   Service or utility modules
+    *   API routes or handlers (if applicable)
+4.  Ensure import/export consistency across the new files.
+5.  Update all import paths in dependent files to match the new structure.
+6.  Maintain naming conventions and readability in each new file.
+7.  Output the new file structure, including a short comment at the top of each new file explaining its role.
+
+Note: Do not remove or rename functionality. The code must remain fully functional and testable after restructuring.

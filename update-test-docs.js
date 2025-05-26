@@ -436,7 +436,6 @@ const TEST_FILE_TYPES = {
  * const header = await generateHeader('test/example.test.js');
  * // Returns formatted JSDoc comment
  */
-import { basename } from 'path';
 import { TEST_TEMPLATES } from './test-templates.js';
 import { determineTestType } from './test-utils.js';
 import { fsPromises } from 'fs/promises';

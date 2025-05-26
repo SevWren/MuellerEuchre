@@ -160,7 +160,7 @@
     18. [ ] `server3.security.test.js`
     19. [ ] `server3.socket.unit.test.js`
     20. [ ] `server3.spectator.test.js`
-    21. [ ] `server3.startNewHand.test.js`
+    21. [x] `startNewHand.integration.test.js` (renamed from server3.startNewHand.test.js)
     22. [ ] `server3.unit.test.js`
     23. [ ] `server3.validPlay.unit.test.js`
     24. [ ] `server3.validation.test.js`

@@ -89,27 +89,31 @@ A real-time, online multiplayer Euchre card game with WebSocket support, automat
 - Simple test cases
 
 #### 🔄 In Progress (18 files) - Migrating on May 25, 2025
+
 1. **Server3 Test Suite**
-   - server3.dealerDiscard.test.js
-   - server3.errorHandling.test.js
-   - server3.goAlone.unit.test.js
-   - server3.integration.test.js
-   - server3.logging.unit.test.js
-   - server3.multiGame.test.js
-   - server3.orderUp.unit.test.js
-   - server3.performance.test.js
-   - server3.persistence.test.js
-   - server3.playCard.additional.test.js
-   - server3.playCard.unit.test.js
-   - server3.reconnection.test.js
-   - server3.scoreHand.unit.test.js
-   - server3.security.test.js
-   - server3.socket.unit.test.js
-   - server3.spectator.test.js
-   - server3.startNewHand.test.js
-   - server3.validation.test.js
-   - **Current Issue**: `Proxyquire` compatibility with ES Modules
-   - **Error**: `Cannot read properties of undefined (reading 'require')`
+   - [server3.dealerDiscard.test.js](./test/server3.dealerDiscard.test.js)
+   - [server3.errorHandling.test.js](./test/server3.errorHandling.test.js)
+   - [server3.goAlone.unit.test.js](./test/server3.goAlone.unit.test.js)
+   - [server3.integration.test.js](./test/server3.integration.test.js)
+   - [server3.logging.unit.test.js](./test/server3.logging.unit.test.js)
+   - [server3.multiGame.test.js](./test/server3.multiGame.test.js)
+   - [server3.orderUp.unit.test.js](./test/server3.orderUp.unit.test.js)
+   - [server3.performance.test.js](./test/server3.performance.test.js)
+   - [server3.persistence.test.js](./test/server3.persistence.test.js)
+   - [server3.playCard.additional.test.js](./test/server3.playCard.additional.test.js)
+   - [server3.playCard.unit.test.js](./test/server3.playCard.unit.test.js)
+   - [server3.reconnection.test.js](./test/server3.reconnection.test.js)
+   - [server3.scoreHand.unit.test.js](./test/server3.scoreHand.unit.test.js)
+   - [server3.security.test.js](./test/server3.security.test.js)
+   - [server3.socket.unit.test.js](./test/server3.socket.unit.test.js)
+   - [server3.spectator.test.js](./test/server3.spectator.test.js)
+   - [startNewHand.integration.test.js](./test/startNewHand.integration.test.js) (renamed from server3.startNewHand.test.js)
+   - [server3.validation.test.js](./test/server3.validation.test.js)
+
+   **Current Issues:**
+   - `Proxyquire` compatibility with ES Modules
+     - **Error:** `Cannot read properties of undefined (reading 'require')`
+     - **Status:** Investigating alternatives for ES Module mocking
 
 #### 🔧 Needs Attention (8/38 files)
 1. **Archived Server3 Tests** (6 files)

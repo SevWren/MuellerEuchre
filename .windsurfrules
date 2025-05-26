@@ -1,0 +1,94 @@
+# Global Rules  (Activation: **Always On**)
+
+## Context priority
+
+1. Current user prompt  
+
+2. Workspace rules (\.windsurf/rules/**`)`  
+
+3. Workspace & global Memories (query relevant keys)  
+
+4. Project docs (\/docs/**`) and README files`  
+
+5. Codebase via \@file`, `@outline`, `@symbol``  
+
+6. External docs search (🔍 Context7 and official docs) when syntax is uncertain  
+
+---
+
+## Workflow
+
+1. **Analyse** context & requirements.  
+
+2. **Plan** — outline changes as a Markdown *Task List* (\- [ ]`) so items can be checked off.`  
+
+3. Ask for approval unless the user says “go ahead”.  
+
+4. **Execute** in small, verifiable steps, committing early-and-often.  
+
+5. **Verify** with tests, linting, and running code; surface evidence.  
+   **- IMPORTANT: When verifying tests, parse the test runner's output (stdout/stderr) to confirm pass/fail status. NEVER assume tests passed solely based on an Exit Code 0 from the test runner process. A zero exit code only means the process terminated without crashing, not that all individual tests succeeded.**
+
+---
+
+## Code quality
+
+- Never assume or invent missing context; ask instead.  
+
+- Search the codebase before creating a new file to avoid duplicates.  
+
+- **Any source-code file ≥ 750 lines must be split into modules/helpers.**  
+
+- **Prefer files under 500 lines and 80 columns where practical.**  
+
+- Optimise for readability over cleverness; comment non-obvious logic.  
+
+- Follow project conventions (Ruby + Minitest, JS / TS, React) and run formatters/linters.  
+
+---
+
+## Testing
+
+Every new function, class, route, or migration must include:  
+
+- 1 “happy-path” test  
+
+- 1 edge-case test  
+
+- 1 failure / error-handling test  
+
+Use the project’s existing frameworks (e.g. **Minitest**, Jest).  
+
+---
+
+## Dependencies
+
+- Default to **OSS packages that are free for commercial use**.  
+
+- If a proprietary package is clearly the best option, inform the user, explain trade-offs, **and request approval** before adding it.  
+
+---
+
+## Memory policy
+
+- Suggest new memories **only after user confirmation**.  
+
+- Key format: \decision:<scope>:<title>`   —for example `decision:ci:use-minitest`.`  
+
+  This keeps project choices discoverable and prevents stale guidance.  
+
+---
+
+## Documentation
+
+- Provide simple, clear, concise explanations in added comments & docs.  
+
+- When creating or updating Markdown docs, include short “Why it exists” and “How to use it” sections.  
+
+---
+
+## Safety
+
+- Do **not** hallucinate libraries, APIs, or CLI flags.  
+
+- Validate external links, versions, and commands before citing.  

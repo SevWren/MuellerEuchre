@@ -40,7 +40,7 @@ This document outlines the changes made to restructure the Euchre multiplayer ga
    - [ ] server3.playCard.unit.test.js
    - [ ] server3.orderUp.unit.test.js
    - [ ] server3.scoreHand.unit.test.js
-   - [ ] server3.startNewHand.test.js
+   - [x] startNewHand.integration.test.js (renamed from server3.startNewHand.test.js)
    - [ ] server3.reconnection.test.js
    - [ ] server3.persistence.test.js
    - [ ] server3.security.test.js
@@ -222,7 +222,7 @@ This document outlines the changes made to restructure the Euchre multiplayer ga
   - [ ] server3.security.test.js
   - [ ] server3.socket.unit.test.js
   - [ ] server3.spectator.test.js
-  - [ ] server3.startNewHand.test.js
+  - [x] startNewHand.integration.test.js (renamed from server3.startNewHand.test.js)
   - [ ] server3.validPlay.unit.test.js
   - [ ] endGame.unit.test.js
   - [ ] goAlonePhase.unit.test.js

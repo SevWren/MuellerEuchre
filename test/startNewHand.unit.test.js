@@ -23,6 +23,10 @@ const createDeck = () => {
     return deck;
 };
 
+/**
+ * Test suite for the Start New Hand Module
+ * Tests the core functionality of starting new hands and dealing cards in Euchre
+ */
 describe('Start New Hand Module', function() {
     let gameState;
     
@@ -44,8 +48,15 @@ describe('Start New Hand Module', function() {
         };
     });
 
+    /**
+     * Test suite for the startNewHand function
+     * Validates dealer rotation, game state initialization, and error handling
+     */
     describe('startNewHand', function() {
-        // Basic functionality
+        /**
+         * Test basic functionality: dealer rotation, player setup, and game state reset
+         * Expected: Dealer rotates to next player, game state is properly initialized
+         */
         it('should rotate dealer and set up a new hand', function() {
             const result = startNewHand(gameState);
             
@@ -65,7 +76,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.currentPhase, GAME_PHASES.DEALING);
         });
 
-        // Edge Case 1: Empty player order
+        /**
+         * Test error handling for empty playerOrder array
+         * Expected: Function should throw an error with appropriate message
+         */
         it('should throw error when playerOrder is empty', function() {
             const emptyState = { ...gameState, playerOrder: [] };
             assert.throws(
@@ -74,7 +88,10 @@ describe('Start New Hand Module', function() {
             );
         });
 
-        // Edge Case 2: Single player
+        /**
+         * Test functionality with minimal player count (single player)
+         * Expected: Function should handle single player scenario gracefully
+         */
         it('should work with a single player', function() {
             const singlePlayerState = {
                 ...gameState,
@@ -86,7 +103,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.currentPlayer, 'north');
         });
 
-        // Edge Case 3: Null/undefined game state
+        /**
+         * Test error handling for invalid game state inputs (null/undefined)
+         * Expected: Function should throw appropriate error for invalid inputs
+         */
         it('should throw error when gameState is null or undefined', function() {
             [null, undefined].forEach((state) => {
                 let errorThrown = false;
@@ -100,7 +120,10 @@ describe('Start New Hand Module', function() {
             });
         });
 
-        // Edge Case 4: Missing player objects
+        /**
+         * Test error handling when required player objects are missing from game state
+         * Expected: Function should validate and throw error for incomplete player data
+         */
         it('should throw error when player objects are missing', function() {
             const stateWithMissingPlayers = {
                 ...gameState,
@@ -113,7 +136,10 @@ describe('Start New Hand Module', function() {
             );
         });
         
-        // New test: Invalid dealer in playerOrder
+        /**
+         * Test error handling when dealer is not found in playerOrder array
+         * Expected: Function should validate dealer exists in playerOrder and throw error if not
+         */
         it('should throw error when dealer is not in playerOrder', function() {
             const stateWithInvalidDealer = {
                 ...gameState,
@@ -127,7 +153,10 @@ describe('Start New Hand Module', function() {
             );
         });
         
-        // Test basic deck creation and dealing
+        /**
+         * Test deck creation and basic card dealing functionality
+         * Expected: Function should create proper deck, deal cards to players, and set correct game phase
+         */
         it('should create a deck and deal cards successfully', function() {
             const state = {
                 ...gameState,
@@ -147,7 +176,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.currentPhase, GAME_PHASES.DEALING);
         });
 
-        // Edge Case 5: Custom initial dealer
+        /**
+         * Test preservation of custom initialDealerForSession value
+         * Expected: Function should not overwrite existing initialDealerForSession
+         */
         it('should not overwrite initialDealerForSession', function() {
             const customState = {
                 ...gameState,
@@ -157,7 +189,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.initialDealerForSession, 'custom');
         });
 
-        // Edge Case 6: Partial deck
+        /**
+         * Test handling of incomplete deck (fewer than standard 24 cards)
+         * Expected: Function should handle partial deck and set appropriate game phase
+         */
         it('should handle partial deck', function() {
             const partialDeckState = {
                 ...gameState,
@@ -168,7 +203,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.currentPhase, GAME_PHASES.DEALING);
         });
 
-        // Edge Case 7: Non-standard player order
+        /**
+         * Test functionality with custom player order (not standard north/east/south/west)
+         * Expected: Function should work with any valid player order arrangement
+         */
         it('should handle non-standard player order', function() {
             const customOrderState = {
                 ...gameState,
@@ -183,7 +221,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.currentPhase, GAME_PHASES.DEALING);
         });
 
-        // Edge Case 8: Missing deck property
+        /**
+         * Test handling when deck property is missing from game state
+         * Expected: Function should create a new standard deck when none exists
+         */
         it('should handle missing deck property', function() {
             const { deck, ...stateWithoutDeck } = gameState;
             const result = startNewHand(stateWithoutDeck);
@@ -191,7 +232,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.deck.length, 24);
         });
 
-        // Edge Case 9: Non-empty game state
+        /**
+         * Test proper reset of game state when starting new hand with existing data
+         * Expected: Function should clear tricks, current trick, and trump suit
+         */
         it('should reset game state', function() {
             const nonEmptyState = {
                 ...gameState,
@@ -205,7 +249,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.trumpSuit, null);
         });
 
-        // Edge Case 10: Invalid dealer value
+        /**
+         * Test error handling for invalid dealer value not in playerOrder
+         * Expected: Function should throw error when dealer is not a valid player
+         */
         it('should handle invalid dealer value', function() {
             const invalidDealerState = {
                 ...gameState,
@@ -219,7 +266,10 @@ describe('Start New Hand Module', function() {
             );
         });
 
-        // Edge Case 11: Consecutive hands with custom state
+        /**
+         * Test multiple consecutive hand starts while preserving custom state properties
+         * Expected: Function should rotate dealers correctly and preserve non-game state
+         */
         it('should handle multiple hands with custom state', function() {
             let result = startNewHand(gameState);
             assert.strictEqual(result.dealer, 'east');
@@ -234,7 +284,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.customState, 'test');
         });
 
-        // Edge Case 12: Missing required properties
+        /**
+         * Test functionality with minimal valid game state (missing optional properties)
+         * Expected: Function should work with minimal required properties
+         */
         it('should handle missing required properties', function() {
             const minimalState = { playerOrder: ['north'], players: { north: {} } };
             const result = startNewHand(minimalState);
@@ -242,7 +295,10 @@ describe('Start New Hand Module', function() {
             assert.ok(result);
         });
 
-        // Edge Case 13: Large number of players
+        /**
+         * Test scalability with large number of players (more than standard 4)
+         * Expected: Function should handle any number of players gracefully
+         */
         it('should handle many players', function() {
             const manyPlayers = Array(10).fill().map((_, i) => `player${i}`);
             const manyPlayersState = {
@@ -263,7 +319,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.currentPhase, GAME_PHASES.DEALING);
         });
 
-        // Edge Case 14: Duplicate players
+        /**
+         * Test handling of duplicate player names in playerOrder array
+         * Expected: Function should process duplicate players without crashing
+         */
         it('should handle duplicate players', function() {
             const duplicateState = {
                 ...gameState,
@@ -274,7 +333,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.dealer, 'north');
         });
 
-        // Edge Case 15: Custom card values
+        /**
+         * Test functionality with non-standard deck (custom suits/ranks)
+         * Expected: Function should accept and use custom deck without modification
+         */
         it('should handle custom deck', function() {
             const customDeckState = {
                 ...gameState,
@@ -288,7 +350,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.deck.length, 2);
         });
 
-        // Edge Case 16: Game phase transitions
+        /**
+         * Test game phase transition from any current phase to DEALING
+         * Expected: Function should always set currentPhase to DEALING regardless of input
+         */
         it('should always set phase to DEALING', function() {
             const phases = Object.values(GAME_PHASES);
             phases.forEach(phase => {
@@ -298,7 +363,10 @@ describe('Start New Hand Module', function() {
             });
         });
 
-        // Edge Case 17: Player with existing hand
+        /**
+         * Test proper reset of player hands when they contain cards from previous hand
+         * Expected: Function should clear all player hands and reset tricksWon
+         */
         it('should reset player hands', function() {
             const withHands = {
                 ...gameState,
@@ -316,7 +384,10 @@ describe('Start New Hand Module', function() {
             });
         });
 
-        // Edge Case 18: Multiple sessions
+        /**
+         * Test that initialDealerForSession is preserved across multiple hands in same session
+         * Expected: Function should not change initialDealerForSession once set
+         */
         it('should only set initialDealerForSession once', function() {
             // First hand
             let result = startNewHand(gameState);
@@ -328,7 +399,15 @@ describe('Start New Hand Module', function() {
         });
     });
 
+    /**
+     * Test suite for the dealCards function
+     * Validates card dealing logic, error handling, and proper distribution
+     */
     describe('dealCards', function() {
+        /**
+         * Test error handling when deck has insufficient cards for complete deal
+         * Expected: Function should throw error when not enough cards available
+         */
         it('should handle insufficient cards during dealing', function() {
             const state = {
                 ...gameState,
@@ -349,6 +428,10 @@ describe('Start New Hand Module', function() {
             );
         });
         
+        /**
+         * Test error handling when currentPlayer is not found in playerOrder array
+         * Expected: Function should throw error for invalid currentPlayer reference
+         */
         it('should handle missing current player in playerOrder', function() {
             const state = {
                 ...gameState,
@@ -363,6 +446,10 @@ describe('Start New Hand Module', function() {
             );
         });
         
+        /**
+         * Test error handling when player objects are missing during card dealing
+         * Expected: Function should validate all players exist before dealing
+         */
         it('should handle missing players during dealing', function() {
             const state = {
                 ...gameState,
@@ -382,6 +469,10 @@ describe('Start New Hand Module', function() {
             );
         });
         
+        /**
+         * Test error handling when deck runs out of cards during dealing process
+         * Expected: Function should throw error when unable to complete full deal
+         */
         it('should handle partial deals when running out of cards', function() {
             const state = {
                 ...gameState,
@@ -399,6 +490,10 @@ describe('Start New Hand Module', function() {
             );
         });
         
+        /**
+         * Test successful card dealing to all players with proper distribution
+         * Expected: Each player gets 5 cards, up card is set, game phase advances
+         */
         it('should deal cards to all players', function() {
             // First start a new hand to get a fresh deck
             const state = startNewHand(gameState);
@@ -428,6 +523,10 @@ describe('Start New Hand Module', function() {
             assert.strictEqual(result.currentPhase, GAME_PHASES.ORDER_UP_ROUND1);
         });
 
+        /**
+         * Test card dealing with predefined deck to verify correct dealing order
+         * Expected: Cards should be dealt in specific order, up card should be last card
+         */
         it('should handle dealing with a custom deck', function() {
             // Create a test deck with known cards
             const testDeck = [

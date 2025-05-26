@@ -1,9 +1,9 @@
 /**
  * @file server3.reconnection.test.js - Test file
  * @module Server3ReconnectionTest
- * @description Test file
+ * @description Test file for player reconnection functionality
  * @requires chai
- * @see ../src/server3.reconnection.js
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
@@ -73,7 +73,7 @@ describe('Player Reconnection', function() {
         };
         
         // Load the server with mocks
-        server = proxyquire('../server3', {
+        server = proxyquire('../../server3.mjs', {
             fs: fsMock,
             'socket.io': function() { return mockIo; }
         });

@@ -13,13 +13,13 @@
  * @requires proxyquire
  * @requires sinon
  * @requires perf_hooks
- * @see {@link module:server3} for the implementation being tested
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";
-import {  performance, PerformanceObserver  } from "perf_hooks";
+import { performance, PerformanceObserver } from 'perf_hooks';
 
 /**
  * @description Performance test suite for the Euchre server.
@@ -247,7 +247,7 @@ describe('Performance Testing', function() {
         };
         
         // Load the server with mocks
-        server = proxyquire('../server3', {
+        server = proxyquire('../../server3.mjs', {
             fs: fsMock,
             'socket.io': function() { return mockIo; }
         });

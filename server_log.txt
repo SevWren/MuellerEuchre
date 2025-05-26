@@ -8019,3 +8019,15 @@
 [WARNING] [handleGoAloneDecision] Invalid go alone attempt by east
 [INFO] [handleGoAloneDecision] north is going alone
 [WARNING] [handleGoAloneDecision] Invalid go alone attempt by north
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] south passed
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleDealerDiscard] south discarding a card
+[INFO] [handleCallTrumpDecision] east called spades
+[INFO] [handleCallTrumpDecision] east called diamonds
+[INFO] [handleCallTrumpDecision] east passed
+[INFO] [handleCallTrumpDecision] south passed
+[INFO] [handleCallTrumpDecision] west passed
+[INFO] [handleCallTrumpDecision] north passed

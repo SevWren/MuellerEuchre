@@ -3,7 +3,7 @@
  * @module Server3LoggingUnitTest
  * @description Unit tests for the Server3 Logging module
  * @requires chai
- * @see ../src/server3.logging.unit.js
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
@@ -19,22 +19,28 @@ describe('Server Logging and Debug', function() {
         logStub = sinon.stub(console, 'log');
         appendFileStub = sinon.stub();
         
-        // Mock fs.appendFileSync
-        const fsMock = { appendFileSync: appendFileStub };
-        
-        // Mock socket.io
-        const ioMock = function() {
-            return {
-                sockets: { sockets: {} },
-                to: () => ({ emit: () => {} }),
-                emit: () => {},
-                on: () => {},
-                in: () => ({ emit: () => {} })
-            };
+        // Mock fs
+        const fsMock = { 
+            appendFileSync: appendFileStub,
+            readFileSync: sinon.stub().returns(''),
+            existsSync: sinon.stub().returns(false),
+            writeFileSync: sinon.stub()
         };
 
-        // Load the server module with mocks
-        server = proxyquire('../server3', {
+        // Mock socket.io
+        const ioMock = () => ({
+            on: sinon.stub(),
+            sockets: {
+                sockets: {},
+                emit: sinon.stub()
+            },
+            to: () => ({ emit: () => {} }),
+            emit: () => {},
+            in: () => ({ emit: () => {} })
+        });
+
+        // Load the server with mocks
+        server = proxyquire('../../server3.mjs', {
             fs: fsMock,
             'socket.io': ioMock
         });

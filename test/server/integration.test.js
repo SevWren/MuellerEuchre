@@ -3,7 +3,7 @@
  * @module Server3IntegrationTest
  * @description Test file
  * @requires chai
- * @see ../src/server3.integration.js
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
@@ -19,8 +19,8 @@ describe('Euchre Game Integration Tests', function() {
         const socket = mockSockets[playerId];
         if (!socket) throw new Error(`Player ${playerId} not found`);
         
-        const handler = socket.eventHandlers[action];
-        if (!handler) throw new Error(`No handler for ${action}`);
+        const handler = socket.handlers[action];
+        if (!handler) throw new Error(`No handler for action ${action}`);
         
         return handler(data);
     };
@@ -29,35 +29,53 @@ describe('Euchre Game Integration Tests', function() {
         logStub = sinon.stub(console, 'log');
         appendFileStub = sinon.stub();
         
+        // Reset mocks
+        mockSockets = {};
+        
         // Mock fs
-        const fsMock = { 
+        const fsMock = {
             appendFileSync: appendFileStub,
             readFileSync: sinon.stub().returns(''),
             existsSync: sinon.stub().returns(false),
             writeFileSync: sinon.stub()
         };
-        
+
         // Mock socket.io
         mockIo = {
             sockets: {
-                sockets: {}
+                sockets: {},
+                emit: sinon.stub(),
+                to: sinon.stub().returnsThis(),
+                in: sinon.stub().returnsThis()
             },
-            to: sinon.stub().returnsThis(),
-            emit: sinon.stub(),
-            in: sinon.stub().returnsThis(),
             on: sinon.stub()
         };
-        
+
         // Load the server with mocks
-        server = proxyquire('../server3', {
+        server = proxyquire('../../server3.mjs', {
             fs: fsMock,
             'socket.io': function() { return mockIo; }
         });
         
         gameState = server.gameState;
         
-        // Reset mock sockets
-        mockSockets = {};
+        // Setup mock socket handlers
+        mockIo.on.callsFake((event, handler) => {
+            if (event === 'connection') {
+                const socket = {
+                    id: '',
+                    hand: {},
+                    handlers: {},
+                    on: function(event, handler) {
+                        this.handlers[event] = handler;
+                    },
+                    emit: sinon.stub(),
+                    join: sinon.stub(),
+                    leave: sinon.stub()
+                };
+                handler(socket);
+            }
+        });
     });
     
     afterEach(() => {
@@ -77,9 +95,9 @@ describe('Euchre Game Integration Tests', function() {
                 const socket = {
                     id: socketId,
                     emit: sinon.stub(),
-                    eventHandlers: {},
+                    handlers: {},
                     on: function(event, handler) {
-                        this.eventHandlers[event] = handler;
+                        this.handlers[event] = handler;
                     }
                 };
                 
@@ -87,7 +105,7 @@ describe('Euchre Game Integration Tests', function() {
                 mockIo.sockets.sockets[socketId] = socket;
                 
                 // Simulate connection
-                mockIo.connectionCallback(socket);
+                mockIo.on.getCall(0).args[1](socket);
                 playerSockets.push(socket);
             });
             

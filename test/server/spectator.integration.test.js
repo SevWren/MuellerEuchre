@@ -1,9 +1,9 @@
 /**
  * @file server3.spectator.test.js - Test file
  * @module Server3SpectatorTest
- * @description Test file
+ * @description Integration tests for spectator functionality
  * @requires chai
- * @see ../src/server3.spectator.js
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
@@ -77,7 +77,7 @@ describe('Spectator Mode', function() {
         };
         
         // Load the server with mocks
-        server = proxyquire('../server3', {
+        server = proxyquire('../../server3.mjs', {
             fs: fsMock,
             'socket.io': function() { return mockIo; }
         });

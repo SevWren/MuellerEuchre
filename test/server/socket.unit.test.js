@@ -3,7 +3,7 @@
  * @module Server3SocketUnitTest
  * @description Unit tests for the Server3 Socket module
  * @requires chai
- * @see ../src/server3.socket.unit.js
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
@@ -53,7 +53,7 @@ describe('Socket.IO Event Handlers', function() {
         };
 
         // Load the server module with mocks
-        server = proxyquire('../server3', {
+        server = proxyquire('../../server3.mjs', {
             fs: fsMock,
             'socket.io': function() { return mockIo; }
         });

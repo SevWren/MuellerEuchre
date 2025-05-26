@@ -3,7 +3,7 @@
  * @module Server3MultiGameTest
  * @description Test file
  * @requires chai
- * @see ../src/server3.multiGame.js
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
@@ -126,7 +126,7 @@ describe('Multiple Concurrent Games', function() {
         };
         
         // Load the server with mocks
-        server = proxyquire('../server3', {
+        server = proxyquire('../../server3.mjs', {
             fs: fsMock,
             'socket.io': function() { return mockIo; }
         });

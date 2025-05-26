@@ -3,7 +3,7 @@
  * @module Server3OrderUpUnitTest
  * @description Unit tests for the Server3 OrderUp module
  * @requires chai
- * @see ../src/server3.orderUp.unit.js
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
@@ -12,29 +12,13 @@ import sinon from "sinon";
 
 describe('Order Up Functionality', function() {
     let server;
-    let logStub, appendFileStub, ioEmitStub;
-    let handleOrderUpDecision, gameState, startNewHand, broadcastGameState, addGameMessage;
-    let mockIo, mockSocket;
+    let logStub, appendFileStub;
+    let handleOrderUpDecision, gameState, startNewHand;
+    let mockIo;
 
     beforeEach(() => {
         logStub = sinon.stub(console, 'log');
         appendFileStub = sinon.stub();
-        ioEmitStub = sinon.stub();
-        
-        // Mock socket.io
-        mockSocket = {
-            id: 'test-socket-id',
-            emit: sinon.stub()
-        };
-        
-        mockIo = {
-            sockets: {
-                sockets: {}
-            },
-            to: sinon.stub().returns({ emit: ioEmitStub }),
-            emit: sinon.stub(),
-            on: sinon.stub()
-        };
         
         // Mock fs
         const fsMock = { 
@@ -44,8 +28,19 @@ describe('Order Up Functionality', function() {
             writeFileSync: sinon.stub()
         };
 
-        // Load the server module with mocks
-        server = proxyquire('../server3', {
+        // Mock socket.io
+        mockIo = {
+            sockets: {
+                sockets: {},
+                emit: sinon.stub(),
+                to: sinon.stub().returnsThis(),
+                in: sinon.stub().returnsThis()
+            },
+            on: sinon.stub()
+        };
+
+        // Load the server with mocks
+        server = proxyquire('../../server3.mjs', {
             fs: fsMock,
             'socket.io': function() { return mockIo; }
         });
@@ -53,8 +48,6 @@ describe('Order Up Functionality', function() {
         // Extract the functions we want to test
         handleOrderUpDecision = server.handleOrderUpDecision;
         startNewHand = server.startNewHand;
-        broadcastGameState = server.broadcastGameState;
-        addGameMessage = server.addGameMessage;
         gameState = server.gameState;
         
         // Set up a test game state

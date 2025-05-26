@@ -9,13 +9,17 @@
  * - Emitting correct events to clients
  * 
  * @requires assert
+ * @requires chai
  * @requires proxyquire
+ * @requires ../server3.mjs
  * @see {@link module:server3} for the implementation being tested
  */
 
 
-import assert from "assert";
-import proxyquire from "proxyquire";
+import assert from 'assert';
+import { expect } from 'chai';
+import proxyquire from 'proxyquire';
+import sinon from 'sinon';
 
 /**
  * @description Test suite for the Dealer Discard functionality in the Euchre server.
@@ -59,7 +63,7 @@ describe('Euchre Server Dealer Discard Functions', function() {
             };
         };
 
-        server = proxyquire('../server3', {
+        server = proxyquire('../server3.mjs', {
             fs: { appendFileSync: () => {} },
             'socket.io': ioMock
         });

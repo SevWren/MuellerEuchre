@@ -3,7 +3,7 @@
  * @module Server3ErrorHandlingTest
  * @description Test file
  * @requires chai
- * @see ../src/server3.errorHandling.js
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
@@ -19,28 +19,35 @@ describe('Error Handling', function() {
         appendFileStub = sinon.stub();
         
         // Mock fs
-        const fsMock = { 
-            appendFileSync: appendFileStub,
+        const fsMock = {
+            appendFile: (file, data, callback) => {
+                appendFileStub(file, data);
+                callback(null);
+            },
+            appendFileSync: () => {},
             readFileSync: sinon.stub().returns(''),
             existsSync: sinon.stub().returns(false),
             writeFileSync: sinon.stub()
         };
-        
+
         // Mock socket.io
         mockIo = {
-            sockets: { sockets: {} },
-            to: sinon.stub().returnsThis(),
-            emit: sinon.stub(),
-            in: sinon.stub().returnsThis(),
+            sockets: {
+                sockets: mockSockets,
+                emit: sinon.stub(),
+                to: sinon.stub().returnsThis(),
+                in: sinon.stub().returnsThis()
+            },
             on: sinon.stub()
         };
-        
-        // Load the server with mocks
-        server = proxyquire('../server3', {
+
+        // Mock proxyquire
+        server = proxyquire('../../server3.mjs', {
+            'socket.io': () => mockIo,
             fs: fsMock,
-            'socket.io': function() { return mockIo; }
+            './logger': { log: () => {} }
         });
-        
+
         gameState = server.gameState;
         mockSockets = {};
     });

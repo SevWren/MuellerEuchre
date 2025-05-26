@@ -1,9 +1,9 @@
 /**
  * @file server3.security.test.js - Test file
  * @module Server3SecurityTest
- * @description Test file
+ * @description Security test suite for the Euchre server
  * @requires chai
- * @see ../src/server3.security.js
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
@@ -111,7 +111,7 @@ describe('Security Tests', function() {
         };
         
         // Load the server with security mocks
-        server = proxyquire('../server3', {
+        server = proxyquire('../../server3.mjs', {
             fs: fsMock,
             'socket.io': function() { return mockIo; },
             'helmet': () => (req, res, next) => next(),

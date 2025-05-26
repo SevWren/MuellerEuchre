@@ -11,8 +11,7 @@
  * @requires sinon
  * @requires fs
  * @requires path
- * @requires url
- * @see {@link module:server3} for the implementation being tested
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";

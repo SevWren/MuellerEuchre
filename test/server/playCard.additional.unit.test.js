@@ -8,7 +8,7 @@
  * 
  * @requires assert
  * @requires proxyquire
- * @see {@link module:server3} for the implementation being tested
+ * @requires ../../server3.mjs
  * @see {@link module:test/server3.playCard.unit} for basic card playing tests
  */
 
@@ -57,7 +57,7 @@ describe('Euchre Server Play Card Additional Tests', function() {
             };
         };
 
-        server = proxyquire('../server3', {
+        server = proxyquire('../../server3.mjs', {
             fs: { appendFileSync: () => {} },
             'socket.io': ioMock
         });

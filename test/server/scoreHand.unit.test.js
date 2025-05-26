@@ -3,7 +3,7 @@
  * @module Server3ScoreHandUnitTest
  * @description Unit tests for the Server3 ScoreHand module
  * @requires chai
- * @see ../src/server3.scoreHand.unit.js
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
@@ -33,7 +33,7 @@ describe('Euchre Server Score Hand Functions', function() {
             };
         };
 
-        server = proxyquire('../server3', {
+        server = proxyquire('../../server3.mjs', {
             fs: { appendFileSync: () => {} },
             'socket.io': ioMock
         });

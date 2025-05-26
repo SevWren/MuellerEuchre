@@ -1,6 +1,23 @@
-// Simple test file to verify basic functionality
+/**
+ * @file server3.basic.unit.test.js - Unit tests for Euchre server basic functionality
+ * @module test/server3.basic
+ * @description Test suite for basic Euchre server functionality, including:
+ * - Game state initialization
+ * - Lobby and game phases
+ * - Deck creation and shuffling
+ * - Error handling for invalid actions
+ * 
+ * @requires chai
+ * @requires ../../server3.mjs
+ * @see {@link module:server3} for the implementation being tested
+ * 
+ * @test {gameState} - Test for game state initialization
+ * @test {deck} - Test for deck creation and shuffling
+ * @test {errorHandling} - Tests for error handling
+ */
+
 import { expect } from 'chai';
-import * as server3 from '../server3.mjs';
+import * as server3 from '../../server3.mjs';
 
 describe('server3.mjs - Basic Functionality', function() {
     this.timeout(5000);

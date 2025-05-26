@@ -3,7 +3,7 @@
  * @module Server3GoAloneUnitTest
  * @description Unit tests for the Server3 GoAlone module
  * @requires chai
- * @see ../src/server3.goAlone.unit.js
+ * @requires ../../server3.mjs
  */
 
 import assert from "assert";
@@ -12,43 +12,33 @@ import sinon from "sinon";
 
 describe('Go Alone Functionality', function() {
     let server;
-    let logStub, appendFileStub, ioEmitStub;
-    let handleGoAloneDecision, gameState, startNewHand, broadcastGameState, addGameMessage, getPartner;
-    let mockIo, mockSocket;
+    let logStub, appendFileStub;
+    let handleGoAloneDecision, gameState, getPartner;
+    let mockIo;
 
     beforeEach(() => {
         logStub = sinon.stub(console, 'log');
         appendFileStub = sinon.stub();
-        ioEmitStub = sinon.stub();
-        
-        // Mock socket.io
-        mockSocket = {
-            id: 'test-socket-id',
-            emit: sinon.stub()
-        };
-        
-        mockIo = {
-            sockets: {
-                sockets: {}
-            },
-            to: sinon.stub().returns({ 
-                emit: ioEmitStub,
-                to: function() { return this; } // Allow chaining
-            }),
-            emit: sinon.stub(),
-            on: sinon.stub()
-        };
         
         // Mock fs
-        const fsMock = { 
+        const fsMock = {
             appendFileSync: appendFileStub,
             readFileSync: sinon.stub().returns(''),
             existsSync: sinon.stub().returns(false),
             writeFileSync: sinon.stub()
         };
 
-        // Load the server module with mocks
-        server = proxyquire('../server3', {
+        // Mock socket.io
+        mockIo = {
+            sockets: { sockets: {} },
+            to: sinon.stub().returnsThis(),
+            emit: sinon.stub(),
+            in: sinon.stub().returnsThis(),
+            on: sinon.stub()
+        };
+        
+        // Load the server with mocks
+        server = proxyquire('../../server3.mjs', {
             fs: fsMock,
             'socket.io': function() { return mockIo; }
         });
@@ -56,9 +46,6 @@ describe('Go Alone Functionality', function() {
         // Extract the functions we want to test
         handleGoAloneDecision = server.handleGoAloneDecision;
         getPartner = server.getPartner;
-        startNewHand = server.startNewHand;
-        broadcastGameState = server.broadcastGameState;
-        addGameMessage = server.addGameMessage;
         gameState = server.gameState;
         
         // Set up a test game state

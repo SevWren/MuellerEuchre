@@ -7,13 +7,13 @@
  * 
  * @requires chai
  * @requires assert
- * @requires ../src/game/phases/goAlonePhase.js
- * @requires ../src/config/constants.js
+ * @requires ../../src/game/phases/goAlonePhase.js
+ * @requires ../../src/config/constants.js
  * @see {@link module:src/game/phases/goAlonePhase} for the implementation being tested
  */
 
-import {  handleGoAloneDecision  } from '../src/game/phases/goAlonePhase.js';
-import {  GAME_PHASES  } from '../src/config/constants.js';
+import {  handleGoAloneDecision  } from '../../src/game/phases/goAlonePhase.js';
+import {  GAME_PHASES  } from '../../src/config/constants.js';
 import assert from "assert";
 
 /**

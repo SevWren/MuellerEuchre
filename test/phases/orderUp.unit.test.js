@@ -9,8 +9,8 @@
  * - Edge cases and invalid operations
  * 
  * @requires chai
- * @requires ../src/game/phases/orderUpPhase.js
- * @requires ../src/config/constants.js
+ * @requires ../../src/game/phases/orderUpPhase.js
+ * @requires ../../src/config/constants.js
  * @requires assert
  * @see {@link module:src/game/phases/orderUpPhase} for the implementation being tested
  */
@@ -19,9 +19,9 @@ import {
     handleOrderUpDecision, 
     handleDealerDiscard, 
     handleCallTrumpDecision 
- } from '../src/game/phases/orderUpPhase.js';
+ } from '../../src/game/phases/orderUpPhase.js';
 
-import {  GAME_PHASES  } from '../src/config/constants.js';
+import {  GAME_PHASES  } from '../../src/config/constants.js';
 import assert from "assert";
 
 /**

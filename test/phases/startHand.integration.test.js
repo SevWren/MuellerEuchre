@@ -3,7 +3,8 @@
  * @module StartNewHandIntegrationTest
  * @description Tests the server-side behavior of starting a new hand
  * @requires chai
- * @see ../src/game/phases/startNewHand.js
+ * @requires ../../src/game/phases/startNewHand.js
+ * @see ../../src/game/phases/startNewHand.js
  */
 
 import assert from "assert";
@@ -37,7 +38,8 @@ describe('Euchre Server Start New Hand Tests', function() {
             };
         };
 
-        server = proxyquire('../server3', {
+        const serverPath = '../../server3.js';
+        server = proxyquire(serverPath, {
             fs: { appendFileSync: () => {} },
             'socket.io': ioMock
         });

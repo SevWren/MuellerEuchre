@@ -8013,3 +8013,9 @@
 [INFO] [endGame] Game over! north+south wins!
 [INFO] [checkGameOver] Checking for game over condition
 [INFO] [startNewGame] Starting a new game
+[INFO] [handleGoAloneDecision] east is going alone
+[INFO] [handleGoAloneDecision] east will play with partner
+[INFO] [handleGoAloneDecision] east is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by east
+[INFO] [handleGoAloneDecision] north is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by north

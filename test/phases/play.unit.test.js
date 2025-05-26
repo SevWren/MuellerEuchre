@@ -10,9 +10,9 @@
  * - Determining trick winners
  * 
  * @requires chai
- * @requires ../server3.mjs
- * @requires ../src/game/phases/playPhase.js
- * @requires ../src/game/logic/validation.js
+ * @requires ../../server3.mjs
+ * @requires ../../src/game/phases/playPhase.js
+ * @requires ../../src/game/logic/validation.js
  * @see {@link module:src/game/phases/playPhase} for the implementation being tested
  */
 
@@ -48,12 +48,12 @@ describe('Euchre Server Play Card Functions', function() {
         
         try {
             // Import the server module
-            const serverModule = await import('../server3.mjs');
+            const serverModule = await import('../../server3.mjs');
             server3 = serverModule.default || serverModule;
             
             // Import the functions to test
-            const playPhaseModule = await import('../src/game/phases/playPhase.js');
-            const validationModule = await import('../src/game/logic/validation.js');
+            const playPhaseModule = await import('../../src/game/phases/playPhase.js');
+            const validationModule = await import('../../src/game/logic/validation.js');
             
             handlePlayCard = playPhaseModule.handlePlayCard;
             serverIsValidPlay = validationModule.serverIsValidPlay;

@@ -3,11 +3,13 @@
  * @module StartNewHandUnitTest
  * @description Unit tests for the StartNewHand module
  * @requires chai
+ * @requires ../../src/game/phases/startNewHand.js
+ * @requires ../../src/config/constants.js
  * @see ../src/startNewHand.unit.js
  */
 
-import { startNewHand, dealCards } from '../src/game/phases/startNewHand.js';
-import { GAME_PHASES } from '../src/config/constants.js';
+import { startNewHand, dealCards } from '../../src/game/phases/startNewHand.js';
+import { GAME_PHASES } from '../../src/config/constants.js';
 import assert from "assert";
 
 // Helper to create a simple deck for testing

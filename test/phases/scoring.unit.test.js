@@ -10,14 +10,14 @@
  * - Game reset functionality
  * 
  * @requires chai
- * @requires ../src/game/phases/scoring.js
- * @requires ../src/config/constants.js
+ * @requires ../../src/game/phases/scoring.js
+ * @requires ../../src/config/constants.js
  * @see {@link module:src/game/phases/scoring} for the implementation being tested
  */
 
 import { expect } from 'chai';
-import { scoreCurrentHand, resetGame } from '../src/game/phases/scoring.js';
-import { GAME_PHASES } from '../src/config/constants.js';
+import { scoreCurrentHand, resetGame } from '../../src/game/phases/scoring.js';
+import { GAME_PHASES } from '../../src/config/constants.js';
 
 /**
  * @description Test suite for the Scoring Module in the Euchre game.

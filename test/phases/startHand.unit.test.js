@@ -1,18 +1,13 @@
 /**
- * @file startNewHand.unit.test.js - Unit tests for the StartNewHand module
- * @module StartNewHandUnitTest
- * @description Unit tests for the StartNewHand module
- * @requires chai
- * @requires ../../src/game/phases/startNewHand.js
- * @requires ../../src/config/constants.js
- * @see ../src/startNewHand.unit.js
+ * @file Unit tests for StartNewHand module
+ * @requires chai, ../../src/game/phases/startNewHand.js, ../../src/config/constants.js
  */
 
 import { startNewHand, dealCards } from '../../src/game/phases/startNewHand.js';
 import { GAME_PHASES } from '../../src/config/constants.js';
 import assert from "assert";
 
-// Helper to create a simple deck for testing
+// Create a standard Euchre deck for testing
 const createDeck = () => {
     const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
     const ranks = ['9', '10', 'J', 'Q', 'K', 'A'];
@@ -92,15 +87,9 @@ describe('Start New Hand Module', function() {
         };
     });
 
-    /**
-     * Test suite for the startNewHand function
-     * Validates dealer rotation, game state initialization, and error handling
-     */
+    /** Tests for startNewHand: dealer rotation, game state, and error handling */
     describe('startNewHand', function() {
-        /**
-         * Test basic functionality: dealer rotation, player setup, and game state reset
-         * Expected: Dealer rotates to next player, game state is properly initialized
-         */
+        // Test basic functionality: dealer rotation and game state reset
         it('should rotate dealer and set up a new hand', function() {
             const result = startNewHand(gameState);
             
@@ -428,10 +417,7 @@ describe('Start New Hand Module', function() {
             });
         });
 
-        /**
-         * Test that initialDealerForSession is preserved across multiple hands in same session
-         * Expected: Function should not change initialDealerForSession once set
-         */
+        // Verify initialDealerForSession is preserved across hands
         it('should only set initialDealerForSession once', function() {
             // First hand
             let result = startNewHand(gameState);
@@ -443,15 +429,9 @@ describe('Start New Hand Module', function() {
         });
     });
 
-    /**
-     * Test suite for the dealCards function
-     * Validates card dealing logic, error handling, and proper distribution
-     */
+    /** Tests for dealCards: card dealing logic and error handling */
     describe('dealCards', function() {
-        /**
-         * Test error handling when deck has insufficient cards for complete deal
-         * Expected: Function should throw error when not enough cards available
-         */
+        // Test error handling for insufficient cards
         it('should handle insufficient cards during dealing', function() {
             const state = {
                 ...gameState,

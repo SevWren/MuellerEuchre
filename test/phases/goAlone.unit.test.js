@@ -1,11 +1,10 @@
 /**
- * @file goAlonePhase.unit.test.js - Unit tests for the GoAlone Phase in Euchre
- * @module test/goAlonePhase.unit
+ * @file goAlonePhase.unit.test.js - Unit tests for the Go Alone Phase in Euchre
+ * @module goAlonePhase.unit
  * @description Comprehensive test suite for the "Go Alone" phase in the Euchre game.
  * Tests cover the functionality where a player can choose to play without their partner
  * for a chance to score additional points.
  * 
- * @requires chai
  * @requires assert
  * @requires ../../src/game/phases/goAlonePhase.js
  * @requires ../../src/config/constants.js

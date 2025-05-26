@@ -1,7 +1,17 @@
+/**
+ * @file startNewHand.js - Start a new hand of Euchre
+ * @module game/phases/startNewHand
+ * @description Handles all the setup for a new hand of Euchre, including
+ * creating a new deck, shuffling it, and dealing out cards to the players.
+ * @exports {function} startNewHand - Starts a new hand of Euchre
+ * @param {Object} gameState - The game state to update
+ * @returns {Object} The updated game state
+ * @throws {Error} If the game state is invalid or an error occurs during hand initialization
+ */
+
 import { GAME_PHASES, DEBUG_LEVELS } from '../../config/constants.js';
 import { createDeck, shuffleDeck } from '../../utils/deck.js';
 import { log } from '../../utils/logger.js';
-import { getNextPlayer } from '../../utils/players.js';
 
 // Error messages
 const ERRORS = {

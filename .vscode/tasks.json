@@ -2,6 +2,11 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "echo-message",
+            "type": "shell",
+            "command": "echo '🚀 Starting Mocha test with debug configuration...'"
+        },
+        {
             "label": "Install Dependencies",
             "type": "shell",
             "command": "npm install",

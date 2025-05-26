@@ -10,13 +10,13 @@
  * 
  * @requires chai
  * @requires assert
- * @requires ../src/game/logic/validation.js
- * @requires ../src/config/constants.js
+ * @requires ../../src/game/logic/validation.js
+ * @requires ../../src/config/constants.js
  * @see {@link module:src/game/logic/validation} for the implementation being tested
  */
 
-import { isValidPlay, serverIsValidPlay } from '../src/game/logic/validation.js';
-import { GAME_PHASES } from '../src/config/constants.js';
+import { isValidPlay, serverIsValidPlay } from '../../src/game/logic/validation.js';
+import { GAME_PHASES } from '../../src/config/constants.js';
 import assert from 'assert';
 
 /**

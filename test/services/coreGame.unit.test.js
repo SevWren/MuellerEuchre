@@ -3,7 +3,7 @@
  * @module CoreGameLogicUnitTest
  * @description Unit tests for the CoreGameLogic module
  * @requires chai
- * @see ../src/coreGameLogic.unit.js
+ * @see ../../src/game/logic/gameLogic.js
  */
 
 import { expect } from 'chai';
@@ -16,7 +16,7 @@ import {
     isLeftBower, 
     getCardRank,
     getSuitColor
-} from '../src/game/logic/gameLogic.js';
+} from '../../src/game/logic/gameLogic.js';
 
 describe('Core Game Logic', function() {
     describe('getNextPlayer', function() {

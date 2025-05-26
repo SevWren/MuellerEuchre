@@ -15,7 +15,7 @@
 
 import { expect } from 'chai';
 import sinon from 'sinon';
-import ReconnectionHandler from '../src/socket/reconnectionHandler.js';
+import ReconnectionHandler from '../../src/socket/reconnectionHandler.js';
 
 /** @type {Object} sandbox - Sinon sandbox for test isolation */
 const sandbox = sinon.createSandbox();

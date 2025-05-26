@@ -4,7 +4,7 @@
  * @description Unit tests for the StateSyncService module
  * @requires chai
  * @requires sinon
- * @see ../src/client/services/stateSyncService.js
+ * @see ../../src/client/services/stateSyncService.js
  */
 
 import { expect } from 'chai';

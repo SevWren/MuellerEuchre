@@ -79,10 +79,10 @@ describe('UIIntegrationService', () => {
         
         // Import the module with mocks
         const module = await esmock(
-            'G:/Users/mmuel/OneDrive/Documents/GitHub/MuellerEuchre/euchre-multiplayer/src/client/services/uiIntegrationService.js',
+            '../../src/client/services/uiIntegrationService.js',
             {
                 'socket.io-client': { io: () => ({}) },
-                'G:/Users/mmuel/OneDrive/Documents/GitHub/MuellerEuchre/euchre-multiplayer/src/client/services/stateSyncService.js': {
+                '../../src/client/services/stateSyncService.js': {
                     default: class StateSyncService {
                         subscribe() {}
                         unsubscribe() {}
@@ -92,8 +92,8 @@ describe('UIIntegrationService', () => {
                 }
             },
             {
-                'G:/Users/mmuel/OneDrive/Documents/GitHub/MuellerEuchre/euchre-multiplayer/src/utils/logger.js': { default: mockLogger },
-                'G:/Users/mmuel/OneDrive/Documents/GitHub/MuellerEuchre/euchre-multiplayer/src/config/constants.js': {
+                '../../src/utils/logger.js': { default: mockLogger },
+                '../../src/config/constants.js': {
                     GAME_EVENTS: {
                         STATE_UPDATE: 'stateUpdate',
                         PLAYER_JOINED: 'playerJoined',

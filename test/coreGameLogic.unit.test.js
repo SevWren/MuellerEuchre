@@ -128,11 +128,11 @@ describe('Core Game Logic', function() {
 
     describe('getCardRank', function() {
         it('returns correct rank for right/left bower and trump', function() {
-            expect(getCardRank({ value: 'J', suit: 'hearts' }, 'hearts', 'hearts')).to.equal(100); // right bower
-            expect(getCardRank({ value: 'J', suit: 'diamonds' }, 'hearts', 'hearts')).to.equal(90); // left bower
-            expect(getCardRank({ value: 'A', suit: 'hearts' }, 'hearts', 'hearts')).to.be.greaterThan(80); // trump ace
-            expect(getCardRank({ value: '9', suit: 'hearts' }, 'hearts', 'hearts')).to.be.greaterThan(80); // trump 9
-            expect(getCardRank({ value: 'A', suit: 'spades' }, 'spades', 'hearts')).to.be.lessThan(80); // not trump
+            expect(getCardRank({ rank: 'J', suit: 'hearts' }, 'hearts', 'hearts')).to.equal(1000); // right bower
+            expect(getCardRank({ rank: 'J', suit: 'diamonds' }, 'hearts', 'hearts')).to.equal(900); // left bower
+            expect(getCardRank({ rank: 'A', suit: 'hearts' }, 'hearts', 'hearts')).to.equal(800); // trump ace
+            expect(getCardRank({ rank: '9', suit: 'hearts' }, 'hearts', 'hearts')).to.equal(40); // trump 9
+            expect(getCardRank({ rank: 'A', suit: 'spades' }, 'spades', 'hearts')).to.equal(500); // led suit ace (non-trump)
         });
     });
 

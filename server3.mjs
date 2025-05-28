@@ -49,8 +49,27 @@ function setDebugLevel(level) {
 // Game state
 let gameState = {};
 
+// Utility/game logic functions migrated from server3.js
+
+function addGameMessage(message, important = false) {
+    const timestamp = new Date().toLocaleTimeString();
+    log(DEBUG_LEVELS.VERBOSE, `[GAME MSG] ${message}`);
+    gameState.gameMessages.unshift({ text: message, timestamp, important });
+    if (gameState.gameMessages.length > 15) {
+        gameState.gameMessages.pop();
+    }
+}
+
+function getPlayerBySocketId(socketId) {
+    for (const role of gameState.playerSlots) {
+        if (gameState.players[role] && gameState.players[role].id === socketId) {
+            return gameState.players[role];
+        }
+    }
+    return null;
+}
+
 function getRoleBySocketId(socketId) {
-    if (!gameState.playerSlots) return null;
     for (const role of gameState.playerSlots) {
         if (gameState.players[role] && gameState.players[role].id === socketId) {
             return role;
@@ -127,7 +146,88 @@ function shuffleDeck(deck) {
     return deckToShuffle;
 }
 
-// Reset the entire game state to initial values
+function getNextPlayer(currentPlayerRole, playerSlots, goingAlone, playerGoingAlone, partnerSittingOut) {
+    const currentIndex = playerSlots.indexOf(currentPlayerRole);
+    if (currentIndex === -1) return null;
+
+    let nextIndex = (currentIndex + 1) % playerSlots.length;
+
+    // Skip over the partner if going alone
+    if (goingAlone && playerGoingAlone) {
+        const partnerIndex = playerSlots.indexOf(partnerSittingOut);
+        if (partnerIndex !== -1 && nextIndex === partnerIndex) {
+            nextIndex = (nextIndex + 1) % playerSlots.length;
+        }
+    }
+
+    return playerSlots[nextIndex];
+}
+
+function getPartner(playerRole) {
+    const partnerMap = {
+        'south': 'north',
+        'north': 'south',
+        'east': 'west',
+        'west': 'east'
+    };
+    return partnerMap[playerRole] || null;
+}
+
+function cardToString(card) {
+    if (!card) return '';
+    const valueStr = card.value === '10' ? 'T' : card.value;
+    return `${valueStr}${card.suit.charAt(0).toUpperCase()}`;
+}
+
+function sortHand(hand, trumpSuit) {
+    const suitOrder = { 'clubs': 1, 'diamonds': 2, 'hearts': 3, 'spades': 4 };
+    return hand.sort((a, b) => {
+        if (isLeftBower(a, trumpSuit)) return -1;
+        if (isLeftBower(b, trumpSuit)) return 1;
+        if (isRightBower(a, trumpSuit)) return -1;
+        if (isRightBower(b, trumpSuit)) return 1;
+
+        const aRank = VALUES.indexOf(a.value);
+        const bRank = VALUES.indexOf(b.value);
+        if (aRank !== bRank) return bRank - aRank;
+
+        return (suitOrder[b.suit] || 0) - (suitOrder[a.suit] || 0);
+    });
+}
+
+function isRightBower(card, trumpSuit) {
+    return card.value === 'J' && card.suit === trumpSuit;
+}
+
+function isLeftBower(card, trumpSuit) {
+    const partnerSuit = trumpSuit === 'hearts' ? 'diamonds' : 'hearts';
+    return card.value === 'J' && card.suit === partnerSuit;
+}
+
+function getSuitColor(suit) {
+    if (suit === 'hearts' || suit === 'diamonds') return 'red';
+    if (suit === 'spades' || suit === 'clubs') return 'black';
+    return 'black';
+}
+
+function getCardRank(card, ledSuit, trumpSuit) {
+    if (isRightBower(card, trumpSuit)) return 1000;
+    if (isLeftBower(card, trumpSuit)) return 900;
+
+    const suit = card.suit;
+    const value = card.value;
+
+    if (suit === ledSuit) {
+        return VALUES.indexOf(value);
+    } else if (suit === trumpSuit) {
+        return 500 + VALUES.indexOf(value);
+    } else {
+        return VALUES.indexOf(value);
+    }
+}
+
+// --- Game logic handlers ---
+
 function resetFullGame() {
     log(DEBUG_LEVELS.INFO, 'Resetting full game state...');
     
@@ -229,7 +329,252 @@ function resetFullGame() {
     return gameState;
 }
 
-// Export all functions that need to be tested
+function startNewHand() {
+    log(DEBUG_LEVELS.INFO, 'Starting new hand...');
+    gameState.currentPlayer = gameState.dealer;
+    gameState.gamePhase = 'PLAY';
+    gameState.tricks = [];
+    gameState.currentTrickPlays = [];
+    gameState.winner = null;
+
+    // Reset player states
+    for (const role of gameState.playerSlots) {
+        const player = gameState.players[role];
+        if (player) {
+            player.hasPlayed = false;
+            player.tricksTakenThisHand = 0;
+        }
+    }
+
+    // Move the kitty to the table
+    gameState.table = gameState.kitty;
+    gameState.kitty = [];
+
+    // Deal cards
+    const deck = gameState.deck;
+    const hands = [deck.slice(0, 5), deck.slice(5, 10), deck.slice(10, 15), deck.slice(15, 20)];
+    gameState.playerSlots.forEach((role, index) => {
+        gameState.players[role].hand = hands[index];
+    });
+
+    // Set trump and upcard
+    gameState.trump = null;
+    gameState.upCard = null;
+
+    // Notify players
+    broadcastGameState();
+}
+
+function handleOrderUpDecision(playerRole, orderedUp) {
+    log(DEBUG_LEVELS.INFO, `Player ${playerRole} ordered up: ${orderedUp}`);
+    if (orderedUp) {
+        gameState.trump = gameState.upCard.suit;
+        gameState.gamePhase = 'PLAY';
+        gameState.currentPlayer = gameState.dealer;
+        addGameMessage(`${gameState.players[playerRole].name} has ordered up ${gameState.trump}.`);
+    } else {
+        addGameMessage(`${gameState.players[playerRole].name} has passed.`);
+    }
+    gameState.playerWhoCalledTrump = orderedUp ? playerRole : null;
+    broadcastGameState();
+}
+
+function handleDealerDiscard(dealerRole, cardToDiscard) {
+    log(DEBUG_LEVELS.INFO, `Dealer ${dealerRole} discarding card: ${cardToDiscard}`);
+    const player = gameState.players[dealerRole];
+    if (!player || !player.hand.find(card => card.id === cardToDiscard)) {
+        log(DEBUG_LEVELS.WARNING, `Invalid discard by dealer ${dealerRole}: ${cardToDiscard}`);
+        return;
+    }
+
+    // Remove the discarded card from the player's hand
+    player.hand = player.hand.filter(card => card.id !== cardToDiscard);
+    gameState.dealerHasDiscarded = true;
+
+    // If both dealer and non-dealer have discarded, move to the next phase
+    const allDiscarded = Object.keys(gameState.players).every(role => {
+        const p = gameState.players[role];
+        return p.hasPlayed || (role === gameState.dealer ? gameState.dealerHasDiscarded : true);
+    });
+
+    if (allDiscarded) {
+        // Move the game to the next phase (e.g., PLAY)
+        gameState.gamePhase = 'PLAY';
+        gameState.currentPlayer = gameState.dealer;
+        addGameMessage(`The dealer has discarded. Game moves to the play phase.`);
+    } else {
+        // Still waiting on other players
+        addGameMessage(`Waiting for ${gameState.players[getNextPlayer(dealerRole, gameState.playerSlots)].name} to discard...`);
+    }
+
+    broadcastGameState();
+}
+
+function handleCallTrumpDecision(playerRole, suitToCall) {
+    log(DEBUG_LEVELS.INFO, `Player ${playerRole} called trump: ${suitToCall}`);
+    const player = gameState.players[playerRole];
+    if (!player || player.hasCalledTrump) {
+        log(DEBUG_LEVELS.WARNING, `Invalid trump call by player ${playerRole}`);
+        return;
+    }
+
+    player.hasCalledTrump = true;
+    gameState.trump = suitToCall;
+
+    // Move the game to the next phase (e.g., PLAY)
+    gameState.gamePhase = 'PLAY';
+    gameState.currentPlayer = getNextPlayer(playerRole, gameState.playerSlots);
+    addGameMessage(`${player.name} has called ${suitToCall} as trump.`);
+
+    broadcastGameState();
+}
+
+function handleGoAloneDecision(playerRole, decision) {
+    log(DEBUG_LEVELS.INFO, `Player ${playerRole} decided to go alone: ${decision}`);
+    const player = gameState.players[playerRole];
+    if (!player || player.isGoingAlone === decision) {
+        log(DEBUG_LEVELS.WARNING, `Invalid go alone decision by player ${playerRole}`);
+        return;
+    }
+
+    player.isGoingAlone = decision;
+    gameState.goingAlone = decision ? true : false;
+
+    if (decision) {
+        // If going alone, set the playerGoingAlone and remove their partner
+        gameState.playerGoingAlone = decision ? playerRole : null;
+        gameState.partnerSittingOut = decision ? getPartner(playerRole) : null;
+        addGameMessage(`${player.name} is going alone!`);
+    } else {
+        // Not going alone, restore partner
+        gameState.playerGoingAlone = null;
+        gameState.partnerSittingOut = null;
+        addGameMessage(`${player.name} will play with a partner.`);
+    }
+
+    broadcastGameState();
+}
+
+function serverIsValidPlay(playerRole, cardToPlay) {
+    const player = gameState.players[playerRole];
+    if (!player || !player.hand.find(card => card.id === cardToPlay)) {
+        return false;
+    }
+
+    // If it's the first play of the trick, any card can be played
+    if (gameState.currentTrickPlays.length === 0) {
+        return true;
+    }
+
+    const ledSuit = gameState.currentTrickPlays[0].suit;
+    const trumpSuit = gameState.trump;
+
+    // Must follow suit if able
+    if (player.hand.some(card => card.suit === ledSuit)) {
+        return cardToPlay.suit === ledSuit;
+    }
+
+    // If player has no cards of the led suit, they can play any card
+    return true;
+}
+
+function handlePlayCard(playerRole, cardToPlay) {
+    log(DEBUG_LEVELS.INFO, `Player ${playerRole} played card: ${cardToPlay}`);
+    const player = gameState.players[playerRole];
+    if (!player || !player.hand.find(card => card.id === cardToPlay)) {
+        log(DEBUG_LEVELS.WARNING, `Invalid play by player ${playerRole}: ${cardToPlay}`);
+        return;
+    }
+
+    // If it's the first play of the trick, any card can be played
+    if (gameState.currentTrickPlays.length === 0) {
+        gameState.currentTrickPlays.push(player.hand.find(card => card.id === cardToPlay));
+        player.hasPlayed = true;
+    } else {
+        const ledSuit = gameState.currentTrickPlays[0].suit;
+        const trumpSuit = gameState.trump;
+
+        // Must follow suit if able
+        if (player.hand.some(card => card.suit === ledSuit)) {
+            if (cardToPlay.suit !== ledSuit) {
+                log(DEBUG_LEVELS.WARNING, `Player ${playerRole} tried to play out of turn: ${cardToPlay}`);
+                return;
+            }
+        } else {
+            // If player has no cards of the led suit, they can play any card
+            gameState.currentTrickPlays.push(player.hand.find(card => card.id === cardToPlay));
+            player.hasPlayed = true;
+        }
+    }
+
+    // Check if the trick is complete
+    if (gameState.currentTrickPlays.length === 4) {
+        scoreCurrentHand();
+    } else {
+        // Move to the next player
+        gameState.currentPlayer = getNextPlayer(playerRole, gameState.playerSlots, gameState.goingAlone, gameState.playerGoingAlone, gameState.partnerSittingOut);
+    }
+
+    broadcastGameState();
+}
+
+function scoreCurrentHand() {
+    const { currentTrickPlays, trump, players, playerSlots } = gameState;
+
+    // Determine the winning card based on the game rules
+    const winningCard = currentTrickPlays.reduce((winningCard, card) => {
+        if (!winningCard) return card;
+
+        const winningCardRank = getCardRank(winningCard, winningCard.suit, trump);
+        const cardRank = getCardRank(card, card.suit, trump);
+
+        return cardRank > winningCardRank ? card : winningCard;
+    }, null);
+
+    // Determine the winner based on the winning card
+    const winningPlayerRole = playerSlots.find(role => players[role]?.hand.find(card => card.id === winningCard.id));
+
+    // Update scores and tricks taken
+    if (winningPlayerRole) {
+        players[winningPlayerRole].tricksTaken++;
+        gameState.currentPlayer = winningPlayerRole;
+        gameState.tricks.push(currentTrickPlays);
+        gameState.currentTrickPlays = [];
+        addGameMessage(`${players[winningPlayerRole].name} wins the trick with ${cardToString(winningCard)}.`);
+    }
+
+    // Check if the hand is over (all cards played)
+    const allHands = Object.values(players).map(player => player.hand);
+    const handOver = allHands.every(hand => hand.length === 0);
+
+    if (handOver) {
+        // End of the hand, calculate scores
+        const team1Score = playerSlots.filter((_, i) => i % 2 === 0).reduce((sum, role) => sum + players[role].tricksTaken, 0);
+        const team2Score = playerSlots.filter((_, i) => i % 2 === 1).reduce((sum, role) => sum + players[role].tricksTaken, 0);
+
+        // Update game state with scores
+        gameState.team1Score += team1Score;
+        gameState.team2Score += team2Score;
+
+        // Check for a winning team
+        const winningTeam = (gameState.team1Score >= 10) ? 1 : (gameState.team2Score >= 10) ? 2 : null;
+        if (winningTeam) {
+            gameState.winningTeam = winningTeam;
+            addGameMessage(`Team ${winningTeam} wins the game!`);
+        } else {
+            addGameMessage(`End of hand scores - Team 1: ${gameState.team1Score}, Team 2: ${gameState.team2Score}`);
+        }
+    }
+
+    broadcastGameState();
+}
+
+// --- Socket.IO server setup and event handlers ---
+
+// Serve static files from the "public" directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// --- Exports for testing and external use ---
 export {
     log,
     setDebugLevel,
@@ -238,7 +583,24 @@ export {
     shuffleDeck,
     getRoleBySocketId,
     broadcastGameState,
-    gameState
+    gameState,
+    getNextPlayer,
+    getPartner,
+    cardToString,
+    sortHand,
+    getSuitColor,
+    isRightBower,
+    isLeftBower,
+    getCardRank,
+    startNewHand,
+    handleOrderUpDecision,
+    handleDealerDiscard,
+    handleCallTrumpDecision,
+    handleGoAloneDecision,
+    serverIsValidPlay,
+    handlePlayCard,
+    scoreCurrentHand,
+    DEBUG_LEVELS
 };
 
 // Only start the server if this file is run directly (not when imported)

@@ -18,14 +18,18 @@
 
 import assert from 'assert';
 import { expect } from 'chai';
-import proxyquire from 'proxyquire';
 import sinon from 'sinon';
 
-/**
- * @description Test suite for the Dealer Discard functionality in the Euchre server.
- * This suite verifies the server's handling of the dealer discard phase, where the dealer
- * must discard one card after the order-up phase.
- */
+// Helper to dynamically import the server module with global stubs
+async function importServerWithMocks(ioMock, fsMock) {
+    // Assign mocks to global (if server3.mjs reads from global)
+    global.io = ioMock;
+    global.fs = fsMock;
+    // Dynamically import the server module
+    const serverModule = await import('../../server3.mjs');
+    return serverModule;
+}
+
 describe('Euchre Server Dealer Discard Functions', function() {
     /** @type {Object} server - The server instance being tested */
     let server;
@@ -40,7 +44,7 @@ describe('Euchre Server Dealer Discard Functions', function() {
      * @description Before each test, reset the test environment and set up mocks.
      * Initializes a clean server instance with a mocked socket.io interface.
      */
-    beforeEach(() => {
+    beforeEach(async () => {
         emittedMessages = [];
         const fakeSocket = {
             emit: (event, message) => {
@@ -49,24 +53,20 @@ describe('Euchre Server Dealer Discard Functions', function() {
             on: () => {},
             id: 'fakeSocketId'
         };
-        const ioMock = function() {
-            return {
+        const ioMock = {
+            sockets: {
                 sockets: {
-                    sockets: {
-                        fakeSocketId: fakeSocket
-                    }
-                },
-                to: () => ({ emit: (event, message) => emittedMessages.push({ event, message }) }),
-                emit: () => {},
-                on: () => {},
-                in: () => ({ emit: () => {} })
-            };
+                    fakeSocketId: fakeSocket
+                }
+            },
+            to: () => ({ emit: (event, message) => emittedMessages.push({ event, message }) }),
+            emit: () => {},
+            on: () => {},
+            in: () => ({ emit: () => {} })
         };
-
-        server = proxyquire('../server3.mjs', {
-            fs: { appendFileSync: () => {} },
-            'socket.io': ioMock
-        });
+        const fsMock = { appendFileSync: () => {} };
+        // Dynamically import the server with mocks
+        server = await importServerWithMocks(ioMock, fsMock);
         gameState = server.gameState;
     });
 

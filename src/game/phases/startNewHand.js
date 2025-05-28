@@ -1,12 +1,39 @@
 /**
- * @file startNewHand.js - Start a new hand of Euchre
+ * @file startNewHand.js - Handles starting a new hand of Euchre
  * @module game/phases/startNewHand
- * @description Handles all the setup for a new hand of Euchre, including
- * creating a new deck, shuffling it, and dealing out cards to the players.
- * @exports {function} startNewHand - Starts a new hand of Euchre
- * @param {Object} gameState - The game state to update
- * @returns {Object} The updated game state
- * @throws {Error} If the game state is invalid or an error occurs during hand initialization
+ * @description Manages the complete setup for a new hand of Euchre, including:
+ * - Rotating the dealer
+ * - Creating and shuffling a new deck
+ * - Dealing cards to players
+ * - Setting up the initial game state
+ * @version 1.0.0
+ * @since 1.0.0
+ * @exports {Function} startNewHand - Main function to start a new hand
+ * @exports {Function} dealCards - Handles the card dealing logic
+ * @see {@link ../../test/phases/startHand.integration.test.js} for integration tests
+ * @see {@link ../../test/unit/startNewHand.unit.test.js} for unit tests
+ */
+
+/**
+ * @typedef {Object} Player
+ * @property {string} name - Player's name
+ * @property {Array<Object>} hand - Player's current hand of cards
+ * @property {number} tricksTakenThisHand - Number of tricks won in current hand
+ * @property {string} team - Team identifier ('us' or 'them')
+ * @property {boolean} [isDealer] - Whether the player is the current dealer
+ * @property {boolean} [isCurrentPlayer] - Whether it's the player's turn
+ */
+
+/**
+ * @typedef {Object} GameState
+ * @property {Array<string>} playerOrder - Order of players in the game
+ * @property {Object.<string, Player>} players - Map of player roles to player objects
+ * @property {string} [dealer] - Current dealer's role
+ * @property {string} [initialDealerForSession] - Initial dealer for the session
+ * @property {Array<Object>} [deck] - Current deck of cards
+ * @property {string} currentPhase - Current game phase
+ * @property {Array<Object>} [kitty] - Kitty (set of undealt cards)
+ * @property {Object} [upCard] - The face-up card for the current hand
  */
 
 import { GAME_PHASES, DEBUG_LEVELS } from '../../config/constants.js';
@@ -29,8 +56,12 @@ const ERRORS = {
 /**
  * Validates the game state for starting a new hand
  * @private
- * @param {Object} state - The game state to validate
+ * @param {GameState} state - The game state to validate
  * @throws {Error} If validation fails
+ * @throws {Error} ERRORS.INVALID_GAME_STATE - If game state is invalid
+ * @throws {Error} ERRORS.INVALID_PLAYER_ORDER - If player order is invalid
+ * @throws {Error} ERRORS.INVALID_PLAYERS - If players object is invalid
+ * @since 1.0.0
  */
 function validateGameState(state) {
     if (!state || typeof state !== 'object') {
@@ -58,8 +89,11 @@ function validateGameState(state) {
 /**
  * Validates game state for dealing cards
  * @private
- * @param {Object} state - The game state to validate
+ * @param {GameState} state - The game state to validate
  * @throws {Error} If validation fails
+ * @throws {Error} ERRORS.INVALID_DEALER - If dealer is not found in player order
+ * @throws {Error} ERRORS.NOT_ENOUGH_CARDS - If there aren't enough cards to deal
+ * @since 1.0.0
  */
 function validateDealState(state) {
     if (!state.deck) {
@@ -76,10 +110,27 @@ function validateDealState(state) {
 }
 
 /**
- * Starts a new hand of Euchre
- * @param {Object} gameState - Current game state
- * @returns {Object} Updated game state with new hand initialized
+ * Starts a new hand of Euchre by initializing the game state
+ * @param {GameState} gameState - Current game state
+ * @returns {GameState} Updated game state with new hand initialized
  * @throws {Error} If the game state is invalid or an error occurs during hand initialization
+ * @throws {Error} ERRORS.DECK_ERROR - If there's an error creating or shuffling the deck
+ * @throws {Error} ERRORS.DEAL_ERROR - If there's an error dealing cards
+ * @since 1.0.0
+ * @example
+ * const gameState = {
+ *   playerOrder: ['north', 'east', 'south', 'west'],
+ *   players: { 
+ *     north: { name: 'Player 1', hand: [], tricksTakenThisHand: 0, team: 'us' },
+ *     east: { name: 'Player 2', hand: [], tricksTakenThisHand: 0, team: 'them' },
+ *     south: { name: 'Player 3', hand: [], tricksTakenThisHand: 0, team: 'us' },
+ *     west: { name: 'Player 4', hand: [], tricksTakenThisHand: 0, team: 'them' }
+ *   },
+ *   dealer: 'north',
+ *   initialDealerForSession: null,
+ *   currentPhase: 'WAITING_FOR_PLAYERS'
+ * };
+ * const newState = startNewHand(gameState);
  */
 export function startNewHand(gameState) {
     log(DEBUG_LEVELS.INFO, '[startNewHand] Starting new hand...');
@@ -181,10 +232,19 @@ export function startNewHand(gameState) {
 }
 
 /**
- * Deals cards to all players
- * @param {Object} gameState - Current game state
- * @returns {Object} Updated game state with cards dealt
+ * Deals cards to all players according to Euchre rules
+ * @private
+ * @param {GameState} gameState - Current game state
+ * @returns {GameState} Updated game state with cards dealt
  * @throws {Error} If the game state is invalid or there aren't enough cards
+ * @throws {Error} ERRORS.NOT_ENOUGH_CARDS - If there aren't enough cards to complete the deal
+ * @throws {Error} ERRORS.PLAYER_NOT_FOUND - If a player in playerOrder is not found
+ * @since 1.0.0
+ * @description
+ * Deals 5 cards to each player in the standard Euchre pattern:
+ * 1. 3 cards to each player (2 to the kitty)
+ * 2. 2 cards to each player (2 to the kitty)
+ * 3. 1 card to the kitty (total of 5 cards)
  */
 export function dealCards(gameState) {
     log(DEBUG_LEVELS.INFO, '[dealCards] Starting to deal cards');

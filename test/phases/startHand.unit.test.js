@@ -1,6 +1,10 @@
 /**
- * @file Unit tests for StartNewHand module
- * @requires chai, ../../src/game/phases/startNewHand.js, ../../src/config/constants.js
+ * @file startNewHand.unit.test.js - Unit tests for the startNewHand function
+ * @module StartNewHandUnitTest
+ * @description Unit tests for the startNewHand function, which is responsible for resetting the game state at the start of a new hand.
+ * @requires chai - The testing framework
+ * @requires ../../src/game/phases/startNewHand.js - The module containing the startNewHand function
+ * @requires ../../src/config/constants.js - The module containing Euchre game constants
  */
 
 import { startNewHand, dealCards } from '../../src/game/phases/startNewHand.js';

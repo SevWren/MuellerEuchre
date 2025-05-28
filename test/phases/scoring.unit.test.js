@@ -1,5 +1,5 @@
 /**
- * @file scoring.unit.test.js - Unit tests for the scoring functionality in Euchre
+ * @file scoring.unit.test.js - Unit tests for the Scoring module in Euchre
  * @module test/scoring.unit
  * @description Comprehensive test suite for the scoring system in the Euchre game.
  * Tests cover the complete scoring workflow including:
@@ -13,6 +13,7 @@
  * @requires ../../src/game/phases/scoring.js
  * @requires ../../src/config/constants.js
  * @see {@link module:src/game/phases/scoring} for the implementation being tested
+ * @since 0.0.1
  */
 
 import { expect } from 'chai';

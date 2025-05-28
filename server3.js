@@ -1,72 +1,145 @@
-/*
-Euchre Server - Function Overview
---------------------------------
-- log(level, message): Logging utility with debug levels.
-- setDebugLevel(level): Set the current debug level.
-- resetFullGame(): Reset the entire game state to initial values.
-- addGameMessage(message, important): Add a message to the game log.
-- getPlayerBySocketId(socketId): Get player object by socket ID.
-- getRoleBySocketId(socketId): Get player role by socket ID.
-- broadcastGameState(): Send game state to all connected clients.
-- createDeck(): Generate a Euchre deck.
-- shuffleDeck(deck): Shuffle a deck of cards.
-- getNextPlayer(currentPlayerRole, ...): Get the next player in turn order.
-- getPartner(playerRole): Get the partner role for a player.
-- cardToString(card): Convert a card object to a string.
-- sortHand(hand, trumpSuit): Sort a hand of cards.
-- isRightBower(card, trumpSuit): Check if card is right bower.
-- isLeftBower(card, trumpSuit): Check if card is left bower.
-- getCardRank(card, ledSuit, trumpSuit): Get the rank of a card.
-- startNewHand(): Start a new hand, deal cards, set up state.
-- handleOrderUpDecision(playerRole, orderedUp): Handle order up round logic.
-- handleDealerDiscard(dealerRole, cardToDiscard): Handle dealer discarding a card.
-- handleCallTrumpDecision(playerRole, suitToCall): Handle round 2 trump calling.
-- handleGoAloneDecision(playerRole, decision): Handle go alone logic.
-- serverIsValidPlay(playerRole, cardToPlay): Validate a play.
-- handlePlayCard(playerRole, cardToPlay): Handle a card play action.
-- scoreCurrentHand(): Score the current hand and update scores.
-- (Socket.io event handlers): Manage player connections, actions, and disconnections.
-*/
+/**
+ * @file server3.js - Euchre Game Server
+ * @module server
+ * @description Main server file for the Euchre multiplayer game. Handles game logic,
+ * player connections, and real-time communication using Socket.IO.
+ * @version 1.0.0
+ * @since 1.0.0
+ * 
+ * @see {@link https://nodejs.org/} Node.js
+ * @see {@link https://expressjs.com/} Express
+ * @see {@link https://socket.io/} Socket.IO
+ *
+ * @example
+ * // Start the server
+ * node server3.js
+ */
 
+/**
+ * @typedef {Object} Card
+ * @property {string} suit - The suit of the card (hearts, diamonds, clubs, spades)
+ * @property {string} rank - The rank of the card (9,10,J,Q,K,A)
+ * @property {string} [id] - Unique identifier for the card
+ *
+ * @typedef {Object} Player
+ * @property {string} id - Socket ID of the player
+ * @property {string} name - Display name of the player
+ * @property {string} role - Player role (north, east, south, west)
+ * @property {string} team - Team identifier (us or them)
+ * @property {Card[]} hand - Array of cards in player's hand
+ * @property {number} tricksWon - Number of tricks won in current hand
+ * @property {boolean} isDealer - Whether the player is the current dealer
+ * @property {boolean} isCurrentPlayer - Whether it's the player's turn
+ *
+ * @typedef {Object} GameState
+ * @property {Object.<string, Player>} players - Map of player roles to player objects
+ * @property {string[]} playerOrder - Order of players in the game
+ * @property {string} currentPlayer - Role of the current player
+ * @property {string} [dealer] - Role of the current dealer
+ * @property {Card[]} deck - Current deck of cards
+ * @property {Card[]} kitty - Kitty (set of undealt cards)
+ * @property {Card} [upCard] - The face-up card for the current hand
+ * @property {string} [trumpSuit] - The current trump suit
+ * @property {string} [ledSuit] - The currently led suit
+ * @property {Card[]} currentTrick - Cards played in the current trick
+ * @property {Card[][]} tricks - Array of completed tricks
+ * @property {number} ourScore - Score of the 'us' team
+ * @property {number} theirScore - Score of the 'them' team
+ * @property {string} currentPhase - Current game phase
+ * @property {string[]} gameLog - Array of game messages
+ */
+
+// Core dependencies
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const fs = require('fs');
 
+// Initialize Express and Socket.IO
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+/**
+ * Card suits and values for a standard Euchre deck
+ * @constant {string[]} SUITS - Available card suits
+ * @constant {string[]} VALUES - Available card ranks
+ */
 const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
 const VALUES = ['9', '10', 'J', 'Q', 'K', 'A'];
 
+/**
+ * Debug levels for logging
+ * @constant {Object} DEBUG_LEVELS
+ * @property {number} INFO - Basic information level
+ * @property {number} WARNING - Warning level for potential issues
+ * @property {number} VERBOSE - Detailed debug information
+ */
 const DEBUG_LEVELS = {
     INFO: 1,
     WARNING: 2,
     VERBOSE: 3,
 };
+
+/** @type {number} Current debug level for logging */
 let currentDebugLevel = DEBUG_LEVELS.WARNING;
 
-function log(level, message) {
+/**
+ * Logs a message if the current debug level is at least the specified level
+ * @param {number} level - The debug level of the message
+ * @param {string} message - The message to log
+ * @param {...any} [args] - Additional arguments to include in the log
+ */
+function log(level, message, ...args) {
     if (level <= currentDebugLevel) {
-        const levelStr = Object.keys(DEBUG_LEVELS).find(key => DEBUG_LEVELS[key] === level);
-        const logMessage = `[${levelStr}] ${message}\n`;
-        console.log(logMessage);
-        fs.appendFileSync('server_log.txt', logMessage);
+        const timestamp = new Date().toISOString();
+        console.log(`[${timestamp}] ${message}`, ...args);
     }
 }
 
+/**
+ * Sets the current debug level
+ * @param {number} level - The new debug level (1-3)
+ * @throws {Error} If an invalid debug level is provided
+ */
 function setDebugLevel(level) {
-    if (Object.values(DEBUG_LEVELS).includes(level)) {
+    if (level >= DEBUG_LEVELS.INFO && level <= DEBUG_LEVELS.VERBOSE) {
         currentDebugLevel = level;
-        log(DEBUG_LEVELS.INFO, `Debug level set to ${Object.keys(DEBUG_LEVELS).find(key => DEBUG_LEVELS[key] === level)}`);
+        log(DEBUG_LEVELS.INFO, `Debug level set to ${level}`);
     } else {
-        log(DEBUG_LEVELS.WARNING, "Invalid debug level specified.");
+        throw new Error(`Invalid debug level: ${level}. Must be between 1 and 3.`);
     }
 }
 
-let gameState = {};
+/**
+ * Resets the entire game state to initial values
+ * @returns {GameState} The reset game state
+ */
+function resetFullGame() {
+    gameState = {
+        players: {},
+        playerOrder: ['north', 'east', 'south', 'west'],
+        currentPlayer: null,
+        dealer: null,
+        deck: [],
+        kitty: [],
+        upCard: null,
+        trumpSuit: null,
+        ledSuit: null,
+        currentTrick: [],
+        tricks: [],
+        ourScore: 0,
+        theirScore: 0,
+        currentPhase: 'WAITING_FOR_PLAYERS',
+        gameLog: [],
+        // ... rest of the initial state
+    };
+    return gameState;
+}
+
+// Initialize the game
+resetFullGame();
 
 // Reset the entire game state to initial values
 function resetFullGame() {
@@ -202,11 +275,16 @@ function resetFullGame() {
         broadcastGameState();
     }
     
-    return gameState;
 }
 
 resetFullGame();
 
+/**
+ * Adds a message to the game log.
+ * @param {string} message - The message to add.
+ * @param {boolean} [important=false] - Whether to also log to console.
+ * @returns {void}
+ */
 function addGameMessage(message, important = false) {
     const timestamp = new Date().toLocaleTimeString();
     log(DEBUG_LEVELS.VERBOSE, `[GAME MSG] ${message}`);

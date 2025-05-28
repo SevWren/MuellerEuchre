@@ -47,5 +47,11 @@
   "terminal.integrated.scrollback": 10000,
   "terminal.integrated.shellIntegration.enabled": true,
   "files.autoSave": "onWindowChange",
-  "typescript.tsserver.maxTsServerMemory": 4096
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "files.exclude": {
+    "**/*.rpyc": true,
+    "**/*.rpa": true,
+    "**/*.rpymc": true,
+    "**/cache/": true
+  }
 }

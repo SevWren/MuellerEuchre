@@ -122,5 +122,5 @@
         "**/docs",
         "**/examples",
         "**/benchmarks"
-    ]
+, ".tmp/test_output.js", ".tmp/test-node-env.js"    ]
 }

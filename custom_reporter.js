@@ -1,3 +1,20 @@
+/**
+ * @file custom_reporter.js - Custom Mocha test reporter that outputs results to a file
+ * @module CustomFileReporter
+ * @description Provides a custom reporter for Mocha that writes test results to a file in a readable format.
+ * The reporter captures test events and generates a detailed log file with test results, including
+ * pass/fail status, test duration, and error details for failed tests.
+ * 
+ * @example
+ * // To use this reporter, run mocha with the --reporter flag:
+ * // mocha --reporter ./test/custom_reporter.js test/**/*.test.js
+ * 
+ * @see {@link https://mochajs.org/api/tutorial-custom-reporter.html|Mocha Custom Reporter Documentation}
+ * @requires fs - Node.js File System module
+ * @requires path - Node.js Path module
+ * @since 1.0.0
+ */
+
 const fs = require('fs');
 const path = require('path');
 

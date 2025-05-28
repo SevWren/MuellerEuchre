@@ -39,6 +39,13 @@
                     "endsPattern": "Server running on port 3000"
                 }
             }
+        },
+        {
+            "type": "npm",
+            "script": "clean:coverage",
+            "problemMatcher": [],
+            "label": "npm: clean:coverage",
+            "detail": "if exist coverage rmdir /s /q coverage"
         }
     ]
 }

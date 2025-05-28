@@ -117,86 +117,79 @@ function setDebugLevel(level) {
  * @returns {GameState} The reset game state
  */
 function resetFullGame() {
-    gameState = {
-        players: {},
-        playerOrder: ['north', 'east', 'south', 'west'],
-        currentPlayer: null,
-        dealer: null,
-        deck: [],
-        kitty: [],
-        upCard: null,
-        trumpSuit: null,
-        ledSuit: null,
-        currentTrick: [],
-        tricks: [],
-        ourScore: 0,
-        theirScore: 0,
-        currentPhase: 'WAITING_FOR_PLAYERS',
-        gameLog: [],
-        // ... rest of the initial state
-    };
-    return gameState;
-}
-
-// Initialize the game
-resetFullGame();
-
-// Reset the entire game state to initial values
-function resetFullGame() {
     log(DEBUG_LEVELS.INFO, 'Resetting full game state...');
     
     // Store the old game state for reference
-    const oldGameState = { ...gameState };
+    const oldGameState = gameState ? { ...gameState } : {};
     
     // Generate a new game ID that's guaranteed to be different
-    // Use a combination of timestamp and random number to ensure uniqueness
-    // In test mode, we need to ensure the ID is different from the old one
     let newGameId;
     do {
         newGameId = Date.now() + Math.floor(Math.random() * 10000);
-        // Add a small delay to ensure we get a different timestamp if needed
+        // Add a small delay to ensure we get a different timestamp if needed in test mode
         if (process.env.NODE_ENV === 'test') {
             newGameId += 1000 + Math.floor(Math.random() * 10000);
         }
-    } while (newGameId === oldGameState.gameId); // Ensure we get a different ID
-    log(DEBUG_LEVELS.INFO, `New game ID: ${newGameId} (old was: ${oldGameState.gameId})`);
+    } while (newGameId === oldGameState.gameId);
+    
+    log(DEBUG_LEVELS.INFO, `New game ID: ${newGameId} (old was: ${oldGameState.gameId || 'none'})`);
 
-    // Create a new deck
+    // Create a new deck and shuffle it
     const newDeck = createDeck();
     shuffleDeck(newDeck);
 
-    // Create a completely new game state with default values
+    // Create a new game state with default values
     const newGameState = {
+        // Game identification
         gameId: newGameId,
+        
+        // Player management
         playerSlots: ['south', 'west', 'north', 'east'],
+        playerOrder: ['north', 'east', 'south', 'west'],  // For turn order
         players: {},
         connectedPlayerCount: 0,
+        
+        // Game state
         gamePhase: 'LOBBY',
+        currentPlayer: 'east',  // Player to the left of dealer starts
+        dealer: 'south',  // Initial dealer
+        initialDealerForSession: null,  // Will be set on first hand
+        
+        // Card state
         deck: newDeck,
         kitty: [],
-        upCard: null,
-        trump: null,
-        dealer: 'south',
-        initialDealerForSession: null,
-        currentPlayer: 'east',
-        orderUpRound: 1,
-        maker: null,
-        playerWhoCalledTrump: null,
-        dealerHasDiscarded: false,
-        goingAlone: false,
-        playerGoingAlone: null,
-        partnerSittingOut: null,
-        tricks: [],
-        currentTrickPlays: [],
-        trickLeader: null,
-        team1Score: 0,
-        team2Score: 0,
-        gameMessages: [],
-        winningTeam: null,
+        upCard: null,  // Face-up card for the current hand
+        trump: null,   // Current trump suit
+        trumpSuit: null, // Alias for trump (for backward compatibility)
+        ledSuit: null, // Currently led suit in the trick
+        
+        // Trick tracking
+        currentTrick: [],    // Cards played in the current trick
+        currentTrickPlays: [], // Detailed info about current trick plays
+        tricks: [],          // Completed tricks in the current hand
+        trickLeader: null,   // Player who led the current trick
+        
+        // Scoring
+        team1Score: 0,  // Team 1 (north/south) score
+        team2Score: 0,  // Team 2 (east/west) score
+        ourScore: 0,    // Alias for team1Score (for backward compatibility)
+        theirScore: 0,  // Alias for team2Score (for backward compatibility)
+        
+        // Game flow
+        orderUpRound: 1,  // Current round of bidding (1 or 2)
+        maker: null,      // Player who called trump
+        playerWhoCalledTrump: null,  // Alias for maker
+        dealerHasDiscarded: false,   // Whether dealer has discarded in current hand
+        goingAlone: false,           // Whether a player is going alone
+        playerGoingAlone: null,      // Player who is going alone
+        partnerSittingOut: null,     // Partner sitting out when going alone
+        
+        // UI and logging
+        gameMessages: [],  // In-game messages
+        gameLog: [],       // Detailed game log
+        winningTeam: null  // Team that won the game (if completed)
     };
 
-    // Shuffle the deck
-    shuffleDeck(newGameState.deck);
 
     // Initialize players with default values and clear all connections
     newGameState.playerSlots.forEach((role) => {
@@ -204,31 +197,37 @@ function resetFullGame() {
         const oldPlayer = oldGameState.players?.[role] || {};
         const playerName = oldPlayer.name || role.charAt(0).toUpperCase() + role.slice(1);
         
-        // Clear any existing player state completely
+        // Set up new player state
         newGameState.players[role] = {
-            id: null,  // Clear any existing connections
-            socketId: null, // Clear socket ID
-            name: playerName,
-            hand: [],
-            team: (role === 'south' || role === 'north') ? 1 : 2,
-            tricksTaken: 0,
-            tricksTakenThisHand: 0,
-            isConnected: false,
-            isReady: false,
-            isDealer: role === 'south', // Set initial dealer
-            hasPlayed: false,
-            hasCalledTrump: false,
-            // Add any other player properties that need to be reset
-            isGoingAlone: false,
-            isSittingOut: false
+            // Connection info
+            id: null,          // Player connection ID
+            socketId: null,    // Socket ID for direct communication
+            
+            // Player info
+            name: playerName,  // Display name
+            team: (role === 'south' || role === 'north') ? 1 : 2,  // Team assignment
+            
+            // Game state
+            hand: [],                     // Player's current hand
+            tricksTaken: 0,               // Total tricks taken
+            tricksTakenThisHand: 0,       // Tricks taken in current hand
+            isConnected: false,           // Connection status
+            isReady: false,               // Ready state for game start
+            isDealer: role === 'south',   // Whether this player is the dealer
+            hasPlayed: false,             // Has played in current trick
+            hasCalledTrump: false,        // Has called trump in current hand
+            isGoingAlone: false,          // Is going alone
+            isSittingOut: false           // Is sitting out (when partner goes alone)
         };
         
-        // Explicitly clear any socket references
+        // Clean up old socket connections
         if (oldPlayer.socketId) {
-            const socket = io.sockets.sockets.get(oldPlayer.socketId);
+            const socket = io?.sockets?.sockets?.get(oldPlayer.socketId);
             if (socket) {
                 socket.leave(role);
-                socket.leave(`game-${oldGameState.gameId}`);
+                if (oldGameState.gameId) {
+                    socket.leave(`game-${oldGameState.gameId}`);
+                }
             }
         }
         
@@ -240,28 +239,8 @@ function resetFullGame() {
         });
     });
     
-    // Reset all game state that might persist between resets
-    newGameState.connectedPlayerCount = 0;
-    newGameState.gamePhase = 'LOBBY';
-    newGameState.deck = [];
-    newGameState.kitty = [];
-    newGameState.upCard = null;
-    newGameState.trump = null;
-    newGameState.orderUpRound = 1;
-    newGameState.maker = null;
-    newGameState.playerWhoCalledTrump = null;
-    newGameState.dealerHasDiscarded = false;
-    newGameState.goingAlone = false;
-    newGameState.playerGoingAlone = null;
-    newGameState.partnerSittingOut = null;
-    newGameState.tricks = [];
-    newGameState.currentTrickPlays = [];
-    newGameState.trickLeader = null;
-    newGameState.winningTeam = null;
-    newGameState.gameMessages = [];
-    
-    // Reset any timers or intervals
-    if (gameState.gameTimer) {
+    // Reset any timers or intervals from previous game
+    if (gameState?.gameTimer) {
         clearTimeout(gameState.gameTimer);
     }
 
@@ -270,13 +249,15 @@ function resetFullGame() {
     
     log(DEBUG_LEVELS.INFO, `Game state reset with new gameId: ${gameState.gameId}`);
     
-    // Broadcast the new game state
+    // Broadcast the new game state to all connected clients
     if (typeof broadcastGameState === 'function') {
         broadcastGameState();
     }
     
+    return gameState;
 }
 
+// Initialize the game when the server starts
 resetFullGame();
 
 /**

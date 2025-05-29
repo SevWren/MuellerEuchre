@@ -180,3 +180,24 @@ function createFsMock() {
         writeFileSync: sinon.stub()
     };
 }
+
+// Export helpers for use in tests
+export { createMockSocket, createMockIo as mockIo };
+
+// Provide a simulateAction helper for test files that need it
+export function simulateAction(socketId, action, data) {
+    // Try to find the socket in all known mock IOs
+    let socket = null;
+    // Try the default mockIo if available
+    if (typeof mockIo !== 'undefined' && mockIo.sockets && mockIo.sockets.sockets) {
+        socket = mockIo.sockets.sockets[socketId];
+    }
+    // Fallback: try globalThis (for some test runners)
+    if (!socket && typeof globalThis !== 'undefined' && globalThis.mockIo && globalThis.mockIo.sockets && globalThis.mockIo.sockets.sockets) {
+        socket = globalThis.mockIo.sockets.sockets[socketId];
+    }
+    if (!socket) throw new Error(`Socket ${socketId} not found`);
+    const handler = socket.eventHandlers[action];
+    if (!handler) throw new Error(`No handler for ${action}`);
+    return handler(data);
+}

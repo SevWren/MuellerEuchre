@@ -10,7 +10,10 @@ import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";
 import { io } from 'socket.io-client';
-import { ReconnectionHandler } from '../../src/socket/reconnectionHandler.js';
+// {ReconnectionHandler} was causing errors
+//import { ReconnectionHandler } from '../../src/socket/reconnectionHandler.js';
+import ReconnectionHandler from '../../src/socket/reconnectionHandler.js';
+
 import { createTestServer } from './test-utils.js';
 
 describe('Player Reconnection', function() {

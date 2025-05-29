@@ -25,9 +25,9 @@
  * @see {@link ../../server3.mjs} for server implementation details.
  */
 
-const assert = require('assert');
-const sinon = require('sinon');
-const { createMockSocket, mockIo, simulateAction } = require('./test-utils.js');
+import assert from 'assert';
+import sinon from 'sinon';
+import { createMockSocket, mockIo, simulateAction } from './test-utils.js';
 
 describe('Server3SpectatorTest', function() {
     describe('Spectator integration', function() {

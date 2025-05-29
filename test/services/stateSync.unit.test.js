@@ -11,7 +11,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 // Import the module under test
-let StateSyncService;
+import StateSyncService from '../../src/client/services/stateSyncService.js';
 
 /**
  * Storage keys used for local storage operations

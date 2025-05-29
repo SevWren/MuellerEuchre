@@ -1,4 +1,9 @@
-// Game constants
+
+/**
+ * Euchre Game Constants and Configuration
+ * @module constants
+ */
+
 export const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
 export const VALUES = ['9', '10', 'J', 'Q', 'K', 'A'];
 
@@ -22,17 +27,14 @@ export const GAME_EVENTS = {
     STATE_UPDATE: 'game_state_update',
     REQUEST_FULL_STATE: 'request_full_state',
     PLAYER_ACTION: 'player_action',
-    
     // Game actions
     PLAY_CARD: 'play_card',
     MAKE_BID: 'make_bid',
     GO_ALONE: 'go_alone',
-    
     // Connection events
     PLAYER_CONNECTED: 'player_connected',
     PLAYER_DISCONNECTED: 'player_disconnected',
     RECONNECT: 'reconnect',
-    
     // Game flow
     GAME_STARTED: 'game_started',
     ROUND_STARTED: 'round_started',

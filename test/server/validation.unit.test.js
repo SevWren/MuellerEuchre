@@ -12,7 +12,7 @@
  * - Error handling for invalid inputs
  * 
  * @version 1.0.0
- * @since 2024-01-01
+ * @since May 26 2025
  * @license MIT
  * @see {@link ../src/server3.validation.js|Validation Module}
  * @see {@link ../../docs/validation.md|Validation Documentation}

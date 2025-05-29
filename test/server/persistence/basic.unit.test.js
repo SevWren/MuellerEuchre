@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from 'url';
 import { expect } from 'chai';
-import { createTestServer, MockServer } from '../test-utils.js'; // Add MockServer import
+import { MockServer, createTestServer } from '../test-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,26 +15,11 @@ describe('Basic Persistence', function() {
     let logStub, writeFileSyncStub, readFileSyncStub, existsSyncStub;
 
     beforeEach(async () => {
-        logStub = { info: sinon.stub(), error: sinon.stub(), debug: sinon.stub() };
-        writeFileSyncStub = sinon.stub();
-        readFileSyncStub = sinon.stub();
-        existsSyncStub = sinon.stub();
-        
-        const fsMock = {
-            readFileSync: readFileSyncStub,
-            existsSync: existsSyncStub,
-            writeFileSync: writeFileSyncStub,
-            readdirSync: sinon.stub().returns([]),
-            mkdirSync: sinon.stub(),
-            constants: fs.constants
-        };
-        
-        server = new MockServer({
-            io: mockIo,
-            config: { SAVE_FILE },
-            logger: logStub,
-            fs: fsMock
-        });
+        // Use createTestServer instead of manual setup
+        ({ server, gameState, mockIo, logStub } = createTestServer());
+        writeFileSyncStub = server.fs.writeFileSync;
+        readFileSyncStub = server.fs.readFileSync;
+        existsSyncStub = server.fs.existsSync;
         
         // Configure server with AUTO_SAVE disabled for the specific test
         server.config = { 

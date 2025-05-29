@@ -26,12 +26,27 @@ export class MockServer {
             gamePhase: 'LOBBY',
             players: {},
             team1Score: 0,
-            team2Score: 0
+            team2Score: 0,
+            version: '1.0.0'
         };
         this.autoSaveInterval = null;
     }
 
     async initialize() {
+        try {
+            if (this.fs.existsSync(this.config.SAVE_FILE)) {
+                const savedState = JSON.parse(this.fs.readFileSync(this.config.SAVE_FILE, 'utf8'));
+                if (savedState.version !== '1.0.0') {
+                    this.resetGameState();
+                } else {
+                    this.gameState = savedState;
+                }
+            }
+        } catch (err) {
+            this.logger.error('Error loading saved state:', err);
+            this.resetGameState();
+        }
+
         if (this.config.AUTO_SAVE) {
             this.autoSaveInterval = setInterval(() => {
                 this.saveGameState();
@@ -41,13 +56,32 @@ export class MockServer {
     }
 
     async saveGameState() {
+        if (!this.config.AUTO_SAVE) {
+            return false;
+        }
         try {
-            const data = JSON.stringify(this.gameState, null, 2);
+            const data = JSON.stringify({
+                ...this.gameState,
+                version: '1.0.0'
+            }, null, 2);
             this.fs.writeFileSync(this.config.SAVE_FILE, data);
             return true;
         } catch (err) {
             this.logger.error('Error saving game state:', err);
             return false;
+        }
+    }
+
+    async cleanupGameState() {
+        try {
+            if (this.fs.existsSync(this.config.SAVE_FILE)) {
+                this.fs.writeFileSync(this.config.SAVE_FILE, '{}');
+                return true;
+            }
+            return false;
+        } catch (err) {
+            this.logger.error('Error cleaning up game state:', err);
+            throw err;
         }
     }
 
@@ -59,6 +93,23 @@ export class MockServer {
                 sameSite: 'strict'
             }
         };
+    }
+
+    resetGameState() {
+        this.gameState = {
+            gamePhase: 'LOBBY',
+            players: {},
+            team1Score: 0,
+            team2Score: 0,
+            version: '1.0.0'
+        };
+    }
+
+    shutdown() {
+        if (this.autoSaveInterval) {
+            clearInterval(this.autoSaveInterval);
+            this.autoSaveInterval = null;
+        }
     }
 }
 

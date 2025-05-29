@@ -1,7 +1,7 @@
 import assert from "assert";
 import sinon from "sinon";
 import { expect } from 'chai';
-import { createTestServer } from '../test-utils.js'; // Fix import path
+import { createTestServer } from '../test-utils.js';
 
 // Add GamePersistence class definition
 class GamePersistence {
@@ -29,19 +29,10 @@ class GamePersistence {
 export { GamePersistence };
 
 describe('Game State Persistence', () => {
-    let persistence, mockFs;
+    let server, mockFs;
 
     beforeEach(() => {
-        mockFs = {
-            writeFileSync: sinon.stub(),
-            readFileSync: sinon.stub(),
-            existsSync: sinon.stub()
-        };
-
-        persistence = new GamePersistence({
-            fs: mockFs,
-            basePath: './data'
-        });
+        ({ server, mockFs } = createTestServer());
     });
 
     it('should save game state', () => {

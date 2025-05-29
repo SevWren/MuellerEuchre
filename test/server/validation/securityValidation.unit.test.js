@@ -3,7 +3,7 @@ import proxyquire from "proxyquire";
 import sinon from "sinon";
 import { Buffer } from "buffer";
 import { expect } from 'chai';
-import { createTestServer } from '../testHelpers.js';
+import { createTestServer } from '../test-utils.js';
 
 describe('Security Validation', function() {
     let server, gameState, mockIo, mockSockets = {};

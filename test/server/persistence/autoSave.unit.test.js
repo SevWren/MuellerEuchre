@@ -1,6 +1,6 @@
 import assert from "assert";
 import sinon from "sinon";
-import { MockServer } from '../testHelpers.js';
+import { MockServer } from '../test-utils.js';
 
 describe('Auto-Save Functionality', () => {
     let server, writeFileSyncStub, clock;

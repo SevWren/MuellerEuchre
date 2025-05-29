@@ -1,7 +1,7 @@
 import assert from "assert";
 import sinon from "sinon";
 import { expect } from 'chai';
-import { createTestServer } from '../testHelpers.js';
+import { createTestServer } from '../test-utils.js';
 
 describe('Input Validation', function() {
     let server, gameState, mockIo;

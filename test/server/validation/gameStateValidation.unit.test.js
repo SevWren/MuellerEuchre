@@ -1,5 +1,5 @@
 import { expect, assert } from 'chai';
-import { createTestServer } from '../testHelpers.js';
+import { createTestServer } from '../test-utils.js';
 import { validateGameState, validateBid } from '../../../src/utils/validation.js';
 
 describe('Game State Validation', () => {

@@ -1,3 +1,51 @@
+/**
+ * Session & Header Security Tests
+ *
+ * This test suite validates the security-related configurations and middleware
+ * for session management, CSRF protection, and HTTP security headers in the server.
+ *
+ * @module test/server/security/session.test
+ */
+
+ /**
+    * Sets up and tears down the test server and mocks for each test.
+    * Uses Sinon for mocking and stubbing dependencies.
+    */
+
+ /**
+    * Session Security
+    *
+    * @description
+    * Ensures that the session configuration uses secure cookie settings.
+    *
+    * @test
+    * - Cookie must be marked as secure.
+    * - Cookie must be HTTP-only.
+    * - Cookie must use 'strict' SameSite policy.
+    */
+
+ /**
+    * CSRF Protection
+    *
+    * @description
+    * Verifies that state-changing socket events require a valid CSRF token.
+    *
+    * @test
+    * - Throws an error if CSRF token is missing on sensitive actions.
+    */
+
+ /**
+    * Security Headers
+    *
+    * @description
+    * Checks that the server sets appropriate HTTP security headers on responses.
+    *
+    * @test
+    * - Removes 'X-Powered-By' header.
+    * - Sets 'X-Content-Type-Options' to 'nosniff'.
+    * - Sets 'X-Frame-Options' to 'DENY'.
+    * - Sets 'X-XSS-Protection' to '1; mode=block'.
+    */
 import assert from "assert";
 import sinon from "sinon";
 import { createTestServer } from '../test-utils.js';

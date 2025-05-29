@@ -1,6 +1,6 @@
 import assert from "assert";
 import { expect } from 'chai';
-import { createTestServer } from '../testHelpers.js';
+import { createTestServer } from '../test-utils.js';
 
 describe('Card Play Validation', function() {
     let server, gameState;

@@ -310,18 +310,14 @@ describe('Socket.IO Event Handlers', function() {
         describe('Room management', () => {
             it('should notify room when player joins', () => {
                 const joinHandler = mockSocket.on.args.find(([event]) => event === 'room:join')[1];
-                
                 joinHandler({ roomId: 'game-1' });
-
                 expect(mockSocket.to('game-1').emit.calledWith('room:playerJoined')).to.be.true;
             });
 
             it('should clean up room on all players leaving', () => {
                 const leaveHandler = mockSocket.on.args.find(([event]) => event === 'room:leave')[1];
-                
                 mockIo.sockets.adapter.rooms.set('game-1', new Set());
                 leaveHandler({ roomId: 'game-1' });
-
                 expect(mockIo.sockets.adapter.rooms.has('game-1')).to.be.false;
             });
         });
@@ -329,18 +325,14 @@ describe('Socket.IO Event Handlers', function() {
         describe('Error handling', () => {
             it('should handle connection errors', () => {
                 const errorHandler = mockSocket.on.args.find(([event]) => event === 'error')[1];
-                
                 const error = new Error('Connection failed');
                 errorHandler(error);
-
                 expect(mockSocket.emit.calledWith('error', 'Connection failed')).to.be.true;
             });
 
             it('should handle invalid game actions', () => {
                 const actionHandler = mockSocket.on.args.find(([event]) => event === 'game:action')[1];
-                
                 actionHandler({ type: 'INVALID' });
-
                 expect(mockSocket.emit.calledWith('error', 'Invalid game action')).to.be.true;
             });
         });

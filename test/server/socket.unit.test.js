@@ -7,90 +7,21 @@
  */
 
 import assert from "assert";
-import proxyquire from "proxyquire";
 import sinon from "sinon";
 import { expect } from 'chai';
-import { io } from 'socket.io-client';
-import { initializeSocket } from '../../src/socket/index.js';
+import { createTestServer } from './test-utils.js';
 
 describe('Socket.IO Event Handlers', function() {
-    let server, io;
-    let logStub, appendFileStub, ioEmitStub;
-    let gameState, resetFullGame, startNewHand, mockSocket, mockIo;
+    let server, gameState, mockIo, mockSockets;
 
     beforeEach(() => {
-        logStub = sinon.stub(console, 'log');
-        appendFileStub = sinon.stub();
-        ioEmitStub = sinon.stub();
-        
-        // Mock socket.io
-        mockSocket = {
-            id: 'test-socket-id',
-            emit: sinon.stub(),
-            on: sinon.stub(),
-            join: sinon.stub(),
-            leave: sinon.stub()
-        };
-        
-        mockIo = {
-            sockets: {
-                sockets: {},
-                adapter: {
-                    rooms: new Map()
-                }
-            },
-            to: sinon.stub().returns({ 
-                emit: ioEmitStub,
-                to: function() { return this; },
-                except: function() { return this; }
-            }),
-            emit: sinon.stub(),
-            on: function(event, callback) {
-                if (event === 'connection') {
-                    this.connectionCallback = callback;
-                }
-            },
-            // Add broadcast capability
-            broadcast: {
-                emit: sinon.stub()
-            }
-        };
-        
-        // Mock fs
-        const fsMock = { 
-            appendFileSync: appendFileStub,
-            readFileSync: sinon.stub().returns(''),
-            existsSync: sinon.stub().returns(false),
-            writeFileSync: sinon.stub()
-        };
-
-        // Load the server module with mocks
-        server = proxyquire('../../server3.mjs', {
-            fs: fsMock,
-            'socket.io': function() { return mockIo; }
-        });
-
-        // Extract the functions we want to test
-        gameState = server.gameState;
-        resetFullGame = server.resetFullGame;
-        startNewHand = server.startNewHand;
+        ({ server, gameState, mockIo, mockSockets } = createTestServer());
         
         // Set up test players
         gameState.playerSlots.forEach((role, index) => {
             gameState.players[role].id = `socket-${index}`;
             gameState.players[role].name = role.charAt(0).toUpperCase() + role.slice(1);
-            mockIo.sockets.sockets[`socket-${index}`] = { 
-                id: `socket-${index}`, 
-                emit: sinon.stub() 
-            };
         });
-        
-        // Set up initial game state
-        resetFullGame();
-    });
-
-    afterEach(() => {
-        logStub.restore();
     });
 
     describe('connection', function() {

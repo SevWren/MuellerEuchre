@@ -11,77 +11,14 @@ import proxyquire from "proxyquire";
 import sinon from "sinon";
 import { io } from 'socket.io-client';
 import { ReconnectionHandler } from '../../src/socket/reconnectionHandler.js';
+import { createTestServer } from './test-utils.js';
 
 describe('Player Reconnection', function() {
-    let server, gameState, mockIo, mockSockets = {};
-    let logStub, appendFileStub;
-    
-    // Helper to create a mock socket
-    const createMockSocket = (id) => {
-        const socket = {
-            id,
-            emit: sinon.stub(),
-            eventHandlers: {},
-            on: function(event, handler) {
-                this.eventHandlers[event] = handler;
-            },
-            disconnect: function() {
-                if (this.eventHandlers.disconnect) {
-                    this.eventHandlers.disconnect();
-                }
-            }
-        };
-        
-        mockSockets[id] = socket;
-        mockIo.sockets.sockets[id] = socket;
-        return socket;
-    };
-    
-    // Helper to simulate player action
-    const simulateAction = (socketId, action, data) => {
-        const socket = mockSockets[socketId];
-        if (!socket) throw new Error(`Socket ${socketId} not found`);
-        
-        const handler = socket.eventHandlers[action];
-        if (!handler) throw new Error(`No handler for ${action}`);
-        
-        return handler(data);
-    };
+    let server, gameState, mockIo, mockSockets;
 
     beforeEach(() => {
-        logStub = sinon.stub(console, 'log');
-        appendFileStub = sinon.stub();
-        
-        // Mock fs
-        const fsMock = { 
-            appendFileSync: appendFileStub,
-            readFileSync: sinon.stub().returns(''),
-            existsSync: sinon.stub().returns(false),
-            writeFileSync: sinon.stub()
-        };
-        
-        // Mock socket.io
-        mockIo = {
-            sockets: { sockets: {} },
-            to: sinon.stub().returnsThis(),
-            emit: sinon.stub(),
-            in: sinon.stub().returnsThis(),
-            on: function(event, handler) {
-                if (event === 'connection') {
-                    this.connectionHandler = handler;
-                }
-            },
-            sockets: { sockets: {} }
-        };
-        
-        // Load the server with mocks
-        server = proxyquire('../../server3.mjs', {
-            fs: fsMock,
-            'socket.io': function() { return mockIo; }
-        });
-        
-        gameState = server.gameState;
-        mockSockets = {};
+        // Use standardized test server creation
+        ({ server, gameState, mockIo, mockSockets } = createTestServer());
     });
     
     afterEach(() => {
@@ -90,8 +27,9 @@ describe('Player Reconnection', function() {
     
     describe('Lobby Reconnection', function() {
         it('should allow player to reconnect in LOBBY phase', function() {
+            // Use standardized mockSockets from test-utils
+            const socket1 = mockSockets['socket1'];
             // Initial connection
-            const socket1 = createMockSocket('socket1');
             mockIo.connectionHandler(socket1);
             
             // Get assigned role

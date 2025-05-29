@@ -8,87 +8,21 @@
 
 import assert from "assert";
 import sinon from "sinon";
-import * as server from '../../server3.mjs';
+import { createTestServer } from './test-utils.js';
 
 describe('Go Alone Functionality', function() {
-    let logStub, appendFileStub;
-    let handleGoAloneDecision, gameState, getPartner;
-    let mockIo;
+    let server, gameState, mockIo;
 
     beforeEach(() => {
-        logStub = sinon.stub(console, 'log');
-        appendFileStub = sinon.stub();
+        // Use standardized test server creation
+        ({ server, gameState, mockIo } = createTestServer());
         
-        // Mock fs
-        const fsMock = {
-            appendFileSync: appendFileStub,
-            readFileSync: sinon.stub().returns(''),
-            existsSync: sinon.stub().returns(false),
-            writeFileSync: sinon.stub()
-        };
-
-        // Mock socket.io with sockets collection
-        mockIo = {
-            sockets: { 
-                sockets: {},
-                emit: sinon.stub()
-            },
-            to: sinon.stub().returnsThis(),
-            emit: sinon.stub(),
-            in: sinon.stub().returnsThis(),
-            on: sinon.stub()
-        };
-        
-        // Extract the functions we want to test
-        handleGoAloneDecision = server.handleGoAloneDecision;
-        getPartner = server.getPartner;
-        gameState = server.gameState;
-        
-        // Set up test environment
-        process.env.NODE_ENV = 'test';
-        
-        // Inject mocks first
-        server.setMocks({ fs: fsMock, io: mockIo });
-        
-        // Then initialize game state
-        server.resetFullGame();
-        
-        // Set up players after game state is initialized
-        gameState.playerSlots.forEach((role, index) => {
-            gameState.players[role].id = `socket-${index}`;
-            gameState.players[role].name = role.charAt(0).toUpperCase() + role.slice(1);
-            mockIo.sockets.sockets[`socket-${index}`] = { 
-                id: `socket-${index}`, 
-                emit: sinon.stub() 
-            };
-        });
-        
-        // Set up remaining test state
-        gameState.connectedPlayerCount = 4;
+        // Setup specific test state
         gameState.gamePhase = 'AWAITING_GO_ALONE';
         gameState.trump = 'spades';
-        gameState.maker = 1; // Team 1 (south/north)
+        gameState.maker = 1;
         gameState.playerWhoCalledTrump = 'south';
         gameState.currentPlayer = 'south';
-        
-        // Deal some cards
-        gameState.players.south.hand = [
-            { suit: 'spades', value: 'J', id: 'J-spades' },
-            { suit: 'spades', value: 'A', id: 'A-spades' },
-            { suit: 'hearts', value: 'J', id: 'J-hearts' },
-            { suit: 'diamonds', value: 'A', id: 'A-diamonds' },
-            { suit: 'clubs', value: '10', id: '10-clubs' }
-        ];
-        
-        // Other players have cards too
-        ['west', 'north', 'east'].forEach(role => {
-            gameState.players[role].hand = Array(5).fill({ suit: 'hearts', value: '9', id: `9-hearts-${role}` });
-        });
-    });
-
-    afterEach(() => {
-        logStub.restore();
-        process.env.NODE_ENV = undefined;
     });
 
     describe('handleGoAloneDecision', function() {

@@ -7,69 +7,20 @@
  */
 
 import assert from "assert";
-import proxyquire from "proxyquire";
 import sinon from "sinon";
+import { createTestServer } from './test-utils.js';
 
 describe('Order Up Functionality', function() {
-    let server;
-    let logStub, appendFileStub;
-    let handleOrderUpDecision, gameState, startNewHand;
-    let mockIo;
+    let server, gameState, mockIo;
 
     beforeEach(() => {
-        logStub = sinon.stub(console, 'log');
-        appendFileStub = sinon.stub();
-        
-        // Mock fs
-        const fsMock = { 
-            appendFileSync: appendFileStub,
-            readFileSync: sinon.stub().returns(''),
-            existsSync: sinon.stub().returns(false),
-            writeFileSync: sinon.stub()
-        };
+        ({ server, gameState, mockIo } = createTestServer());
 
-        // Mock socket.io
-        mockIo = {
-            sockets: {
-                sockets: {},
-                emit: sinon.stub(),
-                to: sinon.stub().returnsThis(),
-                in: sinon.stub().returnsThis()
-            },
-            on: sinon.stub()
-        };
-
-        // Load the server with mocks
-        server = proxyquire('../../server3.mjs', {
-            fs: fsMock,
-            'socket.io': function() { return mockIo; }
-        });
-
-        // Extract the functions we want to test
-        handleOrderUpDecision = server.handleOrderUpDecision;
-        startNewHand = server.startNewHand;
-        gameState = server.gameState;
-        
-        // Set up a test game state
-        server.resetFullGame();
-        
-        // Set up players
-        gameState.playerSlots.forEach((role, index) => {
-            gameState.players[role].id = `socket-${index}`;
-            gameState.players[role].name = role.charAt(0).toUpperCase() + role.slice(1);
-            mockIo.sockets.sockets[`socket-${index}`] = { 
-                id: `socket-${index}`, 
-                emit: sinon.stub() 
-            };
-        });
-        gameState.connectedPlayerCount = 4;
-        
-        // Start a new hand to set up the game
-        startNewHand();
-    });
-
-    afterEach(() => {
-        logStub.restore();
+        // Additional setup specific to orderUp tests
+        gameState.gamePhase = 'ORDER_UP_ROUND1';
+        gameState.currentPlayer = 'west';
+        gameState.dealer = 'south';
+        gameState.upCard = { id: 'AH', suit: 'hearts', value: 'A' };
     });
 
     describe('handleOrderUpDecision', function() {

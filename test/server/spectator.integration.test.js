@@ -7,99 +7,22 @@
  */
 
 import assert from "assert";
-import proxyquire from "proxyquire";
 import sinon from "sinon";
+import { createTestServer } from './test-utils.js';
 
 describe('Spectator Mode', function() {
-    let server, gameState, mockIo, mockSockets = {};
-    let logStub, appendFileStub;
-    
-    // Helper to create a mock socket
-    const createMockSocket = (id, role = null) => {
-        const socket = {
-            id,
-            emit: sinon.stub(),
-            eventHandlers: {},
-            on: function(event, handler) {
-                this.eventHandlers[event] = handler;
-                return this; // Allow chaining
-            },
-            join: sinon.stub(),
-            leave: sinon.stub()
-        };
-        
-        // If role is provided, assign to game state
-        if (role) {
-            gameState.players[role].id = id;
-            gameState.players[role].name = role.charAt(0).toUpperCase() + role.slice(1);
-        }
-        
-        mockSockets[id] = socket;
-        mockIo.sockets.sockets[id] = socket;
-        return socket;
-    };
-    
-    // Helper to simulate player action
-    const simulateAction = (socketId, action, data) => {
-        const socket = mockSockets[socketId];
-        if (!socket) throw new Error(`Socket ${socketId} not found`);
-        
-        const handler = socket.eventHandlers[action];
-        if (!handler) throw new Error(`No handler for ${action}`);
-        
-        return handler(data);
-    };
+    let server, gameState, mockIo, mockSockets;
 
     beforeEach(() => {
-        logStub = sinon.stub(console, 'log');
-        appendFileStub = sinon.stub();
+        ({ server, gameState, mockIo, mockSockets } = createTestServer());
         
-        // Mock fs
-        const fsMock = { 
-            appendFileSync: appendFileStub,
-            readFileSync: sinon.stub().returns(''),
-            existsSync: sinon.stub().returns(false),
-            writeFileSync: sinon.stub()
-        };
-        
-        // Mock socket.io
-        mockIo = {
-            sockets: { sockets: {} },
-            to: sinon.stub().returnsThis(),
-            emit: sinon.stub(),
-            in: sinon.stub().returnsThis(),
-            on: sinon.stub().callsFake(function(event, handler) {
-                if (event === 'connection') {
-                    this.connectionHandler = handler;
-                }
-            }),
-            sockets: { sockets: {} }
-        };
-        
-        // Load the server with mocks
-        server = proxyquire('../../server3.mjs', {
-            fs: fsMock,
-            'socket.io': function() { return mockIo; }
-        });
-        
-        gameState = server.gameState;
-        mockSockets = {};
-        
-        // Set up players
-        const roles = ['south', 'west', 'north', 'east'];
-        roles.forEach((role, idx) => {
+        // Additional spectator-specific setup
+        ['south', 'west', 'north', 'east'].forEach((role, idx) => {
             const socketId = `player-${role}`;
-            createMockSocket(socketId, role);
+            gameState.players[role].id = socketId;
         });
-        
         gameState.connectedPlayerCount = 4;
-        
-        // Start a game
         server.startNewHand();
-    });
-    
-    afterEach(() => {
-        logStub.restore();
     });
     
     describe('Spectator Connection', function() {

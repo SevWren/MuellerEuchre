@@ -17,19 +17,17 @@
  */
 
 import { expect } from 'chai';
-import * as server3 from '../../server3.mjs';
+import { createTestServer } from './test-utils.js';
 
 describe('server3.mjs - Basic Functionality', function() {
-    this.timeout(5000);
+    let server, gameState;
 
-    before(() => {
-        // Reset game state before tests
-        server3.resetFullGame();
+    beforeEach(() => {
+        ({ server, gameState } = createTestServer());
     });
 
     describe('Game Initialization', () => {
         it('should initialize with correct default game state', () => {
-            const { gameState } = server3;
             expect(gameState).to.be.an('object');
             expect(gameState.gamePhase).to.equal('LOBBY');
             expect(gameState.playerSlots).to.have.members(['south', 'west', 'north', 'east']);

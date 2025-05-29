@@ -28,97 +28,21 @@ import proxyquire from "proxyquire";
 import sinon from "sinon";
 import {  Buffer  } from "buffer";
 import { expect } from 'chai';
+import { createTestServer } from './test-utils.js';
 import { validateGameState, validatePlayerAction, validateBid } from '../../src/utils/validation.js';
 
 describe('Input Validation', function() {
-    let server, gameState, mockIo, mockSockets = {};
-    let logStub, appendFileStub;
+    let server, gameState, mockIo, logStub;
     
-    // Helper to create a mock socket
-    const createMockSocket = (id) => {
-        const socket = {
-            id,
-            emit: sinon.stub(),
-            eventHandlers: {},
-            on: function(event, handler) {
-                this.eventHandlers[event] = handler;
-                return this; // Allow chaining
-            }
-        };
-        
-        mockSockets[id] = socket;
-        mockIo.sockets.sockets[id] = socket;
-        return socket;
-    };
-    
-    // Helper to simulate player action
-    const simulateAction = (socketId, action, data) => {
-        const socket = mockSockets[socketId];
-        if (!socket) throw new Error(`Socket ${socketId} not found`);
-        
-        const handler = socket.eventHandlers[action];
-        if (!handler) throw new Error(`No handler for ${action}`);
-        
-        return handler(data);
-    };
-
     beforeEach(() => {
-        logStub = sinon.stub(console, 'log');
-        appendFileStub = sinon.stub();
+        ({ server, gameState, mockIo, logStub } = createTestServer());
         
-        // Mock fs
-        const fsMock = { 
-            appendFileSync: appendFileStub,
-            readFileSync: sinon.stub().returns(''),
-            existsSync: sinon.stub().returns(false),
-            writeFileSync: sinon.stub()
-        };
-        
-        // Mock socket.io
-        mockIo = {
-            sockets: { sockets: {} },
-            to: sinon.stub().returnsThis(),
-            emit: sinon.stub(),
-            in: sinon.stub().returnsThis(),
-            on: sinon.stub().callsFake(function(event, handler) {
-                if (event === 'connection') {
-                    this.connectionHandler = handler;
-                }
-            })
-        };
-        
-        // Load the server with mocks
-        server = proxyquire('../server3', {
-            fs: fsMock,
-            'socket.io': function() { return mockIo; }
-        });
-        
-        gameState = server.gameState;
-        mockSockets = {};
-        
-        // Set up basic game state
+        // Set up basic game state using standardized setup
         ['south', 'west', 'north', 'east'].forEach((role, idx) => {
-            const socketId = `socket-${idx}`;
-            createMockSocket(socketId);
-            gameState.players[role].id = socketId;
+            gameState.players[role].id = `socket-${idx}`;
             gameState.players[role].name = role.charAt(0).toUpperCase() + role.slice(1);
         });
-        
         gameState.connectedPlayerCount = 4;
-    });
-    
-    afterEach(() => {
-        logStub.restore();
-        // Clean up any created files
-        try {
-            if (fs.existsSync) {
-                if (fs.existsSync('malicious-file.txt')) {
-                    fs.unlinkSync('malicious-file.txt');
-                }
-            }
-        } catch (e) {
-            console.error('Cleanup error:', e);
-        }
     });
     
     // Helper to generate a very long string

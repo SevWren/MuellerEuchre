@@ -114,7 +114,7 @@ describe('Multiple Concurrent Games', function() {
             in: sinon.stub().returnsThis(),
             on: sinon.stub().callsFake(function(event, handler) {
                 if (event === 'connection') {
-                    this.connectionHandler = handler;
+                    this.connectionHandler = handler; // Fix: Ensure connection handler is set
                 }
             }),
             // Mock room functionality

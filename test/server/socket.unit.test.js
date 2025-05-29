@@ -9,6 +9,9 @@
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";
+import { expect } from 'chai';
+import { io } from 'socket.io-client';
+import { initializeSocket } from '../../src/socket/index.js';
 
 describe('Socket.IO Event Handlers', function() {
     let server, io;
@@ -24,23 +27,32 @@ describe('Socket.IO Event Handlers', function() {
         mockSocket = {
             id: 'test-socket-id',
             emit: sinon.stub(),
-            on: sinon.stub()
+            on: sinon.stub(),
+            join: sinon.stub(),
+            leave: sinon.stub()
         };
         
         mockIo = {
             sockets: {
-                sockets: {}
+                sockets: {},
+                adapter: {
+                    rooms: new Map()
+                }
             },
             to: sinon.stub().returns({ 
                 emit: ioEmitStub,
-                to: function() { return this; } // Allow chaining
+                to: function() { return this; },
+                except: function() { return this; }
             }),
             emit: sinon.stub(),
             on: function(event, callback) {
                 if (event === 'connection') {
-                    // Store the connection callback for later use
                     this.connectionCallback = callback;
                 }
+            },
+            // Add broadcast capability
+            broadcast: {
+                emit: sinon.stub()
             }
         };
         
@@ -276,6 +288,130 @@ describe('Socket.IO Event Handlers', function() {
             assert.strictEqual(gameState.gamePhase, 'LOBBY');
             assert.strictEqual(gameState.connectedPlayerCount, 0);
             assert(logStub.calledWith(sinon.match(/Game reset due to disconnection/)));
+        });
+    });
+
+    describe('Socket Server', () => {
+        let server, mockSocket, mockGameState;
+
+        beforeEach(() => {
+            mockSocket = {
+                id: 'test-socket-id',
+                emit: sinon.stub(),
+                on: sinon.stub(),
+                join: sinon.stub(),
+                leave: sinon.stub()
+            };
+
+            mockGameState = {
+                players: {},
+                connectedPlayerCount: 0
+            };
+
+            server = initializeSocket(mockSocket, mockGameState);
+        });
+
+        afterEach(() => {
+            sinon.restore();
+        });
+
+        describe('Connection handling', () => {
+            it('should handle new socket connections', () => {
+                const connectHandler = server.connectionHandler;
+                connectHandler(mockSocket);
+
+                expect(mockSocket.on.calledWith('disconnect')).to.be.true;
+                expect(mockSocket.on.calledWith('game:join')).to.be.true;
+            });
+
+            it('should clean up on socket disconnect', () => {
+                const disconnectHandler = mockSocket.on.args.find(([event]) => event === 'disconnect')[1];
+                
+                mockGameState.players = {
+                    'south': { id: mockSocket.id }
+                };
+                mockGameState.connectedPlayerCount = 1;
+
+                disconnectHandler();
+
+                expect(mockGameState.connectedPlayerCount).to.equal(0);
+                expect(mockSocket.emit.calledWith('player:disconnected')).to.be.true;
+            });
+        });
+
+        describe('Game events', () => {
+            beforeEach(() => {
+                mockSocket = {
+                    id: 'test-socket-id',
+                    emit: sinon.stub(),
+                    on: sinon.stub(),
+                    join: sinon.stub(),
+                    leave: sinon.stub(),
+                    to: sinon.stub().returns({
+                        emit: sinon.stub()
+                    })
+                };
+            });
+
+            it('should broadcast game state updates', () => {
+                const updateHandler = mockSocket.on.args.find(([event]) => event === 'game:update')[1];
+                
+                const gameUpdate = {
+                    phase: 'PLAYING',
+                    currentPlayer: 'south'
+                };
+
+                updateHandler(gameUpdate);
+
+                expect(mockSocket.to('game-room').emit.calledWith('game:state', gameUpdate)).to.be.true;
+            });
+
+            it('should handle player ready status', () => {
+                const readyHandler = mockSocket.on.args.find(([event]) => event === 'player:ready')[1];
+                
+                readyHandler({ ready: true });
+
+                expect(mockSocket.to('game-room').emit.calledWith('player:status')).to.be.true;
+                expect(mockGameState.players[mockSocket.id].ready).to.be.true;
+            });
+        });
+
+        describe('Room management', () => {
+            it('should notify room when player joins', () => {
+                const joinHandler = mockSocket.on.args.find(([event]) => event === 'room:join')[1];
+                
+                joinHandler({ roomId: 'game-1' });
+
+                expect(mockSocket.to('game-1').emit.calledWith('room:playerJoined')).to.be.true;
+            });
+
+            it('should clean up room on all players leaving', () => {
+                const leaveHandler = mockSocket.on.args.find(([event]) => event === 'room:leave')[1];
+                
+                mockIo.sockets.adapter.rooms.set('game-1', new Set());
+                leaveHandler({ roomId: 'game-1' });
+
+                expect(mockIo.sockets.adapter.rooms.has('game-1')).to.be.false;
+            });
+        });
+
+        describe('Error handling', () => {
+            it('should handle connection errors', () => {
+                const errorHandler = mockSocket.on.args.find(([event]) => event === 'error')[1];
+                
+                const error = new Error('Connection failed');
+                errorHandler(error);
+
+                expect(mockSocket.emit.calledWith('error', 'Connection failed')).to.be.true;
+            });
+
+            it('should handle invalid game actions', () => {
+                const actionHandler = mockSocket.on.args.find(([event]) => event === 'game:action')[1];
+                
+                actionHandler({ type: 'INVALID' });
+
+                expect(mockSocket.emit.calledWith('error', 'Invalid game action')).to.be.true;
+            });
         });
     });
 });

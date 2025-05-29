@@ -79,9 +79,9 @@ function getRoleBySocketId(socketId) {
 }
 
 function broadcastGameState() {
-    if (!io) return;
+    if (!getIo()) return;
 
-    Object.keys(io.sockets.sockets).forEach(socketId => {
+    Object.keys(getIo().sockets.sockets).forEach(socketId => {
         const playerRole = getRoleBySocketId(socketId);
         if (playerRole && gameState.players[playerRole]) {
             const personalizedState = JSON.parse(JSON.stringify(gameState));
@@ -95,7 +95,7 @@ function broadcastGameState() {
                     personalizedState.players[role].hand = personalizedState.players[role].hand.map(() => ({ S: 'back' }));
                 }
             }
-            io.to(socketId).emit('game_update', personalizedState);
+            getIo().to(socketId).emit('game_update', personalizedState);
             log(DEBUG_LEVELS.VERBOSE, `Sent game_update to ${playerRole}: phase=${personalizedState.gamePhase}, currentPlayer=${personalizedState.currentPlayer}`);
         }
     });
@@ -110,7 +110,7 @@ function broadcastGameState() {
             gameId: gameState.gameId,
             connectedPlayerCount: gameState.connectedPlayerCount
         };
-        io.emit('lobby_update', lobbyData);
+        getIo().emit('lobby_update', lobbyData);
         log(DEBUG_LEVELS.VERBOSE, `Sent lobby_update: ${JSON.stringify(lobbyData)}`);
     }
 }
@@ -230,10 +230,8 @@ function getCardRank(card, ledSuit, trumpSuit) {
 
 function resetFullGame() {
     log(DEBUG_LEVELS.INFO, 'Resetting full game state...');
-    
     // Store the old game state for reference
     const oldGameState = { ...gameState };
-    
     // Generate a new game ID that's guaranteed to be different
     let newGameId;
     do {
@@ -242,13 +240,10 @@ function resetFullGame() {
             newGameId += 1000 + Math.floor(Math.random() * 10000);
         }
     } while (newGameId === oldGameState.gameId);
-    
     log(DEBUG_LEVELS.INFO, `New game ID: ${newGameId} (old was: ${oldGameState.gameId})`);
-
     // Create a new deck
     const newDeck = createDeck();
     shuffleDeck(newDeck);
-
     // Create a completely new game state with default values
     const newGameState = {
         gameId: newGameId,
@@ -278,12 +273,10 @@ function resetFullGame() {
         gameMessages: [],
         winningTeam: null,
     };
-
     // Initialize players with default values
     newGameState.playerSlots.forEach((role) => {
         const oldPlayer = oldGameState.players?.[role] || {};
         const playerName = oldPlayer.name || role.charAt(0).toUpperCase() + role.slice(1);
-        
         newGameState.players[role] = {
             id: null,
             socketId: null,
@@ -300,32 +293,28 @@ function resetFullGame() {
             isGoingAlone: false,
             isSittingOut: false
         };
-        
         // Clean up old socket connections
         if (oldPlayer.socketId) {
-            const socket = io.sockets.sockets.get(oldPlayer.socketId);
+            const socket = getIo().sockets.sockets.get
+                ? getIo().sockets.sockets.get(oldPlayer.socketId)
+                : getIo().sockets.sockets[oldPlayer.socketId];
             if (socket) {
                 socket.leave(role);
                 socket.leave(`game-${oldGameState.gameId}`);
             }
         }
     });
-    
     // Reset any timers
     if (gameState.gameTimer) {
         clearTimeout(gameState.gameTimer);
     }
-
     // Update the module's gameState reference
     gameState = newGameState;
-    
     log(DEBUG_LEVELS.INFO, `Game state reset with new gameId: ${gameState.gameId}`);
-    
     // Broadcast the new game state
     if (typeof broadcastGameState === 'function') {
         broadcastGameState();
     }
-    
     return gameState;
 }
 
@@ -381,33 +370,65 @@ function handleOrderUpDecision(playerRole, orderedUp) {
 
 function handleDealerDiscard(dealerRole, cardToDiscard) {
     log(DEBUG_LEVELS.INFO, `Dealer ${dealerRole} discarding card: ${cardToDiscard}`);
+
+    // Check if we're in the correct phase
+    if (gameState.gamePhase !== 'AWAITING_DEALER_DISCARD') {
+        log(DEBUG_LEVELS.WARNING, `Invalid phase for dealer discard: ${gameState.gamePhase}`);
+        if (getIo()) {
+            getIo().to(gameState.players[dealerRole]?.id).emit('action_error', 'Cannot discard in current phase');
+        }
+        return false;
+    }
+
+    // Validate that this is actually the dealer's turn
+    if (dealerRole !== gameState.dealer || dealerRole !== gameState.currentPlayer) {
+        log(DEBUG_LEVELS.WARNING, `Invalid discard attempt: ${dealerRole} is not the current dealer`);
+        if (getIo() && gameState.players[dealerRole]?.id) {
+            getIo().to(gameState.players[dealerRole].id).emit('action_error', 'Only the dealer can discard at this time');
+        }
+        return false;
+    }
+
+    // Validate dealer exists and has exactly 6 cards
     const player = gameState.players[dealerRole];
-    if (!player || !player.hand.find(card => card.id === cardToDiscard)) {
-        log(DEBUG_LEVELS.WARNING, `Invalid discard by dealer ${dealerRole}: ${cardToDiscard}`);
-        return;
+    if (!player || !Array.isArray(player.hand) || player.hand.length !== 6) {
+        const errorMsg = `Invalid discard by dealer ${dealerRole}: Must have exactly 6 cards to discard`;
+        log(DEBUG_LEVELS.WARNING, errorMsg);
+        if (getIo() && player?.id) {
+            getIo().to(player.id).emit('action_error', errorMsg);
+        }
+        return false;
+    }
+
+    // Find the card in the dealer's hand
+    const discardedCard = player.hand.find(card => card.id === cardToDiscard.id);
+    if (!discardedCard) {
+        const errorMsg = 'Cannot discard a card that is not in your hand';
+        log(DEBUG_LEVELS.WARNING, `Invalid discard by dealer ${dealerRole}: Card not in hand`);
+        if (getIo() && player.id) {
+            getIo().to(player.id).emit('action_error', errorMsg);
+        }
+        return false;
     }
 
     // Remove the discarded card from the player's hand
-    player.hand = player.hand.filter(card => card.id !== cardToDiscard);
+    player.hand = player.hand.filter(card => card.id !== cardToDiscard.id);
     gameState.dealerHasDiscarded = true;
 
-    // If both dealer and non-dealer have discarded, move to the next phase
-    const allDiscarded = Object.keys(gameState.players).every(role => {
-        const p = gameState.players[role];
-        return p.hasPlayed || (role === gameState.dealer ? gameState.dealerHasDiscarded : true);
-    });
+    // Add the discarded card to the kitty
+    gameState.kitty = gameState.kitty || [];
+    gameState.kitty.push(discardedCard);
 
-    if (allDiscarded) {
-        // Move the game to the next phase (e.g., PLAY)
-        gameState.gamePhase = 'PLAY';
-        gameState.currentPlayer = gameState.dealer;
-        addGameMessage(`The dealer has discarded. Game moves to the play phase.`);
-    } else {
-        // Still waiting on other players
-        addGameMessage(`Waiting for ${gameState.players[getNextPlayer(dealerRole, gameState.playerSlots)].name} to discard...`);
-    }
+    // Move to next phase and update current player
+    gameState.gamePhase = 'AWAITING_GO_ALONE';
+    gameState.currentPlayer = gameState.playerWhoCalledTrump;
+
+    // Add game message
+    const nextPlayer = gameState.players[gameState.playerWhoCalledTrump];
+    addGameMessage(`${player.name} has discarded. Asking ${nextPlayer.name} if they want to go alone.`);
 
     broadcastGameState();
+    return true;
 }
 
 function handleCallTrumpDecision(playerRole, suitToCall) {
@@ -569,10 +590,28 @@ function scoreCurrentHand() {
     broadcastGameState();
 }
 
-// --- Socket.IO server setup and event handlers ---
+// --- Dependency injection for testing ---
+function setMocks({ fs: fsMock, io: ioMock }) {
+    if (fsMock) {
+        // Replace all fs references
+        globalThis._test_fs = fsMock;
+    }
+    if (ioMock) {
+        globalThis._test_io = ioMock;
+    }
+}
 
-// Serve static files from the "public" directory
-app.use(express.static(path.join(__dirname, 'public')));
+// Use injected mocks if present
+function getFs() {
+    return globalThis._test_fs || fs;
+}
+function getIo() {
+    return globalThis._test_io || io;
+}
+
+// Replace all direct fs/io usage below with getFs()/getIo() as needed
+// For example, replace fs.appendFileSync(...) with getFs().appendFileSync(...)
+// and io.emit(...) with getIo().emit(...)
 
 // --- Exports for testing and external use ---
 export {
@@ -600,7 +639,8 @@ export {
     serverIsValidPlay,
     handlePlayCard,
     scoreCurrentHand,
-    DEBUG_LEVELS
+    DEBUG_LEVELS,
+    setMocks
 };
 
 // Only start the server if this file is run directly (not when imported)

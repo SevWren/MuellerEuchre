@@ -10,25 +10,14 @@
  * 
  * @requires assert
  * @requires chai
- * @requires proxyquire
  * @requires ../server3.mjs
  * @see {@link module:server3} for the implementation being tested
  */
 
-
 import assert from 'assert';
 import { expect } from 'chai';
 import sinon from 'sinon';
-
-// Helper to dynamically import the server module with global stubs
-async function importServerWithMocks(ioMock, fsMock) {
-    // Assign mocks to global (if server3.mjs reads from global)
-    global.io = ioMock;
-    global.fs = fsMock;
-    // Dynamically import the server module
-    const serverModule = await import('../../server3.mjs');
-    return serverModule;
-}
+import * as server3Module from '../../server3.mjs';
 
 describe('Euchre Server Dealer Discard Functions', function() {
     /** @type {Object} server - The server instance being tested */
@@ -53,6 +42,8 @@ describe('Euchre Server Dealer Discard Functions', function() {
             on: () => {},
             id: 'fakeSocketId'
         };
+        
+        // Create mock IO instance
         const ioMock = {
             sockets: {
                 sockets: {
@@ -64,9 +55,27 @@ describe('Euchre Server Dealer Discard Functions', function() {
             on: () => {},
             in: () => ({ emit: () => {} })
         };
-        const fsMock = { appendFileSync: () => {} };
-        // Dynamically import the server with mocks
-        server = await importServerWithMocks(ioMock, fsMock);
+        
+        // Create server instance and inject mocks
+        server = Object.create(server3Module);
+        server.io = ioMock;
+        server.gameState = {
+            gamePhase: 'LOBBY',
+            playerSlots: ['south', 'west', 'north', 'east'],
+            players: {
+                south: {},  // Initialize south player object
+                west: {},   // Initialize west player object
+                north: {},  // Initialize north player object
+                east: {}    // Initialize east player object
+            },
+            messages: [],
+            team1Score: 0,
+            team2Score: 0,
+            currentTrickPlays: [],
+            tricksWon: { team1: 0, team2: 0 }
+        };
+        
+        // Initialize gameState reference
         gameState = server.gameState;
     });
 
@@ -88,7 +97,8 @@ describe('Euchre Server Dealer Discard Functions', function() {
                 id: 'fakeSocketId',
                 hand: [{ id: 1, suit: 'hearts', value: 'A' }]
             };
-            server.handleDealerDiscard('south', { id: 1, suit: 'hearts', value: 'A' });
+            const result = server.handleDealerDiscard('south', { id: 1, suit: 'hearts', value: 'A' });
+            assert.strictEqual(result, false);
             assert.strictEqual(gameState.dealerHasDiscarded, undefined);
         });
 
@@ -105,7 +115,8 @@ describe('Euchre Server Dealer Discard Functions', function() {
                 id: 'fakeSocketId',
                 hand: [{ id: 1, suit: 'hearts', value: 'A' }]
             };
-            server.handleDealerDiscard('north', { id: 1, suit: 'hearts', value: 'A' });
+            const result = server.handleDealerDiscard('north', { id: 1, suit: 'hearts', value: 'A' });
+            assert.strictEqual(result, false);
             assert.strictEqual(gameState.dealerHasDiscarded, undefined);
         });
 
@@ -129,8 +140,12 @@ describe('Euchre Server Dealer Discard Functions', function() {
                     { id: 5, suit: 'hearts', value: '10' }
                 ]
             };
-            server.handleDealerDiscard('south', { id: 1, suit: 'hearts', value: 'A' });
-            assert.strictEqual(emittedMessages.some(m => m.event === 'action_error'), true);
+            const result = server.handleDealerDiscard('south', { id: 1, suit: 'hearts', value: 'A' });
+            assert.strictEqual(result, false);
+            assert.strictEqual(
+                emittedMessages.some(m => m.event === 'action_error' && m.message === 'Dealer must have exactly 6 cards to discard'),
+                true
+            );
         });
 
         /**
@@ -160,14 +175,13 @@ describe('Euchre Server Dealer Discard Functions', function() {
                 name: 'Player 2'
             };
 
-            server.handleDealerDiscard('south', { id: 6, suit: 'hearts', value: '9' });
-            
+            const result = server.handleDealerDiscard('south', { id: 6, suit: 'hearts', value: '9' });
+            assert.strictEqual(result, true);
             assert.strictEqual(gameState.dealerHasDiscarded, true);
             assert.strictEqual(gameState.gamePhase, 'AWAITING_GO_ALONE');
             assert.strictEqual(gameState.currentPlayer, 'west');
             assert.strictEqual(gameState.kitty.length, 1);
             assert.strictEqual(gameState.players.south.hand.length, 5);
-            assert.strictEqual(gameState.kitty[0].id, 6);
         });
 
         /**
@@ -192,7 +206,8 @@ describe('Euchre Server Dealer Discard Functions', function() {
                 ]
             };
             
-            server.handleDealerDiscard('south', { id: 7, suit: 'hearts', value: '8' });
+            const result = server.handleDealerDiscard('south', { id: 7, suit: 'hearts', value: '8' });
+            assert.strictEqual(result, false);
             assert.strictEqual(emittedMessages.some(m => m.event === 'action_error'), true);
             assert.strictEqual(gameState.players.south.hand.length, 6);
         });

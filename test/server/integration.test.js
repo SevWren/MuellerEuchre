@@ -48,7 +48,11 @@ describe('Euchre Game Integration Tests', function() {
                 to: sinon.stub().returnsThis(),
                 in: sinon.stub().returnsThis()
             },
-            on: sinon.stub()
+            on: sinon.stub().callsFake((event, handler) => {
+                if (event === 'connection') {
+                    mockIo.connectionHandler = handler; // Fix: Ensure connection handler is set
+                }
+            })
         };
 
         // Load the server with mocks
@@ -58,24 +62,6 @@ describe('Euchre Game Integration Tests', function() {
         });
         
         gameState = server.gameState;
-        
-        // Setup mock socket handlers
-        mockIo.on.callsFake((event, handler) => {
-            if (event === 'connection') {
-                const socket = {
-                    id: '',
-                    hand: {},
-                    handlers: {},
-                    on: function(event, handler) {
-                        this.handlers[event] = handler;
-                    },
-                    emit: sinon.stub(),
-                    join: sinon.stub(),
-                    leave: sinon.stub()
-                };
-                handler(socket);
-            }
-        });
     });
     
     afterEach(() => {
@@ -166,13 +152,90 @@ describe('Euchre Game Integration Tests', function() {
         });
         
         it('should handle a euchre scenario', function() {
-            // Skipped: Not implemented
-            this.skip();
+            // West orders up spades
+            simulatePlayerAction('socket-1', 'action_order_up', { decision: true });
+
+            // Dealer (South) discards
+            simulatePlayerAction('socket-0', 'action_dealer_discard', { 
+                cardToDiscard: { id: '9-clubs' } 
+            });
+
+            // West doesn't go alone
+            simulatePlayerAction('socket-1', 'action_go_alone', { decision: false });
+
+            // Play tricks where defending team wins 3+ tricks
+            const defensivePlays = [
+                // First trick - North/South (defense) wins
+                ['socket-1', { id: '10-hearts' }],  // West leads off-suit
+                ['socket-2', { id: 'A-hearts' }],   // North takes it
+                ['socket-3', { id: '9-hearts' }],   // East follows
+                ['socket-0', { id: 'K-hearts' }],   // South follows
+
+                // Second trick - North/South wins
+                ['socket-2', { id: 'A-diamonds' }], // North leads diamonds
+                ['socket-3', { id: '9-diamonds' }], // East follows
+                ['socket-0', { id: 'K-diamonds' }], // South follows
+                ['socket-1', { id: '10-diamonds' }], // West follows
+
+                // Third trick - North/South wins
+                ['socket-2', { id: 'A-clubs' }],    // North leads clubs
+                ['socket-3', { id: '9-clubs' }],    // East follows
+                ['socket-0', { id: 'K-clubs' }],    // South follows
+                ['socket-1', { id: '10-clubs' }],   // West follows
+            ];
+
+            // Play out the tricks
+            defensivePlays.forEach(([socketId, card]) => {
+                simulatePlayerAction(socketId, 'action_play_card', { card });
+            });
+
+            // Verify euchre occurred
+            assert.strictEqual(gameState.team1Score, 2, "Defending team should get 2 points for a euchre");
+            assert(logStub.calledWith(sinon.match(/euchred/)), "Should announce euchre in game messages");
         });
         
         it('should handle a loner hand', function() {
-            // Skipped: Not implemented
-            this.skip();
+            // South orders up hearts
+            simulatePlayerAction('socket-0', 'action_order_up', { decision: true });
+
+            // Dealer (South) discards
+            simulatePlayerAction('socket-0', 'action_dealer_discard', { 
+                cardToDiscard: { id: '9-clubs' } 
+            });
+
+            // South goes alone
+            simulatePlayerAction('socket-0', 'action_go_alone', { decision: true });
+
+            // Play tricks where South takes all 5 tricks alone
+            const lonerPlays = [
+                // First trick
+                ['socket-0', { id: 'A-hearts' }],   // South leads trump
+                ['socket-1', { id: '9-hearts' }],   // West follows
+                ['socket-3', { id: '10-hearts' }],  // East follows (North sits out)
+
+                // Continue with remaining tricks...
+                ['socket-0', { id: 'K-hearts' }],
+                ['socket-1', { id: '9-diamonds' }],
+                ['socket-3', { id: '10-diamonds' }],
+
+                ['socket-0', { id: 'Q-hearts' }],
+                ['socket-1', { id: '9-clubs' }],
+                ['socket-3', { id: '10-clubs' }],
+
+                ['socket-0', { id: 'J-hearts' }],
+                ['socket-1', { id: '9-spades' }],
+                ['socket-3', { id: '10-spades' }]
+            ];
+
+            // Play out the tricks
+            lonerPlays.forEach(([socketId, card]) => {
+                simulatePlayerAction(socketId, 'action_play_card', { card });
+            });
+
+            // Verify loner bonus awarded
+            assert.strictEqual(gameState.team1Score, 4, "Going alone and taking all tricks should score 4 points");
+            assert(logStub.calledWith(sinon.match(/goes alone/)), "Should announce going alone in game messages");
+            assert(logStub.calledWith(sinon.match(/takes all five/)), "Should announce taking all tricks");
         });
     });
     

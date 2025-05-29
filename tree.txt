@@ -1,0 +1,218 @@
+Folder PATH listing for volume SSD Windows 10
+Volume serial number is 5A25-ABF3
+G:.
+|   .editorconfig
+|   .env.example
+|   .gitignore
+|   .markdownlint.json
+|   .mocharc.cjs
+|   .mocharc.json
+|   .nvmrc
+|   .windsurfrules
+|   babel.config.cjs
+|   babel.config.js
+|   ClientSideRefactorPlan.md
+|   CODE_OF_CONDUCT.md
+|   custom_reporter.js
+|   debug-env.js
+|   DEVELOPMENT.md
+|   diagnostic.js
+|   direct-write.js
+|   direct_output_test.js
+|   env_test.js
+|   init-modules.js
+|   jsconfig.json
+|   llm-prompt.md
+|   master_progress.md
+|   migrate.js
+|   package-lock.json
+|   package.json
+|   readme.md
+|   require_test.js
+|   run-tests.bat
+|   run_tests.js
+|   server3.js
+|   server3.mjs
+|   server_log.txt
+|   simple_test.js
+|   terminal_test.js
+|   test-output.txt
+|   tree.txt
+|   update-tests.js
+|   verify-all.js
+|   verify-babel.js
+|   verify-env.js
+|   verify-test-helper.js
+|   
++---.github
+|   +---instructions
+|   |       Software Architect LLM.instructions.md
+|   |       
+|   \---workflows
+|           node.js.yml
+|           test.yml
+|           
++---public
+|   |   index - Copy.html
+|   |   index.html
+|   |   index_html.css
+|   |   
+|   +---js
+|   |       socketHandler.js
+|   |       
+|   \---v2
+|       |   index.html
+|       |   README.md
+|       |   
+|       +---css
+|       |       styles.css
+|       |       
+|       \---js
++---scripts
+|       test-basic.js
+|       test-direct-mocha.js
+|       test-direct.js
+|       test-node.js
+|       test-script.js
+|       test-simple-run.js
+|       update-test-docs.js
+|       
++---src
+|   |   server.js
+|   |   
+|   +---client
+|   |   +---components
+|   |   |   +---Card
+|   |   |   |       Card.css
+|   |   |   |       Card.jsx
+|   |   |   |       
+|   |   |   +---ConnectionStatus
+|   |   |   |       ConnectionStatus.css
+|   |   |   |       ConnectionStatus.jsx
+|   |   |   |       README.md
+|   |   |   |       
+|   |   |   +---GameBoard
+|   |   |   |       GameBoard.css
+|   |   |   |       GameBoard.jsx
+|   |   |   |       
+|   |   |   \---PlayerHand
+|   |   |           PlayerHand.css
+|   |   |           PlayerHand.jsx
+|   |   |           
+|   |   +---hooks
+|   |   |       useSocket.js
+|   |   |       
+|   |   +---services
+|   |   |       socketService.js
+|   |   |       stateSyncService.js
+|   |   |       uiIntegrationService.js
+|   |   |       
+|   |   \---utils
+|   |           cardUtils.js
+|   |           
+|   +---config
+|   |       constants.js
+|   |       database.js
+|   |       
+|   +---db
+|   |       gameRepository.js
+|   |       
+|   +---game
+|   |   |   state.js
+|   |   |   stateManager.js
+|   |   |   
+|   |   +---logic
+|   |   |       gameLogic.js
+|   |   |       validation.js
+|   |   |       
+|   |   \---phases
+|   |           bidding.js
+|   |           endGame.js
+|   |           goAlonePhase.js
+|   |           orderUpPhase.js
+|   |           playing.js
+|   |           playPhase.js
+|   |           scoring.js
+|   |           startNewHand.js
+|   |           
+|   +---socket
+|   |   |   index.js
+|   |   |   reconnectionHandler.js
+|   |   |   
+|   |   +---handlers
+|   |   |       gameHandlers.js
+|   |   |       
+|   |   \---middleware
+|   |           auth.js
+|   |           errorHandler.js
+|   |           rateLimiter.js
+|   |           
+|   +---test
+|   |   +---integration
+|   |   |       gameFlow.test.js
+|   |   |       
+|   |   +---services
+|   |   |       socketService.test.js
+|   |   |       
+|   |   \---utils
+|   |           testUtils.js
+|   |           
+|   \---utils
+|           deck.js
+|           logger.js
+|           players.js
+|           
+\---test
+    |   loader.mjs.txt
+    |   rename-tests.ps1
+    |   setup.js
+    |   test-files-rename-plan.md
+    |   test-helper.js
+    |   
+    +---fixtures
+    |       testStates.js
+    |       
+    +---helpers
+    |       testUtils.js
+    |       
+    +---phases
+    |   |   endGame.unit.test.js
+    |   |   goAlone.unit.test.js
+    |   |   orderUp.unit.test.js
+    |   |   play.unit.test.js
+    |   |   scoring.unit.test.js
+    |   |   startHand.integration.test.js
+    |   |   startHand.unit.test.js
+    |   |   
+    |   \---startHand
+    |           dealCards.unit.test.js
+    |           startNewHand.edge.unit.test.js
+    |           startNewHand.unit.test.js
+    |           testHelpers.js
+    |           
+    +---server
+    |       basic.unit.test.js
+    |       dealerDiscard.unit.test.js
+    |       errorHandling.unit.test.js
+    |       goAlone.unit.test.js
+    |       integration.test.js
+    |       logging.unit.test.js
+    |       multiGame.integration.test.js
+    |       orderUp.unit.test.js
+    |       performance.unit.test.js
+    |       persistence.unit.test.js
+    |       playCard.additional.unit.test.js
+    |       reconnection.integration.test.js
+    |       scoreHand.unit.test.js
+    |       security.integration.test.js
+    |       socket.unit.test.js
+    |       spectator.integration.test.js
+    |       validation.unit.test.js
+    |       
+    \---services
+            coreGame.unit.test.js
+            reconnection.unit.test.js
+            stateSync.unit.test.js
+            uiIntegration.unit.test.js
+            validation.unit.test.js
+            

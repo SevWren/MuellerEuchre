@@ -50,6 +50,9 @@ describe('Server Logging and Debug', function() {
         log = server.log;
         setDebugLevel = server.setDebugLevel;
         currentDebugLevel = server.currentDebugLevel;
+
+        // Fix: Ensure currentDebugLevel is initialized
+        server.currentDebugLevel = DEBUG_LEVELS.WARNING;
     });
 
     afterEach(() => {

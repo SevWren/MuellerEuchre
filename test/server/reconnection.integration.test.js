@@ -9,6 +9,8 @@
 import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";
+import { io } from 'socket.io-client';
+import { ReconnectionHandler } from '../../src/socket/reconnectionHandler.js';
 
 describe('Player Reconnection', function() {
     let server, gameState, mockIo, mockSockets = {};
@@ -246,5 +248,86 @@ describe('Player Reconnection', function() {
             
             toggleConnection();
         }).timeout(2000);
+    });
+    
+    describe('Reconnection Integration', () => {
+        let server, client, reconnectionHandler;
+        
+        beforeEach(async () => {
+            // Set up test server
+            server = new Server();
+            await server.listen(3000);
+            
+            // Set up test client
+            client = io('ws://localhost:3000');
+            reconnectionHandler = new ReconnectionHandler(client);
+        });
+
+        afterEach(async () => {
+            await server.close();
+            client.close();
+        });
+
+        it('should handle graceful reconnection', async () => {
+            // Force disconnect
+            server.close();
+            
+            // Wait for disconnect and reconnection attempt
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Restart server
+            await server.listen(3000);
+            
+            // Wait for reconnection
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            expect(client.connected).to.be.true;
+            expect(reconnectionHandler.reconnectAttempts).to.be.greaterThan(0);
+        });
+
+        it('should maintain game state through reconnection', async () => {
+            // Set up game state
+            const gameState = {
+                id: 'test-game',
+                players: { south: { id: client.id } }
+            };
+            
+            client.emit('game:join', gameState);
+            
+            // Force disconnect
+            server.close();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Restart server
+            await server.listen(3000);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Verify state is maintained
+            const currentState = await new Promise(resolve => {
+                client.emit('game:state', null, resolve);
+            });
+            
+            expect(currentState.id).to.equal(gameState.id);
+            expect(currentState.players.south.id).to.equal(client.id);
+        });
+
+        it('should handle message queueing during disconnect', async () => {
+            const messages = [];
+            server.on('message', msg => messages.push(msg));
+            
+            // Disconnect
+            server.close();
+            
+            // Queue messages
+            client.emit('message', 'msg1');
+            client.emit('message', 'msg2');
+            
+            // Reconnect
+            await server.listen(3000);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            expect(messages).to.include('msg1');
+            expect(messages).to.include('msg2');
+        });
     });
 });

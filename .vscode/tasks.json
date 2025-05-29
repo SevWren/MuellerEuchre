@@ -18,9 +18,15 @@
         },
         {
             "label": "Run Tests",
-            "type": "shell",
-            "command": "npm test",
-            "group": "test",
+            "type": "npm",
+            "script": "test",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
             "problemMatcher": []
         },
         {
@@ -46,6 +52,29 @@
             "problemMatcher": [],
             "label": "npm: clean:coverage",
             "detail": "if exist coverage rmdir /s /q coverage"
+        },
+        {
+            "label": "test1",
+            "type": "shell",
+            "command": "npx mocha ${file} --require esm",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Watch Single Test File",
+            "type": "shell",
+            "command": "npx mocha ${file} --require esm --watch",
+            "group": "test",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
         }
     ]
 }

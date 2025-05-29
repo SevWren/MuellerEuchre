@@ -11,7 +11,13 @@ import { startNewHand, dealCards } from '../../src/game/phases/startNewHand.js';
 import { GAME_PHASES } from '../../src/config/constants.js';
 import assert from "assert";
 
-// Create a standard Euchre deck for testing
+/**
+ * Creates a standard Euchre deck for testing purposes.
+ * A Euchre deck consists of 24 cards (9, 10, J, Q, K, A of each of the four suits).
+ * @returns {Array<{rank: string, suit: string}>} An array of card objects,
+ * each with a 'rank' and 'suit' property.
+ * @private
+ */
 const createDeck = () => {
     const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
     const ranks = ['9', '10', 'J', 'Q', 'K', 'A'];
@@ -93,7 +99,16 @@ describe('Start New Hand Module', function() {
 
     /** Tests for startNewHand: dealer rotation, game state, and error handling */
     describe('startNewHand', function() {
-        // Test basic functionality: dealer rotation and game state reset
+
+
+        /**
+         * Test basic functionality: dealer rotation and game state reset.
+         * Expected: Dealer rotates, currentPlayer updates, hand state resets (tricks, currentTrick, trumpSuit),
+         * initialDealerForSession is set (if null), a new deck is created, and currentPhase is DEALING.
+         */
+
+
+
         it('should rotate dealer and set up a new hand', function() {
             const result = startNewHand(gameState);
             
@@ -421,7 +436,12 @@ describe('Start New Hand Module', function() {
             });
         });
 
-        // Verify initialDealerForSession is preserved across hands
+
+        /**
+         * Verify initialDealerForSession is preserved across hands.
+         * Expected: initialDealerForSession is set on the first hand and remains unchanged on subsequent hands.
+         */
+
         it('should only set initialDealerForSession once', function() {
             // First hand
             let result = startNewHand(gameState);
@@ -435,7 +455,12 @@ describe('Start New Hand Module', function() {
 
     /** Tests for dealCards: card dealing logic and error handling */
     describe('dealCards', function() {
-        // Test error handling for insufficient cards
+
+        /**
+         * Test error handling for insufficient cards.
+         * Expected: dealCards throws an error if the deck cannot provide enough cards
+         * to deal 5 cards to each player and leave one upCard (total 21 for 4 players).
+         */
         it('should handle insufficient cards during dealing', function() {
             const state = {
                 ...gameState,

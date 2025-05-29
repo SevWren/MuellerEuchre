@@ -4,7 +4,7 @@
 [![Build Status](https://github.com/SevWren/MuellerEuchre/actions/workflows/test.yml/badge.svg)](https://github.com/SevWren/MuellerEuchre/actions)
 [![Coverage Status](https://coveralls.io/repos/github/SevWren/MuellerEuchre/badge.svg?branch=main)](https://coveralls.io/github/SevWren/MuellerEuchre?branch=main)
 
-🚀 **Project Status:** Active Development | 🎮 Playable | 🔄 Real-time Multiplayer
+🚀 **Project Status:** Active Development | 🎮 WIP | 🔄 Real-time Multiplayer
 
 A full-featured, real-time online Euchre card game with WebSocket support, automatic reconnection, and persistent game state. Built with Node.js, Express, and Socket.IO for seamless multiplayer gameplay.
 
@@ -185,56 +185,57 @@ Then open Chrome DevTools and click on the Node.js icon to start debugging.
 | `LOG_LEVEL` | info | Logging level |
 | `SOCKET_PATH` | /socket.io | Socket.IO path |
 
-## 🧪 Testing
+## 📊 Current State of the Project
 
-### Run all tests
-```bash
-npm test
-```
+### Implemented Features
+- **Real-time Multiplayer**: Fully functional WebSocket-based communication for up to 4 players.
+- **Game Logic**: Complete implementation of Euchre rules, including:
+  - Trump selection (both rounds).
+  - Trick-taking logic with proper card rankings.
+  - Scoring system, including "Go Alone" scenarios.
+- **Server-Side Validation**: Ensures all player actions adhere to game rules.
+- **Persistent Game State**: MongoDB integration for saving and restoring game progress.
+- **Responsive UI**: Optimized for both desktop and mobile devices.
+- **Automatic Reconnection**: Handles player disconnections and reconnections gracefully.
+- **Comprehensive Testing**: Unit, integration, and end-to-end tests covering core game logic and interactions.
+- **CI/CD Pipeline**: Automated testing and deployment using GitHub Actions.
 
-### Test specific suite
-```bash
-# Unit tests
-npm run test:unit
+### Incomplete or Missing Features
+- **Enhanced Player Disconnection Handling**: Currently resets the game to the lobby; needs improvement to allow reconnection without disrupting the game.
+- **UI Enhancements**: 
+  - Improve animations and transitions for a smoother user experience.
+  - Add more visual feedback for player actions.
+- **Game History**: Implement a feature to view past games and scores.
+- **Spectator Mode**: Allow non-players to watch ongoing games.
+- **Advanced Game Settings**: Add options for custom rules or variations of Euchre.
+- **Localization**: Support for multiple languages.
+- **Security Enhancements**: Strengthen authentication and data validation mechanisms.
 
-# Integration tests
-npm run test:integration
+## 🛠️ Next Steps
 
-# E2E tests
-npm run test:e2e
-```
+1. **Improve Player Disconnection Handling**
+   - Allow players to reconnect seamlessly without resetting the game.
+   - Notify other players of disconnections and reconnections.
 
-### Test coverage
-```bash
-npm run test:coverage
-```
+2. **UI and UX Improvements**
+   - Enhance animations and transitions.
+   - Add tooltips and contextual help for new players.
 
-## 🚀 Features
+3. **Implement Game History**
+   - Store completed game data in MongoDB.
+   - Create a UI for players to view their game history.
 
-- **Real-time 4-player Euchre** with WebSocket communication
-- **Automatic reconnection** with exponential backoff and connection quality monitoring
-- **Connection status indicator** showing real-time network quality and latency
-- **Persistent game state** with MongoDB storage
-- **Responsive UI** that works on desktop and mobile
-- **Complete Euchre rules** including:
-  - Standard and "Go Alone" gameplay
-  - Full trump selection process
-  - Trick-taking with proper card rankings
-  - Score tracking and game history
-- **Modern Architecture**:
-  - Modular, maintainable codebase
-  - Client-side state management
-  - Comprehensive test coverage
+4. **Develop Spectator Mode**
+   - Allow spectators to join games in a read-only mode.
+   - Ensure spectator views do not reveal hidden information (e.g., player hands).
 
-⚠️ **Note:** This project is actively being developed. See [Current Status](#current-status) for details.
+5. **Expand Test Coverage**
+   - Add tests for edge cases and error handling.
+   - Increase coverage for UI components and integration scenarios.
 
-## 1. Project Overview
-
-This project aims to create a web-based, real-time, 4-player Euchre card game. Players connect via their web browsers to a central server that manages the game logic and state. The goal is to provide a functional and interactive Euchre experience adhering to common game rules.
-
-**Core Technologies:**
-*   **Backend:** Node.js with Express.js for the web server and Socket.IO for real-time, bidirectional WebSocket communication.
-*   **Frontend:** HTML for structure, CSS (with some Tailwind CSS via CDN) for styling, and client-side JavaScript for UI interactions and communication with the server.
+6. **Localization and Accessibility**
+   - Add support for multiple languages.
+   - Ensure the UI is accessible to users with disabilities.
 
 ## 🏗️ Project Structure
 

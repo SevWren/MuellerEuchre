@@ -6,12 +6,12 @@
   "terminal.integrated.profiles.windows": {
     "Command Prompt": {
       "path": "G:\\Windows\\System32\\cmd.exe",
-      "args": ["/K", "G:\\"],
+      "args": ["/K"],
       "icon": "terminal-cmd"
     },
     "PowerShell": {
       "path": "G:\\Program Files\\PowerShell\\7\\pwsh.exe",
-      "args": ["-NoExit", "-WorkingDirectory", "G:\\"],
+      "args": ["-NoExit", "-WorkingDirectory"],
       "icon": "terminal-powershell"
     },
     "Git Bash": {
@@ -23,21 +23,7 @@
   
   // Default terminal profiles
   "terminal.integrated.defaultProfile.windows": "Command Prompt",
-  "terminal.integrated.automationProfile.windows": null,
   "terminal.integrated.defaultProfile.linux": "bash",
-  
-  // Terminal shell configuration - Using Command Prompt
-  "terminal.integrated.shell.windows": "G:\\Windows\\System32\\cmd.exe",
-  "terminal.integrated.shellArgs.windows": [
-    "/K",
-    "G:\\"
-  ],
-  
-  // Environment variables for terminal
-  "terminal.integrated.env.windows": {
-    "SystemDrive": "G:",
-    "SystemRoot": "G:\\Windows"
-  },
   
   // Terminal appearance
   "terminal.integrated.fontFamily": "Consolas, 'Courier New', monospace",
@@ -53,5 +39,10 @@
     "**/*.rpa": true,
     "**/*.rpymc": true,
     "**/cache/": true
+  },
+  "cSpell.trustedWorkspace": true,
+  "launch": {
+    "configurations": [],
+    "compounds": []
   }
 }

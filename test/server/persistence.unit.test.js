@@ -19,6 +19,7 @@ import sinon from "sinon";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from 'url';
+import { expect } from 'chai';
 
 // Get directory name in ES module
 const __filename = fileURLToPath(import.meta.url);
@@ -616,6 +617,109 @@ describe('Game State Persistence', function() {
                 'Player name should be restored');
             // Note: The 'connected' property is set in the test, not in the actual implementation
             // So we'll check if the player exists and has the correct name
+        });
+    });
+    
+    describe('Game Persistence', () => {
+        let persistence, mockFs;
+
+        beforeEach(() => {
+            mockFs = {
+                writeFileSync: sinon.stub(),
+                readFileSync: sinon.stub(),
+                existsSync: sinon.stub()
+            };
+
+            persistence = new GamePersistence({
+                fs: mockFs,
+                basePath: './data'
+            });
+        });
+
+        describe('Game State Persistence', () => {
+            it('should save game state', () => {
+                const gameState = {
+                    id: 'test-game',
+                    players: {},
+                    scores: { team1: 0, team2: 0 }
+                };
+
+                persistence.saveGameState('test-game', gameState);
+
+                expect(mockFs.writeFileSync.called).to.be.true;
+                const savedData = JSON.parse(mockFs.writeFileSync.firstCall.args[1]);
+                expect(savedData.id).to.equal(gameState.id);
+            });
+
+            it('should load game state', () => {
+                const gameState = {
+                    id: 'test-game',
+                    players: {},
+                    scores: { team1: 0, team2: 0 }
+                };
+
+                mockFs.existsSync.returns(true);
+                mockFs.readFileSync.returns(JSON.stringify(gameState));
+
+                const loadedState = persistence.loadGameState('test-game');
+                expect(loadedState).to.deep.equal(gameState);
+            });
+
+            it('should handle missing game state', () => {
+                mockFs.existsSync.returns(false);
+                
+                const loadedState = persistence.loadGameState('missing-game');
+                expect(loadedState).to.be.null;
+            });
+        });
+
+        describe('Player Data Persistence', () => {
+            it('should save player data', () => {
+                const playerData = {
+                    id: 'player-1',
+                    name: 'Test Player',
+                    stats: { wins: 0, losses: 0 }
+                };
+
+                persistence.savePlayerData('player-1', playerData);
+
+                expect(mockFs.writeFileSync.called).to.be.true;
+                const savedData = JSON.parse(mockFs.writeFileSync.firstCall.args[1]);
+                expect(savedData.id).to.equal(playerData.id);
+            });
+
+            it('should load player data', () => {
+                const playerData = {
+                    id: 'player-1',
+                    name: 'Test Player',
+                    stats: { wins: 0, losses: 0 }
+                };
+
+                mockFs.existsSync.returns(true);
+                mockFs.readFileSync.returns(JSON.stringify(playerData));
+
+                const loadedData = persistence.loadPlayerData('player-1');
+                expect(loadedData).to.deep.equal(playerData);
+            });
+        });
+
+        describe('Error Handling', () => {
+            it('should handle save errors', () => {
+                mockFs.writeFileSync.throws(new Error('Write error'));
+
+                expect(() => {
+                    persistence.saveGameState('test-game', {});
+                }).to.throw('Write error');
+            });
+
+            it('should handle load errors', () => {
+                mockFs.existsSync.returns(true);
+                mockFs.readFileSync.throws(new Error('Read error'));
+
+                expect(() => {
+                    persistence.loadGameState('test-game');
+                }).to.throw('Read error');
+            });
         });
     });
 });

@@ -27,6 +27,8 @@ import assert from "assert";
 import proxyquire from "proxyquire";
 import sinon from "sinon";
 import {  Buffer  } from "buffer";
+import { expect } from 'chai';
+import { validateGameState, validatePlayerAction, validateBid } from '../../src/utils/validation.js';
 
 describe('Input Validation', function() {
     let server, gameState, mockIo, mockSockets = {};
@@ -422,4 +424,87 @@ describe('Input Validation', function() {
             assert(logStub.calledWith(sinon.match(/Error/)));
         });
     });
+});
+
+describe('Game Validation', () => {
+  describe('Game State Validation', () => {
+    it('should validate player count', () => {
+      const gameState = {
+        players: { south: {}, west: {}, north: {}, east: {} },
+        connectedPlayerCount: 4,
+      };
+
+      expect(() => validateGameState(gameState)).to.not.throw();
+    });
+
+    it('should reject invalid player count', () => {
+      const gameState = {
+        players: { south: {}, west: {} },
+        connectedPlayerCount: 2,
+      };
+
+      expect(() => validateGameState(gameState)).to.throw('Invalid player count');
+    });
+  });
+
+  describe('Player Action Validation', () => {
+    it('should validate card plays', () => {
+      const action = {
+        type: 'play',
+        card: { suit: 'hearts', value: 'A' },
+        player: 'south'
+      };
+
+      expect(() => validatePlayerAction(action)).to.not.throw();
+    });
+
+    it('should reject invalid card plays', () => {
+      const action = {
+        type: 'play',
+        card: { suit: 'invalid', value: 'X' },
+        player: 'south'
+      };
+
+      expect(() => validatePlayerAction(action)).to.throw('Invalid card');
+    });
+  });
+
+  describe('Bid Validation', () => {
+    let gameState;
+
+    beforeEach(() => {
+      gameState = {
+        phase: 'bidding',
+        currentPlayer: 'south',
+        trump: null,
+      };
+    });
+
+    it('should validate legal bids', () => {
+      const bid = {
+        type: 'orderUp',
+        player: 'south',
+      };
+
+      expect(() => validateBid(bid, gameState)).to.not.throw();
+    });
+
+    it('should reject out-of-turn bids', () => {
+      const bid = {
+        type: 'orderUp',
+        player: 'west',
+      };
+
+      expect(() => validateBid(bid, gameState)).to.throw('Not your turn');
+    });
+
+    it('should reject invalid bid types', () => {
+      const bid = {
+        type: 'invalid',
+        player: 'south',
+      };
+
+      expect(() => validateBid(bid, gameState)).to.throw('Invalid bid type');
+    });
+  });
 });

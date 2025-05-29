@@ -7,11 +7,10 @@
  */
 
 import assert from "assert";
-import proxyquire from "proxyquire";
 import sinon from "sinon";
+import * as server from '../../server3.mjs';
 
 describe('Go Alone Functionality', function() {
-    let server;
     let logStub, appendFileStub;
     let handleGoAloneDecision, gameState, getPartner;
     let mockIo;
@@ -28,30 +27,33 @@ describe('Go Alone Functionality', function() {
             writeFileSync: sinon.stub()
         };
 
-        // Mock socket.io
+        // Mock socket.io with sockets collection
         mockIo = {
-            sockets: { sockets: {} },
+            sockets: { 
+                sockets: {},
+                emit: sinon.stub()
+            },
             to: sinon.stub().returnsThis(),
             emit: sinon.stub(),
             in: sinon.stub().returnsThis(),
             on: sinon.stub()
         };
         
-        // Load the server with mocks
-        server = proxyquire('../../server3.mjs', {
-            fs: fsMock,
-            'socket.io': function() { return mockIo; }
-        });
-
         // Extract the functions we want to test
         handleGoAloneDecision = server.handleGoAloneDecision;
         getPartner = server.getPartner;
         gameState = server.gameState;
         
-        // Set up a test game state
+        // Set up test environment
+        process.env.NODE_ENV = 'test';
+        
+        // Inject mocks first
+        server.setMocks({ fs: fsMock, io: mockIo });
+        
+        // Then initialize game state
         server.resetFullGame();
         
-        // Set up players
+        // Set up players after game state is initialized
         gameState.playerSlots.forEach((role, index) => {
             gameState.players[role].id = `socket-${index}`;
             gameState.players[role].name = role.charAt(0).toUpperCase() + role.slice(1);
@@ -60,9 +62,9 @@ describe('Go Alone Functionality', function() {
                 emit: sinon.stub() 
             };
         });
-        gameState.connectedPlayerCount = 4;
         
-        // Set up for go alone decision
+        // Set up remaining test state
+        gameState.connectedPlayerCount = 4;
         gameState.gamePhase = 'AWAITING_GO_ALONE';
         gameState.trump = 'spades';
         gameState.maker = 1; // Team 1 (south/north)
@@ -78,7 +80,7 @@ describe('Go Alone Functionality', function() {
             { suit: 'clubs', value: '10', id: '10-clubs' }
         ];
         
-        // Other players have cards too (not relevant for this test)
+        // Other players have cards too
         ['west', 'north', 'east'].forEach(role => {
             gameState.players[role].hand = Array(5).fill({ suit: 'hearts', value: '9', id: `9-hearts-${role}` });
         });
@@ -86,6 +88,7 @@ describe('Go Alone Functionality', function() {
 
     afterEach(() => {
         logStub.restore();
+        process.env.NODE_ENV = undefined;
     });
 
     describe('handleGoAloneDecision', function() {
@@ -164,7 +167,7 @@ describe('Go Alone Functionality', function() {
             
             // Verify the trick leader is west (skipping north who is sitting out)
             assert.strictEqual(gameState.trickLeader, 'west');
-            assert.strictEqual(gameState.currentPlayer, 'west');
+            assert.strictEqual(gameState.currentPlayer, 'west'); // Fix: Ensure currentPlayer is updated
         });
     });
 });

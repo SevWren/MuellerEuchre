@@ -21,10 +21,47 @@ describe('Input Validation', function() {
                 () => server.handlePlayCard('invalid-role', { id: 'test-card' }),
                 /Invalid player role/
             );
+            
+            assert.throws(
+                () => server.handlePlayCard(null, { id: 'test-card' }),
+                /Invalid player role/
+            );
         });
 
-        // ...existing player input validation tests...
-    });
+        it('should validate card objects', function() {
+            assert.throws(
+                () => server.handlePlayCard('south', { invalid: 'card' }),
+                /Invalid card format/
+            );
+            
+            assert.throws(
+                () => server.handlePlayCard('south', { suit: 'hearts', value: 'A' }),
+                /Invalid card format/
+            );
+        });
 
-    // ...existing input sanitization tests...
+        it('should handle special characters in input', function() {
+            const specialName = '玩家1 🚀';
+            const specialMessage = 'Special chars: !@#$%^&*()_+{}|:"<>?~`';
+            
+            server.updatePlayerData('south', { name: specialName });
+            assert.strictEqual(gameState.players.south.name, specialName);
+            
+            server.handleChatMessage('south', { message: specialMessage });
+            const lastMessage = gameState.chatMessages[gameState.chatMessages.length - 1];
+            assert.strictEqual(lastMessage.text, specialMessage);
+        });
+
+        it('should trim whitespace from input', function() {
+            const testName = '  test  ';
+            const testMessage = '  hello  ';
+            
+            server.updatePlayerData('south', { name: testName });
+            assert.strictEqual(gameState.players.south.name, testName.trim());
+            
+            server.handleChatMessage('south', { message: testMessage });
+            const lastMessage = gameState.chatMessages[gameState.chatMessages.length - 1];
+            assert.strictEqual(lastMessage.text, testMessage.trim());
+        });
+    });
 });

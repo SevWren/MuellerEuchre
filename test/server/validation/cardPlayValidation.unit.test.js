@@ -8,7 +8,6 @@ describe('Card Play Validation', function() {
     beforeEach(() => {
         ({ server, gameState } = createTestServer());
         
-        // Set up a valid game state for card playing
         gameState.gamePhase = 'PLAYING_TRICKS';
         gameState.currentPlayer = 'south';
         gameState.trump = 'hearts';
@@ -19,5 +18,31 @@ describe('Card Play Validation', function() {
         ];
     });
 
-    // ...existing card play validation tests...
+    it('should validate card is in player\'s hand', function() {
+        assert.throws(
+            () => server.handlePlayCard('south', { id: 'invalid-card' }),
+            /Card not in hand/
+        );
+    });
+
+    it('should enforce suit following rules', function() {
+        gameState.currentTrickSuit = 'spades';
+        
+        assert.throws(
+            () => server.handlePlayCard('south', { id: '9H' }),
+            /Must follow suit/
+        );
+        
+        assert.doesNotThrow(
+            () => server.handlePlayCard('south', { id: 'AS' })
+        );
+    });
+
+    it('should allow playing any card when cannot follow suit', function() {
+        gameState.currentTrickSuit = 'diamonds';
+        
+        assert.doesNotThrow(
+            () => server.handlePlayCard('south', { id: 'JH' })
+        );
+    });
 });

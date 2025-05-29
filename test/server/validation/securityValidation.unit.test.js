@@ -42,5 +42,43 @@ describe('Security Validation', function() {
         );
     });
 
-    // ...existing security validation tests...
+    it('should prevent XSS in player names', function() {
+        const xssPayload = '<script>alert(1)</script>';
+        
+        assert.throws(
+            () => server.updatePlayerData('south', { name: xssPayload }),
+            /Invalid name/
+        );
+        
+        assert.throws(
+            () => server.handleChatMessage('south', { message: xssPayload }),
+            /Invalid message/
+        );
+    });
+
+    it('should prevent path traversal in file operations', function() {
+        const maliciousPath = '../../etc/passwd';
+        
+        assert.throws(
+            () => server.loadGameState(maliciousPath),
+            /Invalid path/
+        );
+        
+        assert.throws(
+            () => server.saveGameState('..' + maliciousPath, {}),
+            /Invalid path/
+        );
+    });
+
+    it('should handle malformed JSON input', function() {
+        const malformedJson = '{"invalid": "json"';
+        
+        fsMock.readFileSync.returns(malformedJson);
+        
+        assert.doesNotThrow(() => {
+            server.loadGameState('test.json');
+        });
+        
+        assert(logStub.calledWith(sinon.match(/Error parsing/)));
+    });
 });

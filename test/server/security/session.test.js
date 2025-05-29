@@ -39,11 +39,12 @@ describe('Session & Header Security Tests', function() {
                 setHeader: sinon.stub()
             };
             
-            server.applySecurityHeaders({}, res, () => {});
+            server.applySecurityHeaders({}, res, sinon.stub());
             
             assert(res.removeHeader.calledWith('X-Powered-By'));
             assert(res.setHeader.calledWith('X-Content-Type-Options', 'nosniff'));
             assert(res.setHeader.calledWith('X-Frame-Options', 'DENY'));
+            assert(res.setHeader.calledWith('X-XSS-Protection', '1; mode=block'));
         });
     });
 });

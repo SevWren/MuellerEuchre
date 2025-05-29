@@ -240,6 +240,32 @@ describe('Euchre Game Integration Tests', function() {
     });
     
     describe('Game State Transitions', function() {
-        // Test various game state transitions
+        it('should handle transition from LOBBY to PLAYING', function() {
+            // Set up 4 connected players
+            playerRoles.forEach((role, index) => {
+                const socketId = `socket-${index}`;
+                createMockSocket(socketId, role);
+            });
+            
+            simulatePlayerAction('socket-0', 'request_start_game');
+            
+            assert.strictEqual(gameState.gamePhase, 'PLAYING_TRICKS');
+            assert(gameState.dealer);
+            assert(gameState.currentPlayer);
+        });
+
+        it('should handle transition to GAME_OVER', function() {
+            // Set up game near completion
+            gameState.team1Score = 9;
+            gameState.gamePhase = 'PLAYING_TRICKS';
+            
+            // Simulate winning point
+            simulatePlayerAction('socket-0', 'action_play_card', { 
+                card: { id: 'AH', suit: 'hearts', value: 'A' } 
+            });
+            
+            assert.strictEqual(gameState.gamePhase, 'GAME_OVER');
+            assert(gameState.winningTeam);
+        });
     });
 });

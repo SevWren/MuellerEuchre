@@ -33,29 +33,31 @@ import { getNextPlayer } from '../../utils/players.js';
  */
 export function handleGoAloneDecision(gameState, playerRole, goAlone) {
     log(1, `[handleGoAloneDecision] ${playerRole} ${goAlone ? 'is going alone' : 'will play with partner'}`);
-    
+
     // Create a deep copy of the game state
     const updatedState = JSON.parse(JSON.stringify(gameState));
-    
-    // Validate the action
-    if (updatedState.currentPhase !== GAME_PHASES.AWAITING_GO_ALONE || 
-        playerRole !== updatedState.currentPlayer) {
+
+    // Validate the action: must be in AWAITING_GO_ALONE phase and only the player who called trump can decide
+    if (
+        updatedState.currentPhase !== GAME_PHASES.AWAITING_GO_ALONE ||
+        playerRole !== updatedState.playerWhoCalledTrump
+    ) {
         log(2, `[handleGoAloneDecision] Invalid go alone attempt by ${playerRole}`);
         throw new Error('Invalid go alone attempt');
     }
-    
+
     // Add game message
     updatedState.messages = updatedState.messages || [];
-    
+
     if (goAlone) {
         // Player is going alone
         updatedState.goingAlone = true;
         updatedState.playerGoingAlone = playerRole;
-        
+
         // Set partner to sit out
         const partner = getPartner(playerRole);
         updatedState.partnerSittingOut = partner;
-        
+
         updatedState.messages.push({
             type: 'game',
             text: `${playerRole} is going alone! ${partner} will sit out this hand.`,
@@ -66,26 +68,26 @@ export function handleGoAloneDecision(gameState, playerRole, goAlone) {
         updatedState.goingAlone = false;
         updatedState.playerGoingAlone = null;
         updatedState.partnerSittingOut = null;
-        
+
         updatedState.messages.push({
             type: 'game',
             text: `${playerRole} will play with their partner.`
         });
     }
-    
+
     // Move to the playing phase
     updatedState.currentPhase = GAME_PHASES.PLAYING;
-    
+
     // Set the first player (left of dealer)
     updatedState.currentPlayer = getNextPlayer(updatedState.dealer, updatedState.playerOrder);
     updatedState.trickLeader = updatedState.currentPlayer;
     updatedState.currentTrick = [];
-    
+
     updatedState.messages.push({
         type: 'game',
         text: `Starting play. ${updatedState.currentPlayer} leads the first trick.`
     });
-    
+
     return updatedState;
 }
 

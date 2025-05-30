@@ -8,6 +8,7 @@ import { log } from '../../utils/logger.js';
 import { GAME_PHASES, SUITS, DEBUG_LEVELS } from '../../config/constants.js';
 import { getNextPlayer, getPartner } from '../../utils/players.js';
 import { cardToString } from '../../utils/deck.js';
+import { handleGoAloneDecision as goAlonePhaseDecision } from './goAlonePhase.js';
 
 /**
  * Handles a player's decision to order up the dealer
@@ -195,46 +196,6 @@ export function handleCallTrumpDecision(gameState, playerRole, suitToCall) {
  * @returns {Object} Updated game state
  */
 export function handleGoAloneDecision(gameState, playerRole, goAlone) {
-    log(DEBUG_LEVELS.INFO, `[handleGoAloneDecision] Player ${playerRole} ${goAlone ? 'is going alone' : 'will play with partner'}`);
-    
-    if (gameState.currentPhase !== GAME_PHASES.GO_ALONE) {
-        throw new Error('Not in go alone phase');
-    }
-    
-    const updatedState = { ...gameState };
-    
-    if (goAlone) {
-        updatedState.goingAlone = true;
-        updatedState.playerGoingAlone = playerRole;
-        updatedState.partnerSittingOut = getPartner(playerRole);
-        
-        updatedState.messages.push({
-            type: 'game',
-            text: `${playerRole} is going alone! ${updatedState.partnerSittingOut} sits out.`
-        });
-    } else {
-        updatedState.messages.push({
-            type: 'game',
-            text: `${playerRole} will play with their partner.`
-        });
-    }
-    
-    // Move to playing phase
-    updatedState.currentPhase = GAME_PHASES.PLAYING;
-    updatedState.currentPlayer = getNextPlayer(
-        updatedState.dealer,
-        updatedState.playerOrder,
-        updatedState.goingAlone,
-        updatedState.playerGoingAlone,
-        updatedState.partnerSittingOut
-    );
-    
-    // Add message about first player
-    updatedState.messages.push({
-        type: 'game',
-        text: `First lead is ${updatedState.currentPlayer}`
-    });
-    
-    return updatedState;
+    return goAlonePhaseDecision(gameState, playerRole, goAlone);
 }
 

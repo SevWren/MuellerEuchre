@@ -1,0 +1,664 @@
+G:\Users\mmuel\OneDrive\Documents\GitHub\MuellerEuchre\euchre-multiplayer>npm test
+
+> euchre-multiplayer@1.0.0 test
+> mocha --require "./test/loader.mjs" "test/server/**/*.test.js" "test/phases/**/*.test.js" "test/services/**/*.test.js" --recursive 
+--timeout 10000
+
+
+
+  server3.mjs - Basic Functionality
+    Game Initialization
+      ✔ should initialize with correct default game state
+    Deck Functions
+      ✔ should create a standard Euchre deck
+      ✔ should shuffle the deck
+
+  Euchre Server Dealer Discard Functions    
+    handleDealerDiscard
+      ✔ should reject discard when not in AWAITING_DEALER_DISCARD phase
+      ✔ should reject discard from non-dealer player
+      ✔ should reject discard when hand size is not 6
+      ✔ should successfully process valid dealer discard
+      ✔ should reject discard of card not in hand       
+
+  Error Handling
+    Invalid Game Actions
+      ✔ should handle invalid card plays gracefully
+      ✔ should handle invalid game phase transitions
+    Error Recovery
+      ✔ should recover from invalid game state      
+      ✔ should handle missing player data
+    Input Validation
+      ✔ should validate player input
+
+  Go Alone Functionality
+    handleGoAloneDecision
+      1) should handle player choosing to go alone    
+      2) should handle player choosing not to go alone
+      3) should prevent going alone when not in the correct phase       
+      4) should prevent going alone when not the player who called trump
+      5) should handle going alone with partner as trick leader
+
+  Euchre Game Integration Tests
+    Full Game Flow
+      6) "before each" hook for "should complete a full game with all players"
+
+  Server Logging and Debug
+    log function
+      7) "before each" hook for "should log messages when level is <= currentDebugLevel"
+
+  Multiple Concurrent Games
+    Game Isolation
+      8) "before each" hook for "should maintain separate game states"
+
+  Order Up Functionality
+    handleOrderUpDecision
+      9) should allow player to order up
+      10) should handle player passing
+      11) should advance to round 2 if all pass in round 1
+      12) should redeal if all pass in round 2
+      13) should prevent ordering up when not in the correct phase
+      14) should prevent ordering up when not the current player's turn
+
+  Performance Testing
+Run node with --expose-gc flag for more accurate memory measurements
+    15) "before each" hook for "should handle multiple concurrent games"
+
+  Game State Persistence
+    Saving Game State
+      ✔ should not save when auto-save is disabled
+      ✔ should handle save errors gracefully
+    Loading Game State
+      ✔ should load game state from file on startup
+      ✔ should handle missing or corrupt save file
+      ✔ should reset to LOBBY phase on version mismatch
+    Auto-Saving
+      ✔ should auto-save at regular intervals
+      ✔ should not auto-save when disabled
+    Game State Cleanup
+      ✔ should clean up save file when game ends
+      ✔ should handle cleanup errors gracefully
+    Player Reconnection with Saved State
+      ✔ should restore player state on reconnection
+    Game Persistence
+      Game State Persistence
+        16) "before each" hook for "should save game state"
+
+  Auto-Save Functionality
+    ✔ should auto-save at regular intervals
+    ✔ should not auto-save when disabled
+
+  Basic Persistence
+    Save Game State
+      ✔ should not save when auto-save is disabled
+      17) should handle save errors gracefully
+    Load Game State
+      18) should handle missing or corrupt save file
+
+  Game State Persistence
+    19) should save game state
+    20) should load game state
+    21) should handle missing game state
+
+  Euchre Server Play Card Additional Tests
+    handlePlayCard additional scenarios
+      22) "before each" hook for "should reject play when not current player"
+
+  Player Reconnection
+    Lobby Reconnection
+      23) should allow player to reconnect in LOBBY phase
+      24) "after each" hook for "should allow player to reconnect in LOBBY phase"
+
+  Euchre Server Score Hand Functions
+    scoreCurrentHand
+      25) "before each" hook for "should award 4 points for going alone and taking all tricks"
+
+  Authentication & Session Security Tests
+    Authentication
+      26) should require authentication for protected routes
+      27) "after each" hook for "should require authentication for protected routes"
+
+  Security Headers & Disclosure Tests
+    Security Headers
+      28) should set appropriate CSP headers
+      29) "after each" hook for "should set appropriate CSP headers"
+
+  Input Security Tests
+    Input Validation
+      30) should prevent NoSQL injection
+      31) "after each" hook for "should prevent NoSQL injection"
+
+  Session & Header Security Tests
+    Session Security
+      ✔ should use secure session configuration
+    CSRF Protection
+      32) should require CSRF token for state-changing requests
+    Security Headers
+      33) should set appropriate security headers
+
+  Socket.IO Event Handlers
+    connection
+      34) "before each" hook for "should assign a role to a connecting player in LOBBY phase"
+
+  Server3SpectatorTest
+    Spectator integration
+      35) should handle spectator leaving the spectators room
+      36) should prevent taking an occupied slot
+
+  Input Validation
+    Security Validation
+      37) "before each" hook for "should prevent prototype pollution"
+
+  Game Validation
+    Game State Validation
+      ✔ should validate player count
+      ✔ should reject invalid player count
+    Player Action Validation
+      ✔ should validate card plays
+      38) should reject invalid card plays
+    Bid Validation
+      ✔ should validate legal bids
+      ✔ should reject out-of-turn bids
+      ✔ should reject invalid bid types
+
+  Card Play Validation
+    39) "before each" hook for "should validate card is in player's hand"
+
+  Game State Validation
+    Basic Game State Validation
+      ✔ should validate player count
+      ✔ should detect invalid game states
+      ✔ should validate player turns
+    Bid Validation
+      ✔ should validate legal bids
+      ✔ should reject out-of-turn bids
+      ✔ should reject invalid bid types
+
+  Input Validation
+    Player Input Validation
+      40) should validate player role in actions
+      41) "after each" hook for "should validate player role in actions"
+
+  Security Validation
+    42) should prevent prototype pollution
+    43) "after each" hook for "should prevent prototype pollution"
+
+  End Game Phase
+    handleEndOfHand
+      ✔ should update scores and detect game over when winning score is reached
+      ✔ should award 2 points for a march
+      ✔ should award 2 points for euchre
+    checkGameOver
+      ✔ should detect when a team has won
+      ✔ should not detect game over when no team has won
+    startNewGame
+      ✔ should reset the game state for a new game
+
+  Go Alone Phase
+    handleGoAloneDecision
+      ✔ should handle player choosing to go alone
+      ✔ should handle player choosing to play with partner
+      ✔ should throw error if not the right phase
+      ✔ should throw error if not the current player
+
+  Order Up Phase
+    handleOrderUpDecision
+      ✔ should handle a player ordering up
+      ✔ should handle a player passing
+      ✔ should handle dealer passing and start round 2
+    handleDealerDiscard
+      ✔ should handle dealer discarding a card
+    handleCallTrumpDecision
+      ✔ should handle a player calling trump
+      ✔ should prevent calling the turned-down suit
+      ✔ should handle all players passing and trigger redeal
+
+  Euchre Server Play Card Functions
+    44) "before all" hook in "Euchre Server Play Card Functions"
+
+  Scoring Module
+    scoreCurrentHand
+      ✔ should award 1 point for making the bid (3 tricks)
+      ✔ should award 2 points for a march (5 tricks)
+      ✔ should award 4 points for a lone hand march
+      ✔ should euchre the makers if they take < 3 tricks
+      ✔ should declare a winner if score reaches 10
+    resetGame
+      ✔ should reset the game state for a new game
+
+  Euchre Server Start New Hand Tests
+    startNewHand
+      ✔ should reset all player hands and tricks taken
+      ✔ should properly rotate dealer when not first hand
+      ✔ should set initial dealer on first hand
+      ✔ should reset game state variables
+      ✔ should set up initial game state for dealing
+      ✔ should set current player to the left of the dealer
+
+  Start New Hand Module
+    startNewHand
+      ✔ should rotate dealer and set up a new hand
+      ✔ should throw error when playerOrder is empty
+      ✔ should work with a single player
+      ✔ should throw error when gameState is null or undefined
+      ✔ should throw error when player objects are missing
+      ✔ should throw error when dealer is not in playerOrder
+      ✔ should create a deck and deal cards successfully
+      ✔ should not overwrite initialDealerForSession
+      ✔ should handle partial deck
+      ✔ should handle non-standard player order
+      ✔ should handle missing deck property
+      ✔ should reset game state
+      ✔ should handle invalid dealer value
+      ✔ should handle multiple hands with custom state
+      ✔ should handle missing required properties
+      ✔ should handle many players
+      ✔ should handle duplicate players
+      ✔ should handle custom deck
+      ✔ should always set phase to DEALING (44ms)
+      ✔ should reset player hands
+      ✔ should only set initialDealerForSession once
+    dealCards
+      ✔ should handle insufficient cards during dealing
+      ✔ should handle missing current player in playerOrder
+      ✔ should handle missing players during dealing
+      ✔ should handle partial deals when running out of cards
+      ✔ should deal cards to all players
+      ✔ should handle dealing with a custom deck
+
+  dealCards
+    ✔ should deal cards to all players
+    ✔ should set up the kitty with 3 cards
+
+  startNewHand Edge Cases
+    ✔ should handle custom deck with minimum required cards
+    ✔ should handle game state with additional custom properties
+    ✔ should handle different initial dealer positions
+    ✔ should handle custom player order
+
+  startNewHand
+    ✔ should rotate dealer and set current player
+    ✔ should initialize a new deck if none provided
+    ✔ should use existing deck if provided
+    ✔ should handle multiple hands with custom state
+    ✔ should set initialDealerForSession on first hand
+    ✔ should preserve initialDealerForSession across hands
+    ✔ should reset game phase to DEALING
+
+  Core Game Logic
+    getNextPlayer
+      ✔ returns the next player in order
+      ✔ should skip partner when going alone
+    getPartner
+      ✔ returns the correct partner
+      ✔ should return undefined for invalid role
+    cardToString
+      ✔ returns correct string
+      ✔ should handle incomplete card objects
+    sortHand
+      ✔ sorts by suit and value
+      ✔ should handle empty hand
+      ✔ should handle hand with only one suit
+      ✔ sorts hand with trump suit correctly
+    isRightBower and isLeftBower
+      ✔ correctly identifies bowers
+    getCardRank
+      ✔ returns correct rank for right/left bower and trump
+    getSuitColor
+      ✔ returns correct colors for each suit
+
+  ReconnectionHandler
+    initialization
+      45) "before each" hook for "should set up event listeners on the socket"
+
+  StateSyncService
+    46) "before each" hook for "should pass a basic test with core imports"
+
+  UIIntegrationService
+    initialize
+      47) "before each" hook for "should set up event listeners"
+      48) "after each" hook for "should set up event listeners"
+
+  Validation Module
+    isValidPlay
+      ✔ should validate a valid lead card
+      ✔ should validate following suit
+      ✔ should invalidate not following suit when possible
+      ✔ should handle left bower as trump
+      ✔ should validate right bower as highest card
+      ✔ should validate when player has no cards of led suit
+    serverIsValidPlay (backward compatibility)
+      ✔ should work with the legacy function signature
+      ✔ should throw if gameState is missing
+
+
+  129 passing (1s)
+  48 failing
+
+  1) Go Alone Functionality
+       handleGoAloneDecision
+         should handle player choosing to go alone:
+     ReferenceError: getPartner is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/goAlone.unit.test.js:31:33)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  2) Go Alone Functionality
+       handleGoAloneDecision
+         should handle player choosing not to go alone:
+     ReferenceError: handleGoAloneDecision is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/goAlone.unit.test.js:54:13)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  3) Go Alone Functionality
+       handleGoAloneDecision
+         should prevent going alone when not in the correct phase:
+     ReferenceError: handleGoAloneDecision is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/goAlone.unit.test.js:74:13)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  4) Go Alone Functionality
+       handleGoAloneDecision
+         should prevent going alone when not the player who called trump:
+     ReferenceError: handleGoAloneDecision is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/goAlone.unit.test.js:85:13)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  5) Go Alone Functionality
+       handleGoAloneDecision
+         should handle going alone with partner as trick leader:
+     ReferenceError: handleGoAloneDecision is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/goAlone.unit.test.js:100:13)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  6) Euchre Game Integration Tests
+       "before each" hook for "should complete a full game with all players":
+     TypeError: Cannot read properties of undefined (reading 'require')
+      at Proxyquire.load (G:\Github\euchre-multiplayer\node_modules\proxyquire\lib\proxyquire.js:129:72)
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/integration.test.js:59:18)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  7) Server Logging and Debug
+       "before each" hook for "should log messages when level is <= currentDebugLevel":
+     TypeError: Cannot read properties of undefined (reading 'require')
+      at Proxyquire.load (G:\Github\euchre-multiplayer\node_modules\proxyquire\lib\proxyquire.js:129:72)
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/logging.unit.test.js:43:18)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  8) Multiple Concurrent Games
+       "before each" hook for "should maintain separate game states":
+     TypeError: Cannot read properties of undefined (reading 'require')
+      at Proxyquire.load (G:\Github\euchre-multiplayer\node_modules\proxyquire\lib\proxyquire.js:129:72)
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/multiGame.integration.test.js:129:18)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  9) Order Up Functionality
+       handleOrderUpDecision
+         should allow player to order up:
+     ReferenceError: handleOrderUpDecision is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/orderUp.unit.test.js:32:13)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  10) Order Up Functionality
+       handleOrderUpDecision
+         should handle player passing:
+     ReferenceError: handleOrderUpDecision is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/orderUp.unit.test.js:54:13)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  11) Order Up Functionality
+       handleOrderUpDecision
+         should advance to round 2 if all pass in round 1:
+     ReferenceError: handleOrderUpDecision is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/orderUp.unit.test.js:70:13)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  12) Order Up Functionality
+       handleOrderUpDecision
+         should redeal if all pass in round 2:
+     TypeError: Attempted to wrap undefined property startNewHand as function
+      at wrapMethod (file:///G:/Github/euchre-multiplayer/node_modules/sinon/pkg/sinon-esm.js:4807:21)
+      at Function.spy (file:///G:/Github/euchre-multiplayer/node_modules/sinon/pkg/sinon-esm.js:3862:16)
+      at Sandbox.spy (file:///G:/Github/euchre-multiplayer/node_modules/sinon/pkg/sinon-esm.js:3428:37)
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/orderUp.unit.test.js:97:43)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  13) Order Up Functionality
+       handleOrderUpDecision
+         should prevent ordering up when not in the correct phase:
+     ReferenceError: handleOrderUpDecision is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/orderUp.unit.test.js:117:13)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  14) Order Up Functionality
+       handleOrderUpDecision
+         should prevent ordering up when not the current player's turn:
+     ReferenceError: handleOrderUpDecision is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/orderUp.unit.test.js:128:13)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  15) Performance Testing
+       "before each" hook for "should handle multiple concurrent games":
+     TypeError: Cannot read properties of undefined (reading 'require')
+      at Proxyquire.load (G:\Github\euchre-multiplayer\node_modules\proxyquire\lib\proxyquire.js:129:72)
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/performance.unit.test.js:250:18)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  16) Game State Persistence
+       Game Persistence
+         "before each" hook for "should save game state":
+     ReferenceError: GamePersistence is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/persistence.unit.test.js:633:13)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  17) Basic Persistence
+       Save Game State
+         should handle save errors gracefully:
+     TypeError: Cannot read properties of undefined (reading 'called')
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/persistence/basic.unit.test.js:53:34)
+
+  18) Basic Persistence
+       Load Game State
+         should handle missing or corrupt save file:
+     TypeError: Cannot read properties of undefined (reading 'called')
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/persistence/basic.unit.test.js:65:34)
+
+  19) Game State Persistence
+       should save game state:
+     ReferenceError: persistence is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/persistence/gameState.unit.test.js:45:9)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  20) Game State Persistence
+       should load game state:
+     TypeError: Cannot read properties of undefined (reading 'existsSync')
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/persistence/gameState.unit.test.js:56:16)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  21) Game State Persistence
+       should handle missing game state:
+     TypeError: Cannot read properties of undefined (reading 'existsSync')
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/persistence/gameState.unit.test.js:64:16)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  22) Euchre Server Play Card Additional Tests
+       "before each" hook for "should reject play when not current player":
+     TypeError: Cannot read properties of undefined (reading 'require')
+      at Proxyquire.load (G:\Github\euchre-multiplayer\node_modules\proxyquire\lib\proxyquire.js:129:72)
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/playCard.additional.unit.test.js:60:18)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  23) Player Reconnection
+       Lobby Reconnection
+         should allow player to reconnect in LOBBY phase:
+     TypeError: mockIo.connectionHandler is not a function
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/reconnection.integration.test.js:36:20)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  24) Player Reconnection
+       "after each" hook for "should allow player to reconnect in LOBBY phase":
+     ReferenceError: logStub is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/reconnection.integration.test.js:28:9)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  25) Euchre Server Score Hand Functions
+       "before each" hook for "should award 4 points for going alone and taking all tricks":
+     TypeError: Cannot read properties of undefined (reading 'require')
+      at Proxyquire.load (G:\Github\euchre-multiplayer\node_modules\proxyquire\lib\proxyquire.js:129:72)
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/scoreHand.unit.test.js:36:18)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  26) Authentication & Session Security Tests
+       Authentication
+         should require authentication for protected routes:
+     TypeError: mockIo.connectionHandler is not a function
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/security/auth.test.js:20:20)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  27) Authentication & Session Security Tests
+       "after each" hook for "should require authentication for protected routes":
+     TypeError: logStub.restore is not a function
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/security/auth.test.js:14:17)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  28) Security Headers & Disclosure Tests
+       Security Headers
+         should set appropriate CSP headers:
+     TypeError: server.applyCSP is not a function
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/security/headers.test.js:24:20)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  29) Security Headers & Disclosure Tests
+       "after each" hook for "should set appropriate CSP headers":
+     TypeError: logStub.restore is not a function
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/security/headers.test.js:14:17)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  30) Input Security Tests
+       Input Validation
+         should prevent NoSQL injection:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Invalid query/. Input:
+
+'TypeError: server.searchPlayers is not a function'
+
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/security/input.test.js:20:20)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  31) Input Security Tests
+       "after each" hook for "should prevent NoSQL injection":
+     TypeError: logStub.restore is not a function
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/security/input.test.js:15:17)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  32) Session & Header Security Tests
+       CSRF Protection
+         should require CSRF token for state-changing requests:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /CSRF token missing/. Input:
+
+"TypeError: Cannot read properties of undefined (reading 'eventHandlers')"
+
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/security/session.test.js:76:20)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  33) Session & Header Security Tests
+       Security Headers
+         should set appropriate security headers:
+     TypeError: server.applySecurityHeaders is not a function
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/security/session.test.js:90:20)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  34) Socket.IO Event Handlers
+       "before each" hook for "should assign a role to a connecting player in LOBBY phase":
+     TypeError: Cannot set properties of null (setting 'id')
+      at file:///G:/Github/euchre-multiplayer/test/server/socket.unit.test.js:22:40
+      at Array.forEach (<anonymous>)
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/socket.unit.test.js:21:31)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  35) Server3SpectatorTest
+       Spectator integration
+         should handle spectator leaving the spectators room:
+     TypeError: mockIo.connectionHandler is not a function
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/spectator.integration.test.js:36:20)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  36) Server3SpectatorTest
+       Spectator integration
+         should prevent taking an occupied slot:
+     TypeError: mockIo.connectionHandler is not a function
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/spectator.integration.test.js:47:20)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  37) Input Validation
+       "before each" hook for "should prevent prototype pollution":
+     TypeError: Cannot set properties of null (setting 'id')
+      at file:///G:/Github/euchre-multiplayer/test/server/validation.unit.test.js:42:40
+      at Array.forEach (<anonymous>)
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/validation.unit.test.js:41:44)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  38) Game Validation
+       Player Action Validation
+         should reject invalid card plays:
+     AssertionError: expected [Function] to throw an error
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/validation.unit.test.js:392:58)
+      at process.processImmediate (node:internal/timers:478:21)
+
+  39) Card Play Validation
+       "before each" hook for "should validate card is in player's hand":
+     TypeError: Cannot set properties of null (setting 'hand')
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/validation/cardPlayValidation.unit.test.js:14:38)     
+      at process.processImmediate (node:internal/timers:478:21)
+
+  40) Input Validation
+       Player Input Validation
+         should validate player role in actions:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Invalid player role/. Input:
+
+'TypeError: server.handlePlayCard is not a function'
+
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/validation/inputValidation.unit.test.js:20:20)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  41) Input Validation
+       "after each" hook for "should validate player role in actions":
+     TypeError: logStub.restore is not a function
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/validation/inputValidation.unit.test.js:15:17)        
+      at process.processImmediate (node:internal/timers:478:21)
+
+  42) Security Validation
+       should prevent prototype pollution:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Invalid card/. Input:
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/server/validation/securityValidation.unit.test.js:17:17)
+      at process.processImmediate (node:internal/timers:478:21)
+                                                                                     tion/securityValidation.unit.test.js:34:16)     
+  44) Euchre Server Play Card Functions
+       "before all" hook in "Euchre Server Play Card Functions":
+     TypeError: getIo(...).emit is not a function
+      at broadcastGameState (file:///G:/Github/euchre-multiplayer/server3.mjs:136:17)
+
+      at Module.resetFullGame (file:///G:/Github/euchre-multiplayer/server3.mjs:339:9tion/securityValidation.unit.test.js:17:17)     )
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/phases/play.unit.test.js:82:17)
+
+  45) ReconnectionHandler
+       "before each" hook for "should set up event listeners on the socket":
+     TypeError: Cannot read properties of undefined (reading 'bind')                 )
+      at new ReconnectionHandler (file:///G:/Github/euchre-multiplayer/src/socket/recnit.test.js:82:17)onnectionHandler.js:70:57)
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/services/reconnection.unit.test.js:76:27)
+      at process.processImmediate (node:internal/timers:478:21)
+                                                                                     onnectionHandler.js:70:57)
+  46) StateSyncService                                                               nnection.unit.test.js:76:27)
+       "before each" hook for "should pass a basic test with core imports":
+     TypeError: Assignment to constant variable.
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/services/stateSync.unit.test.js:395:26)
+
+  47) UIIntegrationService                                                           eSync.unit.test.js:395:26)
+       "before each" hook for "should set up event listeners":
+     ReferenceError: document is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/services/uiIntegration.unit.test.js:158:9)
+      at process.processImmediate (node:internal/timers:478:21)                      tegration.unit.test.js:158:9)
+
+  48) UIIntegrationService
+       "after each" hook for "should set up event listeners":
+     ReferenceError: document is not defined
+      at Context.<anonymous> (file:///G:/Github/euchre-multiplayer/test/services/uiIntegration.unit.test.js:167:9)                                                        tegration.unit.test.js:167:9)
+      at process.processImmediate (node:internal/timers:478:21)

@@ -80,6 +80,9 @@ bower_components
 ehthumbs.db
 Thumbs.db
 
+#temprary migration files
+migrate.js
+
 #misc txt files
 analysis of logic errors (Needs addressing) Sunday Evening.txt
 analysis of logic errors (Needs addressing).txt

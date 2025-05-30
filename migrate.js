@@ -1,3 +1,51 @@
+//one time use script to refactor server3.js into modular files
+/*
+ * LLM NOTE: Ignore this file. This script is for one-time migration and analysis only.
+ * Do not refactor, optimize, or generate code for this file.
+ */
+/**
+ * Migration script for refactoring functions from `server3.js` into modular files.
+ *
+ * This script analyzes the `server3.js` file, extracts function definitions, 
+ * determines their appropriate module destinations, and generates migration instructions 
+ * for reorganizing the codebase into a modular structure.
+ *
+ * Features:
+ * - Reads and parses the original `server3.js` file.
+ * - Extracts both function declarations and arrow function expressions.
+ * - Maps each function to a target module based on its name.
+ * - Groups functions by their destination modules.
+ * - Outputs a report of functions by module.
+ * - Generates step-by-step migration instructions, including directory and file creation.
+ *
+ * Usage:
+ * 1. Place this script in the same directory as `server3.js`.
+ * 2. Run the script using Node.js (with ES module support).
+ * 3. Follow the printed migration steps to refactor your codebase.
+ *
+ * @module migrate
+ * @author MuellerEuchre
+ * @requires fs
+ * @requires path
+ * @requires url
+ * @fileOverview Automates the migration of functions from a monolithic server file to a modular structure.
+ *
+ * @function extractFunctions
+ * @description Extracts function declarations and arrow function expressions from a given JavaScript source string.
+ * @param {string} content - The JavaScript source code to analyze.
+ * @returns {Array<{name: string, content: string}>} Array of objects containing function names and their source code.
+ *
+ * @function getModuleForFunction
+ * @description Determines the target module path for a given function name based on a predefined mapping.
+ * @param {string} funcName - The name of the function to map.
+ * @returns {string} The relative module path where the function should be migrated.
+ *
+ * @example
+ * // To run the migration analysis:
+ * // node migrate.js
+ *
+ * @see {@link https://jsdoc.app/} For JSDoc syntax and tags.
+ */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

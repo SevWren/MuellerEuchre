@@ -14,11 +14,13 @@
 
 6. External docs search (🔍 Context7 and official docs) when syntax is uncertain  
 
+7.  THE ENTIRE Contents of existing files.  Read the ENTIRE FILE LINE BY LINE.  DO NOT MAKE ASSUMPTIONS.
+
 ---
 
 ## Workflow
 
-1. **Analyse** context & requirements.  
+1. **Analyse** context & requirements.  Analayze THE ENTIRE FILE LINE BY LINE.  
 
 2. **Plan** — outline changes as a Markdown *Task List* (\- [ ]`) so items can be checked off.`  
 
@@ -37,7 +39,7 @@
 
 - Search the codebase before creating a new file to avoid duplicates.  
 
-- **Any source-code file ≥ 750 lines must be split into modules/helpers.**  
+- **Any source-code file ≥ 500 lines must be split into modules/helpers.**  
 
 - **Prefer files under 500 lines and 80 columns where practical.**  
 

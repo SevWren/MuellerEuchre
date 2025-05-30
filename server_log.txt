@@ -2766,3 +2766,2169 @@
 [WARNING] Created a new deck
 [WARNING] Deck shuffled
 [INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [startNewGame] Starting a new game
+[INFO] [handleGoAloneDecision] east is going alone
+[INFO] [handleGoAloneDecision] east will play with partner
+[INFO] [handleGoAloneDecision] east is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by east
+[INFO] [handleGoAloneDecision] north is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by north
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] south passed
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleDealerDiscard] south discarding a card
+[INFO] [handleCallTrumpDecision] east called spades
+[INFO] [handleCallTrumpDecision] east called diamonds
+[INFO] [handleCallTrumpDecision] east passed
+[INFO] [handleCallTrumpDecision] south passed
+[INFO] [handleCallTrumpDecision] west passed
+[INFO] [handleCallTrumpDecision] north passed
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] north playing Q of clubs
+[INFO] [handlePlayCard] east playing 10 of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing A of spades
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing A of hearts
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing J of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of hearts
+[INFO] [handlePlayCard] north playing Q of hearts
+[INFO] [handlePlayCard] east playing J of hearts
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [resetGame] Resetting game
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: east
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: north
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: player1
+[INFO] [startNewHand] New hand started. Dealer: player1, First player: player2, Reset 10 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: west for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: west, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: west
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: east, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [startNewGame] Starting a new game
+[INFO] [handleGoAloneDecision] east is going alone
+[INFO] [handleGoAloneDecision] east will play with partner
+[INFO] [handleGoAloneDecision] east is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by east
+[INFO] [handleGoAloneDecision] north is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by north
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] south passed
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleDealerDiscard] south discarding a card
+[INFO] [handleCallTrumpDecision] east called spades
+[INFO] [handleCallTrumpDecision] east called diamonds
+[INFO] [handleCallTrumpDecision] east passed
+[INFO] [handleCallTrumpDecision] south passed
+[INFO] [handleCallTrumpDecision] west passed
+[INFO] [handleCallTrumpDecision] north passed
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] north playing Q of clubs
+[INFO] [handlePlayCard] east playing 10 of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing A of spades
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing A of hearts
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing J of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of hearts
+[INFO] [handlePlayCard] north playing Q of hearts
+[INFO] [handlePlayCard] east playing J of hearts
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [resetGame] Resetting game
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: east
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: north
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: player1
+[INFO] [startNewHand] New hand started. Dealer: player1, First player: player2, Reset 10 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: west for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: west, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: west
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: east, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [startNewGame] Starting a new game
+[INFO] [handleGoAloneDecision] east is going alone
+[INFO] [handleGoAloneDecision] east will play with partner
+[INFO] [handleGoAloneDecision] east is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by east
+[INFO] [handleGoAloneDecision] north is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by north
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] south passed
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleDealerDiscard] south discarding a card
+[INFO] [handleCallTrumpDecision] east called spades
+[INFO] [handleCallTrumpDecision] east called diamonds
+[INFO] [handleCallTrumpDecision] east passed
+[INFO] [handleCallTrumpDecision] south passed
+[INFO] [handleCallTrumpDecision] west passed
+[INFO] [handleCallTrumpDecision] north passed
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] north playing Q of clubs
+[INFO] [handlePlayCard] east playing 10 of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing A of spades
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing A of hearts
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing J of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of hearts
+[INFO] [handlePlayCard] north playing Q of hearts
+[INFO] [handlePlayCard] east playing J of hearts
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [resetGame] Resetting game
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: east
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: north
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: player1
+[INFO] [startNewHand] New hand started. Dealer: player1, First player: player2, Reset 10 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: west for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: west, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: west
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: east, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [startNewGame] Starting a new game
+[INFO] [handleGoAloneDecision] east is going alone
+[INFO] [handleGoAloneDecision] east will play with partner
+[INFO] [handleGoAloneDecision] east is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by east
+[INFO] [handleGoAloneDecision] north is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by north
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] south passed
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleDealerDiscard] south discarding a card
+[INFO] [handleCallTrumpDecision] east called spades
+[INFO] [handleCallTrumpDecision] east called diamonds
+[INFO] [handleCallTrumpDecision] east passed
+[INFO] [handleCallTrumpDecision] south passed
+[INFO] [handleCallTrumpDecision] west passed
+[INFO] [handleCallTrumpDecision] north passed
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] north playing Q of clubs
+[INFO] [handlePlayCard] east playing 10 of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing A of spades
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing A of hearts
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing J of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of hearts
+[INFO] [handlePlayCard] north playing Q of hearts
+[INFO] [handlePlayCard] east playing J of hearts
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [resetGame] Resetting game
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: east
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: north
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: player1
+[INFO] [startNewHand] New hand started. Dealer: player1, First player: player2, Reset 10 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: west for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: west, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: west
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: east, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [startNewGame] Starting a new game
+[INFO] [handleGoAloneDecision] east is going alone
+[INFO] [handleGoAloneDecision] east will play with partner
+[INFO] [handleGoAloneDecision] east is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by east
+[INFO] [handleGoAloneDecision] north is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by north
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] south passed
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleDealerDiscard] south discarding a card
+[INFO] [handleCallTrumpDecision] east called spades
+[INFO] [handleCallTrumpDecision] east called diamonds
+[INFO] [handleCallTrumpDecision] east passed
+[INFO] [handleCallTrumpDecision] south passed
+[INFO] [handleCallTrumpDecision] west passed
+[INFO] [handleCallTrumpDecision] north passed
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] north playing Q of clubs
+[INFO] [handlePlayCard] east playing 10 of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing A of spades
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing A of hearts
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing J of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of hearts
+[INFO] [handlePlayCard] north playing Q of hearts
+[INFO] [handlePlayCard] east playing J of hearts
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [resetGame] Resetting game
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: east
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: north
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: player1
+[INFO] [startNewHand] New hand started. Dealer: player1, First player: player2, Reset 10 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: west for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: west, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: west
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: east, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [startNewGame] Starting a new game
+[INFO] [handleGoAloneDecision] east is going alone
+[INFO] [handleGoAloneDecision] east will play with partner
+[INFO] [handleGoAloneDecision] east is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by east
+[INFO] [handleGoAloneDecision] north is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by north
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] south passed
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleDealerDiscard] south discarding a card
+[INFO] [handleCallTrumpDecision] east called spades
+[INFO] [handleCallTrumpDecision] east called diamonds
+[INFO] [handleCallTrumpDecision] east passed
+[INFO] [handleCallTrumpDecision] south passed
+[INFO] [handleCallTrumpDecision] west passed
+[INFO] [handleCallTrumpDecision] north passed
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] north playing Q of clubs
+[INFO] [handlePlayCard] east playing 10 of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing A of spades
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing A of hearts
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing J of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of hearts
+[INFO] [handlePlayCard] north playing Q of hearts
+[INFO] [handlePlayCard] east playing J of hearts
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [resetGame] Resetting game
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: east
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: north
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: player1
+[INFO] [startNewHand] New hand started. Dealer: player1, First player: player2, Reset 10 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: west for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: west, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: west
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: east, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [startNewGame] Starting a new game
+[INFO] [handleGoAloneDecision] east is going alone
+[INFO] [handleGoAloneDecision] east will play with partner
+[INFO] [handleGoAloneDecision] east is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by east
+[INFO] [handleGoAloneDecision] north is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by north
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] south passed
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleDealerDiscard] south discarding a card
+[INFO] [handleCallTrumpDecision] east called spades
+[INFO] [handleCallTrumpDecision] east called diamonds
+[INFO] [handleCallTrumpDecision] east passed
+[INFO] [handleCallTrumpDecision] south passed
+[INFO] [handleCallTrumpDecision] west passed
+[INFO] [handleCallTrumpDecision] north passed
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] north playing Q of clubs
+[INFO] [handlePlayCard] east playing 10 of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing A of spades
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing A of hearts
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing J of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of hearts
+[INFO] [handlePlayCard] north playing Q of hearts
+[INFO] [handlePlayCard] east playing J of hearts
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [resetGame] Resetting game
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: east
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: north
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: player1
+[INFO] [startNewHand] New hand started. Dealer: player1, First player: player2, Reset 10 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: west for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: west, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: west
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: east, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [handleEndOfHand] Processing end of hand
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [endGame] Game over! north+south wins!
+[INFO] [checkGameOver] Checking for game over condition
+[INFO] [startNewGame] Starting a new game
+[INFO] [handleGoAloneDecision] east is going alone
+[INFO] [handleGoAloneDecision] east will play with partner
+[INFO] [handleGoAloneDecision] east is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by east
+[INFO] [handleGoAloneDecision] north is going alone
+[WARNING] [handleGoAloneDecision] Invalid go alone attempt by north
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] east passed
+[INFO] [handleOrderUpDecision] south passed
+[INFO] [handleOrderUpDecision] east ordered up
+[INFO] [handleDealerDiscard] south discarding a card
+[INFO] [handleCallTrumpDecision] east called spades
+[INFO] [handleCallTrumpDecision] east called diamonds
+[INFO] [handleCallTrumpDecision] east passed
+[INFO] [handleCallTrumpDecision] south passed
+[INFO] [handleCallTrumpDecision] west passed
+[INFO] [handleCallTrumpDecision] north passed
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] north playing Q of clubs
+[INFO] [handlePlayCard] east playing 10 of hearts
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing A of spades
+[INFO] [handlePlayCard] west playing K of clubs
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing A of hearts
+[INFO] [handlePlayCard] south playing J of diamonds
+[INFO] [handlePlayCard] west playing J of hearts
+[INFO] [handlePlayCard] south playing A of hearts
+[INFO] [handlePlayCard] west playing K of hearts
+[INFO] [handlePlayCard] north playing Q of hearts
+[INFO] [handlePlayCard] east playing J of hearts
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [scoreCurrentHand] Calculating hand scores
+[INFO] [resetGame] Resetting game
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: east
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: west for first hand
+[INFO] [startNewHand] New hand started. Dealer: west, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[INFO] [startNewHand] New hand started. Dealer: south, First player: east, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: east
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: east
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: north
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 1 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: player1
+[INFO] [startNewHand] New hand started. Dealer: player1, First player: player2, Reset 10 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[INFO] [startNewHand] New hand started. Dealer: north, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [dealCards] Starting to deal cards
+[INFO] [dealCards] Set up card: Q of hearts
+[INFO] [dealCards] Completed dealing cards
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: east
+[INFO] [startNewHand] Rotated dealer to: south for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: west for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: west, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: west
+[INFO] [startNewHand] Rotated dealer to: north for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: north, First player: east, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: south
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: north, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] Rotated dealer to: south
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: south, First player: west, Reset 4 players
+[INFO] [startNewHand] Starting new hand...
+[INFO] [startNewHand] First hand of session. Setting initial dealer to: north
+[INFO] [startNewHand] Rotated dealer to: east for first hand
+[WARNING] Created a new deck
+[WARNING] Deck shuffled
+[INFO] [startNewHand] New hand started. Dealer: east, First player: south, Reset 4 players

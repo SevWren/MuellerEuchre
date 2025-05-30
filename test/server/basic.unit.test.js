@@ -18,12 +18,41 @@
 
 import { expect } from 'chai';
 import { createTestServer } from './test-utils.js';
+import { createDeck, shuffleDeck } from '../../server3.mjs';
+
+// Define constants used by deck functions
+const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
+const VALUES = ['9', '10', 'J', 'Q', 'K', 'A'];
+
+// Add them to the global scope for the imported functions
+if (typeof global !== 'undefined') {
+    global.SUITS = SUITS;
+    global.VALUES = VALUES;
+}
+
+// Mock the log function to prevent errors
+global.log = (level, message) => {
+    // No-op for tests
+};
 
 describe('server3.mjs - Basic Functionality', function() {
     let server, gameState;
 
     beforeEach(() => {
-        ({ server, gameState } = createTestServer());
+        try {
+            console.log('Before createTestServer');
+            const result = createTestServer();
+            console.log('After createTestServer', Object.keys(result));
+            ({ server, gameState } = result);
+            console.log('After destructuring', { 
+                server: !!server, 
+                gameState: !!gameState,
+                gameStateKeys: gameState ? Object.keys(gameState) : 'undefined'
+            });
+        } catch (error) {
+            console.error('Error in beforeEach:', error);
+            throw error;
+        }
     });
 
     describe('Game Initialization', () => {
@@ -39,7 +68,7 @@ describe('server3.mjs - Basic Functionality', function() {
 
     describe('Deck Functions', () => {
         it('should create a standard Euchre deck', () => {
-            const deck = server3.createDeck();
+            const deck = createDeck();
             expect(deck).to.be.an('array').with.lengthOf(24); // 6 cards * 4 suits = 24 cards
             
             // Check for all suits and values
@@ -51,8 +80,8 @@ describe('server3.mjs - Basic Functionality', function() {
         });
 
         it('should shuffle the deck', () => {
-            const originalDeck = [...server3.createDeck()];
-            const shuffledDeck = server3.shuffleDeck([...originalDeck]);
+            const originalDeck = [...createDeck()];
+            const shuffledDeck = shuffleDeck([...originalDeck]);
             
             // Check that all cards are still present
             expect(shuffledDeck).to.have.lengthOf(originalDeck.length);

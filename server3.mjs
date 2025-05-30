@@ -51,13 +51,26 @@ let gameState = {};
 
 // Utility/game logic functions migrated from server3.js
 
-function addGameMessage(message, important = false) {
-    const timestamp = new Date().toLocaleTimeString();
-    log(DEBUG_LEVELS.VERBOSE, `[GAME MSG] ${message}`);
-    gameState.gameMessages.unshift({ text: message, timestamp, important });
-    if (gameState.gameMessages.length > 15) {
-        gameState.gameMessages.pop();
+function addGameMessage(message, state = gameState) {
+    if (!state) {
+        console.error('addGameMessage: No state provided');
+        return;
     }
+    
+    // Initialize messages array if it doesn't exist
+    if (!Array.isArray(state.gameMessages)) {
+        state.gameMessages = [];
+    }
+    
+    const timestamp = new Date().toLocaleTimeString();
+    const important = false;
+    state.gameMessages.unshift({ text: message, timestamp, important });
+    
+    // Keep only the last 15 messages
+    if (state.gameMessages.length > 15) {
+        state.gameMessages = state.gameMessages.slice(0, 15);
+    }
+    log(DEBUG_LEVELS.VERBOSE, `[GAME MSG] ${message}`);
 }
 
 function getPlayerBySocketId(socketId) {
@@ -368,67 +381,115 @@ function handleOrderUpDecision(playerRole, orderedUp) {
     broadcastGameState();
 }
 
-function handleDealerDiscard(dealerRole, cardToDiscard) {
-    log(DEBUG_LEVELS.INFO, `Dealer ${dealerRole} discarding card: ${cardToDiscard}`);
-
-    // Check if we're in the correct phase
-    if (gameState.gamePhase !== 'AWAITING_DEALER_DISCARD') {
-        log(DEBUG_LEVELS.WARNING, `Invalid phase for dealer discard: ${gameState.gamePhase}`);
-        if (getIo()) {
-            getIo().to(gameState.players[dealerRole]?.id).emit('action_error', 'Cannot discard in current phase');
-        }
+function handleDealerDiscard(dealerRole, cardToDiscard, state = gameState) {
+    // Add null check for state
+    if (!state) {
+        log(DEBUG_LEVELS.WARNING, '[handleDealerDiscard] State is undefined');
         return false;
     }
 
-    // Validate that this is actually the dealer's turn
-    if (dealerRole !== gameState.dealer || dealerRole !== gameState.currentPlayer) {
-        log(DEBUG_LEVELS.WARNING, `Invalid discard attempt: ${dealerRole} is not the current dealer`);
-        if (getIo() && gameState.players[dealerRole]?.id) {
-            getIo().to(gameState.players[dealerRole].id).emit('action_error', 'Only the dealer can discard at this time');
+    log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Entry - dealerRole: ${dealerRole}, cardToDiscard: ${JSON.stringify(cardToDiscard)}`);
+    log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Current gamePhase: ${state.gamePhase}, currentPlayer: ${state.currentPlayer}, dealer: ${state.dealer}`);
+
+    // Check if we're in the correct phase
+    if (state.gamePhase !== 'AWAITING_DEALER_DISCARD') {
+        const errorMsg = `Invalid phase for dealer discard. Expected: AWAITING_DEALER_DISCARD, Actual: ${state.gamePhase || 'undefined'}`;
+        log(DEBUG_LEVELS.WARNING, `[handleDealerDiscard] ${errorMsg}`);
+        const io = this?.getIo ? this.getIo() : getIo();
+        if (io && state.players && state.players[dealerRole]?.id) {
+            io.to(state.players[dealerRole].id).emit('action_error', 'Cannot discard in current phase');
         }
+        log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Exiting with false - wrong phase`);
+        return false;
+    }
+
+    // Verify the player is the dealer and it's their turn
+    log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Validating dealer role - Dealer: ${state.dealer}, Current Player: ${state.currentPlayer}, Caller: ${dealerRole}`);
+    if (dealerRole !== state.dealer || dealerRole !== state.currentPlayer) {
+        const errorMsg = `Invalid discard attempt: ${dealerRole} is not the current dealer (dealer: ${state.dealer}, current: ${state.currentPlayer})`;
+        log(DEBUG_LEVELS.WARNING, `[handleDealerDiscard] ${errorMsg}`);
+        const io = this?.getIo ? this.getIo() : getIo();
+        if (io && state.players && state.players[dealerRole]?.id) {
+            io.to(state.players[dealerRole].id).emit('action_error', 'Only the dealer can discard at this time');
+        }
+        log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Exiting with false - not the dealer`);
         return false;
     }
 
     // Validate dealer exists and has exactly 6 cards
-    const player = gameState.players[dealerRole];
+    const player = state.players[dealerRole];
+    const handSize = player && Array.isArray(player.hand) ? player.hand.length : 'invalid';
+    log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Validating hand - Player exists: ${!!player}, Hand type: ${Array.isArray(player?.hand) ? 'array' : typeof player?.hand}, Hand size: ${handSize}`);
+    
     if (!player || !Array.isArray(player.hand) || player.hand.length !== 6) {
-        const errorMsg = `Invalid discard by dealer ${dealerRole}: Must have exactly 6 cards to discard`;
-        log(DEBUG_LEVELS.WARNING, errorMsg);
-        if (getIo() && player?.id) {
-            getIo().to(player.id).emit('action_error', errorMsg);
+        const errorMsg = `Invalid discard by dealer ${dealerRole}: Must have exactly 6 cards to discard (has ${handSize} cards)`;
+        log(DEBUG_LEVELS.WARNING, `[handleDealerDiscard] ${errorMsg}`);
+        const io = this?.getIo ? this.getIo() : getIo();
+        if (io && player?.id) {
+            io.to(player.id).emit('action_error', errorMsg);
         }
+        log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Exiting with false - invalid hand`);
         return false;
     }
 
-    // Find the card in the dealer's hand
-    const discardedCard = player.hand.find(card => card.id === cardToDiscard.id);
-    if (!discardedCard) {
-        const errorMsg = 'Cannot discard a card that is not in your hand';
-        log(DEBUG_LEVELS.WARNING, `Invalid discard by dealer ${dealerRole}: Card not in hand`);
-        if (getIo() && player.id) {
-            getIo().to(player.id).emit('action_error', errorMsg);
+    // Find the card in the player's hand
+    log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Looking for card: ${JSON.stringify(cardToDiscard)}`);
+    log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Player hand: ${JSON.stringify(player.hand.map(c => ({id: c.id, suit: c.suit, value: c.value})))}`);
+    const cardIndex = player.hand.findIndex(card => 
+        card.id === cardToDiscard.id && 
+        card.suit === cardToDiscard.suit && 
+        card.value === cardToDiscard.value
+    );
+
+    if (cardIndex === -1) {
+        log(DEBUG_LEVELS.WARNING, `[handleDealerDiscard] Card not found in player's hand`);
+        const io = this?.getIo ? this.getIo() : getIo();
+        if (io && state.players && state.players[dealerRole]?.id) {
+            io.to(state.players[dealerRole].id).emit('action_error', 'Card not found in hand');
         }
+        log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Exiting with false - card not found`);
         return false;
     }
 
-    // Remove the discarded card from the player's hand
-    player.hand = player.hand.filter(card => card.id !== cardToDiscard.id);
-    gameState.dealerHasDiscarded = true;
+    try {
+        // Remove the discarded card from the player's hand
+        const initialHandSize = player.hand.length;
+        const [discardedCard] = player.hand.splice(cardIndex, 1);
+        state.dealerHasDiscarded = true;
+        log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Card removed from hand. Hand size before: ${initialHandSize}, after: ${player.hand.length}`);
 
-    // Add the discarded card to the kitty
-    gameState.kitty = gameState.kitty || [];
-    gameState.kitty.push(discardedCard);
+        // Move the card to the kitty
+        state.kitty = state.kitty || [];
+        state.kitty.push(discardedCard);
+        log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Card added to kitty. Kitty size: ${state.kitty.length}`);
 
-    // Move to next phase and update current player
-    gameState.gamePhase = 'AWAITING_GO_ALONE';
-    gameState.currentPlayer = gameState.playerWhoCalledTrump;
+        // Move to next phase and update current player
+        state.gamePhase = 'AWAITING_GO_ALONE';
+        state.currentPlayer = state.playerWhoCalledTrump;
 
-    // Add game message
-    const nextPlayer = gameState.players[gameState.playerWhoCalledTrump];
-    addGameMessage(`${player.name} has discarded. Asking ${nextPlayer.name} if they want to go alone.`);
+        // Add game message
+        const nextPlayer = state.players[state.playerWhoCalledTrump];
+        const message = `${player.name} has discarded. Asking ${nextPlayer?.name || 'unknown player'} if they want to go alone.`;
+        log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] ${message}`);
+        addGameMessage(message);
 
-    broadcastGameState();
-    return true;
+        log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Broadcasting game state update`);
+        if (state === gameState) {
+            broadcastGameState();
+        } else {
+            log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Skipping broadcast - using test state`);
+        }
+        log(DEBUG_LEVELS.INFO, `[handleDealerDiscard] Successfully completed, returning true`);
+        return true;
+    } catch (error) {
+        log(DEBUG_LEVELS.WARNING, `[handleDealerDiscard] Error during discard processing: ${error.message}`);
+        log(DEBUG_LEVELS.INFO, error.stack);
+        const io = this?.getIo ? this.getIo() : getIo();
+        if (io && player?.id) {
+            io.to(player.id).emit('action_error', 'An error occurred while processing your discard');
+        }
+        return false;
+    }
 }
 
 function handleCallTrumpDecision(playerRole, suitToCall) {

@@ -29,8 +29,9 @@
 
 import assert from 'assert';
 
-import { expect } from 'chai';
-import sinon from 'sinon';
+// Remove these unused imports
+//import { expect } from 'chai';
+//import sinon from 'sinon';
 import * as server3Module from '../../server3.mjs';
 
 // Debug configuration

@@ -22,6 +22,7 @@ const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
 const VALUES = ['9', '10', 'J', 'Q', 'K', 'A'];
 
 const DEBUG_LEVELS = {
+    ERROR: 0,
     INFO: 1,
     WARNING: 2,
     VERBOSE: 3,
@@ -47,7 +48,16 @@ function setDebugLevel(level) {
 }
 
 // Game state
-let gameState = {};
+let gameState = {
+    playerSlots: ['south', 'west', 'north', 'east'],
+    players: {
+        south: {},
+        west: {},
+        north: {},
+        east: {}
+    }
+    // ...other default properties can be added here if needed...
+};
 
 // Utility/game logic functions migrated from server3.js
 
@@ -368,6 +378,18 @@ function startNewHand() {
 }
 
 function handleOrderUpDecision(playerRole, orderedUp) {
+    // Debug: log current gameState and arguments
+    log(DEBUG_LEVELS.VERBOSE, `[handleOrderUpDecision] Called with playerRole=${playerRole}, orderedUp=${orderedUp}, gamePhase=${gameState.gamePhase}`);
+    if (!playerRole || typeof orderedUp !== 'boolean' || !gameState.players || !gameState.players[playerRole]) {
+        log(DEBUG_LEVELS.WARNING, `Invalid order up decision: playerRole=${playerRole}, orderedUp=${orderedUp}`);
+        return;
+    }
+    // --- PATCH: log error if gamePhase is invalid ---
+    if (!['ORDER_UP_ROUND1', 'ORDER_UP_ROUND2'].includes(gameState.gamePhase)) {
+        log(DEBUG_LEVELS.ERROR, `Error: Invalid game phase for order up decision: ${gameState.gamePhase}`);
+        return;
+    }
+    // ------------------------------------------------
     log(DEBUG_LEVELS.INFO, `Player ${playerRole} ordered up: ${orderedUp}`);
     if (orderedUp) {
         gameState.trump = gameState.upCard.suit;
@@ -493,6 +515,10 @@ function handleDealerDiscard(dealerRole, cardToDiscard, state = gameState) {
 }
 
 function handleCallTrumpDecision(playerRole, suitToCall) {
+    if (!playerRole || !suitToCall || !gameState.players || !gameState.players[playerRole]) {
+        log(DEBUG_LEVELS.WARNING, `Invalid call trump decision: playerRole=${playerRole}, suitToCall=${suitToCall}`);
+        return;
+    }
     log(DEBUG_LEVELS.INFO, `Player ${playerRole} called trump: ${suitToCall}`);
     const player = gameState.players[playerRole];
     if (!player || player.hasCalledTrump) {
@@ -561,16 +587,28 @@ function serverIsValidPlay(playerRole, cardToPlay) {
 }
 
 function handlePlayCard(playerRole, cardToPlay) {
-    log(DEBUG_LEVELS.INFO, `Player ${playerRole} played card: ${cardToPlay}`);
-    const player = gameState.players[playerRole];
-    if (!player || !player.hand.find(card => card.id === cardToPlay)) {
-        log(DEBUG_LEVELS.WARNING, `Invalid play by player ${playerRole}: ${cardToPlay}`);
+    // Debug: log current gameState and arguments
+    log(DEBUG_LEVELS.VERBOSE, `[handlePlayCard] Called with playerRole=${playerRole}, cardToPlay=${JSON.stringify(cardToPlay)}, gamePhase=${gameState.gamePhase}`);
+    if (!playerRole || !cardToPlay || !gameState.players || !gameState.players[playerRole]) {
+        log(DEBUG_LEVELS.WARNING, `Invalid play attempt: playerRole=${playerRole}, cardToPlay=${JSON.stringify(cardToPlay)}`);
         return;
     }
+    log(DEBUG_LEVELS.INFO, `Player ${playerRole} played card: ${JSON.stringify(cardToPlay)}`);
+    if (!['PLAY', 'PLAYING_TRICKS'].includes(gameState.gamePhase)) {
+        log(DEBUG_LEVELS.WARNING, `Invalid play attempt: Not in playing phase (current phase: ${gameState.gamePhase})`);
+        return;
+    }
+    const player = gameState.players[playerRole];
+    // --- PATCH: log "Invalid card play" if card not in hand ---
+    if (!player || !player.hand || !player.hand.find(card => card.id === cardToPlay.id)) {
+        log(DEBUG_LEVELS.WARNING, `Invalid card play: Player ${playerRole} does not have card ${JSON.stringify(cardToPlay)}`);
+        return;
+    }
+    // -----------------------------------------------------------
 
     // If it's the first play of the trick, any card can be played
     if (gameState.currentTrickPlays.length === 0) {
-        gameState.currentTrickPlays.push(player.hand.find(card => card.id === cardToPlay));
+        gameState.currentTrickPlays.push(player.hand.find(card => card.id === cardToPlay.id));
         player.hasPlayed = true;
     } else {
         const ledSuit = gameState.currentTrickPlays[0].suit;
@@ -584,7 +622,7 @@ function handlePlayCard(playerRole, cardToPlay) {
             }
         } else {
             // If player has no cards of the led suit, they can play any card
-            gameState.currentTrickPlays.push(player.hand.find(card => card.id === cardToPlay));
+            gameState.currentTrickPlays.push(player.hand.find(card => card.id === cardToPlay.id));
             player.hasPlayed = true;
         }
     }

@@ -10,8 +10,8 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-// Import the module under test
-import StateSyncService from '../../src/client/services/stateSyncService.js';
+// Import the module under test using absolute path to avoid resolution issues
+import StateSyncService from 'file:///G:/Github/euchre-multiplayer/src/client/services/stateSyncService.js';
 
 /**
  * Storage keys used for local storage operations
@@ -390,8 +390,8 @@ describe('StateSyncService', function() {
         // Reset event handlers
         Object.keys(eventHandlers).forEach(key => delete eventHandlers[key]);
         
-        // Import the StateSyncService with proxyquire
-        const module = await import('../src/client/services/stateSyncService.js');
+        // Import the StateSyncService with absolute path to avoid resolution issues
+        const module = await import('file:///G:/Github/euchre-multiplayer/src/client/services/stateSyncService.js');
         StateSyncService = module.default;
         
         // Clear any previous test state

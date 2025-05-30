@@ -24,7 +24,13 @@ export class MockServer {
         this.fs = options.fs || createFsMock();
         this.gameState = options.initialState || {
             gamePhase: 'LOBBY',
-            players: {},
+            players: {
+                south: null,
+                west: null,
+                north: null,
+                east: null
+            },
+            playerSlots: ['south', 'west', 'north', 'east'],
             team1Score: 0,
             team2Score: 0,
             version: '1.0.0'
@@ -98,7 +104,13 @@ export class MockServer {
     resetGameState() {
         this.gameState = {
             gamePhase: 'LOBBY',
-            players: {},
+            players: {
+                south: null,
+                west: null,
+                north: null,
+                east: null
+            },
+            playerSlots: ['south', 'west', 'north', 'east'],
             team1Score: 0,
             team2Score: 0,
             version: '1.0.0'
@@ -115,21 +127,45 @@ export class MockServer {
 
 // Modify createTestServer to use MockServer
 export function createTestServer(options = {}) {
-    const logStub = sinon.stub(console, 'log');
+    console.log('Creating test server with options:', Object.keys(options));
+    
+    // Create a custom logger that also logs to console
+    const logStub = (...args) => {
+        console.log('[Test Logger]', ...args);
+    };
+    
+    // Create a mock file system
+    const fsMock = createFsMock();
+    console.log('Created fsMock');
+    
+    // Create mock IO
+    const ioMock = createMockIo();
+    console.log('Created ioMock');
+    
+    // Create the mock server
     const mockServer = new MockServer({
         ...options,
-        fs: createFsMock(),
-        io: createMockIo(),
-        logger: { info: logStub, error: logStub, debug: logStub }
+        fs: fsMock,
+        io: ioMock,
+        logger: { 
+            info: logStub, 
+            error: logStub, 
+            debug: logStub 
+        }
     });
-
-    return {
+    
+    console.log('Created MockServer instance');
+    
+    const result = {
         server: mockServer,
         gameState: mockServer.gameState,
         mockIo: mockServer.io,
         logStub,
         mockSockets: mockServer.io.sockets.sockets
     };
+    
+    console.log('Returning from createTestServer with keys:', Object.keys(result));
+    return result;
 }
 
 // Helper function to create mock IO

@@ -114,7 +114,7 @@ describe('Go Alone Phase', function() {
          * @test {handleGoAloneDecision}
          * @description Verifies that an error is thrown if a player attempts to go alone
          * when the game is not in the AWAITING_GO_ALONE phase.
-         
+         */
         it('should throw error if not the right phase', function() {
             gameState.currentPhase = GAME_PHASES.PLAYING;
             

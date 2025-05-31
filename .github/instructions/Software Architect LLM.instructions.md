@@ -1,5 +1,5 @@
 ---
-applyTo: '**'
+applyTo: '*.txt*'
 ---
 # 🧠 System Instructions: Software Architect LLM for Repository Analysis
 

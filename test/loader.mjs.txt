@@ -101,7 +101,7 @@ export async function load(url, context, nextLoad) {
   // Handle CommonJS modules identified by the resolve hook
   if (context.format === 'commonjs') {
     const filePath = fileURLToPath(url);
-    let exportsValue; // Renamed to avoid confusion with the 'exports' keyword in generated source
+    let exportsValue;
 
     try {
       exportsValue = require(filePath);
@@ -117,25 +117,21 @@ export async function load(url, context, nextLoad) {
       }
     }
 
-    // Convert CommonJS exports to ES module source.
-    // WARNING: JSON.stringify will omit functions and other non-JSON-serializable types.
-    const stringifiedExports = JSON.stringify(exportsValue);
+    // Dynamically generate named exports for all enumerable properties that are valid identifiers
+    const namedExports = Object.keys(exportsValue || {})
+      .filter(key => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key))
+      .map(key => `export const ${key} = __cjsExports['${key}'];`)
+      .join('\n');
 
     return {
-      format: 'module', // We are transforming it into an ES module
+      format: 'module',
       shortCircuit: true,
       source: `
-        const cjsExports = ${stringifiedExports === undefined ? 'undefined' : stringifiedExports};
-        export default cjsExports;
-        ${Object.keys(exportsValue || {}).map(key => { // Iterate over keys of the original CJS exports
-          // Ensure key is a valid JS identifier; otherwise, it can't be a named export.
-          // This is a simplified check; a full check is more complex.
-          if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
-            // Access properties from cjsExports (the JSON-parsed version)
-            return `export const ${key} = cjsExports && typeof cjsExports === 'object' && cjsExports.hasOwnProperty('${key}') ? cjsExports['${key}'] : undefined;`;
-          }
-          return '';
-        }).join('\n')}
+        import { createRequire as __createRequire } from 'module';
+        const __require = __createRequire(import.meta.url);
+        const __cjsExports = __require(${JSON.stringify(filePath)});
+        export default __cjsExports;
+        ${namedExports}
       `
     };
   }

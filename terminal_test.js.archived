@@ -1,0 +1,1 @@
+This file (terminal_test.js) has been archived due to its risky practice of monkey-patching global console objects, which can lead to instability if the script is not perfectly isolated. Logging should be handled by dedicated libraries or standard redirection.

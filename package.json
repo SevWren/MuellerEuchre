@@ -7,10 +7,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    
-    "test": "mocha --require \"./test/loader.mjs\" \"test/server/**/*.test.js\" \"test/phases/**/*.test.js\" \"test/services/**/*.test.js\" --recursive --timeout 10000",
-    "test:watch": "mocha --require ./test/loader.mjs test/server/**/*.test.js test/phases/**/*.test.js test/services/**/*.test.js --recursive --watch --timeout 10000",
-    "test:debug": "node --inspect --require ./test/loader.mjs node_modules/mocha/bin/mocha test/server/**/*.test.js test/phases/**/*.test.js test/services/**/*.test.js --recursive --timeout 10000",
+    "test": "mocha \"test/server/**/*.test.js\" \"test/phases/**/*.test.js\" \"test/services/**/*.test.js\" --recursive --timeout 10000",
+    "test:watch": "mocha test/server/**/*.test.js test/phases/**/*.test.js test/services/**/*.test.js --recursive --watch --timeout 10000",
+    "test:debug": "node --inspect node_modules/mocha/bin/mocha test/server/**/*.test.js test/phases/**/*.test.js test/services/**/*.test.js --recursive --timeout 10000",
     "clean:coverage": "if exist coverage rmdir /s /q coverage",
     "test:coverage": "c8 --reporter=json --reporter=text",
     "test:compare-coverage": "node scripts/compareCoverage.js",
@@ -24,7 +23,8 @@
     "prettier": "prettier --write .",
     "prepare": "husky install",
     "migrate": "node migrate.js",
-    "init:modules": "node init-modules.js"
+    "init:modules": "node init-modules.js",
+    "test:diag:basic": "NODE_OPTIONS=\"--trace-warnings\" mocha test/server/basic.unit.test.js"
   },
   "c8": {
     "exclude": [

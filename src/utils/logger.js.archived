@@ -1,0 +1,1 @@
+This file (src/utils/logger.js) has been archived due to critical performance and stability issues caused by synchronous file I/O for logging. It requires replacement with an asynchronous logging solution or a dedicated logging library.

@@ -1,0 +1,1 @@
+This file (src/socket/handlers/gameHandlers.js) has been archived due to critical flaws in shared state mutation and reliance on other flawed/archived modules. It requires a complete rewrite.

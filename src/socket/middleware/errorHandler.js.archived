@@ -1,0 +1,1 @@
+This file (src/socket/middleware/errorHandler.js) has been archived due to its use of monkey-patching for error handling, which is fragile and can cause instability. It requires a rewrite using standard error handling patterns.

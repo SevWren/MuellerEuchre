@@ -1,0 +1,1 @@
+This file (src/socket/middleware/auth.js) has been archived due to critical security flaws (non-functional authentication and authorization) and reliance on unsafe game state access. It requires a complete rewrite with proper security implementations.

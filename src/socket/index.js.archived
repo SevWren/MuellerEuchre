@@ -1,0 +1,1 @@
+This file (src/socket/index.js) has been archived due to critical flaws in its handling of shared game state (direct mutation), which leads to instability. It requires a complete rewrite with a robust state management approach.

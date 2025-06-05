@@ -504,3 +504,239 @@ This logic must be environment-agnostic (no special behavior for tests).
 **Decision:**
 Archived. The presence of test-specific code within the \`dealCards\` function is a critical flaw that compromises the integrity and reliability of the dealing logic (Criteria 1a). The complexity in the dealer rotation logic also adds unnecessary risk. While the separation of concerns into hand preparation and card dealing is viable, the contamination with test logic necessitates a rewrite. The new implementation must ensure clean, environment-agnostic dealing and simplified, robust dealer rotation.
 ---
+
+### File: src/game/stateManager.js
+
+**Original Functionality:**
+This module provides a \`GameStateManager\` class (exported as a singleton instance, \`gameStateManager\`) responsible for managing the persistence and caching of game states. It acts as a service layer above \`gameRepository.js\`. Key methods include:
+- \`initialize()\`: Connects the underlying \`gameRepository\`.
+- \`createGame(initialState)\`: Saves a new game state to the database and caches it.
+- \`loadGame(gameId)\`: Retrieves a game state, first checking an in-memory cache, then falling back to the database (and caching the result).
+- \`saveGame(gameId, gameState)\`: Updates the in-memory cache and saves the game state to the database.
+- \`updateGame(gameId, updateFn)\`: Loads a game state, applies a provided function (\`updateFn\`) to it, and then saves the result.
+- \`findActiveGamesByPlayer(playerId)\`: Finds active games, checking cache then database.
+- \`cleanup()\`: Disconnects the game repository and clears the cache.
+It also handles process termination signals for cleanup.
+
+**Analysis of Instability Contribution:**
+- **Overall Application Stability & Data Integrity (Criteria 1a):**
+    - **Race Conditions in \`updateGame\`:** The \`updateGame\` method implements a read-modify-write pattern (load, apply function, save). If called concurrently for the same \`gameId\`, this can lead to race conditions where updates are lost, as the operations are not atomic. This is a significant risk for data corruption and application instability.
+    - **Mutability of Cached Objects:** The \`loadGame\` method can return a direct reference to a game state object from its in-memory cache (\`this.games.get(gameId)\`). If the function \`updateFn\` (passed to \`updateGame\`) mutates this object directly, the in-memory cache will hold a modified state even before the \`saveGame\` operation completes (or if it fails). This can lead to inconsistencies between the cache, the database, and what different parts of the application perceive as the current state.
+    - **Unbounded Cache Growth (Minor):** The in-memory cache (\`this.games\`) has no eviction policy beyond a full clear on \`cleanup()\`. For very long-running servers with many unique games, this could lead to memory issues, though the TTL index in \`gameRepository.js\` mitigates the impact of stale data in the DB.
+- **Module Loading/File Integrity:** No direct concerns. It uses standard ES modules and depends on modules already analyzed (\`gameRepository.js\`, \`constants.js\`, \`logger.js\`).
+
+**Truthfully Needed Functionality:**
+A state manager that handles loading, saving, and updating game states, potentially with a caching layer for performance, is a valuable component. It should ensure data integrity, especially under concurrent access.
+
+**Decision:**
+Archived. The \`GameStateManager\` in its current implementation is a critical source of potential instability due to the race conditions inherent in its \`updateGame\` method and issues related to the mutability of cached objects (Criteria 1a). These flaws can lead to data corruption and unpredictable application behavior. A rewrite is necessary to implement atomic updates (e.g., using optimistic locking, a transactional approach, or ensuring update functions are pure and operate on deep copies which are then written in a controlled manner) and to provide clearer guarantees about the immutability of cached state provided to consumers. The caching strategy could also be reviewed for eviction policies if needed.
+---
+
+### File: src/socket/index.js
+
+**Original Functionality:**
+This module is the main entry point for Socket.IO configuration and initialization. It creates the Socket.IO server instance, configures CORS and connection state recovery, and applies middleware for rate limiting, authentication, and error handling. Its core responsibility is to handle new client connections. For each connection, it tracks the client, emits the initial game state, registers game-specific event handlers (via \`registerGameHandlers\`), and manages disconnect/reconnect events, including updating player connection statuses.
+
+**Analysis of Instability Contribution:**
+- **Overall Application Stability & Data Integrity (Criteria 1a - Critical Flaw):**
+    - **Direct Mutation of Shared \`gameState\`:** The most significant issue is that this module directly mutates the \`gameState\` object that is passed into its \`initializeSocket\` function. For example, in disconnect and reconnect handlers, properties like \`gameState.players[playerRole].isConnected\` and \`gameState.connectedPlayerCount\` are modified directly. This pattern of direct mutation of a shared state object, especially in an asynchronous environment with multiple concurrent socket connections, is a prime cause of race conditions, data corruption, and unpredictable application behavior. It mirrors the fundamental flaws found in the (archived) \`src/game/state.js\`.
+    - **Tight Coupling to Flawed State Model:** The module is designed to operate on this mutable, shared \`gameState\` object.
+- **Configuration Concerns:**
+    - **Hardcoded Production CORS Origin:** The CORS origin for production (\`https://your-production-domain.com\`) is hardcoded and should be configurable via environment variables.
+- **Dependency on Submodules:** The overall stability also relies on the correctness of imported middleware (\`auth.js\`, \`errorHandler.js\`, \`rateLimiter.js\`) and event handlers (\`gameHandlers.js\`), particularly whether they also engage in direct mutation of the shared \`gameState\`.
+
+**Truthfully Needed Functionality:**
+A robust Socket.IO initialization module is essential. It needs to:
+- Configure the Socket.IO server with appropriate settings (CORS, etc.).
+- Apply necessary middleware for security, logging, and error handling.
+- Manage client connection, disconnection, and reconnection events.
+- Route incoming socket events to appropriate handlers.
+- Crucially, interact with the game state in a safe, controlled manner, ideally by dispatching actions or calling update functions on a dedicated state management module that ensures atomic and immutable updates, rather than mutating state directly.
+
+**Decision:**
+Archived. The direct mutation of the shared \`gameState\` object within this module is a critical architectural flaw that directly contributes to pervasive data integrity issues and application instability (Criteria 1a). This practice makes state changes difficult to track and prone to race conditions. This module must be rewritten to work with a robust state management system, where all state modifications are handled through controlled, atomic operations, and the shared state is treated as immutable within the scope of socket event handlers.
+---
+
+### File: src/socket/handlers/gameHandlers.js
+
+**Original Functionality:**
+This module is responsible for registering and handling various game-specific socket events. These include events like \`player:join\`, \`player:leave\`, \`game:playCard\`, and \`chat:message\`. It interacts with game phase logic modules (imported from \`../../game/phases/*\`) to update the game state based on player actions and then broadcasts changes to clients. It also stores a reference to the main \`gameState\` object on individual socket instances.
+
+**Analysis of Instability Contribution:**
+- **Overall Application Stability & Data Integrity (Criteria 1a - Critical Flaws):**
+    - **Direct Mutation of Shared \`gameState\`:** This module pervasively mutates the \`gameState\` object that is passed into its main \`registerGameHandlers\` function. Handlers for \`player:join\`, \`player:leave\`, \`chat:message\`, and local helper functions like \`resetGameState\` all directly modify properties of this shared object. This is a primary cause of race conditions, data corruption, and unpredictable state changes.
+    - **Confusing \`gameState\` Variable Handling:** In some handlers (e.g., \`game:playCard\`), the local \`gameState\` variable is reassigned with the result of imported game logic functions. However, this reassignment is local to the handler's scope and does not consistently update the \`gameState\` reference held by other parts of the socket system or other connections, while other parts of the same handler might still be mutating the original shared object. This leads to an extremely error-prone state management approach.
+    - **Storing Mutable State on Socket Instance:** Assigning the shared \`gameState\` to \`socket.gameState\` is problematic.
+- **Module Dependencies (Criteria 1a - Critical Flaw):**
+    - **Reliance on Archived/Flawed Modules:** This module imports and uses functions from several other modules that have already been archived due to their own critical flaws (e.g., \`startNewHand\` and \`handlePlayCard\` from \`../../game/phases/playing.js\`; \`scoreCurrentHand\` and \`resetGame\` from \`../../game/phases/scoring.js\`). This means it's currently invoking broken or unreliable game logic, which would directly cause instability.
+
+**Truthfully Needed Functionality:**
+Handlers for game-specific socket events are essential for a multiplayer game. These handlers should:
+- Receive and validate data from client events.
+- Securely dispatch corresponding actions to a centralized, robust game logic and state management system.
+- Receive the updated state from the state management system.
+- Broadcast appropriate state changes or messages to relevant clients.
+They should NOT directly manage or mutate shared game state.
+
+**Decision:**
+Archived. This file is a major source of instability (Criteria 1a) due to its pervasive direct mutation of shared game state, its confusing handling of state variable references, and its critical dependencies on other archived modules that contain flawed logic. It must be completely rewritten to interact with a new, robust state management system via clearly defined actions or update functions, ensuring that all state changes are atomic and treat state as immutable within the handlers themselves.
+---
+
+### File: src/socket/middleware/auth.js
+
+**Original Functionality:**
+This module provides Socket.IO middleware functions intended for authentication, authorization, and game phase validation.
+- \`authenticateSocket(socket, next)\`: Aims to authenticate a socket connection by checking for a token in handshake data or headers.
+- \`authorizeSocket(allowedRoles = [])\`: Aims to authorize socket events based on user roles.
+- \`requireGamePhase(requiredPhase)\`: Aims to validate if the game is in a specific phase before allowing an event to proceed, relying on \`socket.gameState\`.
+
+**Analysis of Instability Contribution:**
+- **Security (Criteria 1a - Critical Flaw):**
+    - **Missing Authentication:** The \`authenticateSocket\` middleware is critically flawed. It checks for the *presence* of a token but explicitly states, \"Here you would typically verify the token. For now, we'll just attach the token to the socket.\" This means **no actual token verification is performed.** Any non-empty string passed as a token effectively bypasses this check. This is a severe security vulnerability.
+    - **Missing Authorization:** Similarly, the \`authorizeSocket\` middleware is critically flawed. It checks if a token was attached by the (non-functional) \`authenticateSocket\` but explicitly states, \"Here you would check if the user's role is in allowedRoles. For now, we'll just continue if they're authenticated.\" This means **no actual role-based authorization is performed.**
+    These missing security implementations mean that any socket events purportedly protected by these middlewares are, in fact, open to unauthenticated and unauthorized access.
+- **Overall Application Stability & Data Integrity:**
+    - **Dependency on Unsafe \`socket.gameState\`:** The \`requireGamePhase\` middleware relies on \`socket.gameState\` being set on the socket instance. This pattern was used in the (now archived) \`gameHandlers.js\` by assigning a shared, mutable \`gameState\` object. This makes \`requireGamePhase\` dependent on a flawed and unsafe state management practice, potentially leading to incorrect phase validation if \`socket.gameState\` is stale or corrupted.
+
+**Truthfully Needed Functionality:**
+Robust authentication and authorization middleware are essential for securing a multiplayer game server. This includes:
+- Verifying client-provided authentication tokens (e.g., JWTs) against a trusted source or cryptographic signature.
+- Securely associating a verified user identity (ID, roles) with the socket connection.
+- Enforcing access control based on user roles for specific events or actions.
+- Middleware to validate game state conditions (like current phase) based on a reliable and secure source of game state.
+
+**Decision:**
+Archived. This file is a critical source of instability and a major security vulnerability (Criteria 1a). The authentication and authorization middlewares are non-functional placeholders that provide no real security. The game phase validation middleware relies on an unsafe pattern of accessing game state. These components must be completely rewritten from scratch with proper security protocols for token verification, role-based access control, and reliable game state access for validation. Leaving these placeholder security measures in place would be extremely dangerous.
+---
+
+### File: src/socket/middleware/errorHandler.js
+
+**Original Functionality:**
+This module provides a Socket.IO middleware (\`errorHandler\`) aimed at centralizing error handling for socket connections and events. It attempts to achieve this by monkey-patching \`socket.emit\` and \`socket.on\` to wrap their operations in try-catch blocks. If an error is caught from an event handler, it calls a helper function \`handleSocketError\` which logs the error and emits a structured 'error' event back to the client, conditionally including stack traces for development. The module also sets up global process-level handlers for \`unhandledRejection\` and \`uncaughtException\`.
+
+**Analysis of Instability Contribution:**
+- **Overall Application Stability & Robustness (Criteria 1a/1b):**
+    - **Monkey-Patching Core Methods:** The practice of monkey-patching methods on the \`socket\` object (\`socket.emit\`, \`socket.on\`) is highly discouraged. It is fragile, can lead to unpredictable behavior, may break with updates to the Socket.IO library, and makes the code harder to understand and debug. This introduces a significant risk of instability.
+    - **Potentially Ineffective \`socket.emit\` Error Catching:** The synchronous try-catch around \`socket.emit\` is unlikely to catch most common errors associated with emitting events (which are often network-related or occur on the client side).
+    - **Misplaced Global Handlers:** While global \`unhandledRejection\` and \`uncaughtException\` handlers are important for server stability, their inclusion within a socket-specific middleware module is out of place. They should typically be set up at the main application entry point.
+    - **Custom Error Property (\`isFatal\`):** Relies on a non-standard \`isFatal\` property on error objects to decide whether to disconnect a socket.
+- **Security/Information Disclosure:** The conditional inclusion of stack traces in error messages to the client based on \`NODE_ENV\` is a good practice to avoid leaking sensitive information in production.
+
+**Truthfully Needed Functionality:**
+A robust error handling mechanism for socket events is crucial. This should include:
+- Catching errors that occur within server-side event handlers.
+- Logging these errors comprehensively on the server.
+- Sending a standardized, sanitized error message back to the originating client.
+- Handling fatal errors in a way that protects the server (e.g., graceful shutdown if necessary, though rarely by disconnecting a single socket unless the error is specific to that socket's state).
+Global error handlers for the Node.js process are also essential for server stability.
+
+**Decision:**
+Archived. The error handling approach in this module, primarily the monkey-patching of Socket.IO's \`socket.on\` and \`socket.emit\` methods, is a significant source of potential instability and fragility (Criteria 1a/1b). While centralized error logging and client notification are desirable, this implementation strategy is not robust. A rewrite should avoid monkey-patching and instead use more standard error handling patterns, such as explicit try-catch blocks in event handlers (or a common wrapper for handlers) that call a centralized error formatting/emitting function. Global process error handlers should be managed at the application's entry point.
+---
+
+### File: src/socket/middleware/rateLimiter.js
+
+**Original Functionality:**
+This module is intended to provide rate limiting for Socket.IO events to prevent abuse. It defines default limits for global requests and specific events. It uses an in-memory \`Map\` to store request counts and reset times. The main exported function \`setupRateLimiting(io, options)\` attempts to apply this rate limiting by monkey-patching \`socket.emit\` for every connected socket.
+
+**Analysis of Instability Contribution:**
+- **Overall Application Stability & Security (Criteria 1a - Critical Flaws):**
+    - **Fundamentally Incorrect Implementation of \`setupRateLimiting\`:** The \`setupRateLimiting\` function attempts to apply rate limiting by intercepting *outgoing* emits from the server (\`socket.emit\`). Rate limiting is designed to control *incoming* events from clients. As implemented, this rate limiter **will not function as intended to limit client requests.** This is a critical design flaw.
+    - **Inappropriate Use of Monkey-Patching:** Even if targeting incoming events, the method of applying middleware by patching socket methods directly is fragile and discouraged. Socket.IO provides \`socket.use()\` for intercepting incoming packets/events, which is the correct mechanism.
+    - **Scalability Issues (In-Memory Store):** The use of an in-memory \`Map\` (\`rateLimitStore\`) for tracking limits means that in a multi-process or multi-server deployment, rate limits would not be shared or consistently enforced. Each server instance would have its own independent limits.
+    - **Probabilistic Cleanup:** The cleanup mechanism for old records in the store relies on \`Math.random()\`, which is not deterministic and may not run reliably.
+    - **Error Handling Fall-through:** If the rate limiter middleware itself encounters an error, it calls \`next()\`, allowing the original event to proceed as if unlimted.
+
+**Truthfully Needed Functionality:**
+Rate limiting for socket events is an important security measure to protect the server from denial-of-service attacks and abuse from misbehaving clients. This requires:
+- Tracking the frequency of incoming events per client (or IP address).
+- Blocking or delaying events that exceed configured thresholds.
+- A shared store for limits if the application is distributed.
+- Efficient and reliable cleanup of old tracking data.
+
+**Decision:**
+Archived. This rate limiter module is critically flawed and non-functional for its intended purpose due to the incorrect implementation of \`setupRateLimiting\` (Criteria 1a). It attempts to rate limit outgoing server emits instead of incoming client events. Furthermore, its reliance on an in-memory store makes it unsuitable for scalable, distributed deployments. The monkey-patching approach is also problematic. This module needs a complete rewrite using correct Socket.IO middleware patterns (e.g., \`socket.use()\`) to intercept incoming events and should ideally use a distributed data store like Redis for effective rate limiting in a multi-server environment.
+---
+
+### File: src/socket/reconnectionHandler.js
+
+**Original Functionality:**
+This module defines a \`ReconnectionHandler\` class, seemingly designed to provide robust automatic reconnection capabilities for a Socket.IO *client*. It includes logic for exponential backoff, connection health monitoring (ping/pong), queueing messages during disconnection, and attempting to resubscribe/rejoin games using data from \`localStorage\`.
+
+**Analysis of Instability Contribution:**
+- **Code Structure & Placement (Criteria 1a - Major Issue):**
+    - **Misplaced Client-Side Logic:** The functionality and implementation details (handling client-side socket events like \`connect\`, \`disconnect\`, using \`socket.connect()\`, accessing \`localStorage\`) strongly indicate that this is client-side code. However, it resides in the \`src/socket/\` directory, which has otherwise contained server-side Socket.IO logic. This misplacement can lead to significant confusion, incorrect assumptions during development, and potential errors if server-side tools attempt to process it or if it's bundled incorrectly.
+- **Problematic Dependencies (Criteria 1b):**
+    - It imports \`gameStateManager\` from \`../game/stateManager.js\`. The \`gameStateManager\` (now archived) was a server-side component designed for database interaction and server-side caching. A client-side reconnection handler would not, and should not, directly import or use such a server-side component. This indicates a severe architectural misunderstanding or misplacement of the file.
+- **Complexity:** The reconnection logic is quite comprehensive and complex. While such complexity can be necessary for a robust client-side experience, it's out of place if this file were ever considered for server-side execution.
+
+**Truthfully Needed Functionality:**
+- **Client-Side:** Robust reconnection handling is indeed very important for a good client-side user experience in a real-time application.
+- **Server-Side:** The server needs to be able to handle clients that disconnect and then reconnect (as was partially addressed in the archived \`src/socket/index.js\`), primarily by recognizing the returning user/session and restoring their game state. However, the logic in *this specific file* is for the client to *initiate and manage* its reconnection attempts.
+
+**Decision:**
+Archived. This file is identified as client-side logic that is misplaced within the server-side (or shared \`src\`) directory structure (Criteria 1a). Its dependencies, particularly on the server-side \`gameStateManager\`, are incorrect for client code. This misplacement and incorrect dependency create significant confusion and architectural issues.
+During a rewrite:
+1.  This file (or its rewritten equivalent) should be moved to the client-side codebase (e.g., under \`src/client/services/\` or similar).
+2.  Its dependencies need to be purely client-side. It would interact with the server via defined socket events, not by importing server-side state managers.
+Its current location and dependencies make it a source of instability in understanding and maintaining the server codebase.
+---
+
+### File: src/utils/deck.js
+
+**Original Functionality:**
+This module provides utility functions related to managing and evaluating a Euchre deck and cards. It includes functions for:
+- \`createDeck()\`: Creates a standard 24-card Euchre deck.
+- \`shuffleDeck(deck)\`: Shuffles a deck using the Fisher-Yates algorithm.
+- \`cardToString(card)\`: Formats a card object into a string (e.g., \"TH\", \"AS\").
+- \`sortHand(hand, trumpSuit)\`: Sorts a player's hand, attempting to prioritize bowers and trump.
+- \`isRightBower(card, trumpSuit)\`, \`isLeftBower(card, trumpSuit)\`: Identify bower cards.
+- \`getSuitColor(suit)\`: Determines suit color.
+- \`getCardRank(card, ledSuit, trumpSuit)\`: Calculates a numeric rank for cards for trick-taking.
+
+**Analysis of Instability Contribution:**
+- **Overall Application Stability & Data Integrity (Criteria 1a - Critical Flaw):**
+    - **Flawed \`getCardRank\` Logic:** The implemented \`getCardRank\` function has a critical flaw: it ranks off-suit, non-led cards with the same logic as led-suit, non-trump cards (\`return VALUES.indexOf(value)\` for both). This is incorrect, as off-suit cards (that are not trump) should always rank lower than cards of the led suit (that are not trump). This error will lead to incorrect determination of trick winners, fundamentally breaking the game.
+    - **Complex/Dependent \`sortHand\`:** The \`sortHand\` logic is complex. Its correctness and utility for display or AI depend on a sound understanding of card ranks, which is compromised by the flawed \`getCardRank\`.
+    - **Inconsistent \`cardToString\` Format:** Internal comments within the file (from previous development stages) noted potential inconsistencies in the desired \`cardToString\` format compared to other parts of the application like \`server3.mjs\`. The version in the analyzed code block is (\`TH\`, \`AS\`). Standardization is needed.
+- **Module Loading/File Integrity:** No direct concerns; uses standard ES modules.
+
+**Truthfully Needed Functionality:**
+Reliable utility functions for deck and card manipulations are essential for any card game. This includes:
+- Correct deck creation and unbiased shuffling.
+- Accurate card identification (bowers, trump status).
+- A correct and unambiguous card ranking system for determining trick winners according to Euchre rules.
+- Consistent card string formatting for logging and display.
+- A clear hand sorting utility.
+
+**Decision:**
+Archived. The most critical issue is the flawed \`getCardRank\` function, which will result in incorrect trick winner determination and thus pervasive game instability (Criteria 1a). The complexity and dependency of \`sortHand\` on a correct ranking, and noted inconsistencies in \`cardToString\`, further support a rewrite. While some functions (deck creation, shuffle, bower identification) are correct, the core card ranking utility is fundamentally broken. This module needs to be rewritten with a correct \`getCardRank\` implementation as a priority, along with standardized and verified versions of other card utilities.
+---
+
+### File: src/utils/logger.js
+
+**Original Functionality:**
+This module provides a simple logging utility with configurable debug levels. It exports:
+- \`log(level, message)\`: Writes a formatted log message to both the console (\`console.log\`) and synchronously to a file named \`server_log.txt\` (\`fs.appendFileSync\`), if the message's level is at or below the \`currentDebugLevel\`.
+- \`setDebugLevel(level)\`: Allows changing the \`currentDebugLevel\`.
+- \`currentDebugLevel\`: The current logging threshold.
+
+**Analysis of Instability Contribution:**
+- **Overall Application Stability & Performance (Criteria 1a - Critical Flaw):**
+    - **Synchronous File I/O:** The use of \`fs.appendFileSync()\` for writing log messages is a major issue. Synchronous file operations block the Node.js event loop. If logging is frequent (especially at verbose levels or in high-traffic parts of the application), these blocking calls will severely degrade server performance and responsiveness, leading to instability and potential unresponsiveness.
+    - **Unhandled File System Errors:** The \`log()\` function does not include any try-catch block around \`fs.appendFileSync()\`. If this operation fails (e.g., due to file permissions, disk full, or other file system errors), the error will propagate to the caller of \`log()\`. Since logging functions are often not expected to throw, this can lead to unhandled exceptions and application crashes.
+- **File Integrity & Resource Management:**
+    - **No Log Rotation/Size Management:** Log messages are continuously appended to \`server_log.txt\`. Without any log rotation or size limiting mechanism, this file can grow indefinitely, potentially consuming all available disk space and causing a system-level failure.
+
+**Truthfully Needed Functionality:**
+A reliable and performant logging mechanism is essential for any server application for debugging, monitoring, and auditing. Key features include:
+- Asynchronous log operations to avoid blocking the event loop.
+- Configurable log levels.
+- Support for multiple log transports (e.g., console, file, remote services).
+- Log rotation and size management for file transports.
+- Structured logging (e.g., JSON format) for easier parsing and analysis by log management systems.
+- Robust error handling within the logger itself.
+
+**Decision:**
+Archived. The use of synchronous file I/O (\`fs.appendFileSync\`) for logging is a critical performance and stability flaw (Criteria 1a). The lack of error handling for these file operations and the absence of log rotation further exacerbate the risks. This logger is unsuitable for a production environment or any application requiring reliable performance. It must be replaced with a solution that uses asynchronous I/O (preferably by adopting a well-established logging library like Winston, Pino, or Bunyan) and incorporates proper error handling and log management features.
+---

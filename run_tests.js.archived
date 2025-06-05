@@ -1,0 +1,1 @@
+This file (run_tests.js) has been archived because it provides an ad-hoc, potentially inconsistent way to run tests, bypassing standard project configurations. Testing should be centralized via npm scripts and a proper Mocha setup.

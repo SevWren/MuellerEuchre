@@ -1,0 +1,1 @@
+This file (scripts/test-direct-mocha.js) has been archived because it sets up yet another conflicting Mocha execution environment, contributing to test instability. Test execution should be unified.

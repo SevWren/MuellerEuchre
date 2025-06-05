@@ -72,15 +72,20 @@ export const createMockSocketService = () => {
     };
 };
 
-/**
- * Creates a basic test game state with sensible defaults that can be overridden
- * @param {Object} [overrides={}] - Optional object containing properties to override in the default state
- * @returns {Object} A game state object with the following default structure:
- * @property {string} gameId - Default: 'test-game'
- * @property {string} gamePhase - Default: 'LOBBY'
- * @property {Object} players - Object containing player objects with id, name, and ready status
- * @property {Object} ...overrides - Any additional properties provided in the overrides parameter
- */
+// OBSOLETE JSDoc: The following documentation describes the createTestState function
+// which is based on an old game state structure from modules that have been archived
+// (e.g., src/game/state.js). The function code itself is kept for now but needs
+// review/rewrite. Its JSDoc is commented out to avoid confusion.
+// See info_to_reprogram_permanetly_archived_files.md for more details.
+// /**
+//  * Creates a basic test game state with sensible defaults that can be overridden
+//  * @param {Object} [overrides={}] - Optional object containing properties to override in the default state
+//  * @returns {Object} A game state object with the following default structure:
+//  * @property {string} gameId - Default: 'test-game'
+//  * @property {string} gamePhase - Default: 'LOBBY'
+//  * @property {Object} players - Object containing player objects with id, name, and ready status
+//  * @property {Object} ...overrides - Any additional properties provided in the overrides parameter
+//  */
 export const createTestState = (overrides = {}) => ({
     gameId: 'test-game',
     gamePhase: 'LOBBY',
@@ -97,7 +102,7 @@ export const createTestState = (overrides = {}) => ({
  * @returns {void}
  * @description
  * This function will attempt to reset all provided mocks by calling either
- * the `reset()` or `resetHistory()` method if they exist on the mock.
+ * the \`reset()\` or \`resetHistory()\` method if they exist on the mock.
  * Useful for cleaning up mocks between test cases.
  */
 export const resetAllMocks = (mocks) => {

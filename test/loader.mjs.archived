@@ -1,0 +1,1 @@
+This file (test/loader.mjs) has been archived due to its critically flawed CJS-to-ESM conversion logic, which causes module loading instability. It should not be used.

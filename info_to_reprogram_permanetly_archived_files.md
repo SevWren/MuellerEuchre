@@ -298,3 +298,209 @@ This validation logic must be accurate and consistently applied in all environme
 **Decision:**
 Archived. This file is a critical contributor to potential application instability and untrustworthy testing (Criteria 1a) due to the built-in bypass of game rules during test mode (\`NODE_ENV === 'test'\`). This flaw makes it impossible to reliably verify the game's core play validation. The complexity of the existing validation logic also warrants a careful review and rewrite to ensure clarity, correctness, and complete testability without any rule exceptions for test environments. The debugging \`console.log\` statements should also be removed or replaced by a proper logger.
 ---
+
+### File: src/game/phases/bidding.js
+
+**Original Functionality:**
+This module handles the game logic specific to the bidding phases of Euchre. This includes functions for:
+- \`handleOrderUpDecision\`: Manages a player's decision to order the dealer up or pass.
+- \`handleDealerDiscard\`: Manages the dealer's card discard after being ordered up.
+- \`handleCallTrumpDecision\`: Manages a player's decision to call trump or pass in the second round of bidding.
+It imports and re-exports \`handleGoAloneDecision\` from \`./goAlonePhase.js\`.
+The functions generally take the current \`gameState\` as input and return an updated state object, using shallow copies for the top-level state.
+
+**Analysis of Instability Contribution:**
+- **Module Loading/File Integrity:** This module uses standard ES imports/exports and is unlikely to be a direct source of these types of instability.
+- **Data Integrity & Application Stability (Primary Concern):**
+    - **State Manipulation:** The functions attempt to avoid direct mutation of the input \`gameState\` by creating shallow copies (\`{ ...gameState }\`). However, they directly mutate nested objects within this copied state (e.g., \`updatedState.messages.push(...)\`, \`dealerPlayer.hand.splice(...)\`). If the overall state management system (which is targeted for a rewrite) does not handle these nested mutations correctly (e.g., by deep cloning state before passing it to these functions, or by using immutable data structures throughout), this can lead to shared mutable state and data corruption.
+    - **Dependency on State Structure:** The logic is tightly coupled to the existing structure of the \`gameState\` object.
+    - **Error Handling:** Throws errors for invalid phase transitions or conditions, which is good for explicit error signaling. The robustness depends on the calling code catching these.
+
+**Truthfully Needed Functionality:**
+Logic to manage the distinct actions and transitions within the bidding phases of Euchre is essential. This includes handling player decisions (ordering up, calling trump, passing), dealer actions (discarding), and correctly updating the game state (trump suit, current player, game phase) based on these actions.
+
+**Decision:**
+Not Archived (file remains in place). This file is marked for **Careful Review and Potential Refactoring** alongside the rewrite of the core state management (\`src/game/state.js\`) and server logic (\`server3.mjs\`).
+While it doesn't appear to be a primary source of the pervasive *file integrity* or *module loading* errors, its state manipulation practices (mutating nested objects within shallowly copied state) could contribute to *data integrity* problems if not integrated carefully with a robust and potentially immutable state management system.
+During the rewrite of state management, this file will need to be adapted to ensure all state updates are handled immutably and safely.
+---
+
+### File: src/game/phases/endGame.js
+
+**Original Functionality:**
+This module manages the logic for the end-of-hand and end-of-game scenarios in Euchre. Its key functions include:
+- \`handleEndOfHand()\`: Calculates points based on tricks won by the \"makers\" versus their opponents, including logic for marches (all 5 tricks) and euchres (makers set). It updates team scores.
+- \`checkGameOver()\`: Determines if either team has reached the winning score after a hand is completed.
+- \`endGame()\`: (Private) Updates the game state to reflect that the game is over, identifies the winning team, and updates overall match statistics.
+- \`startNewGame()\`: Resets the game state to allow a new game to begin from the lobby phase.
+The module consistently uses deep cloning (\`JSON.parse(JSON.stringify())\`) for the input \`gameState\` in its main exported functions.
+
+**Analysis of Instability Contribution:**
+- **Module Loading/File Integrity:** This module uses standard ES imports/exports and is unlikely to be a source of these types of instability.
+- **Data Integrity & Application Stability:**
+    - **State Management:** The consistent use of deep cloning for the \`gameState\` at the beginning of exported functions is a good practice, making the functions operate on their own copies and reducing the risk of unintentional side effects on the global state. This is a more robust approach than seen in some other game logic modules.
+    - **Logic Correctness:** The core logic for calculating points per hand (standard win, march, euchre) and determining the game winner appears to align with common Euchre rules. The state transitions to \`GAME_OVER\` or resetting for a new game also seem appropriate.
+    - **Minor Concern - Team Identification:** The module uses string-based team identifiers for scoring (e.g., \`'north+south'\`). Care must be taken by the calling code to ensure that team identifiers (like \`makerTeam\`) are consistently provided or mapped to this format to prevent scoring errors. This is an integration point rather than an internal flaw.
+
+**Truthfully Needed Functionality:**
+Logic for processing the end of a hand, calculating scores accurately based on Euchre rules, determining if a game has concluded, and resetting the state for a new game are all essential components of the game lifecycle.
+
+**Decision:**
+Not Archived (file remains in place). This module appears to be relatively well-structured and employs good practices for state handling within its scope (deep cloning). The game end and scoring logic seems plausible. It is a good candidate for reuse. The minor concern about team ID consistency should be addressed during the integration with the rewritten server and state management logic to ensure data compatibility. This file is not identified as a primary source of pervasive instability.
+---
+
+### File: src/game/phases/goAlonePhase.js
+
+**Original Functionality:**
+This module contains the \`handleGoAloneDecision()\` function, which processes a player's choice to play a hand with or without their partner after trump has been decided. It updates the game state to reflect this decision (setting flags like \`goingAlone\`, \`playerGoingAlone\`, \`partnerSittingOut\`) and transitions the game to the \`PLAYING\` phase. It also includes a private helper \`getPartner()\` function.
+
+**Analysis of Instability Contribution:**
+- **Overall Application Stability & Data Integrity:**
+    - **Phase Constant Inconsistency:** The function validates against \`GAME_PHASES.AWAITING_GO_ALONE\`. However, other modules (like \`bidding.js\` or the archived \`server3.mjs\`) seem to use \`GAME_PHASES.GO_ALONE\` or \`GAME_PHASES.GOING_ALONE\`. If \`AWAITING_GO_ALONE\` is not a consistently defined and used constant from the main \`constants.js\` file, this validation logic will fail or lead to incorrect game flow, causing instability.
+    - **Redundant Logic:** Contains a private \`getPartner()\` helper function, which is also implemented elsewhere (e.g., in the archived \`src/game/logic/gameLogic.js\` and potentially in \`src/utils/players.js\`). Such redundancy can lead to inconsistencies if one implementation is updated and others are not.
+    - **State Management:** The function uses deep cloning (\`JSON.parse(JSON.stringify())\`) for the \`gameState\`, which is a good practice for preventing unintended side effects on the input state.
+
+**Truthfully Needed Functionality:**
+Logic to handle a player's decision to go alone is a necessary part of Euchre. This includes updating the game state to reflect who is going alone, which partner is sitting out (if any), and correctly transitioning the game to the play phase with the appropriate player leading.
+
+**Decision:**
+Archived. The primary reason for archiving is the critical issue of potential phase constant inconsistency (using \`AWAITING_GO_ALONE\`). If this phase name is not aligned with the rest of the application's phase definitions (from \`constants.js\`) and transition logic, it will lead to broken game flow and instability (Criteria 1b, potentially 1a if it breaks core flow). The redundant \`getPartner()\` function also indicates a need for better code organization. While the state copying is good, the phase logic is fundamental and must be correct and consistent. This module needs to be rewritten using verified phase constants and consolidated utility functions.
+---
+
+### File: src/game/phases/orderUpPhase.js
+
+**Original Functionality:**
+This module is responsible for the logic of the 'order up' phases in Euchre. It includes functions to handle:
+- \`handleOrderUpDecision\`: Player's choice in the first round to order the dealer to pick up the up-card or to pass.
+- \`handleDealerDiscard\`: Dealer's action of discarding a card after being ordered up.
+- \`handleCallTrumpDecision\`: Player's choice in the second round to call a trump suit or pass.
+The module uses deep cloning for \`gameState\` and aims to transition the game to subsequent phases based on these decisions.
+
+**Analysis of Instability Contribution:**
+- **Module Loading & Code Structure:**
+    - **Cross-Tier Dependency:** Imports \`sortHand\` from \`../../client/utils/cardUtils.js\`. Server-side logic should not depend on client-side utilities, as this creates tight coupling and potential for module resolution or build issues. This is a significant structural flaw.
+- **Overall Application Stability & Data Integrity:**
+    - **Phase Constant Inconsistency:** Uses phase names like \`GAME_PHASES.AWAITING_DEALER_DISCARD\`, \`GAME_PHASES.AWAITING_GO_ALONE\`, and \`GAME_PHASES.BETWEEN_HANDS\`. These need to be strictly verified against the global constants in \`constants.js\` and their usage in other phase modules to prevent game flow errors. The use of \`AWAITING_GO_ALONE\` was previously flagged as a concern in \`goAlonePhase.js\`.
+    - **Potentially Flawed Game Logic (Kitty/UpCard Handling):** In \`handleCallTrumpDecision\`, the check \`if (suitToCall === updatedState.kitty[0].suit)\` to prevent calling the turned-down suit seems to assume \`kitty[0]\` holds the original up-card. This might conflict with how other modules or game setup logic handle the \`kitty\`, the \`upCard\` (which is usually nulled after being picked up), and a potential \`discardPile\`. Inconsistent handling of these critical state elements can lead to incorrect game rule enforcement.
+    - **Redundant Logic:** Contains a local \`getTeamForPlayer\` helper, while similar functionality might exist or be better placed in a shared utility module.
+
+**Truthfully Needed Functionality:**
+Logic to manage the two rounds of bidding in Euchre is essential. This includes:
+- Allowing players to order up the dealer or pass in the first round.
+- Handling the dealer's discard and trump selection if ordered up.
+- Allowing players to call a trump suit or pass in the second round.
+- Correctly transitioning to the next phase (dealer discard, go alone decision, play, or redeal) based on the outcomes.
+- Accurately setting the trump suit and identifying the 'makers'.
+
+**Decision:**
+Archived. This file exhibits several issues that compromise stability and maintainability (Criteria 1a). The cross-tier import of \`sortHand\` is a major structural flaw. Potential inconsistencies in game phase constants and questionable logic regarding the state of the \`kitty\` during trump calling present significant risks to correct game flow and rule enforcement. This module requires a rewrite to use server-side utilities, ensure consistent phase constant usage, and clarify/standardize the handling of card state (\`upCard\`, \`kitty\`, \`discardPile\`) in coordination with other game logic.
+---
+
+### File: src/game/phases/playPhase.js
+
+**Original Functionality:**
+This module is designed to manage the card playing phase of a Euchre hand. Its main function, \`handlePlayCard\`, processes a player's card play by validating it, updating the player's hand, adding the card to the current trick, and then either advancing to the next player or completing the trick. Helper functions are included for completing a trick (\`completeTrick\`), determining the trick winner (\`determineTrickWinner\`), validating plays (\`validatePlay\`), and other utility operations.
+
+**Analysis of Instability Contribution:**
+- **Module Loading & Code Structure (Criteria 1a):**
+    - **Cross-Tier Dependencies:** Imports utility functions (\`getCardValue\`, \`isLeftBower\`, \`isRightBower\`) from \`../../client/utils/cardUtils.js\`. Server-side game logic should not directly depend on client-side code, as this creates tight coupling and potential for build/resolution issues.
+    - **Redundant Logic:** Contains its own implementations for \`validatePlay\`, \`getTeamForPlayer\`, and \`cardToString\`, while similar or more robust versions exist or should exist in centralized server-side utility or logic modules (e.g., the archived \`src/game/logic/validation.js\` and \`src/game/logic/gameLogic.js\`).
+- **Overall Application Stability & Data Integrity (Criteria 1a):**
+    - **Dependency on Archived/Flawed Modules:** Relies on \`getCardRank\` from the archived \`src/game/logic/gameLogic.js\`, which was identified as complex and potentially flawed. The correctness of trick determination hinges on this problematic dependency.
+    - **Duplicated and Complex Validation:** The internal \`validatePlay\` function duplicates validation logic that should be centralized. Its own complexity, especially around following suit with bowers, is a risk.
+    - **Complex Trick Winner Logic:** The \`determineTrickWinner\` function, while attempting to implement Euchre rules, has complex conditional logic for determining the effective led suit, which could be simplified and made more robust by consistently using helper functions like \`isLeftBower\`. Its correctness is also tied to the flawed \`getCardRank\`.
+    - **Debugging Artifacts:** Contains numerous \`console.log\` statements.
+
+**Truthfully Needed Functionality:**
+Robust logic for managing the play phase is essential. This includes:
+- Receiving and validating card plays from users.
+- Maintaining the state of the current trick.
+- Accurately determining the winner of each trick based on game rules (trump, bowers, led suit).
+- Tracking tricks won for scoring purposes.
+- Transitioning to the next player or to the scoring phase.
+
+**Decision:**
+Archived. This file exhibits critical structural problems (cross-tier dependencies), relies on already archived and flawed modules (\`gameLogic.js\`), and contains duplicated, complex, and potentially incorrect game logic for validation and trick determination (Criteria 1a). These issues make it a significant source of potential instability and bugs. It requires a complete rewrite that utilizes centralized server-side utilities, a robust validation module, and clear, correct logic for trick processing.
+---
+
+### File: src/game/phases/playing.js
+
+**Original Functionality:**
+This module appears intended to handle aspects of the card playing phase and potentially hand setup. It includes:
+- \`startNewHand()\`: A function that resets some hand-specific state and transitions to bidding, but critically does not deal cards or set an up-card, making it incomplete.
+- \`handlePlayCard()\`: Manages a player playing a card, updates the hand and current trick, and calls a local \`determineTrickWinner()\`.
+- \`determineTrickWinner()\`: A private function to determine the trick winner using \`getCardRank\` imported from \`../../utils/deck.js\`.
+
+**Analysis of Instability Contribution:**
+- **Code Structure & Redundancy (Criteria 1a):**
+    - **High Redundancy:** The \`handlePlayCard\` and \`determineTrickWinner\` functions largely duplicate functionality found in the (already archived) \`src/game/phases/playPhase.js\`. Such duplication is a major source of potential bugs and maintenance nightmares.
+    - **Misplaced and Incomplete Logic:** The \`startNewHand\` function is incomplete (doesn't deal cards) and likely misplaced, given the existence of a dedicated \`startNewHand.js\` file in the same directory.
+    - **Inconsistent Utility Usage:** Imports \`getCardRank\` and other card utilities from \`../../utils/deck.js\`, while other modules used different sources (e.g., the archived \`src/game/logic/gameLogic.js\`). This indicates a lack of a single source of truth for core game utilities.
+- **Overall Application Stability & Data Integrity (Criteria 1a):**
+    - **Missing Critical Validation:** The \`handlePlayCard\` function in this module performs only basic validation (turn, phase, card in hand) and critically LACKS the \"must follow suit\" validation logic, which is essential for correct Euchre play. This would allow illegal plays.
+    - **Dependency on External \`getCardRank\`:** The correctness of trick determination relies on the \`getCardRank\` from \`utils/deck.js\`, which itself would need separate validation.
+    - **State Management:** Uses shallow copies (\`{ ...gameState }\`), which carries risks if the overall state management system isn't robust against shared mutable nested objects.
+
+**Truthfully Needed Functionality:**
+A clear and correct implementation for handling the playing of cards, determining trick winners, and managing the overall flow of a hand (from start to scoring) is essential. This logic should not be duplicated and must include all necessary validation.
+
+**Decision:**
+Archived. This file is a significant contributor to instability and disorganization (Criteria 1a). It contains highly redundant logic compared to other phase files (specifically the archived \`playPhase.js\`), includes an incomplete and misplaced \`startNewHand\` function, and its \`handlePlayCard\` implementation is critically flawed due to missing \"must follow suit\" validation. The inconsistent sourcing of utilities further underscores the need for a clean rewrite. The functionality for handling the playing phase should be consolidated into a single, correct, and robust module.
+---
+
+### File: src/game/phases/scoring.js
+
+**Original Functionality:**
+This module is responsible for calculating scores at the end of a Euchre hand and for resetting the game state for a new game.
+- \`scoreCurrentHand()\`: Counts tricks won by each player (expecting \`player.tricksWon\` to be set), determines points based on whether the 'makers' achieved their bid (including logic for marches and euchres, and considering if the makers went alone), updates team scores, and transitions the game to \`GAME_OVER\` or \`BETWEEN_HANDS\`.
+- \`resetGame()\`: Resets scores, dealer, phase to LOBBY, and player-specific data for a new game.
+
+**Analysis of Instability Contribution:**
+- **Overall Application Stability & Data Integrity (Criteria 1a):**
+    - **Dependency on Unreliable State Input:** The \`scoreCurrentHand\` function critically relies on the \`gameState.players[playerRole].tricksWon\` property being accurately populated by the preceding play phase. Analysis of previous play phase modules (now archived) showed inconsistencies and missing logic for updating this specific property. If \`tricksWon\` is not correctly set, all scoring will be incorrect.
+    - **Risky Default for \`makerTeam\`:** The code defaults \`makerTeam\` to \`'north+south'\` if \`updatedState.makerTeam\` is not present. The \`makerTeam\` must be definitively set during the bidding phase; a default value here will lead to incorrect score attribution if the actual maker team information is missing from the game state.
+    - **Phase Constant Usage:** Uses \`GAME_PHASES.BETWEEN_HANDS\`, which needs to be a globally defined and consistently used constant.
+- **State Management:** The use of deep cloning (\`JSON.parse(JSON.stringify())\`) in \`scoreCurrentHand\` is a good practice for the parts it controls.
+
+**Truthfully Needed Functionality:**
+Accurate scoring at the end of each hand is fundamental to Euchre. This includes:
+- Correctly tallying tricks won by each team/player.
+- Applying the appropriate point rules (making bid, march, euchre, going alone bonuses).
+- Updating overall game scores.
+- Determining if the game has been won.
+- Transitioning to the next hand (including rotating the dealer) or to a game over state.
+- A function to reset the game to its initial state.
+
+**Decision:**
+Archived. This module's core function, \`scoreCurrentHand\`, has critical dependencies on game state properties (\`players[X].tricksWon\` and \`makerTeam\`) that are likely to be unreliable given the state of other archived modules (play phase logic, bidding logic). Incorrect inputs for these properties will lead to fundamentally incorrect scoring, breaking game integrity (Criteria 1a). The default fallback for \`makerTeam\` is also a significant flaw. While some internal logic for point calculation is standard, the reliance on potentially corrupt or missing input data makes the module currently untrustworthy. It requires a rewrite in conjunction with robust play phase and bidding modules that reliably provide accurate state information.
+---
+
+### File: src/game/phases/startNewHand.js
+
+**Original Functionality:**
+This module is responsible for initializing and setting up a new hand of Euchre. It exports two main functions:
+- \`startNewHand(gameState)\`: Prepares for a new hand by validating the game state, rotating the dealer, setting the next current player, creating/shuffling the deck if needed, and resetting various hand-specific and player-specific state properties (e.g., clearing hands, tricks won). It sets the game phase to \`DEALING\`.
+- \`dealCards(gameState)\`: Takes the state prepared by \`startNewHand\`, deals 5 cards to each player in a 3-2 pattern, sets the up-card from the remainder of the deck, and forms the kitty. It then transitions the game phase to \`ORDER_UP_ROUND1\`.
+
+**Analysis of Instability Contribution:**
+- **Overall Application Stability & Data Integrity (Criteria 1a/1b):**
+    - **Test-Specific Code in Production Logic:** The \`dealCards\` function contains a specific conditional block: \`if (gameState.deck && gameState.deck.length > 0) { ... }\` that alters card dealing and hardcodes an up-card for test scenarios. Embedding test-specific behavior in production code is a critical flaw that can mask bugs and lead to divergent behavior between test and production environments.
+    - **Dealer Rotation Complexity:** The logic in \`startNewHand\` for dealer rotation, especially the handling of \`initialDealerForSession\`, is more complex than a typical sequential rotation. This complexity could introduce edge-case bugs if the incoming \`gameState.dealer\` is not managed consistently by the calling code.
+    - **Clarity of Flow/Naming:** The function named \`startNewHand\` primarily prepares for dealing and sets the phase to \`DEALING\`. The actual dealing and transition to bidding happens in \`dealCards\`. This two-step process, while logically separable, might be confusing given that other parts of the codebase (like the archived \`server3.mjs\`) had a single \`startNewHand\` concept that included dealing.
+- **State Management:** Both core functions utilize deep cloning (\`JSON.parse(JSON.stringify())\`) for the \`gameState\`, which is a good practice for preventing direct mutation of the input state.
+- **Validation:** Includes pre-condition validation for game state in both functions, which is good.
+- **Module Loading/File Integrity:** No direct concerns.
+
+**Truthfully Needed Functionality:**
+A robust and clear mechanism for starting a new hand is essential. This includes:
+- Rotating the dealer correctly.
+- Shuffling the deck.
+- Dealing the correct number of cards to each player according to game rules.
+- Setting aside the kitty and turning up the top card.
+- Setting the initial player turn for bidding.
+- Transitioning the game state to the first round of bidding.
+This logic must be environment-agnostic (no special behavior for tests).
+
+**Decision:**
+Archived. The presence of test-specific code within the \`dealCards\` function is a critical flaw that compromises the integrity and reliability of the dealing logic (Criteria 1a). The complexity in the dealer rotation logic also adds unnecessary risk. While the separation of concerns into hand preparation and card dealing is viable, the contamination with test logic necessitates a rewrite. The new implementation must ensure clean, environment-agnostic dealing and simplified, robust dealer rotation.
+---

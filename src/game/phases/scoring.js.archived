@@ -1,0 +1,1 @@
+This file (src/game/phases/scoring.js) has been archived due to critical dependencies on unreliable game state data (e.g., player.tricksWon, makerTeam) for correct score calculation. It requires a rewrite with robust input data handling.

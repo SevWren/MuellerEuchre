@@ -18,47 +18,38 @@
 
 import { expect } from 'chai';
 import { createTestServer } from './test-utils.js';
+// Assuming createDeck and shuffleDeck are now correctly sourcing their constants
+// from server3.mjs (which imports them from src/utils/deck.js -> src/config/constants.js)
 import { createDeck, shuffleDeck } from '../../server3.mjs';
 
-// Define constants used by deck functions
-const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
-const VALUES = ['9', '10', 'J', 'Q', 'K', 'A'];
-
-// Add them to the global scope for the imported functions
-if (typeof global !== 'undefined') {
-    global.SUITS = SUITS;
-    global.VALUES = VALUES;
+// Conditional global log mock - only if not already defined (e.g. by test runner setup)
+// This is a temporary workaround. Ideally, logging is handled by importing the logger module
+// and stubbing it with Sinon, or passed via dependency injection.
+if (typeof global !== 'undefined' && typeof global.log === 'undefined') {
+    global.log = (level, message) => {
+        // No-op for these specific tests, assuming detailed logging isn't asserted here.
+        // console.log(`[Global Mock Log] ${level}: ${message}`); // Uncomment for debugging
+    };
 }
 
-// Mock the log function to prevent errors
-global.log = (level, message) => {
-    // No-op for tests
-};
 
 describe('server3.mjs - Basic Functionality', function() {
     let server, gameState;
 
     beforeEach(() => {
         try {
-            console.log('Before createTestServer');
             const result = createTestServer();
-            console.log('After createTestServer', Object.keys(result));
-            ({ server, gameState } = result);
-            console.log('After destructuring', { 
-                server: !!server, 
-                gameState: !!gameState,
-                gameStateKeys: gameState ? Object.keys(gameState) : 'undefined'
-            });
+            ({ server, gameState } = result); // logStub is also returned by createTestServer if needed
         } catch (error) {
-            console.error('Error in beforeEach:', error);
-            throw error;
+            console.error('Error in beforeEach of basic.unit.test.js:', error);
+            throw error; // Re-throw to ensure test runner catches setup failures
         }
     });
 
     describe('Game Initialization', () => {
         it('should initialize with correct default game state', () => {
             expect(gameState).to.be.an('object');
-            expect(gameState.gamePhase).to.equal('LOBBY');
+            expect(gameState.gamePhase).to.equal('LOBBY'); // Assuming LOBBY is a string, not from imported GAME_PHASES
             expect(gameState.playerSlots).to.have.members(['south', 'west', 'north', 'east']);
             expect(gameState.players).to.have.all.keys('south', 'west', 'north', 'east');
             expect(gameState.team1Score).to.equal(0);
@@ -69,28 +60,30 @@ describe('server3.mjs - Basic Functionality', function() {
     describe('Deck Functions', () => {
         it('should create a standard Euchre deck', () => {
             const deck = createDeck();
-            expect(deck).to.be.an('array').with.lengthOf(24); // 6 cards * 4 suits = 24 cards
+            expect(deck).to.be.an('array').with.lengthOf(24);
             
-            // Check for all suits and values
-            const suits = new Set(deck.map(card => card.suit));
-            const values = new Set(deck.map(card => card.value));
+            const suitsInDeck = new Set(deck.map(card => card.suit));
+            const valuesInDeck = new Set(deck.map(card => card.value));
             
-            expect([...suits]).to.have.members(['hearts', 'diamonds', 'clubs', 'spades']);
-            expect([...values]).to.have.members(['9', '10', 'J', 'Q', 'K', 'A']);
+            // Constants for assertion - these should ideally be imported from src/config/constants.js
+            // to avoid magic strings/arrays if tests need to be very specific about them.
+            // However, for testing createDeck, we rely on createDeck itself to use the correct constants.
+            expect([...suitsInDeck]).to.have.members(['hearts', 'diamonds', 'clubs', 'spades']);
+            expect([...valuesInDeck]).to.have.members(['9', '10', 'J', 'Q', 'K', 'A']);
         });
 
         it('should shuffle the deck', () => {
-            const originalDeck = [...createDeck()];
-            const shuffledDeck = shuffleDeck([...originalDeck]);
+            const originalDeck = createDeck(); // Get a fresh deck
+            const deckToShuffle = [...originalDeck]; // Create a copy for shuffling
+            const shuffledDeck = shuffleDeck(deckToShuffle); // shuffleDeck should modify in place or return modified
             
-            // Check that all cards are still present
             expect(shuffledDeck).to.have.lengthOf(originalDeck.length);
-            expect(shuffledDeck.map(c => c.id).sort())
-                .to.have.members(originalDeck.map(c => c.id).sort());
+            // Ensure all original cards are present in the shuffled deck
+            expect(shuffledDeck.map(c => c.id).sort()).to.deep.equal(originalDeck.map(c => c.id).sort());
             
-            // There's a small chance this could fail even with a correct shuffle
-            // but the probability is extremely low (1 in 24!)
-            expect(shuffledDeck.map(c => c.id)).to.not.eql(originalDeck.map(c => c.id));
+            // Check that the order is different (statistically likely for a good shuffle)
+            expect(shuffledDeck.map(c => c.id)).to.not.eql(originalDeck.map(c => c.id),
+                "Shuffled deck should not be in the exact same order as original (rare chance of intermittent failure)");
         });
     });
 });

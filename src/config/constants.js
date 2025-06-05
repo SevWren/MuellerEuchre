@@ -8,6 +8,7 @@ export const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
 export const VALUES = ['9', '10', 'J', 'Q', 'K', 'A'];
 
 export const DEBUG_LEVELS = {
+    ERROR: 0,
     INFO: 1,
     WARNING: 2,
     VERBOSE: 3,

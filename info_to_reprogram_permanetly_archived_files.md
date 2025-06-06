@@ -1883,3 +1883,81 @@ A central file (commonly `app.js` or `server.js` at the root or in `src/`) that 
 Not Archived (as the file is not found). The absence of `app.js` at the path expected by `src/test/utils/testUtils.js` further justifies the decision to archive `src/test/utils/testUtils.js`, as its core functionality was dependent on this missing file.
 During the application rewrite, a new, clear entry point for the Express application setup (equivalent to a new `app.js`) will need to be created. This new `app.js` will be a critical component for both running the application and enabling robust integration testing.
 ---
+
+### Files: Test files in \`test/server/persistence/\` (Status Update)
+
+**Original Functionality:**
+This group of test files provides unit tests for data persistence functionality, likely targeting \`src/db/gameRepository.js\`.
+
+**Files Previously Identified in this Group (and intended to be kept for review):**
+- \`test/server/persistence/autoSave.unit.test.js\`
+- \`test/server/persistence/basic.unit.test.js\`
+- \`test/server/persistence/gameState.unit.test.js\`
+- \`test/server/persistence/persistence.unit.test.js\` (Note: File not found at this path during logging - may have been previously archived or moved. Original intent was to keep for review.)
+
+**Analysis of Instability Contribution & Decision Rationale:**
+- **Relevance to Kept Application Code:** These tests target functionality related to data persistence, primarily handled by \`src/db/gameRepository.js\`. This application module was kept (not archived), although it was marked for review and potential refactoring.
+- **Decision (Confirmation):** Not Archived (files remain in place), but marked for **Review**. These tests should be reviewed in conjunction with \`src/db/gameRepository.js\`. If \`gameRepository.js\` is significantly refactored or its API changes, these tests will need to be updated or rewritten. They form a basis for testing the persistence layer of the rewritten application. No files are being moved or having placeholders created by this specific logging action. This entry confirms their status from the previous bulk processing of \`test/server/\` tests.
+---
+
+### File: src/test/integration/gameFlow.test.js
+
+**Original Functionality:**
+This file contains integration tests designed to verify the overall game flow of the Euchre application. It uses test utilities from \`../utils/testUtils.js\` (i.e., \`src/test/utils/testUtils.js\`) to create a test server and multiple Socket.IO clients. The tests attempt to simulate player actions such as joining a game, starting a game, bidding, playing cards, and handling disconnections/reconnections.
+
+**Analysis of Instability Contribution:**
+- **Test Environment Unreliability (Criteria 1a - Critical Flaws):**
+    - **Dependency on Archived Test Utilities:** This test file critically depends on helper functions (\`createTestServer\`, \`createTestClient\`, etc.) from \`src/test/utils/testUtils.js\`. This utility module was itself archived because its core \`createTestServer\` function relied on a root \`app.js\` (which was found to be missing) and was designed to set up a server based on the old, flawed application architecture. Without these utilities, these integration tests cannot run.
+    - **Testing Archived Application Logic:** The game flow, socket events, and server behaviors that these integration tests aim to validate were implemented in server-side modules (\`server3.mjs\`, \`src/server.js\`, \`src/game/state.js\`, \`src/game/stateManager.js\`, most of \`src/game/phases/*\`, all of \`src/socket/*\`) that have been archived due to fundamental instability issues, security flaws, or incorrect state management. These tests are therefore targeting a system that is dismantled and slated for a complete rewrite.
+- **Incomplete Test Scenarios:** The main 'full game flow' test explicitly notes that it's incomplete and does not simulate an entire hand or game.
+
+**Truthfully Needed Functionality:**
+Comprehensive integration tests are essential for ensuring that different components of the application (server, client, game logic, state management, socket communication) work together correctly.
+
+**Decision:**
+Archived. These integration tests are fundamentally broken and obsolete (Criteria 1a). They rely on archived test utilities and target an application architecture and specific server-side components that have been archived due to pervasive instability and other critical flaws. Attempting to run or adapt these tests for the old system would be unproductive. New integration tests must be written from scratch for the rewritten application, reflecting its new architecture, API, socket events, and using new, stable test utilities.
+---
+
+### File: src/test/services/socketService.test.js
+
+**Original Functionality:**
+This file contains unit tests for the client-side \`socketService.js\` module (presumably located in \`src/client/services/\`). The \`socketService\` is responsible for managing the client's Socket.IO connection to the server, sending messages, and handling incoming socket events. The tests use Chai for assertions and Sinon for creating a mock Socket.IO client object (by stubbing \`io.connect\`) and for other stubs/spies. Tests cover connecting, disconnecting, sending messages (and queuing them when offline), registering/unregistering event listeners, and basic reconnection and connection quality simulations.
+
+**Analysis of Instability Contribution:**
+- **Nature of File:** Unit tests for a client-side service.
+- **Relevance to Server-Side Instability:** This client-side test file does not directly cause *server-side* pervasive instabilities.
+- **Obsolete Due to Archived Server Components (Criteria 1b):**
+    - The client-side \`socketService.js\` module that this file tests is designed to communicate with the server's Socket.IO interface. The entire server-side socket implementation (all files within \`src/socket/\`, including \`index.js\`, \`handlers/gameHandlers.js\`, and all middleware) was archived due to critical flaws (e.g., direct state mutation, security issues, non-functional components).
+    - Since the server-side counterpart that \`socketService.js\` would interact with is gone and will be completely rewritten, the existing client service (and by extension, these tests for it) is now targeting an obsolete and non-functional server API. The assumptions these tests make about server behavior, events, and data structures are no longer valid.
+- **Test Practices:** The tests use standard mocking techniques for the Socket.IO client (stubbing \`io.connect\`) and manage the state of the imported \`socketService\` singleton for test isolation. It temporarily stubs \`console.log\`. These are common testing practices, though direct manipulation of a singleton's internal state for reset can be brittle.
+
+**Truthfully Needed Functionality:**
+Unit tests for the client-side socket service are essential to ensure reliable communication with the server.
+
+**Decision:**
+Archived. These unit tests are for a client-side service (\`socketService.js\`) whose primary role is to interact with the server's Socket.IO API (Criteria 1b). Given that the entire server-side socket implementation has been archived for a complete rewrite due to critical flaws, the client's \`socketService.js\` will inevitably need a major rewrite or replacement to work with the new server. Therefore, these existing tests for the old client service are now obsolete. New unit tests will need to be written for the new/refactored client-side \`socketService.js\` once the server-side API is redefined and stabilized.
+---
+
+### Directory: public/ (General Note)
+
+**Original Functionality:**
+This directory contains client-side static assets that are served to users' browsers. This includes:
+- HTML files (e.g., \`index.html\`, \`index - Copy.html\`, \`v2/index.html\`)
+- CSS files (e.g., \`index_html.css\`, \`v2/css/styles.css\`)
+- Client-side JavaScript (e.g., \`js/socketHandler.js\`)
+- A subdirectory \`v2/\` which appears to be for a version 2 of the client UI.
+
+**Analysis of Instability Contribution:**
+- **Relevance to Server-Side Instability:** The static files within the \`public/\` directory (HTML, CSS, client-side JS) are served by the web server but execute in the client's browser. They do not directly participate in or cause the server-side pervasive file integrity, module loading, or caching instabilities that are the primary focus of this archival task.
+- **Impact of Server-Side Instability on Client Assets:** The client-side JavaScript (such as \`js/socketHandler.js\` and any JavaScript loaded by the HTML pages) is critically dependent on a stable and correctly functioning server backend, including its API and Socket.IO event structure. The extensive archival and planned rewrite of server-side components (especially socket handlers, state management, and game logic) mean that this client-side JavaScript will be communicating with a backend that will be substantially different.
+
+**Truthfully Needed Functionality:**
+A \`public/\` directory with client-side assets (HTML, CSS, JavaScript) is essential for users to interact with the web application.
+
+**Decision:**
+Not Archived (files remain in place). The contents of the \`public/\` directory are client-side static assets and are not being archived as part of this server-focused stability overhaul.
+**Action for Rewrite Phase:**
+- All client-side JavaScript (including \`js/socketHandler.js\` and any scripts associated with \`index.html\` or \`v2/index.html\`) will require **significant review and adaptation** to work correctly with the rewritten and stabilized server-side API and socket communication protocols.
+- The file \`public/index - Copy.html\` appears to be a backup or old version and is a candidate for **simple deletion** during general project cleanup, as it likely serves no current purpose.
+- The \`v2/\` directory and its contents should be reviewed to determine if this version is current, under development, or obsolete.
+---

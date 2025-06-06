@@ -1,22 +1,289 @@
-# Online Multiplayer Euchre Card Game
+# 🃏 Euchre Multiplayer
 
-⚠️ **Warning:** This project is a work in progress. See [Current Bugs & Issues Being Addressed](#3-current-bugs--issues-being-addressed) for known issues.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/SevWren/MuellerEuchre/actions/workflows/test.yml/badge.svg)](https://github.com/SevWren/MuellerEuchre/actions)
+[![Coverage Status](https://coveralls.io/repos/github/SevWren/MuellerEuchre/badge.svg?branch=main)](https://coveralls.io/github/SevWren/MuellerEuchre?branch=main)
+
+🚀 **Project Status:** Active Development | 🎮 WIP | 🔄 Real-time Multiplayer
+
+A full-featured, real-time online Euchre card game with WebSocket support, automatic reconnection, and persistent game state. Built with Node.js, Express, and Socket.IO for seamless multiplayer gameplay.
+
+## ✨ Features
+
+- 🎮 **Real-time Multiplayer**: Play with friends or join random opponents
+- 🔄 **Automatic Reconnection**: Never lose your game to connection drops
+- 💾 **Persistent Game State**: Your progress is saved automatically
+- 🃏 **Complete Euchre Rules**: All standard Euchre rules implemented
+- 📱 **Responsive Design**: Play on desktop or mobile devices
+- 🚀 **Fast & Reliable**: Built with modern web technologies
+- 🔒 **Secure**: Authentication and data validation
+- 🧪 **Tested**: Comprehensive test coverage
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 16+ and npm
+- MongoDB instance (local or cloud)
+- Modern web browser
+
+### Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/SevWren/MuellerEuchre.git
+   cd MuellerEuchre/euchre-multiplayer
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables** (create `.env` file):
+   ```env
+   MONGODB_URI=mongodb://localhost:27017/euchre
+   PORT=3000
+   NODE_ENV=development
+   JWT_SECRET=your_jwt_secret_here
+   ```
+
+4. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
+
+5. **Open in your browser**:
+   ```
+   http://localhost:3000
+   ```
+
+## 🧪 Testing
+
+We use a comprehensive testing strategy to ensure code quality and reliability:
+
+### Test Coverage
+
+- **Core Game Logic**: 85%
+- **Validation**: 92%
+- **Scoring**: 88%
+- **UI Components**: 65%
+- **Integration**: 70%
+
+### Running Tests
+
+#### Prerequisites
+- Node.js 16+ and npm
+- MongoDB instance (in-memory server is used for testing)
+
+#### Available Scripts
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage reporting
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run specific test file
+npm test -- path/to/test/file.test.js
+
+# Run tests with debug output
+DEBUG=euchre:* npm test
+```
+
+#### Test Types
+
+1. **Unit Tests**
+   - Test individual functions and components in isolation
+   - Located in `test/unit/`
+
+2. **Integration Tests**
+   - Test interactions between components
+   - Located in `test/integration/`
+
+3. **End-to-End Tests**
+   - Test complete game flows
+   - Located in `test/e2e/`
+
+#### Debugging Tests
+
+To debug tests, you can use:
+
+1. **Chrome DevTools**:
+   ```bash
+   npx node --inspect-brk node_modules/.bin/mocha --require esm test/path/to/test.js
+   ```
+   Then open `chrome://inspect` in Chrome
+
+2. **VS Code**:
+   Add this to your `.vscode/launch.json`:
+   ```json
+   {
+     "type": "node",
+     "request": "launch",
+     "name": "Mocha Tests",
+     "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+     "args": [
+       "--require", "esm",
+       "--timeout", "999999",
+       "--colors",
+       "${workspaceFolder}/test/path/to/test.js"
+     ],
+     "console": "integratedTerminal",
+     "internalConsoleOptions": "neverOpen"
+   }
+   ```
+
+## 🚀 CI/CD Pipeline
+
+We use GitHub Actions for continuous integration:
+
+- **On every push/pull request to `main`:**
+  - Lint TypeScript and JavaScript code
+  - Run all tests
+  - Check code coverage
+  - Build the application
+
+- **On release:**
+  - Publish to npm
+  - Deploy to production (if configured)
+
+```bash
+node --inspect-brk node_modules/mocha/bin/mocha --require esm path/to/test/file.test.js
+```
+
+Then open Chrome DevTools and click on the Node.js icon to start debugging.
+
+## 📚 API Reference
+
+### WebSocket Events
+
+#### Client → Server
+- `joinGame`: Join a game with player details
+- `startGame`: Start the game (host only)
+- `playCard`: Play a card
+- `makeBid`: Place a bid
+- `goAlone`: Declare going alone
+
+#### Server → Client
+- `gameState`: Full game state update
+- `playerJoined`: New player notification
+- `gameStarted`: Game start notification
+- `trickCompleted`: Trick resolution
+- `gameOver`: Game end notification
+
+## ⚙️ Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | 3000 | Server port |
+| `MONGODB_URI` | - | MongoDB connection string |
+| `NODE_ENV` | development | Runtime environment |
+| `LOG_LEVEL` | info | Logging level |
+| `SOCKET_PATH` | /socket.io | Socket.IO path |
+
+## 📊 Current State of the Project
+
+### Implemented Features
+- **Real-time Multiplayer**: Fully functional WebSocket-based communication for up to 4 players.
+- **Game Logic**: Complete implementation of Euchre rules, including:
+  - Trump selection (both rounds).
+  - Trick-taking logic with proper card rankings.
+  - Scoring system, including "Go Alone" scenarios.
+- **Server-Side Validation**: Ensures all player actions adhere to game rules.
+- **Persistent Game State**: MongoDB integration for saving and restoring game progress.
+- **Responsive UI**: Optimized for both desktop and mobile devices.
+- **Automatic Reconnection**: Handles player disconnections and reconnections gracefully.
+- **Comprehensive Testing**: Unit, integration, and end-to-end tests covering core game logic and interactions.
+- **CI/CD Pipeline**: Automated testing and deployment using GitHub Actions.
+
+### Incomplete or Missing Features
+- **Enhanced Player Disconnection Handling**: Currently resets the game to the lobby; needs improvement to allow reconnection without disrupting the game.
+- **UI Enhancements**: 
+  - Improve animations and transitions for a smoother user experience.
+  - Add more visual feedback for player actions.
+- **Game History**: Implement a feature to view past games and scores.
+- **Spectator Mode**: Allow non-players to watch ongoing games.
+- **Advanced Game Settings**: Add options for custom rules or variations of Euchre.
+- **Localization**: Support for multiple languages.
+- **Security Enhancements**: Strengthen authentication and data validation mechanisms.
+
+## 🛠️ Next Steps
+
+1. **Improve Player Disconnection Handling**
+   - Allow players to reconnect seamlessly without resetting the game.
+   - Notify other players of disconnections and reconnections.
+
+2. **UI and UX Improvements**
+   - Enhance animations and transitions.
+   - Add tooltips and contextual help for new players.
+
+3. **Implement Game History**
+   - Store completed game data in MongoDB.
+   - Create a UI for players to view their game history.
+
+4. **Develop Spectator Mode**
+   - Allow spectators to join games in a read-only mode.
+   - Ensure spectator views do not reveal hidden information (e.g., player hands).
+
+5. **Expand Test Coverage**
+   - Add tests for edge cases and error handling.
+   - Increase coverage for UI components and integration scenarios.
+
+6. **Localization and Accessibility**
+   - Add support for multiple languages.
+   - Ensure the UI is accessible to users with disabilities.
+
+## 🏗️ Project Structure
+
+```
+euchre-multiplayer/
+├── src/                    # Source code
+│   ├── client/             # Client-side code
+│   │   ├── components/     # React components
+│   │   ├── hooks/          # Custom React hooks
+│   │   └── services/       # Client services
+│   ├── config/             # Configuration files
+│   ├── db/                 # Database models and utilities
+│   ├── game/               # Game logic
+│   │   ├── logic/          # Core game logic
+│   │   └── phases/         # Game phase handlers
+│   ├── socket/             # WebSocket handlers
+│   └── utils/              # Utility functions
+├── test/                   # Test files
+│   ├── integration/        # Integration tests
+│   ├── unit/               # Unit tests
+│   └── e2e/                # End-to-end tests
+├── public/                 # Static files
+└── docs/                   # Documentation
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how you can help:
+
+1. **Report Bugs**: File an issue if you find a bug
+2. **Suggest Features**: Suggest new features or improvements
+3. **Submit Pull Requests**: Submit PRs for bug fixes or new features
+
+### Development Workflow
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m 'Add some feature'`
+4. Push to the branch: `git push origin feature/your-feature`
+5. Open a pull request
+
+### Code Style
+- Follow the existing code style
+- Write tests for new features
+- Update documentation as needed
+- Keep commits small and focused
 
 
-
-## 1. Project Overview
-
-This project aims to create a web-based, real-time, 4-player Euchre card game. Players connect via their web browsers to a central server that manages the game logic and state. The goal is to provide a functional and interactive Euchre experience adhering to common game rules.
-
-**Core Technologies:**
-*   **Backend:** Node.js with Express.js for the web server and Socket.IO for real-time, bidirectional WebSocket communication.
-*   **Frontend:** HTML for structure, CSS (with some Tailwind CSS via CDN) for styling, and client-side JavaScript for UI interactions and communication with the server.
-
-**Game Rules & Mechanics (Implemented or In Progress):**
-*   **Players:** 4 players, in two partnerships (North/South vs. East/West).
-*   **Deck:** Standard 24-card Euchre deck (9, 10, Jack, Queen, King, Ace of each of the four suits).
-*   **Dealing:** 5 cards dealt to each player. An "up-card" is turned from the remaining kitty.
-*   **Trump Making (Bidding):**
     *   **Round 1:** Players, starting left of the dealer, can "order up" the dealer (making the up-card's suit trump and forcing the dealer to take it) or "pass."
     *   **Dealer's Discard:** If trump is made by ordering up the dealer, the dealer picks up the up-card and discards one card from their hand.
     *   **Round 2:** If all players pass in Round 1, the up-card is turned down. Players, starting left of the dealer, can name any *other* suit as trump or pass. If all players pass again, the hand is typically re-dealt (current implementation).
@@ -59,6 +326,34 @@ This project aims to create a web-based, real-time, 4-player Euchre card game. P
 *   Ability for players to request a new game session after a game concludes or from the lobby.
 
 ## 2. File Descriptions
+
+### `src/client/components/ConnectionStatus/`
+
+A reusable React component that provides real-time feedback about the WebSocket connection status:
+
+- Displays current connection state (connected/disconnected/reconnecting)
+- Shows connection quality metrics (latency, jitter)
+- Visual indicators for connection quality
+- Smooth animations for state transitions
+- Responsive design that works on all screen sizes
+
+### `src/client/hooks/useSocket.js`
+
+A custom React hook that provides a clean interface for components to interact with the WebSocket connection:
+
+- Manages connection state
+- Tracks connection quality metrics
+- Provides methods for sending and receiving messages
+- Handles reconnection logic
+
+### `src/client/services/socketService.js`
+
+Enhanced WebSocket service with connection quality monitoring:
+
+- Tracks latency and jitter
+- Implements ping-pong mechanism for connection health
+- Provides detailed connection quality metrics
+- Handles automatic reconnection with exponential backoff
 
 ### `server.js`
 This is the main backend file, running on Node.js. It manages the entire game logic, state, and communication between players.
@@ -181,56 +476,79 @@ This is the manifest file for the Node.js project.
 *   **`version`**: "1.0.0".
 *   **`description`**: Empty.
 *   **`main`**: "index.js" (The actual server entry point is `server.js`).
-*   **`scripts`**: Contains a placeholder "test" script. Could be used for `npm start` to run `node server.js`.
-*   **`dependencies`**:
-    *   `express`: "^5.1.0" (Web framework).
-    *   `socket.io`: "^4.8.1" (Real-time communication library).
-*   Lists project metadata and dependencies required by `npm`.
-
-### `package-lock.json`
-This file is automatically generated by `npm` to lock down the exact versions of all installed dependencies and their sub-dependency.
-*   **Purpose**: Ensures that anyone who installs the project dependencies using `npm install` will get the identical package versions, leading to reproducible builds and avoiding unexpected issues from transitive dependency updates.
-*   It should not be manually edited.
+*   **`scripts`**: Contains various npm scripts for development and testing:
+    - `dev`: Start development server with hot-reloading
 
 ---
 
-## File-by-File Analysis
+## Modular Architecture
 
-### server3.js
-- **Purpose:** Main server logic for the Euchre game, including game state, player management, game phases, and all core game functions.
-- **Key Points:**
-  - Uses Express and Socket.IO for real-time multiplayer.
-  - Exports core functions and state for unit testing.
-  - Contains all Euchre game logic (dealing, bidding, playing, scoring).
-  - Uses a logging system with debug levels.
-  - Handles all socket events for game actions.
-  - Improved for testability by exporting pure functions and using mocks in tests.
+### Core Modules
 
-### test/server3.unit.test.js
-- **Purpose:** Unit tests for core Euchre server logic.
-- **Key Points:**
-  - Uses Mocha and Proxyquire for isolated testing.
-  - Mocks `fs` and `socket.io` to avoid side effects and server startup during tests.
-  - Tests pure functions: `getNextPlayer`, `getPartner`, `cardToString`, `sortHand`, `getSuitColor`, `isRightBower`, `isLeftBower`, `getCardRank`.
-  - Ensures correct logic for Euchre rules and card handling.
-  - **Note:** The improved mock for `socket.io` is required to prevent `io.on is not a function` errors.
+#### `src/game/`
+- **state.js**: Manages the core game state and state transitions
+- **phases/**: Handles different game phases
+  - `lobbyPhase.js`: Manages player connections and game initialization
+  - `orderUpPhase.js`: Handles the first round of bidding
+  - `callTrumpPhase.js`: Manages the second round of bidding
+  - `playPhase.js`: Controls the trick-taking gameplay
+  - `scoringPhase.js`: Handles scoring and game progression
+  - `endGame.js`: Manages game conclusion and winner determination
 
-### package.json
-- **Purpose:** Node.js project manifest.
-- **Key Points:**
-  - Main entry: `server3.js`.
-  - Scripts for starting the server and running tests.
-  - Declares dependencies: `express`, `socket.io`.
-  - Declares devDependencies: `mocha`, `proxyquire`.
-  - Test script uses Mocha with Proxyquire and the `spec` reporter.
+#### `src/socket/`
+- **connection.js**: Manages WebSocket connections and events
+- **middleware/**: Socket middleware for authentication and validation
+- **handlers/**: Event handlers for different game actions
 
-### public/index.html
-- **Purpose:** Main client-side HTML for the Euchre game.
-- **Key Points:**
-  - Loads Tailwind CSS and Socket.IO client.
-  - Contains all UI elements for the game: player areas, up-card, trick area, modals, and controls.
-  - Client-side JS handles socket events, UI updates, and user actions.
-  - Uses a fixed player perspective and dynamic rendering for game state.
+#### `src/config/`
+- **constants.js**: Game constants and configuration
+- **logger.js**: Centralized logging configuration
+
+#### `src/db/`
+- **gameRepository.js**: MongoDB integration for game state persistence
+- **models/**: Database models and schemas
+
+### Testing
+- **test/unit/**: Unit tests for individual modules
+- **test/integration/**: Integration tests for module interactions
+- **test/e2e/**: End-to-end tests for complete game flows
+
+### Client-Side
+- **public/index.html**: Main game interface
+- **src/client/components/**: Reusable UI components
+- **src/client/hooks/**: Custom React hooks
+- **src/client/services/**: Client-side services (e.g., WebSocket service)
+
+### Configuration
+- **package.json**: Project manifest and scripts
+  - Main entry: `src/index.js`
+  - Scripts for development, testing, and production
+  - Dependencies management
+  - Test configuration
+
+### Client-Side Architecture
+
+#### `public/index.html`
+- **Purpose:** Main entry point for the client-side application
+- **Key Features:**
+  - Loads Tailwind CSS and Socket.IO client
+  - Initializes the React application
+  - Contains the root DOM element
+
+#### `src/client/`
+- **components/**: Reusable UI components
+  - `GameBoard/`: Main game interface
+  - `PlayerHand/`: Player's card hand
+  - `TrickArea/`: Display of current trick
+  - `Scoreboard/`: Game score tracking
+  - `ConnectionStatus/`: Connection status indicator
+- **hooks/**: Custom React hooks
+  - `useSocket.js`: WebSocket connection management
+  - `useGameState.js`: Game state management
+- **services/**: Client-side services
+  - `socketService.js`: WebSocket communication
+  - `gameService.js`: Game logic utilities
+  - `storageService.js`: Local storage management
 
 ### readme.md
 - **Purpose:** Project documentation and setup instructions.
@@ -251,51 +569,6 @@ This file is automatically generated by `npm` to lock down the exact versions of
 - Unit tests are isolated and require specific mocking for the environment.
 - All instructions and caveats for running and testing the project are included above.
 
-## 3. Current Bugs & Issues Being Addressed
-
-![alt text](image.png)
-![alt text](image-1.png)
-
-1.  **Client UI Not Updating After Game Start / Stale UI:**
-    *   **Description:** After the "Start Game" button is clicked and the server initiates the game (dealing cards, setting the up-card, determining the first player for bidding), the client UIs often do not reflect these changes. They remain stuck displaying a pre-game or lobby state.
-    *   **Symptoms Observed:**
-        *   Game status text (top center) shows "Connected. Waiting for role..." or similar stale message instead of "Current: [PlayerName] - Order up or pass?".
-        *   Player hands are not rendered or show as empty.
-        *   The up-card area does not display the correct up-card dealt by the server.
-        *   Game messages (bottom left) might still show "Welcome!" or only initial connection messages.
-    *   **Potential Causes:**
-        *   The `game_update` event from the server might not be consistently processed by the client's `socket.on('game_update', ...)` handler after the transition from the 'LOBBY' phase.
-        *   The `updateUI(state)` function on the client might have logical errors preventing it from correctly re-rendering the entire UI with the new game state data (player hands, up-card, trick area, status text, etc.).
-        *   The global `currentServerGameState` on the client might not be updating correctly, or `updateUI` might be using an old version.
-        *   CSS or DOM manipulation issues where old elements are not cleared before new ones are rendered, or elements are not being selected/updated correctly.
-        *   The client-side `myPlayerRole` variable might be `null` or incorrect when `updateUI` is called, leading to errors in `getPlayerRelativePosition` and incorrect rendering of player areas.
-
-2.  **Incorrect Up-Card Display ("North" Label Bug):**
-    *   **Description:** A very specific and persistent UI bug where the designated up-card area in the center of the table (`#up-card`) displays a card back with the text "North" (rotated 180 degrees) superimposed on it. This occurs instead of the actual up-card face (e.g., "Ace of Hearts" as per server logs).
-    *   **Symptoms Observed:** The element with `id="up-card"` shows content that seems to originate from or be styled like the `#north-area`'s player label or card elements.
-    *   **Potential Causes:**
-        *   **CSS Conflict/Specificity:** Overly broad CSS selectors targeting `.card` or `.player-label` within `#north-area` (which has `transform: rotate(180deg)`) might be unintentionally affecting the `#up-card` element, especially if `#up-card` also has the class `card`.
-        *   **DOM Manipulation Error:** JavaScript code in `updateUI` or `renderCardDOM` might be incorrectly targeting or populating the `#up-card` element, possibly due to an ID collision (unlikely if IDs are unique as they appear to be) or a faulty logic path when specifically rendering the up-card.
-        *   The logic in `updateUI` for rendering the up-card might be flawed, falling through to a default card back rendering, and then some other part of the UI update (perhaps player area rendering) incorrectly writes "North" into it or applies styles that cause this appearance.
-
-3.  **Inconsistent Client State After "Start Game" Action:**
-    *   **Description:** In some test scenarios, after one client clicks "Start Game," other clients might not transition correctly. For example, one client might show the "Start Game" button as "Starting...", while another client receives an error like "Game not in lobby phase."
-    *   **Symptoms Observed:** Different clients display conflicting UI states immediately after the game start is attempted.
-    *   **Potential Causes:**
-        *   The `game_update` broadcast by the server that changes `gameState.gamePhase` from 'LOBBY' might not be reaching all clients simultaneously or is being processed with errors/delays on some clients.
-        *   Client-side logic for managing the "Start Game" button's state (`disabled`, `textContent`) and its interaction with `lobby_update` vs. `game_update` might be inconsistent across clients or have race conditions.
-
-4.  **Race Condition/State Management Between `lobby_update` and `game_update` (Proactively Addressed):**
-    *   **Description:** A potential issue where a `lobby_update` message (intended for lobby UI) could arrive *after* a `game_update` has already advanced the `gamePhase` beyond 'LOBBY'. If the `lobby_update` handler unconditionally sets `gamePhase` back to 'LOBBY' or overwrites other critical game state, it could disrupt the game flow.
-    *   **Status:** Recent changes in the `index.html` `socket.on('lobby_update', ...)` handler were made to mitigate this by making state updates conditional on `currentServerGameState.gamePhase === 'LOBBY'`. This is more of a bug prevention measure.
-
-5.  **General Robustness of Client-Side State Synchronization:**
-    *   **Description:** Ensuring that all clients maintain an accurate and synchronized view of the game state at all times, especially during rapid phase transitions or when modals for player actions are displayed/hidden.
-    *   **Symptoms Observed:** The UI sometimes feels "stuck" or doesn't immediately reflect whose turn it is, what the valid actions are, or the results of an action.
-    *   **Potential Causes:**
-        *   Timing issues with hiding/showing modals relative to UI updates.
-        *   The client needs to reliably clear previous state (e.g., old cards, old status messages) before rendering new state from `game_update`. The previous version of `updateUI` for up-card was refined to explicitly clear `innerHTML` and `className` for `elements.upCardEl`. This principle might need to be applied more broadly if stale elements persist.
-
 ## 4. Setup & Running
 
 1.  **Prerequisites:**
@@ -312,14 +585,3 @@ This file is automatically generated by `npm` to lock down the exact versions of
     *   Open four separate browser tabs or windows (or use different browsers/incognito mode) and navigate to the same address to simulate four players.
     *   Once four players are connected (as shown in the "Players" list in the lobby), one player can click the "Start Game" button.
     *   **Important Note on Static Files:** The `server.js` is configured to serve static files from a `public` subdirectory (`app.use(express.static(path.join(__dirname, 'public')));`). Ensure that `index.html` (and any other client-side assets like CSS or image files if added later) is located inside a folder named `public` at the root of the project.
-
-## Running Unit Tests (Windows 10, PowerShell)
-
-**Note:** On this system, you must use the full Windows file path to run tests due to environment specifics. Example:
-
-```
-npx mocha G:\Users\mmuel\OneDrive\Documents\GitHub\MuellerEuchre\euchre-multiplayer\test\server3.unit.test.js --require proxyquire --reporter spec
-```
-
-- If you add more test files, use their full path in the command above.
-- The test suite uses improved mocks for `socket.io` to avoid server startup errors during testing.

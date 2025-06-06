@@ -1,0 +1,126 @@
+/**
+ * This configuration file is used for the jsconfig.json file in the root of the
+ * project. It is used to configure the JavaScript compiler and linter for the
+ * project.
+ *
+ * When:
+ *   - This file is used during development when running the "dev" script.
+ *   - It is also used by the linter when running the "lint" script.
+ *
+ * Why:
+ *   - The configuration file is needed to tell the compiler and linter how to
+ *     interpret the codebase.
+ *   - It is also used to configure the linter to ignore certain files and
+ *     directories.
+ *
+ * How:
+ *   - The configuration file is imported by the jsconfig.json file in the root
+ *     of the project.
+ *   - The jsconfig.json file is used by the compiler and linter to interpret the
+ *     codebase.
+ *   - The compiler and linter will use the configuration specified in this file
+ *     to compile and lint the codebase.
+ */
+
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "target": "ES2022",
+        "jsx": "react-jsx",
+        "allowImportingTsExtensions": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["public/js/*"]
+        }
+    },
+    "exclude": [
+        // Dependencies
+        "node_modules",
+        "**/node_modules/*",
+        "**/bower_components/*",
+        
+        // Build outputs
+        "dist",
+        "build",
+        "out",
+        
+        // Cache and temp files
+        ".cache",
+        ".temp",
+        "temp",
+        "tmp",
+        "**/*.tmp",
+        
+        // Logs and debug files
+        "logs",
+        "*.log",
+        "npm-debug.log*",
+        "yarn-debug.log*",
+        "yarn-error.log*",
+        "lerna-debug.log*",
+        
+        // Environment and IDE
+        ".env*",
+        ".vscode/*",
+        ".idea",
+        ".DS_Store",
+        "Thumbs.db",
+        
+        // Coverage and reports
+        "coverage",
+        ".nyc_output",
+        "*.lcov",
+        
+        // Package manager specific
+        "package-lock.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+        "shrinkwrap.json",
+        
+        // Production dependencies
+        "**/public/vendor/*",
+        "**/public/libs/*",
+        
+        // Minified files
+        "**/*.min.js",
+        "**/*.min.css",
+        
+        // Config overrides
+        "**/webpack.config.override.js",
+        "**/babel.config.override.js",
+        
+        // Development and editor files
+        ".history/",
+        
+        // Test artifacts
+        "**/cypress/screenshots/",
+        "**/cypress/videos/",
+        
+        // Archived test directories
+        "test/archived/",
+        "test/temp_archived/",
+        "test/temp_ignore/",
+        
+        // Build tool caches (uncomment if using these tools)
+        // ".parcel-cache/",  // If using Parcel
+        // ".svelte-kit/"     // If using SvelteKit
+    ],
+    "include": [
+        "**/*.js",
+        "**/*.jsx",
+        "**/*.ts",
+        "**/*.tsx",
+        "**/test",
+        "**/tests",
+        "**/__tests__",
+        "**/__mocks__",
+        "**/cypress",
+        "**/e2e",
+        "**/docs",
+        "**/examples",
+        "**/benchmarks"
+, ".tmp/test_output.js", ".tmp/test-node-env.js"    ]
+}

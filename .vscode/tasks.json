@@ -1,0 +1,80 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "echo-message",
+            "type": "shell",
+            "command": "echo '🚀 Starting Mocha test with debug configuration...'"
+        },
+        {
+            "label": "Install Dependencies",
+            "type": "shell",
+            "command": "npm install",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Tests",
+            "type": "npm",
+            "script": "test",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Start Server",
+            "type": "shell",
+            "command": "node server3.js",
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "custom",
+                "pattern": {
+                    "regexp": "^$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*",
+                    "endsPattern": "Server running on port 3000"
+                }
+            }
+        },
+        {
+            "type": "npm",
+            "script": "clean:coverage",
+            "problemMatcher": [],
+            "label": "npm: clean:coverage",
+            "detail": "if exist coverage rmdir /s /q coverage"
+        },
+        {
+            "label": "test1",
+            "type": "shell",
+            "command": "npx mocha ${file} --require esm",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Watch Single Test File",
+            "type": "shell",
+            "command": "npx mocha ${file} --require esm --watch",
+            "group": "test",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

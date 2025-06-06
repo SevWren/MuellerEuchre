@@ -2,62 +2,88 @@
   "name": "euchre-multiplayer",
   "version": "1.0.0",
   "description": "Multiplayer Euchre Game Server",
-  "main": "server3.js",
+  "type": "module",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server3.js",
-    "test": "mocha \"test/**/*.test.js\" --timeout 5000 --require proxyquire --reporter spec",
-    "test:watch": "mocha \"test/**/*.test.js\" --timeout 5000 --require proxyquire --reporter spec --watch",
-    "test:debug": "mocha \"test/**/*.test.js\" --timeout 5000 --require proxyquire --inspect-brk --colors",
-    "test:single": "mocha \"$npm_config_file\" --timeout 5000 --require proxyquire --reporter spec",
-    "test:ci": "mocha \"test/**/*.test.js\" --timeout 5000 --require proxyquire --reporter mocha-junit-reporter --reporter-options mochaFile=./test-results.xml",
-    "test:coverage": "nyc --reporter=html --reporter=text mocha \"test/**/*.test.js\" --timeout 5000 --require proxyquire --reporter spec",
-    "lint": "eslint . --ext .js",
-    "lint:fix": "eslint . --ext .js --fix",
-    "posttest": "npm run lint"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "mocha \"test/server/**/*.test.js\" \"test/phases/**/*.test.js\" \"test/services/**/*.test.js\" --recursive --timeout 10000",
+    "test:watch": "mocha test/server/**/*.test.js test/phases/**/*.test.js test/services/**/*.test.js --recursive --watch --timeout 10000",
+    "test:debug": "node --inspect node_modules/mocha/bin/mocha test/server/**/*.test.js test/phases/**/*.test.js test/services/**/*.test.js --recursive --timeout 10000",
+    "clean:coverage": "if exist coverage rmdir /s /q coverage",
+    "test:coverage": "c8 --reporter=json --reporter=text",
+    "test:compare-coverage": "node scripts/compareCoverage.js",
+    "pretest:compare-coverage": "rimraf coverage",
+    "test:integration": "mocha --loader=esm test/phases/startHand.integration.test.js --timeout 10000",
+    "test:all": "npm test && npm run test:integration",
+    "test:coverage:ci": "npm run clean:coverage && c8 --reporter=lcov --all --loader=esm mocha --loader=esm",
+    "coverage:report": "npx c8 report --reporter=text-lcov | npx coveralls",
+    "lint": "eslint . --ext .js,.jsx",
+    "lint:fix": "eslint . --ext .js,.jsx --fix",
+    "prettier": "prettier --write .",
+    "prepare": "husky install",
+    "migrate": "node migrate.js",
+    "init:modules": "node init-modules.js",
+    "test:diag:basic": "NODE_OPTIONS=\"--trace-warnings\" mocha test/server/basic.unit.test.js"
   },
-  "keywords": ["euchre", "card-game", "multiplayer", "nodejs"],
+  "c8": {
+    "exclude": [
+      "**/test/**",
+      "**/node_modules/**",
+      "**/coverage/**",
+      "**/public/**",
+      "**/.git/**"
+    ],
+    "include": [
+      "src/**/*.js"
+    ],
+    "reporter": [
+      "text",
+      "html",
+      "lcov"
+    ],
+    "all": true
+  },
+  "keywords": [
+    "euchre",
+    "card-game",
+    "multiplayer",
+    "nodejs"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^5.1.0",
+    "mongodb": "^6.16.0",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "chai": "^5.1.1",
-    "eslint": "^8.56.0",
-    "eslint-config-standard": "^17.1.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-mocha": "^10.2.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^6.1.1",
-    "mocha": "^11.2.0",
-    "mocha-junit-reporter": "^2.2.0",
-    "nyc": "^15.1.0",
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "@babel/register": "^7.23.9",
+    "@types/chai": "^4.3.17",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.10.5",
+    "@types/sinon": "^10.0.16",
+    "@types/supertest": "^6.0.2",
+    "c8": "^8.0.0",
+    "chai": "^5.1.2",
+    "eslint": "^8.55.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.2",
+    "esm": "^3.2.25",
+    "esmock": "^2.7.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.0.2",
+    "mocha": "^11.0.0",
+    "nodemon": "^3.1.0",
+    "nyc": "^17.1.0",
+    "prettier": "^3.1.0",
     "proxyquire": "^2.1.3",
-    "sinon": "^18.0.0"
-  },
-  "nyc": {
-    "exclude": [
-      "test/**",
-      "**/*.test.js",
-      "**/test-utils/**",
-      "**/test/**",
-      "**/coverage/**"
-    ],
-    "reporter": ["text", "lcov", "text-summary"],
-    "all": true,
-    "check-coverage": true,
-    "statements": 80,
-    "branches": 80,
-    "functions": 80,
-    "lines": 80,
-    "include": [
-      "**/*.js"
-    ]
-  },
-  "engines": {
-    "node": ">=14.0.0",
-    "npm": ">=6.0.0"
-  },
-  "private": true
+    "rimraf": "^5.0.10",
+    "sinon": "^17.0.1",
+    "sinon-chai": "^4.0.0",
+    "socket.io-client": "^4.7.2",
+    "supertest": "^6.3.3"
+  }
 }

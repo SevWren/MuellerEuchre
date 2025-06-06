@@ -1,0 +1,124 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        // Mocha Test Runner - All Tests
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Mocha Tests",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "args": [
+                "--timeout", "999999",
+                "--colors",
+                "--recursive",
+                "test/**/*.test.js"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "externalTerminal",
+            "outputCapture": "std",
+            "skipFiles": ["<node_internals>/**"],
+            "env": {
+                "NODE_ENV": "test",
+                "NODE_OPTIONS": "--experimental-modules --es-module-specifier-resolution=node",
+                "FORCE_COLOR": "1",
+                "DEBUG": "*"
+            },
+            "sourceMaps": true
+        },
+
+        // Mocha Test Runner - Current File
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Mocha Current Test File",
+            "runtimeExecutable": "node",
+            "runtimeArgs": [
+                "--experimental-modules",
+                "--es-module-specifier-resolution=node",
+                "--loader=./test-helper.js",
+                "${workspaceFolder}/node_modules/mocha/bin/mocha"
+            ],
+            "args": [
+                "--timeout", "999999",
+                "--colors",
+                "${file}"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "outputCapture": "std",
+            "skipFiles": ["<node_internals>/**"],
+            "env": {
+                "NODE_ENV": "test",
+                "NODE_OPTIONS": "--experimental-modules --es-module-specifier-resolution=node",
+                "FORCE_COLOR": "1"
+            },
+            "sourceMaps": true
+        },
+
+        // Server Debug Configuration
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug Server",
+            "program": "${workspaceFolder}/src/server.js",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "outputCapture": "std",
+            "runtimeArgs": [
+                "--experimental-modules",
+                "--es-module-specifier-resolution=node"
+            ],
+            "env": {
+                "NODE_ENV": "development",
+                "NODE_OPTIONS": "--experimental-modules --es-module-specifier-resolution=node",
+                "DEBUG": "*"
+            },
+            "sourceMaps": true
+        },
+
+        // Terminal Test Configuration
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Terminal Test",
+            "program": "${workspaceFolder}/terminal_test.js",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "outputCapture": "std"
+        },
+
+        // NPM Script Launcher
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "NPM Script",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "${input:npmScript}", "--"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "outputCapture": "std",
+            "env": {
+                "NODE_OPTIONS": "--experimental-modules --es-module-specifier-resolution=node"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "npmScript",
+            "type": "pickString",
+            "description": "Select npm script to run",
+            "options": [
+                "test",
+                "test:watch",
+                "test:debug",
+                "test:coverage",
+                "test:integration",
+                "start",
+                "dev",
+                "lint",
+                "lint:fix"
+            ],
+            "default": "test"
+        }
+    ]
+}

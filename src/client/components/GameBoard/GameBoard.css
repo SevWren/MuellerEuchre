@@ -1,0 +1,321 @@
+.game-board {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-secondary);
+    color: var(--color-text);
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Loading State */
+.game-board.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--color-primary);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Game Area Layout */
+.game-area {
+    flex: 1;
+    display: grid;
+    grid-template-areas:
+        "opponent opponent opponent"
+        ". center ."
+        "player player player";
+    grid-template-rows: 1fr auto 1fr;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    padding: 1rem;
+    position: relative;
+}
+
+.opponent-area {
+    grid-area: opponent;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.center-area {
+    grid-area: center;
+    position: relative;
+    min-width: 300px;
+    min-height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.player-area {
+    grid-area: player;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+/* Player Seats */
+.player-seat {
+    background: var(--color-bg-primary);
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    min-width: 180px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.player-seat.team1 {
+    border-color: var(--color-team1);
+}
+
+.player-seat.team2 {
+    border-color: var(--color-team2);
+}
+
+.player-seat.current-turn {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.player-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.card-count {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Turn Indicator */
+.turn-indicator {
+    position: absolute;
+    top: -2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-primary);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 20px;
+    font-weight: 600;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.05); }
+    100% { transform: translateX(-50%) scale(1); }
+}
+
+/* Player Actions */
+.player-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--color-primary);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+    transform: translateY(-2px);
+}
+
+.btn-bid {
+    background: var(--color-accent);
+    color: white;
+}
+
+.btn-bid:hover {
+    background: var(--color-accent-dark);
+    transform: translateY(-2px);
+}
+
+.btn-leave {
+    background: var(--color-error);
+    color: white;
+}
+
+.btn-leave:hover {
+    background: var(--color-error-dark);
+    transform: translateY(-2px);
+}
+
+/* Connection Status */
+.connection-status {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.connection-status::before {
+    content: '';
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.connection-status.connected {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+}
+
+.connection-status.disconnected {
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+    animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .game-area {
+        grid-template-areas:
+            "opponent opponent"
+            "center center"
+            "player player";
+        grid-template-rows: auto 1fr auto;
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .opponent-area {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .player-seat {
+        padding: 0.5rem 1rem;
+        min-width: 120px;
+    }
+    
+    .player-name {
+        font-size: 1rem;
+    }
+    
+    .card-count {
+        font-size: 0.8rem;
+    }
+}
+
+/* Game Phase Specific Styles */
+.phase-lobby {
+    background: linear-gradient(135deg, var(--color-bg-primary), var(--color-bg-secondary));
+}
+
+.phase-bidding {
+    background: linear-gradient(135deg, #f5f7fa, #e6e9f0);
+}
+
+.phase-playing {
+    background: linear-gradient(135deg, #e6f7ff, #b3e0ff);
+}
+
+.phase-game_over {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+/* Player List in Lobby */
+.player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    min-width: 250px;
+}
+
+.player-item {
+    background: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 1.1rem;
+}
+
+/* Animations */
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Theme Variables */
+:root {
+    --color-primary: #4a6fa5;
+    --color-primary-dark: #3a5a80;
+    --color-accent: #ff6b6b;
+    --color-accent-dark: #e25a5a;
+    --color-error: #ff5252;
+    --color-error-dark: #e04848;
+    --color-success: #4caf50;
+    --color-warning: #ff9800;
+    --color-team1: #ff6b6b;
+    --color-team2: #4dabf7;
+    --color-text: #2c3e50;
+    --color-text-light: #6c757d;
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f8f9fa;
+    --color-border: #dee2e6;
+    --color-shadow: rgba(0, 0, 0, 0.1);
+}

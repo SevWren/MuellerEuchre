@@ -6,24 +6,6 @@ This document records files that have been analyzed in the context of addressing
 - An analysis of whether its functionality is truthfully needed for the project.
 - Whether the file was archived for rewrite or deemed stable in its current state regarding these specific instabilities.
 
-**Understanding \"Pervasive File Integrity, Module Loading, and Caching Instability\" for this Project:**
-Based on initial analysis (including \`ENVIRONMENT_INSTABILITY.MD\`), this refers to:
-1.  **File Integrity Issues:** Files unexpectedly reverting to previous versions or not reflecting changes, particularly in the test environment.
-2.  **Module Loading Instability:** Problems with how JavaScript modules (especially ES Modules) are loaded, cached, or scoped, leading to errors like \"identifier already declared,\" particularly during test execution. This seems linked to the test runner (Mocha), module loaders (\`esm\`), and potentially the project's module structure.
-3.  **Caching Instability:** While not explicitly detailed with examples of application data caching, the module loading issues suggest problems with how JavaScript modules are cached. If other application-level caching exists, it would also be under scrutiny.
-4.  **Overall Test Environment Unreliability:** The above issues make the test environment highly unstable and unreliable for verifying code changes.
-
-The primary goal of this overall task is to identify files contributing to these issues, archive them, and document them for a future from-scratch rewrite to ensure stability.
----
-
-# Log of Archived Files and Analysis for Rewrite
-
-This document records files that have been analyzed in the context of addressing pervasive file integrity, module loading, and caching instability. It includes:
-- The name of the file.
-- Its original functionality.
-- An analysis of whether its functionality is truthfully needed for the project.
-- Whether the file was archived for rewrite or deemed stable in its current state regarding these specific instabilities.
-
 **Understanding "Pervasive File Integrity, Module Loading, and Caching Instability" for this Project:**
 Based on initial analysis (including `ENVIRONMENT_INSTABILITY.MD`), this refers to:
 1.  **File Integrity Issues:** Files unexpectedly reverting to previous versions or not reflecting changes, particularly in the test environment.
@@ -1960,4 +1942,15 @@ Not Archived (files remain in place). The contents of the \`public/\` directory 
 - All client-side JavaScript (including \`js/socketHandler.js\` and any scripts associated with \`index.html\` or \`v2/index.html\`) will require **significant review and adaptation** to work correctly with the rewritten and stabilized server-side API and socket communication protocols.
 - The file \`public/index - Copy.html\` appears to be a backup or old version and is a candidate for **simple deletion** during general project cleanup, as it likely serves no current purpose.
 - The \`v2/\` directory and its contents should be reviewed to determine if this version is current, under development, or obsolete.
+---
+
+---
+### Future Project Documentation Requirements (User Request)
+
+As per user instruction, after the rewrite and stabilization phases are complete, new documentation should be created. This documentation should cover:
+- The updated state of the project directory.
+- The contents and purpose of new/rewritten modules.
+- The uses and interactions of these modules.
+- Updated instructions for development, testing, and deployment.
+This will ensure the project remains maintainable and understandable going forward.
 ---

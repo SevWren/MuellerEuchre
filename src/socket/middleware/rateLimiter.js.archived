@@ -1,0 +1,1 @@
+This file (src/socket/middleware/rateLimiter.js) has been archived due to critical flaws in its implementation (incorrectly targets outgoing emits, not scalable for distributed environments). It requires a complete rewrite.

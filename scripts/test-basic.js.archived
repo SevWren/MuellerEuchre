@@ -1,0 +1,1 @@
+This file (scripts/test-basic.js) has been archived because it sets up a conflicting Mocha execution environment using @babel/register, contributing to test instability. Test execution should be unified.

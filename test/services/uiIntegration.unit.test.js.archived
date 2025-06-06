@@ -1,0 +1,1 @@
+This test file (test/services/uiIntegration.unit.test.js) has been archived due to internal errors (e.g., Jest syntax in Mocha suite) and reliance on fragile DOM mocking. Client-side tests need review and rewrite with consistent tooling.

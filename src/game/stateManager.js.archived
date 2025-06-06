@@ -1,0 +1,1 @@
+This file (src/game/stateManager.js) has been archived due to critical issues with potential race conditions in its update logic and mutable cached objects. It requires a rewrite to ensure atomic updates and data integrity.

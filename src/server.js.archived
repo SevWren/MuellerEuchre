@@ -1,0 +1,1 @@
+This file (src/server.js) has been archived to archived_files_for_rewrite/src/server.js due to its broken dependency on the archived 'src/game/state.js' and its ambiguous role alongside 'server3.mjs'. The server entry point needs to be rewritten.

@@ -1,0 +1,1 @@
+This file (src/utils/validation.js) has been archived due to massive duplication of flawed game rule validation logic and other structural issues. It requires removal, with validation logic centralized elsewhere.

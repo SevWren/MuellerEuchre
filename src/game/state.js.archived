@@ -1,0 +1,1 @@
+This file (src/game/state.js) has been archived to archived_files_for_rewrite/src/game/state.js due to critical issues in its state management approach (mutable global state, non-atomic updates) that pose a high risk to application stability. It requires a complete rewrite with robust state management principles.

@@ -1,0 +1,1 @@
+This file (test/test-helper.js) has been archived due to its reliance on obsolete game state structures and use of outdated practices (global test utilities). New test helpers will be needed for the rewritten application.

@@ -1,0 +1,1 @@
+This file (scripts/test-simple-run.js) has been archived because it provides another ad-hoc and potentially inconsistent way to run Mocha tests, contributing to test environment instability. Test execution should be unified.

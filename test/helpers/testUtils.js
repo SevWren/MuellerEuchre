@@ -97,7 +97,7 @@ export const createTestState = (overrides = {}) => ({
  * @returns {void}
  * @description
  * This function will attempt to reset all provided mocks by calling either
- * the `reset()` or `resetHistory()` method if they exist on the mock.
+ * the \`reset()\` or \`resetHistory()\` method if they exist on the mock.
  * Useful for cleaning up mocks between test cases.
  */
 export const resetAllMocks = (mocks) => {

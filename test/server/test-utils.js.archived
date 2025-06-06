@@ -1,0 +1,1 @@
+This file (test/server/test-utils.js) has been archived due to its use of 'proxyquire' (ESM incompatibility) and its targeting of an obsolete application architecture. It requires a complete rewrite with ESM-compatible mocking strategies.

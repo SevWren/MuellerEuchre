@@ -1,0 +1,1 @@
+This file (test/setup.js) has been archived due to its extensive global namespace pollution, simplistic/problematic DOM mocks, and reliance on other archived helpers. It creates an unstable test environment.

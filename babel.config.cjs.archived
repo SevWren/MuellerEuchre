@@ -1,0 +1,1 @@
+This Babel configuration file (babel.config.cjs) has been archived due to its potential contribution to module loading instability through complex/conflicting ES module handling. The project's ES module strategy needs simplification.

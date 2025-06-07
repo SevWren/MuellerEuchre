@@ -7,11 +7,6 @@ This report details critical issues with the test environment that prevent relia
 ### 1.1. File Reversion and ERR_MODULE_NOT_FOUND in `test/services/stateSync.unit.test.js`
 
 **Location:** `test/services/stateSync.unit.test.js`
-
-**Problem:** This file repeatedly reverts to an incorrect version that uses an absolute import path:
-`import StateSyncService from 'file:///G:/Github/euchre-multiplayer/src/client/services/stateSyncService.js';`
-This causes a persistent `ERR_MODULE_NOT_FOUND` error.
-
 **Details:**
 - Attempts to fix the path to a relative one (e.g., `../../src/client/services/stateSyncService.js`) are only temporarily successful.
 - The file appears to be overwritten or misread by the test execution environment.

@@ -2,8 +2,8 @@
  * Validation logic for Euchre game actions.
  * @module validation
  */
-import { GAME_PHASES, SUITS } from '../../config/constants.js';
-import { isLeftBower, isRightBower } from '../../utils/deck.js'; // Assuming cardToId might be useful too
+import { GAME_PHASES, SUITS, PLAYER_ROLES } from '../../config/constants.js';
+import { isLeftBower } from '../../utils/deck.js'; // Removed isRightBower as it's not used directly here
 import logger from '../../utils/logger.js';
 
 /**
@@ -14,6 +14,7 @@ import logger from '../../utils/logger.js';
  * @returns {string} The effective suit of the card.
  */
 function getEffectiveSuit(card, trumpSuit) {
+  if (!card) return null; // Guard against null card
   if (isLeftBower(card, trumpSuit)) {
     return trumpSuit;
   }
@@ -30,47 +31,43 @@ function getEffectiveSuit(card, trumpSuit) {
  * @returns {{isValid: boolean, message: string}} Validation result.
  */
 export function isValidPlay(gameState, playerHand, cardToPlay, playerRole) {
-  if (!gameState || !playerHand || !cardToPlay || !playerRole) {
-    logger.error({ gameState, playerHand, cardToPlay, playerRole }, 'isValidPlay: Missing arguments.');
-    return { isValid: false, message: 'Internal error: Missing data for validation.' };
+  if (!gameState || !playerHand || !cardToPlay || !cardToPlay.id || !playerRole) {
+    logger.error({ gameStateProvided: !!gameState, playerHandProvided: !!playerHand, cardToPlayProvided: !!cardToPlay, playerRole }, 'isValidPlay: Missing or invalid arguments.');
+    return { isValid: false, message: 'Internal error: Missing data for play validation.' };
   }
 
-  // 1. Game Phase Check
   if (gameState.gamePhase !== GAME_PHASES.PLAYING) {
     return { isValid: false, message: `Cannot play card during ${gameState.gamePhase} phase.` };
   }
 
-  // 2. Player's Turn Check
   if (gameState.currentPlayer !== playerRole) {
     return { isValid: false, message: `Not ${playerRole}'s turn. It is ${gameState.currentPlayer}'s turn.` };
   }
 
-  // 3. Card in Hand Check
   const cardInHand = playerHand.find(c => c.id === cardToPlay.id);
   if (!cardInHand) {
     return { isValid: false, message: `Card ${cardToPlay.id} is not in ${playerRole}'s hand.` };
   }
 
-  // 4. Following Suit Logic
   const { currentTrick, trumpSuit } = gameState;
   const ledCard = currentTrick && currentTrick.length > 0 ? currentTrick[0].card : null;
 
   if (ledCard) {
-    const ledSuit = getEffectiveSuit(ledCard, trumpSuit); // Effective suit of the card that led the trick
+    const currentLedSuit = getEffectiveSuit(ledCard, trumpSuit);
     const cardToPlayEffectiveSuit = getEffectiveSuit(cardToPlay, trumpSuit);
 
-    // Check if the player has any card of the led suit
-    const playerHasLedSuit = playerHand.some(handCard => getEffectiveSuit(handCard, trumpSuit) === ledSuit);
-
-    if (playerHasLedSuit && cardToPlayEffectiveSuit !== ledSuit) {
-      return {
-        isValid: false,
-        message: `Must follow suit. Led suit is ${ledSuit}, attempted to play ${cardToPlayEffectiveSuit}.`,
-      };
+    if (currentLedSuit) { // Ensure ledSuit is valid before proceeding
+        const playerHasLedSuit = playerHand.some(handCard => getEffectiveSuit(handCard, trumpSuit) === currentLedSuit);
+        if (playerHasLedSuit && cardToPlayEffectiveSuit !== currentLedSuit) {
+            return {
+            isValid: false,
+            message: `Must follow suit. Led suit is ${currentLedSuit}, attempted to play ${cardToPlayEffectiveSuit}.`,
+            };
+        }
+    } else {
+        logger.warn({ledCard, trumpSuit, gameId: gameState.gameId}, "Led card's effective suit could not be determined. Play allowed by default.");
     }
   }
-  // If no card led (player is leading the trick) or if player is void in led suit, any card is valid (basic check)
-  // More specific rules (e.g. can't lead trump if opponents out of trump in some variations) are not implemented here.
 
   return { isValid: true, message: 'Valid play.' };
 }
@@ -85,54 +82,119 @@ export function isValidPlay(gameState, playerHand, cardToPlay, playerRole) {
  * @returns {{isValid: boolean, message: string}} Validation result.
  */
 export function isValidBid(gameState, playerRole, decision, suit = null) {
-    if (!gameState || !playerRole || !decision) {
-        logger.error({ gameState, playerRole, decision, suit }, 'isValidBid: Missing arguments.');
-        return { isValid: false, message: 'Internal error: Missing data for bid validation.' };
+    if (!gameState || !playerRole || !decision || !PLAYER_ROLES.includes(playerRole)) {
+        logger.warn({ gameStateProvided: !!gameState, playerRole, decision, suit }, 'isValidBid: Missing or invalid arguments.');
+        return { isValid: false, message: 'Internal error: Missing or invalid data for bid validation.' };
     }
 
-    const { gamePhase, orderUpTurn, turnCard, dealer } = gameState;
+    const { gamePhase, currentPlayer, turnCard, dealer, roundNumber } = gameState;
 
     // Check if it's the player's turn to bid
-    if (orderUpTurn !== playerRole) {
-        return { isValid: false, message: `Not ${playerRole}'s turn to bid. It is ${orderUpTurn}'s turn.` };
+    // In bidding phases, currentPlayer is equivalent to orderUpTurn
+    if (currentPlayer !== playerRole) {
+        return { isValid: false, message: `Not ${playerRole}'s turn to bid. It is ${currentPlayer}'s turn.` };
     }
 
-    if (decision === 'orderUp' || (decision === 'pass' && (gamePhase === GAME_PHASES.ORDER_UP_ROUND1 || gamePhase === GAME_PHASES.ORDER_UP_ROUND2))) {
-        if (gamePhase !== GAME_PHASES.ORDER_UP_ROUND1 && gamePhase !== GAME_PHASES.ORDER_UP_ROUND2) {
-            return { isValid: false, message: `Cannot ${decision} during ${gamePhase} phase.` };
+    // Round 1 Bidding
+    if (gamePhase === GAME_PHASES.ORDER_UP_ROUND1) {
+        if (decision !== 'orderUp' && decision !== 'pass') {
+            return { isValid: false, message: `Invalid decision '${decision}' for ${GAME_PHASES.ORDER_UP_ROUND1}.` };
         }
-        // In round 1, if ordering up, the suit is implicitly the turnCard's suit.
-        // If player is dealer in round 1 and it's their turn, they can't order themselves up (must pick up or pass if forced)
-        // This specific rule (dealer pick up) is typically handled in game logic, not just validation.
-        // Here we just check if the action is phase-appropriate.
-        return { isValid: true, message: `Decision '${decision}' is valid for current phase.` };
-    } else if (decision === 'callTrump') {
-        if (gamePhase !== GAME_PHASES.ORDER_UP_ROUND2) {
-            return { isValid: false, message: `Cannot call trump during ${gamePhase} phase.` };
+        if (decision === 'orderUp' && playerRole === dealer) {
+            // Dealer cannot order themselves up; they are "forced" to pick up if all others pass and it comes back to them.
+            // This specific "forced" logic is usually part of game flow, not simple validation.
+            // However, they can't voluntarily order *themselves* up before that point.
+            // This check assumes it's not the "stick the dealer" scenario yet.
+            // If it IS "stick the dealer", then this validation should allow it.
+            // For now, preventing voluntary order up by dealer.
+            // A 'pickup' decision could be distinct for dealer.
+            // This might be better handled in biddingPhase.js logic.
+            // For now, we allow dealer to 'pass' or 'orderUp' (which means pickup for them).
         }
-        if (!suit || !SUITS.includes(suit)) {
-            return { isValid: false, message: 'Invalid suit called for trump.' };
+        return { isValid: true, message: `Decision '${decision}' is valid for ${GAME_PHASES.ORDER_UP_ROUND1}.` };
+    }
+    // Round 2 Bidding
+    else if (gamePhase === GAME_PHASES.ORDER_UP_ROUND2) {
+        if (decision !== 'callTrump' && decision !== 'pass') {
+            return { isValid: false, message: `Invalid decision '${decision}' for ${GAME_PHASES.ORDER_UP_ROUND2}.` };
         }
-        if (turnCard && suit === turnCard.suit) {
-            // In round 2, cannot call the suit that was originally turned up and then turned down.
-            // This assumes turnCard still holds the original up-card's suit after being turned down.
-            // Game logic needs to ensure turnCard is properly managed (e.g., nulled or its suit remembered).
-            // For validation, we check against current turnCard. If it's null (already turned down), this check passes.
-            // A better approach might be to store `rejectedSuit` in gameState.
-            // For now, assuming turnCard.suit is the suit of the card that was turned down.
-             if (gameState.bids.some(b => b.playerRole === dealer && b.decision === 'turndown')) { // A simple way to check if card was turned down
-                // This check might be too simplistic, relies on specific bid tracking.
-                // A more robust check: if turnCard is not null AND suit === turnCard.suit AND current round is 2
-             }
-            // This logic is tricky: if turnCard is still on table, its suit cannot be called.
-            // If turnCard was already passed on (is null or different), this check is complex.
-            // Simplified: The game logic in bidding.js should prevent this.
-            // Here, we just check if the suit is valid.
+        if (decision === 'callTrump') {
+            if (!suit || !SUITS.includes(suit)) {
+                return { isValid: false, message: 'Invalid suit provided for callTrump decision.' };
+            }
+            // turnCard should represent the card that was turned up in round 1.
+            // Its suit is the one that was rejected.
+            if (turnCard && suit === turnCard.suit) {
+                return { isValid: false, message: `Cannot call the suit that was turned down (${turnCard.suit}).` };
+            }
         }
-        return { isValid: true, message: `Decision '${decision}' with suit '${suit}' is valid.` };
-    } else {
-        return { isValid: false, message: `Invalid bid decision: ${decision}.` };
+        // "Stick the dealer" rule: if it's dealer's turn in round 2 and all others passed, dealer MUST call.
+        // This validation doesn't enforce "must call", only that "pass" is invalid in that specific state.
+        // The game logic in biddingPhase.js will handle the "must call" enforcement.
+        const passesInRound2 = gameState.bids.filter(b => b.round === 2 && b.decision === 'pass').length;
+        if (decision === 'pass' && playerRole === dealer && passesInRound2 === (PLAYER_ROLES.length -1) ) {
+             // This implies it's dealer's turn after 3 passes in round 2
+            return { isValid: false, message: 'Dealer must call a suit in this situation (stick the dealer).' };
+        }
+
+        return { isValid: true, message: `Decision '${decision}' is valid for ${GAME_PHASES.ORDER_UP_ROUND2}.` };
+    }
+    // Not a valid bidding phase
+    else {
+        return { isValid: false, message: `Cannot make bid decision during ${gamePhase} phase.` };
     }
 }
 
-// Add other validation functions as needed (e.g., isValidGoAlone, isValidDiscard)
+/**
+ * Validates if the dealer's discard action is legal.
+ * Assumes dealer's hand already includes the picked-up turnCard (so, 6 cards).
+ *
+ * @param {object} gameState - The current game state.
+ * @param {string} playerRole - The role of the player attempting to discard (must be the dealer).
+ * @param {object} cardToDiscard - The card object the dealer intends to discard.
+ * @param {Array<object>} playerHand - The dealer's current hand (should contain 6 cards).
+ * @returns {{isValid: boolean, message: string}} Validation result.
+ */
+export function isValidDealerDiscard(gameState, playerRole, cardToDiscard, playerHand) {
+    if (!gameState || !playerRole || !cardToDiscard || !cardToDiscard.id || !playerHand) {
+        logger.warn({gameStateProvided: !!gameState, playerRole, cardToDiscardProvided: !!cardToDiscard, playerHandProvided: !!playerHand },
+        'isValidDealerDiscard: Missing or invalid arguments.');
+        return { isValid: false, message: 'Internal error: Missing data for discard validation.' };
+    }
+
+    if (gameState.gamePhase !== GAME_PHASES.DEALER_DISCARD) {
+        return { isValid: false, message: `Cannot discard card during ${gameState.gamePhase} phase.` };
+    }
+
+    if (gameState.dealer !== playerRole) {
+        return { isValid: false, message: `Only the dealer (${gameState.dealer}) can discard. Player ${playerRole} attempted.`};
+    }
+
+    if (gameState.currentPlayer !== playerRole) { // Ensure it's dealer's turn to discard
+        return { isValid: false, message: `Not ${playerRole}'s turn to discard. It is ${gameState.currentPlayer}'s turn.`};
+    }
+
+    const cardInHand = playerHand.find(c => c.id === cardToDiscard.id);
+    if (!cardInHand) {
+        return { isValid: false, message: `Card ${cardToDiscard.id} is not in dealer's hand to discard.` };
+    }
+
+    // Standard rule: dealer cannot discard the card they were ordered to pick up if it made trump,
+    // unless it's their only card of that suit (which is impossible if they picked it up, then they'd have 2).
+    // However, simpler to say: they picked it up, it's in their 6-card hand. They can discard any of the 6.
+    // The `turnCard` in gameState is the card that *was* turned up. If it's still there, it's what they picked up.
+    // This validation assumes the game logic will add turnCard to hand *before* asking for discard.
+    // No specific rule here prevents discarding the picked-up card from the 6-card hand.
+
+    if (playerHand.length !== 6) {
+        // This check is more of a sanity check for the game logic leading to this state.
+        logger.warn({ playerRole, handSize: playerHand.length, gameId: gameState.gameId },
+                    "Dealer's hand does not have 6 cards at the point of discard validation.");
+        // Not strictly a validation failure of the *discard action itself* if the card is in hand,
+        // but indicates a potential issue in prior state updates. For now, not failing the validation for this.
+    }
+
+    return { isValid: true, message: 'Valid dealer discard.' };
+}
+
+// Add other validation functions as needed (e.g., isValidGoAlone)

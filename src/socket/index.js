@@ -5,7 +5,9 @@
 import { Server } from 'socket.io';
 import logger from '../utils/logger.js';
 import { handlePlayerConnect, handlePlayerDisconnect } from './handlers/playerConnectionHandlers.js';
-import { registerLobbyHandlers } from './handlers/lobbyHandlers.js'; // Import new handlers
+import { registerLobbyHandlers } from './handlers/lobbyHandlers.js';
+import { registerBiddingHandlers } from './handlers/biddingHandlers.js';
+import { registerGoAloneHandlers } from './handlers/goAloneHandlers.js'; // Import new handlers
 
 /**
  * Initializes and configures the Socket.IO server.
@@ -27,7 +29,9 @@ export function initializeSocket(httpServer) {
     });
 
     handlePlayerConnect(socket, io);
-    registerLobbyHandlers(socket, io); // Register lobby event handlers
+    registerLobbyHandlers(socket, io);
+    registerBiddingHandlers(socket, io);
+    registerGoAloneHandlers(socket, io); // Register go alone event handlers
 
     socket.on('disconnect', (reason) => {
       handlePlayerDisconnect(socket, io);
@@ -43,6 +47,6 @@ export function initializeSocket(httpServer) {
     });
   });
 
-  logger.info('Socket.IO server initialized and event handlers registered.');
+  logger.info('Socket.IO server initialized and all event handlers registered.'); // Updated log message
   return io;
 }

@@ -4,16 +4,16 @@
 // for how the client might handle game events and state.
 // Actual UI rendering and direct DOM manipulation are beyond the scope here.
 
-class StateService {
+export class StateService { // Export the class
   constructor() {
-    this.gameId = null;
-    this.playerRole = null; // e.g., 'south', 'player1'
+    // Conceptual: In a real app, these might be initialized from localStorage
+    // to persist session across page reloads.
+    // Example: this.playerId = localStorage.getItem('euchrePlayerId') || null;
+    this.playerId = null; // Unique identifier for the player/session
+    this.gameId = null;   // Current game ID
+    this.playerRole = null; // e.g., 'south', 'player1' - role within the current game
     this.isHost = false;
-    this.players = []; // List of player objects from the server's perspective
-    this.gameId = null;
-    this.playerRole = null; // e.g., 'south', 'player1'
-    this.isHost = false;
-    this.players = []; // List of player objects from the server's perspective
+    this.players = []; // List of player objects from the server's perspective (auxiliary or for lobby)
     this.gameState = { // Stores the comprehensive game state received from the server
       players: {}, // This will store player objects keyed by role, including their hands
       turnCard: null,
@@ -22,19 +22,55 @@ class StateService {
       message: '', // For latest game message
       // ... other game state properties
     };
+    this.subscriptions = []; // Initialize subscriptions array
 
     console.log('[Conceptual StateService] Initialized');
   }
 
   setGameDetails({ gameId, isHost }) {
     this.gameId = gameId;
+    // Conceptual: localStorage.setItem('euchreGameId', gameId);
     this.isHost = !!isHost; // Ensure boolean
     console.log('[Conceptual StateService] setGameDetails:', { gameId: this.gameId, isHost: this.isHost });
   }
 
+  // Added setPlayerId
+  setPlayerId(id) {
+    this.playerId = id;
+    // Conceptual: localStorage.setItem('euchrePlayerId', id);
+    console.log('[Conceptual StateService] setPlayerId:', this.playerId);
+  }
+
   setPlayerRole(role) {
     this.playerRole = role;
+    // Note: playerRole is specific to a game, might not be stored long-term in localStorage
+    // unless tied to a specific game session being restored.
     console.log('[Conceptual StateService] setPlayerRole:', this.playerRole);
+  }
+
+  // --- Getters for connection/session info ---
+  getPlayerId() {
+    // Conceptual: return this.playerId || localStorage.getItem('euchrePlayerId');
+    return this.playerId;
+  }
+
+  getGameId() {
+    // Conceptual: return this.gameId || localStorage.getItem('euchreGameId');
+    return this.gameId;
+  }
+
+  getPlayerRole() { // Existing getter, just formalizing its presence
+    return this.playerRole;
+  }
+
+  /**
+   * Checks if there is enough information to attempt a game reconnection.
+   * @returns {boolean} True if playerId and gameId are set, false otherwise.
+   */
+  hasReconnectInfo() {
+    const hasInfo = !!(this.getPlayerId() && this.getGameId());
+    console.log('[Conceptual StateService] hasReconnectInfo:', hasInfo);
+    return hasInfo;
   }
 
   updatePlayerList(players) {
@@ -161,7 +197,8 @@ class StateService {
 
 // Conceptual singleton instance
 const stateServiceInstance = new StateService();
-export default stateServiceInstance;
+export { stateServiceInstance }; // Export instance as named export
+export default stateServiceInstance; // Keep default export for existing app usage
 
 // Conceptual Unit Test for updateFullGameState:
 // it('should update the local gameState with newState and notify subscribers', () => {
@@ -220,4 +257,63 @@ export default stateServiceInstance;
 //    const service = new StateService();
 //    service.subscribe("not a function");
 //    expect(service.subscriptions.length).to.equal(0);
+// });
+
+// --- Conceptual Unit Tests for Reconnection State (Task 2) ---
+
+// describe('StateService Reconnection Logic', () => {
+//   let service;
+
+//   beforeEach(() => {
+//     service = new StateService();
+//     // Conceptual: For tests involving localStorage, you might mock localStorage.
+//     // global.localStorage = { getItem: sinon.stub(), setItem: sinon.stub(), removeItem: sinon.stub() };
+//   });
+
+//   afterEach(() => {
+//     // Conceptual: Clear mocks if localStorage was mocked.
+//     // if (global.localStorage && global.localStorage.setItem.restore) {
+//     //   global.localStorage.getItem.restore();
+//     //   global.localStorage.setItem.restore();
+//     //   global.localStorage.removeItem.restore();
+//     // }
+//   });
+
+//   it('should set and get playerId', () => {
+//     expect(service.getPlayerId()).to.be.null;
+//     service.setPlayerId('playerTest123');
+//     expect(service.getPlayerId()).to.equal('playerTest123');
+//     // Conceptual: expect(localStorage.setItem).to.have.been.calledWith('euchrePlayerId', 'playerTest123');
+//   });
+
+//   it('should set and get gameId (via setGameDetails and getGameId)', () => {
+//     expect(service.getGameId()).to.be.null;
+//     service.setGameDetails({ gameId: 'gameTest456', isHost: false });
+//     expect(service.getGameId()).to.equal('gameTest456');
+//     // Conceptual: expect(localStorage.setItem).to.have.been.calledWith('euchreGameId', 'gameTest456');
+//   });
+
+//   it('hasReconnectInfo should return false if playerId is missing', () => {
+//     service.setGameDetails({ gameId: 'gameTest789', isHost: true });
+//     service.setPlayerId(null); // Ensure playerId is null
+//     expect(service.hasReconnectInfo()).to.be.false;
+//   });
+
+//   it('hasReconnectInfo should return false if gameId is missing', () => {
+//     service.setPlayerId('playerTestABC');
+//     service.setGameDetails({ gameId: null, isHost: false }); // Ensure gameId is null
+//     expect(service.hasReconnectInfo()).to.be.false;
+//   });
+
+//   it('hasReconnectInfo should return false if both playerId and gameId are missing', () => {
+//     service.setPlayerId(null);
+//     service.setGameDetails({ gameId: null, isHost: false });
+//     expect(service.hasReconnectInfo()).to.be.false;
+//   });
+
+//   it('hasReconnectInfo should return true if both playerId and gameId are set', () => {
+//     service.setPlayerId('playerTestXYZ');
+//     service.setGameDetails({ gameId: 'gameTestDEF', isHost: false });
+//     expect(service.hasReconnectInfo()).to.be.true;
+//   });
 // });

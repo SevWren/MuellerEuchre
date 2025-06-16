@@ -118,10 +118,56 @@ function updateGameState(updater) {
   return deepClone(gameState);
 }
 
-resetFullGame();
+// resetFullGame(); // Don't call resetFullGame on module load if it's meant to be a utility
+
+// Exported function to create a new, initial game state object
+export function createInitialGameState(gameIdInput) {
+  const gameId = gameIdInput || `game_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const initialPlayers = initializePlayers(); // This already sets up player objects keyed by role
+
+  return {
+    gameId: gameId,
+    gamePhase: GAME_PHASES.LOBBY,
+    players: initialPlayers, // initializePlayers returns an object, not an array
+    deck: [],
+    kitty: [],
+    turnCard: null,
+    trumpSuit: null,
+    dealer: PLAYER_ROLES[0], // Default dealer
+    currentPlayer: PLAYER_ROLES[1], // Default: player left of dealer (e.g. West if South is dealer)
+    orderUpTurn: null, //This might be redundant if currentPlayer is used
+    bids: [],
+    roundNumber: 1, // For bidding phase
+    playerWhoOrderedUp: null,
+    playerWhoCalledTrump: null,
+    makerTeam: null,
+    goingAlone: false,
+    playerGoingAlone: null,
+    partnerSittingOut: null,
+    currentTrick: [],
+    leadSuit: null,
+    tricksTaken: {
+      [TEAMS.TEAM_NS]: 0,
+      [TEAMS.TEAM_EW]: 0,
+    },
+    teamScores: {
+      [TEAMS.TEAM_NS]: 0,
+      [TEAMS.TEAM_EW]: 0,
+    },
+    gameMessages: [],
+    // lastUpdated: Date.now(), // Set when game is actually created/updated in DB
+    hostId: null, // To be set when first player creates/joins
+    settings: {
+        winningScore: 10, // Default, can be overridden
+        // other game settings
+    }
+  };
+}
+
 
 export {
-  resetFullGame,
+  resetFullGame, // Keep for now if used by anything for its side-effecting nature
   getGameState,
   updateGameState,
+  // createInitialGameState, // Already exported above due to `export function`
 };

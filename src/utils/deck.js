@@ -33,7 +33,7 @@ export function createDeck() {
     'hearts': 'H', 'diamonds': 'D', 'clubs': 'C', 'spades': 'S'
   };
 
-  for (const suit of SUITS) {
+  for (const suit of Object.values(SUITS)) { // Iterate over values if SUITS is an object
     for (const value of VALUES) {
       deck.push({
         suit: suit,

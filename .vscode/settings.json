@@ -44,5 +44,10 @@
   "launch": {
     "configurations": [],
     "compounds": []
-  }
+  },
+  "cSpell.words": [
+    "mocharc",
+    "permanetly",
+    "Skillset"
+  ]
 }

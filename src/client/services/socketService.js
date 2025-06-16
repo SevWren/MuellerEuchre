@@ -1,344 +1,157 @@
-import io from 'socket.io-client';
-import ReconnectionHandler from '../../socket/reconnectionHandler.js';
-import { GAME_EVENTS } from '../../config/constants.js';
-import { log } from '../../utils/logger.js';
+// CONCEPTUAL CLIENT-SIDE CODE
+// This file outlines the structure and logic for a client-side service.
+// It is not intended to be fully functional UI code, but rather a blueprint
+// for how the client might handle game events and state.
+// Actual UI rendering and direct DOM manipulation are beyond the scope here.
 
-// Connection quality thresholds (in ms)
-const CONNECTION_QUALITY = {
-    EXCELLENT: 100,
-    GOOD: 200,
-    FAIR: 500,
-    POOR: 1000
+import { GAME_EVENTS, SUITS } from '../../config/constants.js'; // Assuming shared constants, added SUITS if needed by payloads
+
+// Conceptual: these would be imported or injected instances of other services
+// For demonstration, these are simple objects with console.log.
+const stateService = {
+  setGameDetails: (details) => console.log('[Conceptual stateService] setGameDetails called with:', details),
+  setPlayerRole: (role) => console.log('[Conceptual stateService] setPlayerRole called with:', role),
+  updatePlayerList: (players) => console.log('[Conceptual stateService] updatePlayerList called with:', players),
+  // Add getters needed by socketService emitters
+  getGameId: () => {
+    console.log('[Conceptual stateService] getGameId called, returning "conceptualGame123"');
+    return 'conceptualGame123'; // Placeholder
+  },
+  getPlayerRole: () => {
+    console.log('[Conceptual stateService] getPlayerRole called, returning "south"');
+    return 'south'; // Placeholder
+  },
+};
+
+const uiService = { // Placeholder from previous task
+  displayAssignedRole: (role) => console.log('[Conceptual uiService] displayAssignedRole called with:', role),
+  updateLobbyView: (players) => console.log('[Conceptual uiService] updateLobbyView called with players:', players),
+  displayMessage: (message) => console.log('[Conceptual uiService] displayMessage called with:', message),
+  showErrorModal: (message) => console.log('[Conceptual uiService] showErrorModal called with:', message),
+  promptForRejoin: (gameId) => console.log('[Conceptual uiService] promptForRejoin called for gameId:', gameId),
 };
 
 class SocketService {
-    constructor() {
-        this.socket = null;
-        this.reconnectionHandler = null;
-        this.isConnected = false;
-        this.messageQueue = [];
-        this.eventListeners = new Map();
-        this.reconnectCallbacks = [];
-        this.disconnectCallbacks = [];
-        this.connectionPromise = null;
-        
-        // Connection quality tracking
-        this.connectionQuality = {
-            latency: 0,
-            jitter: 0,
-            lastUpdated: null,
-            quality: 'unknown' // 'excellent', 'good', 'fair', 'poor', 'unknown'
-        };
-        
-        // Bind methods
-        this.getConnectionQuality = this.getConnectionQuality.bind(this);
-        this.updateConnectionQuality = this.updateConnectionQuality.bind(this);
-    }
-
-    /**
-     * Connects to the WebSocket server
-     * @param {string} url - The server URL
-     * @param {Object} options - Connection options
-     * @returns {Promise} Resolves when connected
-     */
-    connect(url, options = {}) {
-        if (this.connectionPromise) {
-            return this.connectionPromise;
+  constructor() {
+    this.socket = {
+      on: (event, callback) => {
+        console.log(`[Conceptual Socket] Registered listener for event: ${event}`);
+      },
+      emit: (event, data, ack) => {
+        console.log(`[Conceptual Socket] Emitted event: ${event} with data:`, data);
+        if (ack) {
+          console.log(`[Conceptual Socket] Ack callback provided for ${event}`);
+          // ack({ status: 'ok', data: {} }); // Simulate ack
         }
+      },
+      connect: () => console.log('[Conceptual Socket] connect() called.'),
+      disconnect: () => console.log('[Conceptual Socket] disconnect() called.')
+    };
+    this._id = `conceptual-socket-${Date.now()}`;
+    this.initializeEventListeners();
+  }
 
-        this.connectionPromise = new Promise((resolve, reject) => {
-            try {
-                log(1, `Connecting to WebSocket server at ${url}`);
-                
-                // Create socket with options
-                const socketOptions = {
-                    reconnection: false, // We'll handle reconnection manually
-                    autoConnect: true,
-                    transports: ['websocket'],
-                    ...options
-                };
-                
-                this.socket = io(url, socketOptions);
-                
-                // Initialize reconnection handler
-                this.reconnectionHandler = new ReconnectionHandler(this.socket, {
-                    onReconnect: this.handleReconnect.bind(this),
-                    onReconnectFailed: this.handleReconnectFailed.bind(this)
-                });
-                
-                // Set up event forwarding
-                this.setupEventForwarding();
-                
-                // Initialize connection quality monitoring
-                this.setupConnectionMonitoring();
-                
-                // Handle initial connection
-                const onConnect = () => {
-                    log(1, 'Successfully connected to WebSocket server');
-                    this.isConnected = true;
-                    this.socket.off('connect', onConnect);
-                    this.socket.off('connect_error', onConnectError);
-                    resolve();
-                };
-                
-                const onConnectError = (error) => {
-                    log(2, `WebSocket connection error: ${error.message}`);
-                    this.socket.off('connect', onConnect);
-                    this.socket.off('connect_error', onConnectError);
-                    reject(error);
-                };
-                
-                this.socket.once('connect', onConnect);
-                this.socket.once('connect_error', onConnectError);
-                
-            } catch (error) {
-                log(3, `Error initializing WebSocket: ${error.message}`);
-                reject(error);
-            }
-        });
-        
-        return this.connectionPromise;
-    }
+  // --- Event Handlers (from Task 2) ---
+  handleAssignRole({ role, gameId, players, isHost }) {
+    console.log('[SocketService] Event received:', GAME_EVENTS.ASSIGN_ROLE, { role, gameId, players, isHost });
+    stateService.setGameDetails({ gameId, isHost });
+    stateService.setPlayerRole(role);
+    stateService.updatePlayerList(players);
+    uiService.displayAssignedRole(role);
+    uiService.updateLobbyView(players);
+  }
 
-    /**
-     * Disconnects from the WebSocket server
-     */
-    disconnect() {
-        if (this.qualityCheckInterval) {
-            clearInterval(this.qualityCheckInterval);
-            this.qualityCheckInterval = null;
-        }
-        
-        if (this.socket) {
-            this.socket.disconnect();
-            this.isConnected = false;
-            this.socket = null;
-            this.reconnectionHandler = null;
-            this.connectionPromise = null;
-            
-            // Reset connection quality
-            this.connectionQuality = {
-                latency: 0,
-                jitter: 0,
-                lastUpdated: null,
-                quality: 'unknown'
-            };
-        }
-    }
+  handleGameFull({ message }) {
+    console.log('[SocketService] Event received:', GAME_EVENTS.GAME_FULL, { message });
+    uiService.showErrorModal(message);
+  }
 
-    /**
-     * Sets up event forwarding from the socket to our listeners
-     */
-    setupEventForwarding() {
-        // Forward all socket events to our listeners
-        this.socket.onAny((event, ...args) => {
-            this.emit(event, ...args);
-            
-            // Special handling for certain events
-            if (event === GAME_EVENTS.GAME_STATE_UPDATE) {
-                this.handleGameStateUpdate(...args);
-            } else if (event === GAME_EVENTS.PLAYER_RECONNECTED) {
-                this.handlePlayerReconnected(...args);
-            }
-        });
-        
-        // Handle socket.io events
-        this.socket.on('connect', () => {
-            this.isConnected = true;
-            this.emit('connect');
-        });
-        
-        this.socket.on('disconnect', (reason) => {
-            this.isConnected = false;
-            this.emit('disconnect', reason);
-        });
-        
-        this.socket.on('error', (error) => {
-            log(2, `WebSocket error: ${error.message}`);
-            this.emit('error', error);
-        });
-    }
+  handlePlayerAlreadyInGame({ message, gameId }) {
+    console.log('[SocketService] Event received:', GAME_EVENTS.PLAYER_ALREADY_IN_GAME, { message, gameId });
+    uiService.displayMessage(message);
+    uiService.promptForRejoin(gameId);
+  }
 
-    /**
-     * Handles reconnection
-     */
-    handleReconnect(attempt) {
-        log(1, `Reconnected to server (attempt ${attempt})`);
-        this.isConnected = true;
-        
-        // Notify listeners
-        this.reconnectCallbacks.forEach(callback => {
-            try {
-                callback(attempt);
-            } catch (error) {
-                log(2, `Error in reconnect callback: ${error.message}`);
-            }
-        });
-        
-        this.emit('reconnect', attempt);
-    }
+  // --- Setup Event Listeners ---
+  initializeEventListeners() {
+    console.log('[SocketService] Initializing event listeners...');
+    this.socket.on(GAME_EVENTS.ASSIGN_ROLE, (data) => this.handleAssignRole(data));
+    this.socket.on(GAME_EVENTS.GAME_FULL, (data) => this.handleGameFull(data));
+    this.socket.on(GAME_EVENTS.PLAYER_ALREADY_IN_GAME, (data) => this.handlePlayerAlreadyInGame(data));
 
-    /**
-     * Handles reconnection failure
-     */
-    handleReconnectFailed(error) {
-        log(2, `Failed to reconnect: ${error.message}`);
-        this.emit('reconnect_failed', error);
-    }
+    this.socket.on('connect', () => console.log('[SocketService] Conceptual connect event: Connected with ID', this.socket.id));
+    this.socket.on('disconnect', (reason) => console.log('[SocketService] Conceptual disconnect event: Disconnected, reason:', reason));
+    this.socket.on('connect_error', (error) => console.error('[SocketService] Conceptual connect_error event:', error.message));
+    console.log('[SocketService] Event listeners conceptually initialized.');
+  }
 
-    /**
-     * Handles game state updates
-     * @param {Object} gameState - The updated game state
-     */
-    handleGameStateUpdate(gameState) {
-        // Cache the latest game state
-        this.latestGameState = gameState;
-        
-        // Update local storage if needed
-        if (gameState.gameId) {
-            localStorage.setItem(`gameState_${gameState.gameId}`, JSON.stringify(gameState));
-        }
-    }
+  // --- Emitter Methods for Bidding (Task 4) ---
 
-    /**
-     * Handles player reconnection
-     * @param {Object} data - Reconnection data
-     */
-    handlePlayerReconnected(data) {
-        log(1, `Player ${data.playerId} reconnected to game ${data.gameId}`);
-        // Additional reconnection logic can be added here
-    }
+  emitOrderUpDecision(passes) {
+    const payload = {
+      gameId: stateService.getGameId(),
+      playerRole: stateService.getPlayerRole(),
+      passes: passes,
+    };
+    console.log('[SocketService] Emitting order up decision:', payload);
+    this.socket.emit(GAME_EVENTS.ACTION_ORDER_UP_DECISION, payload, (response) => {
+      console.log('[SocketService] Ack for ACTION_ORDER_UP_DECISION:', response);
+    });
+  }
 
-    /**
-     * Sends a message to the server
-     * @param {string} event - The event name
-     * @param {...any} args - The message arguments
-     * @returns {Promise} Resolves with the server response
-     */
-    send(event, ...args) {
-        return new Promise((resolve, reject) => {
-            if (!this.socket || !this.isConnected) {
-                const error = new Error('Not connected to server');
-                log(2, error.message);
-                return reject(error);
-            }
-            
-            // Add ack callback if not provided
-            const hasCallback = typeof args[args.length - 1] === 'function';
-            
-            if (!hasCallback) {
-                // If no callback provided, add one that resolves the promise
-                args.push((response) => {
-                    if (response && response.error) {
-                        reject(new Error(response.error));
-                    } else {
-                        resolve(response);
-                    }
-                });
-                
-                // Add error handler for the ack timeout
-                const timeout = setTimeout(() => {
-                    reject(new Error('Request timed out'));
-                }, 10000); // 10 second timeout
-                
-                // Store the original callback
-                const originalCallback = args[args.length - 1];
-                args[args.length - 1] = (...args) => {
-                    clearTimeout(timeout);
-                    originalCallback(...args);
-                };
-            }
-            
-            // Send the message
-            this.socket.emit(event, ...args);
-        });
-    }
+  emitDealerDiscard(discardedCard) {
+    const payload = {
+      gameId: stateService.getGameId(),
+      playerRole: stateService.getPlayerRole(),
+      card: discardedCard,
+    };
+    console.log('[SocketService] Emitting dealer discard:', payload);
+    this.socket.emit(GAME_EVENTS.ACTION_DEALER_DISCARD, payload, (response) => {
+      console.log('[SocketService] Ack for ACTION_DEALER_DISCARD:', response);
+    });
+  }
 
-    /**
-     * Registers an event listener
-     * @param {string} event - The event name
-     * @param {Function} callback - The callback function
-     */
-    on(event, callback) {
-        if (!this.eventListeners.has(event)) {
-            this.eventListeners.set(event, new Set());
-        }
-        this.eventListeners.get(event).add(callback);
-        return () => this.off(event, callback);
-    }
+  emitCallTrumpDecision(suit, passes) {
+    const payload = {
+      gameId: stateService.getGameId(),
+      playerRole: stateService.getPlayerRole(),
+      suit: passes ? null : suit,
+      passes: passes,
+    };
+    console.log('[SocketService] Emitting call trump decision:', payload);
+    this.socket.emit(GAME_EVENTS.ACTION_CALL_TRUMP_DECISION, payload, (response) => {
+      console.log('[SocketService] Ack for ACTION_CALL_TRUMP_DECISION:', response);
+    });
+  }
 
-    /**
-     * Removes an event listener
-     * @param {string} event - The event name
-     * @param {Function} callback - The callback function to remove
-     */
-    off(event, callback) {
-        if (this.eventListeners.has(event)) {
-            const callbacks = this.eventListeners.get(event);
-            callbacks.delete(callback);
-            if (callbacks.size === 0) {
-                this.eventListeners.delete(event);
-            }
-        }
-    }
+  // --- New Emitter Method (Task 5) ---
+  /**
+   * Emits the maker's decision to go alone or not.
+   * @param {boolean} goesAlone - True if the player chooses to go alone.
+   */
+  emitGoAloneDecision(goesAlone) {
+    const payload = {
+      gameId: stateService.getGameId(),
+      playerRole: stateService.getPlayerRole(),
+      goesAlone: goesAlone,
+    };
+    console.log('[SocketService] Emitting go alone decision:', payload);
+    this.socket.emit(GAME_EVENTS.ACTION_GO_ALONE_DECISION, payload, (response) => {
+      console.log('[SocketService] Ack for ACTION_GO_ALONE_DECISION:', response);
+    });
+  }
 
-    /**
-     * Emits an event to all registered listeners
-     * @param {string} event - The event name
-     * @param {...any} args - The event arguments
-     */
-    emit(event, ...args) {
-        if (this.eventListeners.has(event)) {
-            this.eventListeners.get(event).forEach(callback => {
-                try {
-                    callback(...args);
-                } catch (error) {
-                    log(2, `Error in event listener for ${event}: ${error.message}`);
-                }
-            });
-        }
-    }
+  // --- Other Actions (Example from Task 2) ---
+  joinGame(gameId, playerName) {
+    this.socket.emit(GAME_EVENTS.JOIN_GAME, { gameId, playerName }, (response) => {
+      console.log('[SocketService] Ack for JOIN_GAME:', response);
+    });
+  }
 
-    /**
-     * Registers a callback to be called when reconnected
-     * @param {Function} callback - The callback function
-     */
-    onReconnect(callback) {
-        if (typeof callback === 'function') {
-            this.reconnectCallbacks.push(callback);
-        }
-        return this;
-    }
-
-    /**
-     * Registers a callback to be called when disconnected
-     * @param {Function} callback - The callback function
-     */
-    onDisconnect(callback) {
-        if (typeof callback === 'function') {
-            this.disconnectCallbacks.push(callback);
-        }
-        return this;
-    }
-
-    /**
-     * Gets the current connection status
-     * @returns {boolean} True if connected, false otherwise
-     */
-    get connected() {
-        return this.isConnected;
-    }
-
-    /**
-     * Gets the socket ID
-     * @returns {string} The socket ID, or null if not connected
-     */
-    get id() {
-        return this.socket ? this.socket.id : null;
-    }
+  connect() {
+    this.socket.connect();
+  }
 }
 
-// Export a singleton instance
-export const socketService = new SocketService();
-
-export default socketService;
+const socketServiceInstance = new SocketService();
+export default socketServiceInstance;

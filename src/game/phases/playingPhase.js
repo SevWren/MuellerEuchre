@@ -1,4 +1,4 @@
-import { GameState, updateGameState } from '../state.js';
+import { updateGameState } from '../state.js'; // Removed GameState
 import { isValidPlay } from '../logic/validation.js';
 import { getCardRank } from '../../utils/deck.js';
 import { getNextPlayer } from '../../utils/players.js';
@@ -9,7 +9,7 @@ import { GAME_PHASES } from '../../config/constants.js';
  * Validates the play, updates the current trick, determines the next player,
  * and transitions to scoring if the hand is over.
  *
- * @param {GameState} gameState The current state of the game.
+ * @param {object} gameState The current state of the game. // Changed from GameState to object for consistency
  * @param {string} playerRole The role of the player making the play (e.g., 'player1', 'player2').
  * @param {object} cardPlayed The card object that was played.
  * @returns {GameState} The new game state.
@@ -23,13 +23,15 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
     throw new Error(`Not player ${playerRole}'s turn.`);
   }
 
-  const player = gameState.players.find(p => p.role === playerRole);
+  // gameState.players is an object keyed by role, e.g., gameState.players[playerRole]
+  const player = gameState.players[playerRole];
   if (!player) {
     throw new Error(`Player ${playerRole} not found.`);
   }
 
   // Corrected call to isValidPlay: playerRole is the 4th argument.
   // gameState.currentTrick and gameState.trumpSuit are accessible within isValidPlay from gameState.
+  // Assuming player object has 'hand' property.
   if (!isValidPlay(gameState, player.hand, cardPlayed, playerRole)) {
     throw new Error('Invalid play.');
   }
@@ -38,64 +40,64 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
 
   // Remove card from player's hand
   const newHand = player.hand.filter(card => !(card.suit === cardPlayed.suit && card.rank === cardPlayed.rank));
-  const newPlayers = newGameState.players.map(p =>
-    p.role === playerRole ? { ...p, hand: newHand } : p
-  );
-  newGameState = updateGameState(newGameState, { players: newPlayers });
+  const updatedPlayers = {
+    ...newGameState.players,
+    [playerRole]: {
+      ...newGameState.players[playerRole],
+      hand: newHand,
+    },
+  };
+  newGameState = updateGameState(gs => ({ ...gs, players: updatedPlayers }));
 
   // Add card to current trick
   const newCurrentTrick = [...newGameState.currentTrick, { ...cardPlayed, playedBy: playerRole }];
-  newGameState = updateGameState(newGameState, { currentTrick: newCurrentTrick });
+  newGameState = updateGameState(gs => ({ ...gs, currentTrick: newCurrentTrick }));
 
   // Determine next player or end trick/hand
   if (newCurrentTrick.length === 4) {
     // Determine trick winner
     const trickWinnerRole = determineTrickWinner(newCurrentTrick, newGameState.trumpSuit, newGameState.currentTrick[0]?.playedBy);
-    const winningPlayer = newGameState.players.find(p => p.role === trickWinnerRole);
+    // gameState.players is an object keyed by role, not an array.
+    const winningPlayer = newGameState.players[trickWinnerRole];
 
-    // Use winningPlayer.team (assuming it's set during player initialization)
-    if (!winningPlayer || winningPlayer.team === undefined) {
-      throw new Error(`Could not determine team for trick winner: ${trickWinnerRole}`);
+    // Use winningPlayer.teamId (updated from .team)
+    if (!winningPlayer || winningPlayer.teamId === undefined) {
+      throw new Error(`Could not determine teamId for trick winner: ${trickWinnerRole}`);
     }
-    const winnerTeam = winningPlayer.team;
+    const winnerTeam = winningPlayer.teamId;
 
-    const newTricksTaken = { ...newGameState.tricksTaken };
-    newTricksTaken[winnerTeam]++;
+    const updatedTricksTaken = { ...newGameState.tricksTaken };
+    updatedTricksTaken[winnerTeam]++;
 
-    newGameState = updateGameState(newGameState, {
-      tricksTaken: newTricksTaken,
-      currentTrick: [], // Reset for next trick
-      currentPlayer: trickWinnerRole, // Winner leads next trick
+    newGameState = updateGameState(gs => ({
+      ...gs,
+      tricksTaken: updatedTricksTaken,
+      currentTrick: [],
+      currentPlayer: trickWinnerRole,
       lastTrickWinner: trickWinnerRole,
       message: `${trickWinnerRole} wins the trick.`,
-    });
+    }));
 
-    // Check if hand is over (5 tricks played)
-    // Summing tricks for teamNS and teamEW might not be robust if team names change.
-    // It's better to sum all values in newTricksTaken if it stores tricks per team.
-    // Assuming newTricksTaken is { TEAM1: count, TEAM2: count }
-    const totalTricksPlayed = Object.values(newTricksTaken).reduce((sum, count) => sum + count, 0);
-    if (totalTricksPlayed === 5) { // Assuming 5 tricks per hand based on typical Euchre rules
-      newGameState = updateGameState(newGameState, {
+    const totalTricksPlayedThisHand = Object.values(newGameState.tricksTaken).reduce((sum, count) => sum + count, 0);
+
+    if (totalTricksPlayedThisHand === 5) {
+      const finalTricksMessageSegment = `Scores for this hand: ${JSON.stringify(newGameState.tricksTaken)}.`;
+      newGameState = updateGameState(gs => ({
+        ...gs,
         gamePhase: GAME_PHASES.SCORING,
-        currentPlayer: null, // Or determine who starts scoring/dealing next
-        message: `Hand over. Scores for this hand: ${JSON.stringify(newTricksTaken)}. Moving to scoring.`,
-      });
+        currentPlayer: null,
+        message: `Hand over. ${finalTricksMessageSegment} Moving to scoring.`,
+      }));
     }
   } else {
-    // Advance to next player in the trick
-    // Corrected call to getNextPlayer:
-    // 1st arg: currentPlayerRole
-    // 2nd arg (optional): playerSlots (e.g., newGameState.players.map(p => p.role) or PLAYER_ROLES from constants)
-    // 3rd arg (optional): goingAlone (boolean)
-    // 4th arg (optional): partnerSittingOut (string)
-    // For simple trick progression, assuming PLAYER_ROLES contains the fixed order.
-    const playerRoles = newGameState.players.map(p => p.role); // Or import PLAYER_ROLES if static and always used
+    // Advance to next player if trick is not over
+    const playerRoles = Object.keys(newGameState.players);
     const nextPlayerForTrick = getNextPlayer(playerRole, playerRoles, newGameState.goingAlone, newGameState.partnerSittingOut);
-    newGameState = updateGameState(newGameState, {
+    newGameState = updateGameState(gs => ({
+      ...gs,
       currentPlayer: nextPlayerForTrick,
       message: `${playerRole} played ${cardPlayed.rank} of ${cardPlayed.suit}. Next player: ${nextPlayerForTrick}.`,
-    });
+    }));
   }
   return newGameState;
 }
@@ -109,6 +111,7 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
  * @returns {string} The role of the player who won the trick.
  */
 function determineTrickWinner(trick, trumpSuit, leadPlayerRole) {
+  // Logs removed
   if (!trick || trick.length !== 4) {
     throw new Error('Trick must have 4 cards to determine a winner.');
   }

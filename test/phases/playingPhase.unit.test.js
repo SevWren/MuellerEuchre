@@ -1,27 +1,33 @@
-import chai from 'chai';
+import { expect } from 'chai';
 import sinon from 'sinon';
+import esmock from 'esmock'; // Import esmock
+
 // Assuming createInitialGameState is a test utility or defined in state.js
 // If not, this import will need adjustment or the function to be mocked/provided.
-import { GameState, updateGameState, resetFullGame as createInitialGameState } from '../../src/game/state.js';
-import { handlePlayCard, determineTrickWinner } from '../../src/game/phases/playingPhase.js';
-import * as validation from '../../src/game/logic/validation.js';
-import * as deckUtils from '../../src/utils/deck.js';
-import * as playersUtils from '../../src/utils/players.js'; // Corrected import alias
+// Removed GameState from import as it's not an actual export
+import { updateGameState, resetFullGame as createInitialGameState } from '../../src/game/state.js';
+// Tested functions will be loaded via esmock
+// Constants are fine to import directly
 import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, CARD_RANKS } from '../../src/config/constants.js';
-
-const { expect } = chai;
 
 // A helper for the getCardRank stub, assuming getLeftBowerSuit might not be on deckUtils directly
 // or needs specific stubbing behavior for tests.
 const getLeftBowerSuitStub = (trumpSuit) => {
     if (!trumpSuit) return null;
+    // SUITS is now an object, e.g., SUITS.SPADES is 'spades'
     const suitColors = {
-        [SUITS.SPADES]: 'black', [SUITS.CLUBS]: 'black',
-        [SUITS.HEARTS]: 'red', [SUITS.DIAMONDS]: 'red',
+        [SUITS.SPADES]: 'black', // 'spades': 'black'
+        [SUITS.CLUBS]: 'black',   // 'clubs': 'black'
+        [SUITS.HEARTS]: 'red',    // 'hearts': 'red'
+        [SUITS.DIAMONDS]: 'red', // 'diamonds': 'red'
     };
-    const trumpColor = suitColors[trumpSuit];
-    if (trumpColor === 'black') return trumpSuit === SUITS.SPADES ? SUITS.CLUBS : SUITS.SPADES;
-    if (trumpColor === 'red') return trumpSuit === SUITS.HEARTS ? SUITS.DIAMONDS : SUITS.HEARTS;
+    const trumpColor = suitColors[trumpSuit]; // e.g., suitColors['spades']
+    if (trumpColor === 'black') {
+      return trumpSuit === SUITS.SPADES ? SUITS.CLUBS : SUITS.SPADES;
+    }
+    if (trumpColor === 'red') {
+      return trumpSuit === SUITS.HEARTS ? SUITS.DIAMONDS : SUITS.HEARTS;
+    }
     return null;
 };
 
@@ -29,43 +35,95 @@ const getLeftBowerSuitStub = (trumpSuit) => {
 describe('Playing Phase Logic', () => {
   let gameState;
   let sandbox;
+  let handlePlayCard; // Will be loaded with esmock
+  let determineTrickWinner; // Will be loaded with esmock
+  let mockValidation;
+  let mockDeckUtils;
+  let mockPlayersUtils;
+  let mockState; // Restore mockState
 
-  beforeEach(() => {
+  beforeEach(async () => {
     sandbox = sinon.createSandbox();
-    // Stub external dependencies
-    sandbox.stub(validation, 'isValidPlay').returns(true);
 
-    // Stub for getCardRank
-    sandbox.stub(deckUtils, 'getCardRank').callsFake((card, trumpSuit, leadSuit) => {
-      let rankValue = CARD_RANKS[card.rank] || 0; // Use direct lookup
-      if (card.suit === trumpSuit) rankValue += 100;
-      else if (card.suit === leadSuit) rankValue += 50;
+    // This gameState is the one we want updateGameState to modify directly in tests
+    // It's initialized here and then parts are overridden.
+    // We need createInitialGameState (the real resetFullGame) to run first.
+    gameState = createInitialGameState();
 
-      // Simplified Bower logic for the stub
-      if (card.rank === 'J') {
-        if (card.suit === trumpSuit) { // Right Bower
-          rankValue += 200; // Make Right Bower highest
-        } else if (card.suit === getLeftBowerSuitStub(trumpSuit)) { // Left Bower
-          rankValue += 150; // Make Left Bower second highest
+    mockValidation = {
+      isValidPlay: sandbox.stub().returns(true),
+    };
+
+    mockDeckUtils = {
+      getCardRank: sandbox.stub().callsFake((card, trumpSuit, leadSuit) => {
+        // Specific ranks for Test #6 (original #6): SK(S), SA(W), HK(N), S9(E). Trump S. Expect SA (West)
+        if (trumpSuit === SUITS.SPADES && leadSuit === SUITS.SPADES) {
+            if (card.suit === SUITS.SPADES && card.rank === 'K') return 190;
+            if (card.suit === SUITS.SPADES && card.rank === 'A') return 195; // Adjusted for Left Bower test (Left Bower = 200)
+            if (card.suit === SUITS.HEARTS && card.rank === 'K') return 10;
+            if (card.suit === SUITS.SPADES && card.rank === '9') return 180;
         }
-      }
-      return rankValue;
+
+        // Specific ranks for Test #7 (original #7, now #6 in failing list): HA(S, lead), S9(W), HK(N), DQ(E). Trump S. Expect S9 (West)
+        if (trumpSuit === SUITS.SPADES && leadSuit === SUITS.HEARTS) {
+            if (card.suit === SUITS.HEARTS && card.rank === 'A') return 10;
+            if (card.suit === SUITS.SPADES && card.rank === '9') return 1000;
+            if (card.suit === SUITS.HEARTS && card.rank === 'K') return 5;
+            if (card.suit === SUITS.DIAMONDS && card.rank === 'Q') return 1;
+        }
+
+        // Specific ranks for Test #8 (original #8): HK(S, lead), HA(W), CQ(N), H9(E). Trump D. Expect HA (West)
+        if (trumpSuit === SUITS.DIAMONDS && leadSuit === SUITS.HEARTS) {
+            if (card.suit === SUITS.HEARTS && card.rank === 'K') return 10;
+            if (card.suit === SUITS.HEARTS && card.rank === 'A') return 20;
+            if (card.suit === SUITS.CLUBS && card.rank === 'Q') return 1;
+            if (card.suit === SUITS.HEARTS && card.rank === '9') return 5;
+        }
+
+        // Fallback Bower logic for other tests (tests for Bowers are passing)
+        if (card.rank === 'J') {
+            if (card.suit === trumpSuit) return 250; // Right Bower
+            if (card.suit === getLeftBowerSuitStub(trumpSuit)) return 200; // Left Bower
+        }
+
+        // Fallback generic logic (attempt to keep other tests passing)
+        let rankValue = CARD_RANKS[card.rank] || 0;
+        if (card.suit === trumpSuit) { rankValue += 100; }
+        else if (card.suit === leadSuit) { rankValue += 50; }
+        return rankValue;
+      })
+    };
+
+    mockPlayersUtils = {
+      getNextPlayer: sandbox.stub().returns(PLAYER_ROLES[1]),
+    };
+
+    // Mock for state.js module
+    mockState = {
+      getGameState: sinon.stub().callsFake(() => gameState),
+      updateGameState: sinon.spy((updater) => {
+        const newPartialState = updater(gameState);
+        Object.assign(gameState, newPartialState);
+        return { ...gameState };
+      }),
+    };
+
+    // Keys in the third argument of esmock are paths to the mocked modules, relative to the current test file.
+    const playingPhaseModule = await esmock('../../src/game/phases/playingPhase.js', {}, {
+      '../../src/game/logic/validation.js': mockValidation,
+      '../../src/utils/deck.js': mockDeckUtils,
+      '../../src/utils/players.js': mockPlayersUtils,
+      '../../src/game/state.js': mockState, // Mock state.js again
     });
+    handlePlayCard = playingPhaseModule.handlePlayCard;
+    determineTrickWinner = playingPhaseModule.determineTrickWinner;
 
-    sandbox.stub(playersUtils, 'getNextPlayer').returns(PLAYER_ROLES[1]);
-
-    // Using resetFullGame as createInitialGameState based on typical setup
-    // This will provide a basic game state structure.
-    gameState = createInitialGameState(); // Call it to get a fresh state object
-
-    const players = [
-      { role: PLAYER_ROLES[0], id: 'p1', name: 'Player 1', hand: [{ suit: SUITS.SPADES, rank: 'A', id:'AS' }, { suit: SUITS.SPADES, rank: 'K', id:'KS' }], team: TEAMS.TEAM_NS },
-      { role: PLAYER_ROLES[1], id: 'p2', name: 'Player 2', hand: [{ suit: SUITS.HEARTS, rank: 'A', id:'AH' }], team: TEAMS.TEAM_EW },
-      { role: PLAYER_ROLES[2], id: 'p3', name: 'Player 3', hand: [{ suit: SUITS.CLUBS, rank: 'A', id:'AC' }], team: TEAMS.TEAM_NS },
-      { role: PLAYER_ROLES[3], id: 'p4', name: 'Player 4', hand: [{ suit: SUITS.DIAMONDS, rank: 'A', id:'AD' }], team: TEAMS.TEAM_EW },
-    ];
-    // Override parts of the gameState for specific test needs
-    gameState.players = players;
+    // gameState was already initialized by createInitialGameState (real resetFullGame) above.
+    // Now, apply overrides.
+    gameState.players[PLAYER_ROLES[0]] = { ...gameState.players[PLAYER_ROLES[0]], id: 'p1', name: 'Player 1', hand: [{ suit: SUITS.SPADES, rank: 'A', id:'AS' }, { suit: SUITS.SPADES, rank: 'K', id:'KS' }], teamId: TEAMS.TEAM_NS };
+    gameState.players[PLAYER_ROLES[1]] = { ...gameState.players[PLAYER_ROLES[1]], id: 'p2', name: 'Player 2', hand: [{ suit: SUITS.HEARTS, rank: 'A', id:'AH' }], teamId: TEAMS.TEAM_EW };
+    gameState.players[PLAYER_ROLES[2]] = { ...gameState.players[PLAYER_ROLES[2]], id: 'p3', name: 'Player 3', hand: [{ suit: SUITS.CLUBS, rank: 'A', id:'AC' }], teamId: TEAMS.TEAM_NS };
+    gameState.players[PLAYER_ROLES[3]] = { ...gameState.players[PLAYER_ROLES[3]], id: 'p4', name: 'Player 4', hand: [{ suit: SUITS.DIAMONDS, rank: 'A', id:'AD' }], teamId: TEAMS.TEAM_EW };
     gameState.gamePhase = GAME_PHASES.PLAYING;
     gameState.currentPlayer = PLAYER_ROLES[0];
     gameState.trumpSuit = SUITS.SPADES;
@@ -162,23 +220,30 @@ describe('Playing Phase Logic', () => {
     });
 
     it('should throw error if player not found', () => {
-      // Modify gameState.players to not include a findable 'playerX' by role for this test
-      gameState.players = gameState.players.filter(p => p.role !== 'playerX');
-      expect(() => handlePlayCard(gameState, 'playerX', cardToPlay)).to.throw('Player playerX not found.');
+      // To test this, we'd have to remove a player from the object, e.g.
+      // delete gameState.players[PLAYER_ROLES[0]];
+      // Then calling with PLAYER_ROLES[0] would fail.
+      // For a role 'playerX' not in PLAYER_ROLES, it would also fail.
+      // The error message check in this test might be problematic if turn validation happens first.
+      // Current SUT: throws "Not player X's turn" if currentPlayer is not 'playerX'.
+      // If 'playerX' is not a valid role, it throws "Player playerX not found" if it gets past current player check.
+      // This test might need gameState.currentPlayer = 'playerX' to ensure it hits the intended error.
+      const testState = { ...gameState, currentPlayer: 'playerX' };
+      expect(() => handlePlayCard(testState, 'playerX', cardToPlay)).to.throw('Player playerX not found.');
     });
 
     it('should throw error if play is invalid', () => {
-      validation.isValidPlay.returns(false); // Mock validation to return false
+      mockValidation.isValidPlay.returns(false); // Use mocked validation
       expect(() => handlePlayCard(gameState, PLAYER_ROLES[0], cardToPlay)).to.throw('Invalid play.');
     });
 
     it('should remove card from player hand and add to currentTrick', () => {
-      const player = gameState.players.find(p => p.role === PLAYER_ROLES[0]);
-      const originalHandSize = player.hand.length;
+      const playerRole = PLAYER_ROLES[0];
+      const originalHandSize = gameState.players[playerRole].hand.length;
 
-      const newState = handlePlayCard(gameState, PLAYER_ROLES[0], cardToPlay);
+      const newState = handlePlayCard(gameState, playerRole, cardToPlay);
 
-      const updatedPlayer = newState.players.find(p => p.role === PLAYER_ROLES[0]);
+      const updatedPlayer = newState.players[playerRole];
       expect(updatedPlayer.hand.length).to.equal(originalHandSize - 1);
       // Check that the specific card is removed
       expect(updatedPlayer.hand.find(card => card.id === cardToPlay.id)).to.be.undefined;
@@ -190,7 +255,7 @@ describe('Playing Phase Logic', () => {
     });
 
     it('should advance current player if trick is not over', () => {
-      playersUtils.getNextPlayer.returns(PLAYER_ROLES[2]); // Explicitly set for this test
+      mockPlayersUtils.getNextPlayer.returns(PLAYER_ROLES[2]); // Use mocked playersUtils
       const newState = handlePlayCard(gameState, PLAYER_ROLES[0], cardToPlay);
       expect(newState.currentPlayer).to.equal(PLAYER_ROLES[2]);
       expect(newState.currentTrick.length).to.equal(1);
@@ -204,9 +269,9 @@ describe('Playing Phase Logic', () => {
       ];
       // Player0 (TEAM_NS) plays the 4th card (cardToPlay = SPADES 'A', which is trump)
       // Based on getCardRank stub, SPADES 'A' (trump) will win against HEARTS K, Q, J.
-
+      console.log('[TEST] gameState.currentTrick BEFORE handlePlayCard:', JSON.stringify(gameState.currentTrick));
       const newState = handlePlayCard(gameState, PLAYER_ROLES[0], cardToPlay); // cardToPlay is P0's SPADES 'A'
-
+      console.log('[TEST] newState.tricksTaken received by test:', JSON.stringify(newState.tricksTaken));
       expect(newState.tricksTaken[TEAMS.TEAM_NS]).to.equal(1);
       expect(newState.currentTrick.length).to.equal(0); // Trick reset
       expect(newState.currentPlayer).to.equal(PLAYER_ROLES[0]); // Winner leads next

@@ -1,4 +1,4 @@
-import chai from 'chai';
+import { expect } from 'chai'; // Changed import style
 import sinon from 'sinon';
 import { registerGameOverHandlers } from '../../../src/socket/handlers/gameOverHandlers.js';
 import * as gameRepository from '../../../src/db/gameRepository.js';
@@ -8,8 +8,6 @@ import logger from '../../../src/utils/logger.js';
 // resetFullGame is not directly used in this test file as handleNewGameRequest is stubbed,
 // but keeping for context if mockLobbyState generation details were to be directly tested.
 import { resetFullGame } from '../../../src/game/state.js';
-
-const { expect } = chai;
 
 describe('Game Over Socket Handlers', () => {
   let sandbox;

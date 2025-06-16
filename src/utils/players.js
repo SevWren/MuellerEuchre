@@ -150,19 +150,36 @@ export function getRoleBySocketId(gameState, socketId) {
 export function initializePlayers() {
     const players = {};
     PLAYER_ROLES.forEach((role, index) => {
-        // Determine team: assuming PLAYER_ROLES = ['south', 'west', 'north', 'east']
-        // South & North are TEAM1 (index 0, 2)
-        // West & East are TEAM2 (index 1, 3)
-        const team = (index % 2 === 0) ? TEAMS.TEAM1 : TEAMS.TEAM2;
+        // Determine team: PLAYER_ROLES = ['south', 'west', 'north', 'east']
+        // South & North (indices 0, 2) are TEAM_NS
+        // West & East (indices 1, 3) are TEAM_EW
+        const teamId = (index % 2 === 0) ? TEAMS.TEAM_NS : TEAMS.TEAM_EW;
         players[role] = {
             name: role.charAt(0).toUpperCase() + role.slice(1), // e.g., 'South'
             socketId: null,
             hand: [],
-            team: team, // Assign to TEAM1 or TEAM2
+            teamId: teamId, // Assign to TEAM_NS or TEAM_EW
             score: 0, // Overall game score for this player's team (might be redundant if teamScores used in gameState)
             isConnected: false,
             tricksWonThisHand: 0,
         };
     });
     return players;
+}
+
+/**
+ * Gets the team ID for a given player object.
+ * @param {object} player - The player object.
+ * @returns {number|undefined} The team ID of the player, or undefined if player is invalid or teamId is not set.
+ */
+export function getPlayerTeam(player) {
+  if (!player || typeof player !== 'object') {
+    logger.warn({ player }, 'Invalid player object passed to getPlayerTeam.');
+    return undefined;
+  }
+  if (player.teamId === undefined) {
+    logger.warn({ playerId: player.id, playerName: player.name }, 'Player object does not have a teamId.');
+    // Fallback or error handling could be more sophisticated here if needed
+  }
+  return player.teamId;
 }

@@ -1,25 +1,45 @@
-import chai from 'chai';
+import { expect } from 'chai';
 import sinon from 'sinon';
-// Using resetFullGame for initial state setup, as createInitialGameState might not be a direct export.
-import { GameState, updateGameState, resetFullGame } from '../../src/game/state.js';
-import { calculateAndApplyScore, checkGameOver, handleNewGameRequest } from '../../src/game/phases/scoringPhase.js';
-import * as playersUtils from '../../src/utils/players.js';
-import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, WINNING_SCORE } from '../../src/config/constants.js'; // Removed CARD_RANKS as not used
-import logger from '../../src/utils/logger.js';
+import esmock from 'esmock'; // Import esmock
 
-const { expect } = chai;
+// Using resetFullGame for initial state setup
+import { updateGameState, resetFullGame } from '../../src/game/state.js';
+// Tested functions will be loaded via esmock
+// Constants are fine to import directly
+import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, WINNING_SCORE } from '../../src/config/constants.js';
+// logger will be mocked, so direct import for type/reference if needed, but esmock handles replacement
 
 describe('Scoring Phase Logic', () => {
   let gameState;
   let sandbox;
+  let mockLogger;
+  let mockPlayersUtils;
+  let calculateAndApplyScore, checkGameOver, handleNewGameRequest; // Functions to load with esmock
 
-  beforeEach(() => {
+  beforeEach(async () => {
     sandbox = sinon.createSandbox();
-    sandbox.stub(logger, 'info');
-    sandbox.stub(logger, 'warn');
-    sandbox.stub(logger, 'error');
 
-    sandbox.stub(playersUtils, 'getNextPlayer').returns(PLAYER_ROLES[1]); // Default next dealer
+    mockLogger = {
+      info: sandbox.stub(),
+      warn: sandbox.stub(),
+      error: sandbox.stub(),
+    };
+
+    mockPlayersUtils = {
+      getNextPlayer: sandbox.stub().returns(PLAYER_ROLES[1]), // Default next dealer
+    };
+
+    const scoringPhaseModule = await esmock('../../src/game/phases/scoringPhase.js', {
+      '../../src/utils/logger.js': mockLogger,
+      '../../src/utils/players.js': mockPlayersUtils,
+      // Ensure state is not accidentally mocked if it's a direct dependency of scoringPhase itself.
+      // If scoringPhase directly imports from state.js, and those functions don't need mocking for these tests,
+      // then we don't need to list state.js in the esmock third argument.
+      // updateGameState is imported by scoringPhase.js. We are not mocking it here.
+    });
+    calculateAndApplyScore = scoringPhaseModule.calculateAndApplyScore;
+    checkGameOver = scoringPhaseModule.checkGameOver;
+    handleNewGameRequest = scoringPhaseModule.handleNewGameRequest;
 
     // Create a base game state using resetFullGame
     gameState = resetFullGame(); // This provides a fresh game state with a new gameId
@@ -66,7 +86,7 @@ describe('Scoring Phase Logic', () => {
       gameState.gamePhase = GAME_PHASES.PLAYING;
       const newState = calculateAndApplyScore(gameState);
       expect(newState).to.deep.equal(gameState);
-      sinon.assert.calledWith(logger.warn, sinon.match(/calculateAndApplyScore called inappropriately/));
+      sinon.assert.calledWith(mockLogger.warn, sinon.match(/calculateAndApplyScore called inappropriately/));
     });
 
     it('makers (NS) take 3 tricks, not alone - 1 point for NS', () => {
@@ -170,7 +190,7 @@ describe('Scoring Phase Logic', () => {
       gameState.teamScores = { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: 5 };
       gameState.trumpSuit = SUITS.SPADES; // example of state to be reset
       gameState.makerTeam = TEAMS.TEAM_NS; // example of state to be reset
-      playersUtils.getNextPlayer.returns(PLAYER_ROLES[1]);
+      mockPlayersUtils.getNextPlayer.returns(PLAYER_ROLES[1]); // Use mocked playersUtils
 
       const newState = checkGameOver(gameState);
       expect(newState.gamePhase).to.equal(GAME_PHASES.DEALING);
@@ -186,12 +206,12 @@ describe('Scoring Phase Logic', () => {
     it('should correctly set next dealer when transitioning to DEALING', () => {
         gameState.teamScores = { [TEAMS.TEAM_NS]: 1, [TEAMS.TEAM_EW]: 1 };
         gameState.dealer = PLAYER_ROLES[0];
-        // Corrected withArgs: (currentDealer, AllPlayerRolesInOrder)
-        playersUtils.getNextPlayer.withArgs(PLAYER_ROLES[0], PLAYER_ROLES).returns(PLAYER_ROLES[1]);
+        // Use mocked playersUtils
+        mockPlayersUtils.getNextPlayer.withArgs(PLAYER_ROLES[0], PLAYER_ROLES).returns(PLAYER_ROLES[1]);
 
         const newState = checkGameOver(gameState);
         expect(newState.dealer).to.equal(PLAYER_ROLES[1]);
-        sinon.assert.calledWith(playersUtils.getNextPlayer, PLAYER_ROLES[0], PLAYER_ROLES);
+        sinon.assert.calledWith(mockPlayersUtils.getNextPlayer, PLAYER_ROLES[0], PLAYER_ROLES);
     });
   });
 
@@ -213,9 +233,15 @@ describe('Scoring Phase Logic', () => {
       expect(newState.gamePhase).to.equal(GAME_PHASES.LOBBY);
       // resetFullGame from state.js is designed to create a brand new gameId
       expect(newState.gameId).to.not.equal(originalGameId);
-      // Check a few other properties to ensure it's a fresh state
-      expect(newState.teamScores).to.deep.equal({}); // resetFullGame initializes teamScores to {}
-      expect(newState.tricksTaken[PLAYER_ROLES[0]]).to.equal(0) // tricksTaken is initialized per player role in resetFullGame
+      // Check a few other properties to ensure it's a fresh state (updated to reflect new initialization)
+      expect(newState.teamScores).to.deep.equal({
+        [TEAMS.TEAM_NS]: 0,
+        [TEAMS.TEAM_EW]: 0
+      });
+      expect(newState.tricksTaken).to.deep.equal({
+        [TEAMS.TEAM_NS]: 0,
+        [TEAMS.TEAM_EW]: 0
+      });
       expect(newState.dealer).to.equal(PLAYER_ROLES[0]); // Default dealer
     });
   });

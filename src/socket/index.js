@@ -7,7 +7,9 @@ import logger from '../utils/logger.js';
 import { handlePlayerConnect, handlePlayerDisconnect } from './handlers/playerConnectionHandlers.js';
 import { registerLobbyHandlers } from './handlers/lobbyHandlers.js';
 import { registerBiddingHandlers } from './handlers/biddingHandlers.js';
-import { registerGoAloneHandlers } from './handlers/goAloneHandlers.js'; // Import new handlers
+import { registerGoAloneHandlers } from './handlers/goAloneHandlers.js';
+import { registerPlayingHandlers } from './handlers/playingHandlers.js';
+import { registerGameOverHandlers } from './handlers/gameOverHandlers.js'; // Add this import
 
 /**
  * Initializes and configures the Socket.IO server.
@@ -31,7 +33,9 @@ export function initializeSocket(httpServer) {
     handlePlayerConnect(socket, io);
     registerLobbyHandlers(socket, io);
     registerBiddingHandlers(socket, io);
-    registerGoAloneHandlers(socket, io); // Register go alone event handlers
+    registerGoAloneHandlers(socket, io);
+    registerPlayingHandlers(socket, io);
+    registerGameOverHandlers(socket, io); // Add this line
 
     socket.on('disconnect', (reason) => {
       handlePlayerDisconnect(socket, io);

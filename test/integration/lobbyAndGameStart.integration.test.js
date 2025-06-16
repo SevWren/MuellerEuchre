@@ -305,6 +305,112 @@ describe('Lobby and Game Start Integration Tests', () => {
     });
   });
 
+  it('Test Case: 4 Players Join, One Explicitly Starts Game, Hands are Dealt', async () => {
+    let assignedGameId;
+
+    // Player 1 joins
+    let client1 = clients[0];
+    let client1Ack = sinon.spy();
+    await client1._simulateClientEmit(GAME_EVENTS.JOIN_GAME, { gameIdToJoin: null, playerName: 'Player 1' }, client1Ack);
+    expect(client1Ack).to.have.been.calledOnce;
+    const ackArgs1 = client1Ack.getCall(0).args[1];
+    if (!ackArgs1) throw new Error(`ackArgs1 is undefined. Ack error: ${JSON.stringify(client1Ack.getCall(0).args[0])}`);
+    expect(ackArgs1.status).to.equal('ok');
+    assignedGameId = ackArgs1.gameId;
+    client1.gameId = assignedGameId;
+    client1.playerRole = ackArgs1.role;
+
+    let gameState = await mockGameRepository.getGame(assignedGameId);
+    expect(gameState).to.not.be.null;
+    expect(gameState.players[client1.playerRole].name).to.equal('Player 1');
+    expect(gameState.gamePhase).to.equal(GAME_PHASES.LOBBY); // Game should still be in LOBBY
+
+    // Players 2, 3, 4 join
+    for (let i = 1; i < 4; i++) {
+      let client = clients[i];
+      let clientAck = sinon.spy();
+      await client._simulateClientEmit(GAME_EVENTS.JOIN_GAME, { gameIdToJoin: assignedGameId, playerName: `Player ${i+1}` }, clientAck);
+      expect(clientAck).to.have.been.calledOnce;
+      const ackArgsClient = clientAck.getCall(0).args[1];
+      if (!ackArgsClient) throw new Error(`ackArgsClient is undefined for Player ${i+1}. Ack error: ${JSON.stringify(clientAck.getCall(0).args[0])}`);
+      expect(ackArgsClient.status).to.equal('ok');
+      client.gameId = assignedGameId;
+      client.playerRole = ackArgsClient.role;
+
+      // Check if game auto-started *before* explicit request. It shouldn't if JOIN_GAME only starts on the 4th player *completing* the lobby.
+      // The existing test "Successful 4-Player Game Start and Entry into Bidding" covers auto-start.
+      // This test ensures explicit start works.
+      const currentGameState = await mockGameRepository.getGame(assignedGameId);
+      if (i < 3) { // For players 2 and 3 joining
+        expect(currentGameState.gamePhase).to.equal(GAME_PHASES.LOBBY);
+      } else { // After player 4 joins, the other test implies it auto-starts.
+               // Let's ensure this test focuses on explicit start *if* auto-start didn't happen.
+               // If JOIN_GAME logic always auto-starts when 4th player joins, this explicit test might be redundant
+               // or needs adjustment. For now, proceed assuming explicit start is possible.
+               // The lobbyHandlers.js for JOIN_GAME auto-starts *after* assigning the role and saving.
+               // So, after the 4th player joins via _simulateClientEmit, the phase might already be ORDER_UP_ROUND1.
+        if (currentGameState.gamePhase === GAME_PHASES.LOBBY) {
+          // This block will only be hit if auto-start didn't occur.
+        } else {
+          // If auto-start DID occur, we can still test the request_start_game, though it might be a no-op or error.
+          // For the purpose of testing the *fix*, we want to ensure request_start_game *can* deal hands.
+          // Let's reset the phase to LOBBY artificially to test the explicit start path.
+          // This makes the test specifically for the request_start_game logic that was fixed.
+          currentGameState.gamePhase = GAME_PHASES.LOBBY;
+          await mockGameRepository.updateGame(assignedGameId, currentGameState);
+          console.log(`[Test DEBUG] Game phase reset to LOBBY for explicit start test. Game ID: ${assignedGameId}`);
+        }
+      }
+    }
+
+    // Ensure all players are in, and game is in LOBBY (potentially reset for this test's purpose)
+    gameState = await mockGameRepository.getGame(assignedGameId);
+    expect(Object.keys(gameState.players).filter(p => gameState.players[p].isActive).length).to.equal(4);
+    expect(gameState.gamePhase).to.equal(GAME_PHASES.LOBBY);
+
+
+    // Client 1 explicitly requests to start the game
+    const requestStartAck = sinon.spy();
+    await client1._simulateClientEmit('request_start_game', { gameId: assignedGameId }, requestStartAck);
+
+    expect(requestStartAck).to.have.been.calledOnce;
+    const ackArgsStart = requestStartAck.getCall(0).args[1];
+    if (!ackArgsStart) throw new Error(`ackArgsStart is undefined. Ack error: ${JSON.stringify(requestStartAck.getCall(0).args[0])}`);
+    expect(ackArgsStart.status).to.equal('ok');
+    expect(ackArgsStart.message).to.equal('Game started and hands dealt.');
+
+    const startedGameState = await mockGameRepository.getGame(assignedGameId);
+    expect(startedGameState).to.not.be.null;
+    expect(startedGameState.gamePhase).to.equal(GAME_PHASES.ORDER_UP_ROUND1);
+    expect(startedGameState.turnCard).to.be.an('object').with.keys('suit', 'value', 'id', 'name');
+    expect(startedGameState.kitty.length).to.equal(24 - 20 - 1); // Standard Euchre deck
+
+    const dealer = startedGameState.dealer;
+    const expectedActiveBidder = PLAYER_ROLES[(PLAYER_ROLES.indexOf(dealer) + 1) % 4];
+    expect(startedGameState.currentPlayer).to.equal(expectedActiveBidder);
+
+    for (let i = 0; i < 4; i++) {
+      const playerRole = PLAYER_ROLES[i];
+      expect(startedGameState.players[playerRole].hand.length).to.equal(5, `Player ${playerRole} hand length incorrect`);
+      expect(startedGameState.players[playerRole].name).to.equal(`Player ${i+1}`);
+    }
+
+    // Verify broadcasts
+    const roomBroadcasts = mockIoInstance.getRoomBroadcasts(assignedGameId, GAME_EVENTS.STATE_UPDATE);
+    expect(roomBroadcasts.length).to.be.greaterThan(0);
+    const finalGameStateBroadcast = roomBroadcasts.pop().args[1];
+    expect(finalGameStateBroadcast.gamePhase).to.equal(GAME_PHASES.ORDER_UP_ROUND1);
+    expect(finalGameStateBroadcast.players[PLAYER_ROLES[0]].hand.length).to.equal(5);
+
+    clients.forEach(client => {
+      const clientStateUpdateCall = client.getLastEmit(GAME_EVENTS.STATE_UPDATE);
+      expect(clientStateUpdateCall, `Client ${client.id} did not receive STATE_UPDATE`).to.exist;
+      const clientStateUpdate = clientStateUpdateCall.args[1];
+      expect(clientStateUpdate.gamePhase).to.equal(GAME_PHASES.ORDER_UP_ROUND1);
+      if(client.playerRole) expect(clientStateUpdate.players[client.playerRole].hand.length).to.equal(5);
+    });
+  });
+
   it('Test Case: Player Leaves Lobby Before Game Starts', async () => {
     let assignedGameId;
     let client1 = clients[0];

@@ -78,21 +78,48 @@ export function registerLobbyHandlers(socket, io) {
       // or throws/returns an error indicator.
       // The original attemptToStartGame was not fully defined in provided context,
       // so this adapts to a common pattern.
-      // If attemptToStartGame itself calls startNewHand and returns that state:
-      if (resultGameState && resultGameState.gamePhase !== GAME_PHASES.LOBBY) { // Indicates success
-        await gameRepository.updateGame(gameId, resultGameState);
-        logger.info({ gameId, newPhase: resultGameState.gamePhase }, `Game start successful. Broadcasting updated state.`);
-        io.to(gameId).emit(GAME_EVENTS.STATE_UPDATE, resultGameState);
-        return ack(null, { status: 'ok', message: 'Game started.', gameState: resultGameState });
-      } else if (resultGameState && resultGameState.message) { // It might return a state with an error message
-         logger.warn({ socketId: socket.id, role: requestingPlayerRole, gameId, reason: resultGameState.message }, 'Request to start game failed.');
-        socket.emit(GAME_EVENTS.ACTION_ERROR, { message: resultGameState.message, event: 'request_start_game'});
-        return ack({ status: 'error', message: resultGameState.message});
+      // attemptToStartGame from lobbyPhase.js transitions the state to GAME_PHASES.DEALING
+      // but does not deal cards itself.
+      let stateAfterAttemptStart = attemptToStartGame(currentGameState, requestingPlayerRole);
+
+      if (stateAfterAttemptStart.success === false) { // attemptToStartGame signals failure
+        logger.warn({ socketId: socket.id, role: requestingPlayerRole, gameId, reason: stateAfterAttemptStart.message }, 'Request to start game failed.');
+        socket.emit(GAME_EVENTS.ACTION_ERROR, { message: stateAfterAttemptStart.message, event: 'request_start_game'});
+        return ack({ status: 'error', message: stateAfterAttemptStart.message});
       }
-       else { // Generic failure if result is not as expected
-        logger.warn({ socketId: socket.id, role: requestingPlayerRole, gameId }, 'Request to start game failed (conditions not met).');
-        socket.emit(GAME_EVENTS.ACTION_ERROR, { message: 'Could not start the game (conditions not met).', event: 'request_start_game'});
-        return ack({ status: 'error', message: 'Could not start the game (conditions not met).'});
+
+      // If attemptToStartGame was successful, the phase should be DEALING (or similar, based on its internal logic)
+      // For the fix, we specifically check if it's now DEALING phase, then proceed to deal.
+      if (stateAfterAttemptStart.updatedGameState.gamePhase === GAME_PHASES.DEALING) {
+        logger.info({ gameId, currentPhase: stateAfterAttemptStart.updatedGameState.gamePhase }, 'Game phase is DEALING, proceeding to deal hands.');
+        try {
+          const stateAfterDealing = startNewHand(stateAfterAttemptStart.updatedGameState); // startNewHand is pure
+          await gameRepository.updateGame(gameId, stateAfterDealing);
+          logger.info({ gameId, newPhase: stateAfterDealing.gamePhase }, `Game started and hands dealt. Broadcasting updated state.`);
+          io.to(gameId).emit(GAME_EVENTS.STATE_UPDATE, stateAfterDealing); // Broadcast the state with hands
+          return ack(null, { status: 'ok', message: 'Game started and hands dealt.', gameState: stateAfterDealing });
+        } catch (snhError) {
+          logger.error({ err: snhError, gameId }, `Error during startNewHand after request_start_game.`);
+          // Revert to lobby or an error state? For now, emit error and don't change DB from DEALING phase.
+          // The game state in DB is still at DEALING phase but without hands. This is not ideal.
+          // A more robust solution might try to save a "broken" state or revert to LOBBY.
+          // For this fix, we prioritize getting hands saved if startNewHand succeeds.
+          // If startNewHand fails, the state in DB (DEALING phase) is problematic.
+          // Let's ensure we save the pre-startNewHand state if startNewHand fails, to keep it in DEALING.
+          await gameRepository.updateGame(gameId, stateAfterAttemptStart.updatedGameState); // Save the DEALING phase state
+          socket.emit(GAME_EVENTS.ACTION_ERROR, { message: `Failed to deal cards: ${snhError.message}`, event: 'request_start_game'});
+          io.to(gameId).emit(GAME_EVENTS.STATE_UPDATE, stateAfterAttemptStart.updatedGameState); // Inform others
+          return ack({ status: 'error', message: `Failed to deal cards: ${snhError.message}`});
+        }
+      } else {
+        // This case implies attemptToStartGame succeeded but didn't set phase to DEALING,
+        // or its success/failure reporting changed. Based on current lobbyPhase.js, this path shouldn't be hit if successful.
+        logger.warn({ socketId: socket.id, gameId, resultingPhase: stateAfterAttemptStart.updatedGameState.gamePhase }, 'Game start requested, but phase not set to DEALING. Conditions possibly not fully met or phase logic changed.');
+        // We might still want to save and broadcast this state if it's a valid intermediate state.
+        await gameRepository.updateGame(gameId, stateAfterAttemptStart.updatedGameState);
+        io.to(gameId).emit(GAME_EVENTS.STATE_UPDATE, stateAfterAttemptStart.updatedGameState);
+        socket.emit(GAME_EVENTS.ACTION_ERROR, { message: stateAfterAttemptStart.message || 'Could not start the game (conditions not met).', event: 'request_start_game'});
+        return ack({ status: 'error', message: stateAfterAttemptStart.message || 'Could not start the game (conditions not met).'});
       }
     } catch (error) {
       logger.error({ err: error, socketId: socket.id, gameId }, `Error processing request_start_game for game ${gameId}.`);

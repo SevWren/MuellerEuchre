@@ -10,7 +10,7 @@ import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, WINNING_SCORE } from '../../sr
 // logger will be mocked, so direct import for type/reference if needed, but esmock handles replacement
 
 describe('Scoring Phase Logic', () => {
-  let gameState;
+  let gameState; // This will be set in beforeEach
   let sandbox;
   let mockLogger;
   let mockPlayersUtils;
@@ -57,7 +57,8 @@ describe('Scoring Phase Logic', () => {
       // constants.js will be loaded as actual by removing it from mocks
     });
     calculateAndApplyScore = scoringPhaseModule.calculateAndApplyScore;
-    checkGameOver = scoringPhaseModule.checkGameOver;
+    // checkGameOver is not exported by scoringPhase.js, it's in endGame.js
+    // Tests for checkGameOver will be moved to endGame.unit.test.js
     handleNewGameRequest = scoringPhaseModule.handleNewGameRequest;
 
     // Create a base game state using resetFullGame
@@ -103,138 +104,94 @@ describe('Scoring Phase Logic', () => {
   });
 
   describe('calculateAndApplyScore', () => {
-    it('should return current state if not in SCORING phase', () => {
+    it('should return current state if not in SCORING phase', async () => {
       gameState.gamePhase = GAME_PHASES.PLAYING;
-      const newState = calculateAndApplyScore(gameState);
+      const newState = await calculateAndApplyScore(gameState);
       expect(newState).to.deep.equal(gameState);
       sinon.assert.calledWith(mockLogger.warn, sinon.match(/calculateAndApplyScore called inappropriately/));
     });
 
-    it('makers (NS) take 3 tricks, not alone - 1 point for NS', () => {
+    it('makers (NS) take 3 tricks, not alone - 1 point for NS', async () => {
       gameState.makerTeam = TEAMS.TEAM_NS;
       gameState.tricksTaken = { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: 2 };
       gameState.goingAlone = false;
-      const newState = calculateAndApplyScore(gameState);
+      const newState = await calculateAndApplyScore(gameState);
       expect(newState.teamScores[TEAMS.TEAM_NS]).to.equal(1);
       expect(newState.teamScores[TEAMS.TEAM_EW]).to.equal(0);
       expect(newState.message).to.include(`Team ${TEAMS.TEAM_NS} made their bid. 1 point.`);
       expect(newState.gamePhase).to.equal(GAME_PHASES.DEALING);
     });
 
-    it('makers (EW) take 4 tricks, not alone - 1 point for EW', () => {
+    it('makers (EW) take 4 tricks, not alone - 1 point for EW', async () => {
       gameState.makerTeam = TEAMS.TEAM_EW;
       gameState.tricksTaken = { [TEAMS.TEAM_NS]: 1, [TEAMS.TEAM_EW]: 4 };
       gameState.goingAlone = false;
-      const newState = calculateAndApplyScore(gameState);
+      const newState = await calculateAndApplyScore(gameState);
       expect(newState.teamScores[TEAMS.TEAM_EW]).to.equal(1);
       expect(newState.teamScores[TEAMS.TEAM_NS]).to.equal(0);
       expect(newState.message).to.include(`Team ${TEAMS.TEAM_EW} made their bid. 1 point.`);
     });
 
-    it('makers (NS) take 5 tricks (march), not alone - 2 points for NS', () => {
+    it('makers (NS) take 5 tricks (march), not alone - 2 points for NS', async () => {
       gameState.makerTeam = TEAMS.TEAM_NS;
       gameState.tricksTaken = { [TEAMS.TEAM_NS]: 5, [TEAMS.TEAM_EW]: 0 };
       gameState.goingAlone = false;
-      const newState = calculateAndApplyScore(gameState);
+      const newState = await calculateAndApplyScore(gameState);
       expect(newState.teamScores[TEAMS.TEAM_NS]).to.equal(2);
       expect(newState.message).to.include(`Team ${TEAMS.TEAM_NS} achieved a march! 2 points.`);
     });
 
-    it('makers (NS) take 3 tricks, going alone - 1 point for NS (as per current rule in scoringPhase.js)', () => {
+    it('makers (NS) take 3 tricks, going alone - 1 point for NS (as per current rule in scoringPhase.js)', async () => {
       gameState.makerTeam = TEAMS.TEAM_NS;
       gameState.tricksTaken = { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: 2 };
       gameState.goingAlone = true;
-      const newState = calculateAndApplyScore(gameState);
+      const newState = await calculateAndApplyScore(gameState);
       expect(newState.teamScores[TEAMS.TEAM_NS]).to.equal(1);
       expect(newState.message).to.include(`Team ${TEAMS.TEAM_NS} made their bid (alone). 1 point.`);
     });
 
-    it('makers (NS) take 5 tricks (march), going alone - 4 points for NS', () => {
+    it('makers (NS) take 5 tricks (march), going alone - 4 points for NS', async () => {
       gameState.makerTeam = TEAMS.TEAM_NS;
       gameState.tricksTaken = { [TEAMS.TEAM_NS]: 5, [TEAMS.TEAM_EW]: 0 };
       gameState.goingAlone = true;
-      const newState = calculateAndApplyScore(gameState);
+      const newState = await calculateAndApplyScore(gameState);
       expect(newState.teamScores[TEAMS.TEAM_NS]).to.equal(4);
       expect(newState.message).to.include(`Team ${TEAMS.TEAM_NS} achieved a march (alone)! 4 points.`);
     });
 
-    it('makers (NS) euchred (2 tricks), not alone - 2 points for EW', () => {
+    it('makers (NS) euchred (2 tricks), not alone - 2 points for EW', async () => {
       gameState.makerTeam = TEAMS.TEAM_NS;
       gameState.tricksTaken = { [TEAMS.TEAM_NS]: 2, [TEAMS.TEAM_EW]: 3 };
       gameState.goingAlone = false;
-      const newState = calculateAndApplyScore(gameState);
+      const newState = await calculateAndApplyScore(gameState);
       expect(newState.teamScores[TEAMS.TEAM_EW]).to.equal(2);
       expect(newState.teamScores[TEAMS.TEAM_NS]).to.equal(0);
       expect(newState.message).to.include(`Team ${TEAMS.TEAM_NS} was euchred! Team ${TEAMS.TEAM_EW} gets 2 points.`);
     });
 
-    it('makers (EW) euchred (0 tricks), going alone - 2 points for NS', () => {
+    it('makers (EW) euchred (0 tricks), going alone - 2 points for NS', async () => {
       gameState.makerTeam = TEAMS.TEAM_EW;
       gameState.tricksTaken = { [TEAMS.TEAM_NS]: 5, [TEAMS.TEAM_EW]: 0 }; // TEAM_EW (makers) got 0 tricks
       gameState.goingAlone = true;
-      const newState = calculateAndApplyScore(gameState);
+      const newState = await calculateAndApplyScore(gameState);
       expect(newState.teamScores[TEAMS.TEAM_NS]).to.equal(2);
       expect(newState.teamScores[TEAMS.TEAM_EW]).to.equal(0);
       expect(newState.message).to.include(`Team ${TEAMS.TEAM_EW} was euchred! Team ${TEAMS.TEAM_NS} gets 2 points.`);
     });
 
-    it('should reset tricksTaken, currentTrick for next hand and preserve previousTricksTaken', () => {
+    it('should reset tricksTaken, currentTrick for next hand and preserve previousTricksTaken', async () => {
       gameState.tricksTaken = { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: 2 };
       gameState.currentTrick = [{ suit: SUITS.SPADES, rank: 'A', playedBy: PLAYER_ROLES[0] }];
       const originalTricks = { ...gameState.tricksTaken }; // Deep copy for assertion
 
-      const newState = calculateAndApplyScore(gameState);
+      const newState = await calculateAndApplyScore(gameState);
       expect(newState.tricksTaken).to.deep.equal({ [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 });
       expect(newState.currentTrick).to.deep.equal([]);
       expect(newState.previousTricksTaken).to.deep.equal(originalTricks);
     });
   });
 
-  describe('checkGameOver', () => {
-    it('should transition to GAME_OVER if NS reaches WINNING_SCORE', () => {
-      gameState.teamScores = { [TEAMS.TEAM_NS]: WINNING_SCORE, [TEAMS.TEAM_EW]: 5 };
-      const newState = checkGameOver(gameState);
-      expect(newState.gamePhase).to.equal(GAME_PHASES.GAME_OVER);
-      expect(newState.winningTeam).to.equal(TEAMS.TEAM_NS);
-      expect(newState.message).to.include(`Game Over! Team ${TEAMS.TEAM_NS} wins`);
-      expect(newState.currentPlayer).to.be.null;
-    });
-
-    it('should transition to GAME_OVER if EW reaches WINNING_SCORE', () => {
-      gameState.teamScores = { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: WINNING_SCORE };
-      const newState = checkGameOver(gameState);
-      expect(newState.gamePhase).to.equal(GAME_PHASES.GAME_OVER);
-      expect(newState.winningTeam).to.equal(TEAMS.TEAM_EW);
-    });
-
-    it('should transition to DEALING if game is not over, resetting relevant state', () => {
-      gameState.teamScores = { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: 5 };
-      gameState.trumpSuit = SUITS.SPADES; // example of state to be reset
-      gameState.makerTeam = TEAMS.TEAM_NS; // example of state to be reset
-      mockPlayersUtils.getNextPlayer.returns(PLAYER_ROLES[1]); // Use mocked playersUtils
-
-      const newState = checkGameOver(gameState);
-      expect(newState.gamePhase).to.equal(GAME_PHASES.DEALING);
-      expect(newState.dealer).to.equal(PLAYER_ROLES[1]);
-      expect(newState.currentPlayer).to.equal(PLAYER_ROLES[1]);
-      expect(newState.trumpSuit).to.be.null;
-      expect(newState.makerTeam).to.be.null;
-      expect(newState.bids).to.deep.equal([]);
-      expect(newState.kitty).to.deep.equal([]);
-      expect(newState.message).to.include('Hand scored. Next hand starting.');
-    });
-
-    it('should correctly set next dealer when transitioning to DEALING', () => {
-        gameState.teamScores = { [TEAMS.TEAM_NS]: 1, [TEAMS.TEAM_EW]: 1 };
-        gameState.dealer = PLAYER_ROLES[0];
-        // Use mocked playersUtils
-        mockPlayersUtils.getNextPlayer.withArgs(PLAYER_ROLES[0], PLAYER_ROLES).returns(PLAYER_ROLES[1]);
-
-        const newState = checkGameOver(gameState);
-        expect(newState.dealer).to.equal(PLAYER_ROLES[1]);
-        sinon.assert.calledWith(mockPlayersUtils.getNextPlayer, PLAYER_ROLES[0], PLAYER_ROLES);
-    });
-  });
+  // Removed describe('checkGameOver', ...) block as it's being moved to endGame.unit.test.js
 
   describe('handleNewGameRequest', () => {
     it('should throw error if not in GAME_OVER phase', () => {

@@ -4,43 +4,23 @@ This file outlines the next crucial steps for the Euchre Multiplayer game develo
 
 ## Next Sprint Priorities (Generated Tasks)
 
-1.  **Client: Implement "Play Card" Action Emitter**
-    *   **Details:** Allow players to select a card from their hand through the UI and emit `action_play_card` to the server. Include visual feedback for selection.
-    *   **Original Ref:** Item 6 (Client-Side)
-
-2.  **Client: Dynamic UI Updates from `gameState`**
-    *   **Details:** Ensure the client-side UI dynamically re-renders and updates based on `gameState` objects broadcast from the server after any action or state change.
-    *   **Original Ref:** Item 6 (Client-Side)
-
-3.  **Client: Contextual UI Element Control**
-    *   **Details:** Implement logic to disable or enable UI elements (buttons, card selection) based on the `currentPlayer` and current `gamePhase` received in `gameState`.
-    *   **Original Ref:** Item 6 (Client-Side)
-
-4.  **Persistence: Game State Saving & Loading**
-    *   **Details:** Re-evaluate `stateManager.js` (archived). Integrate `gameRepository.js` to save game state at key milestones. Implement logic to load an existing game by `gameId` for scenarios like reconnection.
-    *   **Original Ref:** Item 7 (Medium Term)
-
-5.  **Server: Robust Reconnection for In-Progress Games**
-    *   **Details:** Enhance server-side reconnection logic beyond basic disconnect/reconnect. Allow players to rejoin a game already in progress if their session/role can be identified and the game state supports it.
-    *   **Original Ref:** Item 8 (Longer Term)
-
-6.  **Client: Comprehensive Error Handling & User Feedback (Client-Side)**
+1.  **Client: Comprehensive Error Handling & User Feedback (Client-Side)**
     *   **Details:** Implement robust client-side error handling for socket events and user actions. Display clear, user-friendly messages for server errors or invalid operations.
     *   **Original Ref:** Adapted from Longer Term - Item 9
 
-7.  **Client: Reconnection UI Flow**
+2.  **Client: Reconnection UI Flow**
     *   **Details:** Design and implement the client-side UI flow for reconnection. This includes handling `PLAYER_ALREADY_IN_GAME`, prompting for rejoin, attempting reconnection, and updating UI based on success/failure.
     *   **Original Ref:** Client part of original Longer Term - Item 8
 
-8.  **Server: Comprehensive Error Handling & Validation**
+3.  **Server: Comprehensive Error Handling & Validation**
     *   **Details:** Systematically review all server-side socket handlers and game phase logic. Ensure all error conditions are caught, logged appropriately, and result in meaningful error events/messages being sent to the client. Strengthen input validation for all actions.
     *   **Original Ref:** Adapted from Longer Term - Item 9
 
-9.  **Testing: Client-Side Service Mocking and Basic Tests**
+4.  **Testing: Client-Side Service Mocking and Basic Tests**
     *   **Details:** Set up a basic testing environment for the conceptual client-side services (`socketService`, `stateService`, `uiService`). Develop mock objects for dependencies and write basic unit tests for defined methods.
     *   **Original Ref:** Adapted from Longer Term - Item 10
 
-10. **UI: Visual Polish - Card and Player Representations (Conceptual)**
+5.  **UI: Visual Polish - Card and Player Representations (Conceptual)**
     *   **Details (Conceptual):** Define improved visual representations for cards (distinguishing suits and ranks clearly) and player positions on the game board. Specify how active player, dealer, and trick winner could be visually highlighted.
     *   **Original Ref:** New/Enhancement
 
@@ -54,114 +34,7 @@ This section outlines the sub-tasks, affected files, and proposed logic for each
 
 ---
 
-**1. Client: Implement "Play Card" Action Emitter** (Was Task 6)
-    *   **Goal:** Allow players to select and play a card.
-    *   **Sub-tasks:**
-        1.  **In `socketService.js`:**
-            *   `emitPlayCard(gameId, playerRole, card)`: Emits `GAME_EVENTS.ACTION_PLAY_CARD`.
-        2.  **In `uiService.js` (conceptual):**
-            *   Logic for selecting a card from the player's hand display.
-            *   Visual feedback for selected card.
-            *   On confirmation (e.g., "Play Selected Card" button, or card click if unambiguous), call `socketService.emitPlayCard`.
-    *   **Files affected:** `src/client/services/socketService.js`, `src/client/services/uiService.js`.
-    *   **Unit Tests:** (Conceptual)
-        *   Test `socketService.emitPlayCard` sends correct event and payload.
-
----
-
-**2. Client: Dynamic UI Updates from `gameState`** (Was Task 7)
-    *   **Goal:** Ensure UI reflects server state changes.
-    *   **Sub-tasks:**
-        1.  **In `socketService.js`:**
-            *   The existing listener for `GAME_EVENTS.GAME_STATE_UPDATE` should receive the full `gameState`.
-            *   Callback should pass `gameState` to `stateService.updateFullGameState(newState)`.
-        2.  **In `stateService.js`:**
-            *   `updateFullGameState(newState)`: Replaces the client's local `gameState` with `newState`.
-            *   Implement a subscription mechanism or use a reactive framework pattern so that `uiService` (or UI components) are notified when `gameState` changes.
-        3.  **In `uiService.js` (conceptual):**
-            *   Ensure all display logic (from Task 3 and others) re-evaluates/re-renders when `stateService.gameState` is updated. This is typically handled by reactive UI frameworks (React, Vue, Svelte, Angular). If not using one, manual re-render calls would be needed.
-    *   **Files affected:** `src/client/services/socketService.js`, `src/client/services/stateService.js`, `src/client/services/uiService.js`.
-    *   **Unit Tests:** (Conceptual)
-        *   Test `stateService.updateFullGameState` correctly updates local state.
-        *   Test notification/reaction mechanism for UI updates.
-
----
-
-**3. Client: Contextual UI Element Control** (Was Task 8)
-    *   **Goal:** Show/hide or enable/disable UI elements based on game context.
-    *   **Sub-tasks:**
-        1.  **In `uiService.js` (conceptual) / UI components:**
-            *   Bidding controls: Only visible and enabled for `stateService.getCurrentPlayer()` during `GAME_PHASES.BIDDING` or `GAME_PHASES.CALLING_TRUMP`. Specific controls depend on sub-phases (order up, dealer discard, call trump).
-            *   "Go Alone" controls: Only visible/enabled for the maker during `GAME_PHASES.GOING_ALONE`.
-            *   Card playability: Cards in hand should only be selectable/playable by `stateService.getCurrentPlayer()` during `GAME_PHASES.PLAYING`. Visual cues for valid/invalid plays according to game rules (e.g., must follow suit) would be an enhancement here.
-            *   "Request New Game" button: Only visible/enabled during `GAME_PHASES.GAME_OVER`.
-    *   **Files affected:** `src/client/services/uiService.js`, `src/client/services/stateService.js`.
-    *   **Unit Tests:** (Conceptual)
-        *   Test `uiService` or component logic correctly determines visibility/enabled state based on various `gameState` properties (`currentPlayer`, `gamePhase`).
-
----
-
-**4. Persistence: Game State Saving & Loading** (Was Task 9)
-    *   **Goal:** Implement robust game state saving and loading.
-    *   **Sub-tasks:**
-        1.  **Re-evaluate `src/game/stateManager.js` (archived):**
-            *   Review for any useful concepts. Likely, its direct functionality is now split between `gameRepository.js` and phase transition logic.
-        2.  **Integrate `gameRepository.js` for saving:**
-            *   Ensure `updateGame(gameId, gameState)` from `src/db/gameRepository.js` is called at critical points:
-                *   After player joins/leaves lobby (in `lobbyHandlers.js`).
-                *   After bidding phase completes (trump selected, in `biddingHandlers.js` or `biddingPhase.js` before broadcasting).
-                *   After "go alone" decision (in `goAloneHandlers.js` or `goAlonePhase.js`).
-                *   After each trick is completed (in `playingPhase.js` logic, already done via `playingHandlers.js`).
-                *   After hand scoring is complete (in `scoringPhase.js` logic, before broadcasting DEALING/GAME_OVER).
-                *   After game reset (in `gameOverHandlers.js`).
-            *   *Files affected:* `lobbyHandlers.js`, `biddingHandlers.js`, `goAloneHandlers.js`, `playingHandlers.js` (already does it), `scoringPhase.js` (via `gameOverHandlers.js` for reset, and needs to be added for end of hand score).
-        3.  **Implement `loadGame(gameId)` in `gameRepository.js`:**
-            *   This function should already exist (`getGame(gameId)`). Ensure it correctly retrieves and reconstructs the game state from the database.
-            *   Consider if any data transformation is needed upon loading (e.g., if database schema differs slightly or if some properties are transient).
-        4.  **Logic for loading game for reconnection (see Task 10 also):**
-            *   When a player tries to connect/reconnect with a `gameId` (e.g., `socket.on('join_game', { gameId, playerId })`), if `gameRepository.getGame(gameId)` returns an active game, allow player to rejoin if they were part of it.
-            *   *Files affected:* `src/socket/handlers/playerConnectionHandlers.js` (or similar).
-    *   **Unit Tests:**
-        *   Test that `updateGame` is called from the various handlers/phases.
-        *   Test `getGame` correctly retrieves and reconstructs state (may need DB mocking or integration tests).
-
----
-
-**5. Server: Robust Reconnection for In-Progress Games** (Was Task 10)
-    *   **Goal:** Allow players to seamlessly rejoin active games.
-    *   **Sub-tasks:**
-        1.  **Player Identification on Reconnect:**
-            *   When a socket connects, it might provide a `playerId` and `gameId` from a previous session (e.g., stored in `localStorage` on client).
-            *   *Files affected:* `src/socket/handlers/playerConnectionHandlers.js`.
-        2.  **In `playerConnectionHandlers.js` (or similar):**
-            *   On `rejoin_game` event (or enhanced `join_game`):
-                *   Receive `gameId`, `playerId` (or a session token).
-                *   Call `gameRepository.getGame(gameId)`.
-                *   If game exists and is active (not GAME_OVER unless spectating):
-                    *   Find the player in `gameState.players` by `playerId`.
-                    *   If found:
-                        *   Update their `socketId` to the new `socket.id`.
-                        *   Mark player as active again.
-                        *   `socket.join(gameId)` to put them in the room.
-                        *   Emit `GAME_EVENTS.GAME_STATE_UPDATE` *to that specific socket* with the current `gameState`.
-                        *   Emit a general `GAME_EVENTS.PLAYER_RECONNECTED` event to the room with the player's role/name.
-                    *   If not found, or game inactive, emit error.
-                *   If game doesn't exist, emit error.
-            *   Save updated game state (with new `socketId`) via `gameRepository.updateGame`.
-        3.  **Handle Disconnects:**
-            *   In `disconnect` handler in `src/socket/index.js`:
-                *   Identify the player/game associated with `socket.id`.
-                *   Instead of removing player immediately, mark them as `inactive: true` in `gameState.players`.
-                *   Save this state.
-                *   Start a timer (e.g., 2 minutes). If player doesn't reconnect within timer, *then* potentially remove them or handle as abandoned (game-specific rule).
-                *   Broadcast `GAME_EVENTS.PLAYER_DISCONNECTED` to other players.
-    *   **Files affected:** `src/socket/handlers/playerConnectionHandlers.js`, `src/socket/index.js`, `src/db/gameRepository.js`, `src/game/state.js` (if `inactive` flag is added).
-    *   **Unit Tests:**
-        *   Test `rejoin_game` handler: successful rejoin, game not found, player not in game.
-        *   Test `disconnect` handler: player marked inactive, timer logic (conceptual for timer).
-
----
-**6. Client: Comprehensive Error Handling & User Feedback (Client-Side)**
+**1. Client: Comprehensive Error Handling & User Feedback (Client-Side)** (Was Task 6)
     *   **Goal:** Improve client-side resilience and user experience by handling errors gracefully.
     *   **Sub-tasks (Conceptual):**
         1.  **In `socketService.js`:**
@@ -180,7 +53,7 @@ This section outlines the sub-tasks, affected files, and proposed logic for each
 
 ---
 
-**7. Client: Reconnection UI Flow**
+**2. Client: Reconnection UI Flow** (Was Task 7)
     *   **Goal:** Provide a clear user experience for game reconnections.
     *   **Sub-tasks (Conceptual):**
         1.  **In `socketService.js`:**
@@ -204,7 +77,7 @@ This section outlines the sub-tasks, affected files, and proposed logic for each
 
 ---
 
-**8. Server: Comprehensive Error Handling & Validation**
+**3. Server: Comprehensive Error Handling & Validation** (Was Task 8)
     *   **Goal:** Make the server more robust by improving error handling and input validation across all modules.
     *   **Sub-tasks:**
         1.  **Review Socket Handlers (`src/socket/handlers/*.js`):**
@@ -225,7 +98,7 @@ This section outlines the sub-tasks, affected files, and proposed logic for each
 
 ---
 
-**9. Testing: Client-Side Service Mocking and Basic Tests**
+**4. Testing: Client-Side Service Mocking and Basic Tests** (Was Task 9)
     *   **Goal:** Establish a basic unit testing setup for the conceptual client-side services.
     *   **Sub-tasks:**
         1.  **Test Environment Setup:**
@@ -249,7 +122,7 @@ This section outlines the sub-tasks, affected files, and proposed logic for each
 
 ---
 
-**10. UI: Visual Polish - Card and Player Representations (Conceptual)**
+**5. UI: Visual Polish - Card and Player Representations (Conceptual)** (Was Task 10)
     *   **Goal:** Define improved visual clarity for key game elements.
     *   **Sub-tasks (Conceptual - descriptions of what should be done):**
         1.  **Card Rendering:**
@@ -424,5 +297,134 @@ This section outlines the sub-tasks, affected files, and proposed logic for each
         *   **`src/client/services/uiService.js`:**
             *   Added UI interaction method: `promptGoAlone()`.
             *   Conceptually checks if the player is the maker (using conceptual `stateService.getPlayerRole()` and `stateService.getMaker()`) before prompting and emitting.
+
+---
+--- SPRINT 2 COMPLETED TASKS (Current Sprint) ---
+
+**1. Client: Implement "Play Card" Action Emitter**
+    *   **Status: COMPLETED**
+    *   **Summary:** Implemented `emitPlayCard` in `socketService.js` and conceptual `handlePlayCardSelection` in `uiService.js`. Added conceptual unit tests. Event `GAME_EVENTS.PLAY_CARD` used.
+    *   **Original Detailed Description:**
+        *   (Was Task 6)
+        *   **Goal:** Allow players to select and play a card.
+        *   **Sub-tasks:**
+            1.  **In `socketService.js`:**
+                *   `emitPlayCard(gameId, playerRole, card)`: Emits `GAME_EVENTS.ACTION_PLAY_CARD`.
+            2.  **In `uiService.js` (conceptual):**
+                *   Logic for selecting a card from the player's hand display.
+                *   Visual feedback for selected card.
+                *   On confirmation (e.g., "Play Selected Card" button, or card click if unambiguous), call `socketService.emitPlayCard`.
+        *   **Files affected:** `src/client/services/socketService.js`, `src/client/services/uiService.js`.
+        *   **Unit Tests:** (Conceptual)
+            *   Test `socketService.emitPlayCard` sends correct event and payload.
+
+---
+
+**2. Client: Dynamic UI Updates from `gameState`**
+    *   **Status: COMPLETED**
+    *   **Summary:** Implemented `updateFullGameState` and subscription mechanism in `stateService.js`. `socketService.js` listener for `GAME_EVENTS.STATE_UPDATE` now calls this. `uiService.js` conceptually subscribes. Client services refactored for dependency injection. Conceptual tests added.
+    *   **Original Detailed Description:**
+        *   (Was Task 7)
+        *   **Goal:** Ensure UI reflects server state changes.
+        *   **Sub-tasks:**
+            1.  **In `socketService.js`:**
+                *   The existing listener for `GAME_EVENTS.GAME_STATE_UPDATE` should receive the full `gameState`.
+                *   Callback should pass `gameState` to `stateService.updateFullGameState(newState)`.
+            2.  **In `stateService.js`:**
+                *   `updateFullGameState(newState)`: Replaces the client's local `gameState` with `newState`.
+                *   Implement a subscription mechanism or use a reactive framework pattern so that `uiService` (or UI components) are notified when `gameState` changes.
+            3.  **In `uiService.js` (conceptual):**
+                *   Ensure all display logic (from Task 3 and others) re-evaluates/re-renders when `stateService.gameState` is updated. This is typically handled by reactive UI frameworks (React, Vue, Svelte, Angular). If not using one, manual re-render calls would be needed.
+        *   **Files affected:** `src/client/services/socketService.js`, `src/client/services/stateService.js`, `src/client/services/uiService.js`.
+        *   **Unit Tests:** (Conceptual)
+            *   Test `stateService.updateFullGameState` correctly updates local state.
+            *   Test notification/reaction mechanism for UI updates.
+
+---
+
+**3. Client: Contextual UI Element Control**
+    *   **Status: COMPLETED**
+    *   **Summary:** Added conceptual methods to `uiService.js` (`getBiddingControlsState`, `getGoAloneControlsState`, `getCardPlayabilityState`, `getRequestNewGameButtonState`) for dynamic UI element state based on `gameState`. Conceptual tests added.
+    *   **Original Detailed Description:**
+        *   (Was Task 8)
+        *   **Goal:** Show/hide or enable/disable UI elements based on game context.
+        *   **Sub-tasks:**
+            1.  **In `uiService.js` (conceptual) / UI components:**
+                *   Bidding controls: Only visible and enabled for `stateService.getCurrentPlayer()` during `GAME_PHASES.BIDDING` or `GAME_PHASES.CALLING_TRUMP`. Specific controls depend on sub-phases (order up, dealer discard, call trump).
+                *   "Go Alone" controls: Only visible/enabled for the maker during `GAME_PHASES.GOING_ALONE`.
+                *   Card playability: Cards in hand should only be selectable/playable by `stateService.getCurrentPlayer()` during `GAME_PHASES.PLAYING`. Visual cues for valid/invalid plays according to game rules (e.g., must follow suit) would be an enhancement here.
+                *   "Request New Game" button: Only visible/enabled during `GAME_PHASES.GAME_OVER`.
+        *   **Files affected:** `src/client/services/uiService.js`, `src/client/services/stateService.js`.
+        *   **Unit Tests:** (Conceptual)
+            *   Test `uiService` or component logic correctly determines visibility/enabled state based on various `gameState` properties (`currentPlayer`, `gamePhase`).
+
+---
+
+**4. Persistence: Game State Saving & Loading**
+    *   **Status: COMPLETED**
+    *   **Summary:** Integrated `gameRepository.js` (`getGame`, `updateGame`) into `lobbyHandlers`, `biddingHandlers`, `goAloneHandlers`, `playerConnectionHandlers`, and `scoringPhase.js`. Handlers are now async. `gameRepository.js` methods refined (upsert, null for not found). Conceptual tests added.
+    *   **Original Detailed Description:**
+        *   (Was Task 9)
+        *   **Goal:** Implement robust game state saving and loading.
+        *   **Sub-tasks:**
+            1.  **Re-evaluate `src/game/stateManager.js` (archived):**
+                *   Review for any useful concepts. Likely, its direct functionality is now split between `gameRepository.js` and phase transition logic.
+            2.  **Integrate `gameRepository.js` for saving:**
+                *   Ensure `updateGame(gameId, gameState)` from `src/db/gameRepository.js` is called at critical points:
+                    *   After player joins/leaves lobby (in `lobbyHandlers.js`).
+                    *   After bidding phase completes (trump selected, in `biddingHandlers.js` or `biddingPhase.js` before broadcasting).
+                    *   After "go alone" decision (in `goAloneHandlers.js` or `goAlonePhase.js`).
+                    *   After each trick is completed (in `playingPhase.js` logic, already done via `playingHandlers.js`).
+                    *   After hand scoring is complete (in `scoringPhase.js` logic, before broadcasting DEALING/GAME_OVER).
+                    *   After game reset (in `gameOverHandlers.js`).
+                *   *Files affected:* `lobbyHandlers.js`, `biddingHandlers.js`, `goAloneHandlers.js`, `playingHandlers.js` (already does it), `scoringPhase.js` (via `gameOverHandlers.js` for reset, and needs to be added for end of hand score).
+            3.  **Implement `loadGame(gameId)` in `gameRepository.js`:**
+                *   This function should already exist (`getGame(gameId)`). Ensure it correctly retrieves and reconstructs the game state from the database.
+                *   Consider if any data transformation is needed upon loading (e.g., if database schema differs slightly or if some properties are transient).
+            4.  **Logic for loading game for reconnection (see Task 10 also):**
+                *   When a player tries to connect/reconnect with a `gameId` (e.g., `socket.on('join_game', { gameId, playerId })`), if `gameRepository.getGame(gameId)` returns an active game, allow player to rejoin if they were part of it.
+                *   *Files affected:* `src/socket/handlers/playerConnectionHandlers.js` (or similar).
+        *   **Unit Tests:**
+            *   Test that `updateGame` is called from the various handlers/phases.
+            *   Test `getGame` correctly retrieves and reconstructs state (may need DB mocking or integration tests).
+
+---
+
+**5. Server: Robust Reconnection for In-Progress Games**
+    *   **Status: COMPLETED**
+    *   **Summary:** Refined `playerConnectionHandlers.js` with `handleRejoinGame` (triggered by `GAME_EVENTS.RECONNECT`) and `handlePlayerDisconnect`. Logic manages `player.isConnected`, `socketId`, persists state, and emits events. `socket.currentGameId` implemented. Conceptual tests added.
+    *   **Original Detailed Description:**
+        *   (Was Task 10)
+        *   **Goal:** Allow players to seamlessly rejoin active games.
+        *   **Sub-tasks:**
+            1.  **Player Identification on Reconnect:**
+                *   When a socket connects, it might provide a `playerId` and `gameId` from a previous session (e.g., stored in `localStorage` on client).
+                *   *Files affected:* `src/socket/handlers/playerConnectionHandlers.js`.
+            2.  **In `playerConnectionHandlers.js` (or similar):**
+                *   On `rejoin_game` event (or enhanced `join_game`):
+                    *   Receive `gameId`, `playerId` (or a session token).
+                    *   Call `gameRepository.getGame(gameId)`.
+                    *   If game exists and is active (not GAME_OVER unless spectating):
+                        *   Find the player in `gameState.players` by `playerId`.
+                        *   If found:
+                            *   Update their `socketId` to the new `socket.id`.
+                            *   Mark player as active again.
+                            *   `socket.join(gameId)` to put them in the room.
+                            *   Emit `GAME_EVENTS.GAME_STATE_UPDATE` *to that specific socket* with the current `gameState`.
+                            *   Emit a general `GAME_EVENTS.PLAYER_RECONNECTED` event to the room with the player's role/name.
+                        *   If not found, or game inactive, emit error.
+                    *   If game doesn't exist, emit error.
+                *   Save updated game state (with new `socketId`) via `gameRepository.updateGame`.
+            3.  **Handle Disconnects:**
+                *   In `disconnect` handler in `src/socket/index.js`:
+                    *   Identify the player/game associated with `socket.id`.
+                    *   Instead of removing player immediately, mark them as `inactive: true` in `gameState.players`.
+                    *   Save this state.
+                    *   Start a timer (e.g., 2 minutes). If player doesn't reconnect within timer, *then* potentially remove them or handle as abandoned (game-specific rule).
+                    *   Broadcast `GAME_EVENTS.PLAYER_DISCONNECTED` to other players.
+        *   **Files affected:** `src/socket/handlers/playerConnectionHandlers.js`, `src/socket/index.js`, `src/db/gameRepository.js`, `src/game/state.js` (if `inactive` flag is added).
+        *   **Unit Tests:**
+            *   Test `rejoin_game` handler: successful rejoin, game not found, player not in game.
+            *   Test `disconnect` handler: player marked inactive, timer logic (conceptual for timer).
 
 ---

@@ -3,10 +3,11 @@
  * @module socket/handlers/goAloneHandlers
  */
 import logger from '../../utils/logger.js';
-import { getGameState } from '../../game/state.js';
+// import { getGameState } from '../../game/state.js'; // No longer using global state
 import { handleGoAloneDecision } from '../../game/phases/goAlonePhase.js';
 import { getRoleBySocketId } from '../../utils/players.js';
-// import { GAME_EVENTS } from '../../config/constants.js'; // If event name becomes a constant
+import { getGame, updateGame } from '../../db/gameRepository.js';
+import { GAME_EVENTS } from '../../config/constants.js';
 
 /**
  * Registers "go alone" decision event handlers for a given socket.
@@ -14,51 +15,74 @@ import { getRoleBySocketId } from '../../utils/players.js';
  * @param {object} io - The Socket.IO server instance.
  */
 export function registerGoAloneHandlers(socket, io) {
-  const eventName = 'action_go_alone_decision'; // As per plan
+  const eventName = GAME_EVENTS.ACTION_GO_ALONE_DECISION;
 
   /**
    * Handles 'action_go_alone_decision' from a client.
-   * Expected data: { decision: boolean } (true for 'yes, go alone', false for 'no, play with partner')
+   * Expected data: { gameId: string, decision: boolean }
    */
-  socket.on(eventName, (data) => {
-    const currentGameState = getGameState();
-    const playerRole = getRoleBySocketId(currentGameState, socket.id);
-
-    if (!playerRole) {
-      logger.warn({ socketId: socket.id, event: eventName }, `Received event from unassigned socket.`);
-      socket.emit('action_error', { message: 'Player role not recognized. Please rejoin.', event: eventName });
+  socket.on(eventName, async (data) => {
+    if (!data || !data.gameId || typeof data.decision !== 'boolean') {
+      logger.warn({ socketId: socket.id, dataReceived: data }, `Invalid data for ${eventName}: gameId and boolean decision required.`);
+      socket.emit(GAME_EVENTS.ACTION_ERROR, { message: "Invalid 'go alone' decision data: 'gameId' and 'decision' fields are required.", event: eventName });
       return;
     }
+    const { gameId, decision } = data;
 
-    if (!data || typeof data.decision !== 'boolean') {
-        logger.warn({ socketId: socket.id, playerRole, dataReceived: data }, `Invalid data for ${eventName}: 'decision' must be a boolean.`);
-        socket.emit('action_error', { message: "Invalid 'go alone' decision data: 'decision' field must be true or false.", event: eventName });
-        return;
-    }
-    const { decision } = data; // decision is true or false
-
-    logger.info({ socketId: socket.id, playerRole, decision, gameId: currentGameState.gameId },
-                `Received ${eventName}: ${decision ? 'Yes (Go Alone)' : 'No (Play with Partner)'}`);
-
-    // Validation of whether it's the correct player's turn and phase is handled within handleGoAloneDecision
     try {
+      const currentGameState = await getGame(gameId);
+      if (!currentGameState) {
+        logger.warn({ socketId: socket.id, gameId }, `${eventName}: Game not found.`);
+        socket.emit(GAME_EVENTS.ACTION_ERROR, { message: 'Game not found.', event: eventName });
+        return;
+      }
+
+      const playerRole = getRoleBySocketId(currentGameState, socket.id);
+      if (!playerRole) {
+        logger.warn({ socketId: socket.id, gameId, event: eventName }, `Received event from unassigned socket for this game.`);
+        socket.emit(GAME_EVENTS.ACTION_ERROR, { message: 'Player role not recognized for this game.', event: eventName });
+        return;
+      }
+
+      logger.info({ socketId: socket.id, playerRole, decision, gameId },
+                  `Received ${eventName}: ${decision ? 'Yes (Go Alone)' : 'No (Play with Partner)'}`);
+
+      // Validation of player and phase is handled within handleGoAloneDecision
       const result = handleGoAloneDecision(currentGameState, playerRole, decision);
 
-      if (result.success) {
-        logger.info({ gameId: result.updatedGameState.gameId, playerRole, decision, newPhase: result.updatedGameState.gamePhase },
-                    `'Go alone' decision processed. Broadcasting updated state. Message: ${result.message}`);
-        io.emit('gameState', result.updatedGameState); // Broadcast to all
+      if (result.success && result.updatedGameState) {
+        await updateGame(gameId, result.updatedGameState);
+        logger.info({ gameId, playerRole, decision, newPhase: result.updatedGameState.gamePhase },
+                    `'Go alone' decision processed, state saved. Broadcasting updated state. Message: ${result.message}`);
+        io.to(gameId).emit(GAME_EVENTS.GAME_STATE_UPDATE, result.updatedGameState); // Broadcast to game room
       } else {
-        logger.warn({ socketId: socket.id, playerRole, gameId: currentGameState.gameId, reason: result.message },
+        logger.warn({ socketId: socket.id, playerRole, gameId, reason: result.message },
                     `Processing ${eventName} failed for player ${playerRole}.`);
-        socket.emit('action_error', { // Send error only to the requester
+        socket.emit(GAME_EVENTS.ACTION_ERROR, {
           message: result.message || `Could not process 'go alone' decision.`,
           event: eventName
         });
       }
     } catch (error) {
-      logger.error({ err: error, socketId: socket.id, playerRole, decision }, `Error processing ${eventName}.`);
-      socket.emit('action_error', { message: error.message || `Error processing your 'go alone' decision.`, event: eventName });
+      logger.error({ err: error, socketId: socket.id, gameId, decision }, `Error processing ${eventName}.`);
+      socket.emit(GAME_EVENTS.ACTION_ERROR, { message: error.message || `Error processing your 'go alone' decision.`, event: eventName });
     }
   });
 }
+
+// Conceptual notes for goAloneHandlers.js tests:
+// describe('Go Alone Handlers', () => {
+//   // ... (mock socket, io, getGame, updateGame, handleGoAloneDecision)
+//   it('should process go_alone_decision, save state, and broadcast if successful', async () => {
+//     // Setup: mock getGame, handleGoAloneDecision to return success=true & updatedGameState
+//     // Action: Simulate ACTION_GO_ALONE_DECISION
+//     // Assert: updateGame called, io.to(gameId).emit called.
+//   });
+//   it('should emit error to player if handleGoAloneDecision returns success=false', async () => {
+//     // Setup: mock getGame, handleGoAloneDecision to return success=false
+//     // Action: Simulate ACTION_GO_ALONE_DECISION
+//     // Assert: socket.emit(ACTION_ERROR, ...) called.
+//     // Assert: updateGame NOT called.
+//   });
+//   // ... tests for invalid data, game not found, player not in game, errors during phase logic.
+// });

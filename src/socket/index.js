@@ -35,10 +35,27 @@ export function initializeSocket(httpServer) {
     registerBiddingHandlers(socket, io);
     registerGoAloneHandlers(socket, io);
     registerPlayingHandlers(socket, io);
-    registerGameOverHandlers(socket, io); // Add this line
+    registerGameOverHandlers(socket, io);
+
+    // Player Reconnection Handler
+    // Client should emit GAME_EVENTS.RECONNECT with { gameId, playerId (role or uniqueId) }
+    socket.on(GAME_EVENTS.RECONNECT, (data) => {
+      if (data && data.gameId && data.playerId) {
+        logger.info({ socketId: socket.id, gameId: data.gameId, playerId: data.playerId }, `Received ${GAME_EVENTS.RECONNECT} request.`);
+        // playerConnectionHandlers.handleRejoinGame is async, but socket.on handlers are typically not async.
+        // The async operations within handleRejoinGame will complete, and responses (emits) will be sent when ready.
+        handleRejoinGame(socket, io, data.gameId, data.playerId);
+      } else {
+        logger.warn({ socketId: socket.id, dataReceived: data }, `Invalid data for ${GAME_EVENTS.RECONNECT}. 'gameId' and 'playerId' are required.`);
+        socket.emit(GAME_EVENTS.ERROR, { message: "Rejoin request failed: 'gameId' and 'playerId' are required." });
+      }
+    });
 
     socket.on('disconnect', (reason) => {
-      handlePlayerDisconnect(socket, io);
+      logger.info({ socketId: socket.id, reason }, `Socket disconnected. Current game ID on socket: ${socket.currentGameId || 'N/A'}`);
+      // Pass socket.currentGameId which should have been set when player joined a game.
+      // handlePlayerDisconnect is async, but it's fine to call it from a sync event handler.
+      handlePlayerDisconnect(socket, io, socket.currentGameId);
     });
 
     socket.on('echo', (data, callback) => {

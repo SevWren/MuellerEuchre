@@ -11,7 +11,7 @@ import {
 } from '../../game/phases/biddingPhase.js';
 import { isValidBid, isValidDealerDiscard } from '../../game/logic/validation.js';
 import { getRoleBySocketId } from '../../utils/players.js';
-import { getGame, updateGame } from '../../db/gameRepository.js';
+import { gameRepository } from '../../db/gameRepository.js'; // Corrected: import instance
 import { GAME_EVENTS } from '../../config/constants.js';
 
 /**
@@ -34,7 +34,7 @@ export function registerBiddingHandlers(socket, io) {
     const { gameId, decision } = data;
 
     try {
-      const currentGameState = await getGame(gameId);
+      const currentGameState = await gameRepository.getGame(gameId); // Corrected: use instance
       if (!currentGameState) {
         logger.warn({ socketId: socket.id, gameId }, `${GAME_EVENTS.ACTION_ORDER_UP_DECISION}: Game not found.`);
         socket.emit(GAME_EVENTS.ACTION_ERROR, { message: 'Game not found.', event: GAME_EVENTS.ACTION_ORDER_UP_DECISION });
@@ -60,7 +60,7 @@ export function registerBiddingHandlers(socket, io) {
       const wantsToOrderUp = decision === 'orderUp';
       const updatedGameState = handleOrderUpDecision(currentGameState, playerRole, wantsToOrderUp);
 
-      await updateGame(gameId, updatedGameState);
+      await gameRepository.updateGame(gameId, updatedGameState); // Corrected: use instance
       io.to(gameId).emit(GAME_EVENTS.GAME_STATE_UPDATE, updatedGameState);
       logger.info({ gameId, playerRole, decision }, 'Order up decision processed, state saved and broadcasted.');
 
@@ -83,7 +83,7 @@ export function registerBiddingHandlers(socket, io) {
     const { gameId, cardId } = data;
 
     try {
-      const currentGameState = await getGame(gameId);
+      const currentGameState = await gameRepository.getGame(gameId); // Corrected: use instance
       if (!currentGameState) {
         logger.warn({ socketId: socket.id, gameId }, `${GAME_EVENTS.ACTION_DEALER_DISCARD}: Game not found.`);
         socket.emit(GAME_EVENTS.ACTION_ERROR, { message: 'Game not found.', event: GAME_EVENTS.ACTION_DEALER_DISCARD });
@@ -117,7 +117,7 @@ export function registerBiddingHandlers(socket, io) {
 
       const updatedGameState = handleDealerDiscard(currentGameState, playerRole, cardId);
 
-      await updateGame(gameId, updatedGameState);
+      await gameRepository.updateGame(gameId, updatedGameState); // Corrected: use instance
       io.to(gameId).emit(GAME_EVENTS.GAME_STATE_UPDATE, updatedGameState);
       logger.info({ gameId, playerRole, cardId }, 'Dealer discard processed, state saved and broadcasted.');
 
@@ -140,7 +140,7 @@ export function registerBiddingHandlers(socket, io) {
     const { gameId, decision, suit } = data;
 
     try {
-      const currentGameState = await getGame(gameId);
+      const currentGameState = await gameRepository.getGame(gameId); // Corrected: use instance
       if (!currentGameState) {
         logger.warn({ socketId: socket.id, gameId }, `${GAME_EVENTS.ACTION_CALL_TRUMP_DECISION}: Game not found.`);
         socket.emit(GAME_EVENTS.ACTION_ERROR, { message: 'Game not found.', event: GAME_EVENTS.ACTION_CALL_TRUMP_DECISION });
@@ -166,7 +166,7 @@ export function registerBiddingHandlers(socket, io) {
       const wantsToCall = decision === 'callTrump';
       const updatedGameState = handleCallTrumpDecision(currentGameState, playerRole, wantsToCall, suit);
 
-      await updateGame(gameId, updatedGameState);
+      await gameRepository.updateGame(gameId, updatedGameState); // Corrected: use instance
       io.to(gameId).emit(GAME_EVENTS.GAME_STATE_UPDATE, updatedGameState);
       logger.info({ gameId, playerRole, decision, suit }, 'Call trump decision processed, state saved and broadcasted.');
 

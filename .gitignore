@@ -79,6 +79,8 @@ bower_components
 # IDE specific files
 .idea/
 .vscode/*
+.vscode/
+.vscode
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json

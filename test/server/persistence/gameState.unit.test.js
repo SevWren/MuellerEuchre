@@ -29,10 +29,12 @@ class GamePersistence {
 export { GamePersistence };
 
 describe('Game State Persistence', () => {
-    let server, mockFs;
+    let server, persistence; // mockFs will be accessed via server.fs
 
     beforeEach(() => {
-        ({ server, mockFs } = createTestServer());
+        ({ server } = createTestServer()); // Get the server instance which contains mockFs as server.fs
+        // Instantiate the local GamePersistence class, passing server.fs
+        persistence = new GamePersistence({ fs: server.fs, basePath: '.' });
     });
 
     it('should save game state', () => {
@@ -43,7 +45,7 @@ describe('Game State Persistence', () => {
         };
 
         persistence.saveGameState('test-game', gameState);
-        expect(mockFs.writeFileSync.called).to.be.true;
+        expect(server.fs.writeFileSync.called).to.be.true; // Use server.fs for assertion
     });
 
     it('should load game state', () => {
@@ -53,15 +55,15 @@ describe('Game State Persistence', () => {
             scores: { team1: 0, team2: 0 }
         };
 
-        mockFs.existsSync.returns(true);
-        mockFs.readFileSync.returns(JSON.stringify(gameState));
+        server.fs.existsSync.returns(true); // Use server.fs for stubbing
+        server.fs.readFileSync.returns(JSON.stringify(gameState)); // Use server.fs for stubbing
 
         const loadedState = persistence.loadGameState('test-game');
         expect(loadedState).to.deep.equal(gameState);
     });
 
     it('should handle missing game state', () => {
-        mockFs.existsSync.returns(false);
+        server.fs.existsSync.returns(false); // Use server.fs for stubbing
         const loadedState = persistence.loadGameState('missing-game');
         expect(loadedState).to.be.null;
     });

@@ -29,20 +29,41 @@ describe('Scoring Phase Logic', () => {
       getNextPlayer: sandbox.stub().returns(PLAYER_ROLES[1]), // Default next dealer
     };
 
+    const mockUpdateGame = sandbox.stub().resolvesArg(0); // Resolves with the game state passed to it
+    const mockResetFullGame = sandbox.stub().callsFake(() => {
+      // Return a minimal but valid game state structure for resetFullGame
+      return {
+        gameId: `mockGame_${Date.now()}`,
+        gamePhase: GAME_PHASES.LOBBY,
+        players: {}, // initializePlayers would normally fill this
+        deck: [], kitty: [], turnCard: null, trumpSuit: null,
+        dealer: PLAYER_ROLES[0], currentPlayer: PLAYER_ROLES[0],
+        orderUpTurn: null, bids: [], roundNumber: 1,
+        playerWhoOrderedUp: null, playerWhoCalledTrump: null, makerTeam: null,
+        goingAlone: false, playerGoingAlone: null, partnerSittingOut: null,
+        currentTrick: [], leadSuit: null,
+        tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
+        teamScores: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
+        gameMessages: [], hostId: null, settings: { winningScore: WINNING_SCORE },
+        lastUpdated: Date.now()
+      };
+    });
+
     const scoringPhaseModule = await esmock('../../src/game/phases/scoringPhase.js', {
       '../../src/utils/logger.js': mockLogger,
       '../../src/utils/players.js': mockPlayersUtils,
-      // Ensure state is not accidentally mocked if it's a direct dependency of scoringPhase itself.
-      // If scoringPhase directly imports from state.js, and those functions don't need mocking for these tests,
-      // then we don't need to list state.js in the esmock third argument.
-      // updateGameState is imported by scoringPhase.js. We are not mocking it here.
+      '../../src/db/gameRepository.js': { updateGame: mockUpdateGame },
+      '../../src/game/state.js': { resetFullGame: mockResetFullGame }
+      // constants.js will be loaded as actual by removing it from mocks
     });
     calculateAndApplyScore = scoringPhaseModule.calculateAndApplyScore;
     checkGameOver = scoringPhaseModule.checkGameOver;
     handleNewGameRequest = scoringPhaseModule.handleNewGameRequest;
 
     // Create a base game state using resetFullGame
-    gameState = resetFullGame(); // This provides a fresh game state with a new gameId
+    // gameState = resetFullGame(); // Now use the mocked version or setup manually
+    // Use the mockResetFullGame for a predictable base, then layer specifics
+    gameState = mockResetFullGame();
 
     // Layer on specifics for scoring tests
     const playersForTest = [

@@ -1,3 +1,21 @@
+/*
+ *  PRIORITY: VERY LOW
+ *
+ *  NOTE TO DEVELOPERS:
+ *
+ *  This file is a placeholder for future styling and is considered a
+ *  very low priority at this stage of development.
+ *
+ *  All development efforts should be focused on completing the server-side
+ *  code and ensuring the core game logic is stable and fully tested.
+ *
+ *  Please do not spend time on visual enhancements, styling, or
+ *  refactoring this file. The current styles are temporary and exist
+ *
+ *  only for basic layout and debugging purposes.
+ */
+
+
 @import url('https://fonts.googleapis.com/css2?family=Cardo:wght@400;700&display=swap');
 
 :root {

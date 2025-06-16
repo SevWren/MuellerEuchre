@@ -29,67 +29,6 @@ This file outlines the next crucial steps for the Euchre Multiplayer game develo
     *   **Original Ref:** User Feedback (Turn 21)
 
 ---
-**PREVIOUSLY COMPLETED TASKS (Retained for reference)**
----
-
-1.  **Client: Comprehensive Error Handling & User Feedback (Client-Side)**
-    *   **Status: COMPLETED**
-    *   **Details:** Implement robust client-side error handling for socket events and user actions. Display clear, user-friendly messages for server errors or invalid operations.
-    *   **Original Ref:** Adapted from Longer Term - Item 9
-    *   **Summary:**
-        *   `socketService.js` emitter methods (`emitOrderUpDecision`, `emitDealerDiscard`, etc.) updated to return Promises via a new `_emitWithAck` helper. This helper uses a conceptual `socket.timeout().emit()` for ack error/timeout handling.
-        *   A global `GAME_EVENTS.ERROR` listener was added to `socketService.js`, calling `uiService.displayGlobalError` upon receiving generic server errors.
-        *   `uiService.js` methods `displayGlobalError(message)`, `showErrorModal(message, title)`, and `displayMessage(message, type)` were added/refined for clearer error presentation and more flexible messaging.
-        *   Action-triggering methods in `uiService.js` (e.g., `promptOrderUp`, `handlePlayCardSelection`) were updated to use the Promise-based emitters from `socketService.js`. They now use `.then()` for success feedback and `.catch()` to display action-specific errors via `showErrorModal`. Conceptual spinner calls (`showSpinner`/`hideSpinner`) were added.
-        *   Relevant `GAME_EVENTS` (e.g., `ERROR`, `ACTION_ORDER_UP_DECISION`) were added/updated in `src/config/constants.js` for consistency.
-        *   Conceptual unit tests for error handling scenarios were added as comments in `socketService.js` and `uiService.js`.
-
-2.  **Client: Reconnection UI Flow**
-    *   **Status: COMPLETED**
-    *   **Details:** Design and implement the client-side UI flow for reconnection. This includes handling `PLAYER_ALREADY_IN_GAME`, prompting for rejoin, attempting reconnection, and updating UI based on success/failure.
-    *   **Original Ref:** Client part of original Longer Term - Item 8
-    *   **Summary:**
-        *   `stateService.js` updated to store `playerId` and `gameId` (methods: `setPlayerId`, `setGameDetails` (for `gameId`), `getPlayerId`, `getGameId`). Implemented `hasReconnectInfo()`. Conceptual `localStorage` comments added.
-        *   `socketService.js` native `connect` listener now attempts auto-rejoin by emitting `GAME_EVENTS.RECONNECT` (using `playerId` and `gameId` from `stateService`) if `hasReconnectInfo()` is true. It calls `uiService.showReconnectingModal`, then `uiService.showReconnectedMessage` or `uiService.showReconnectionFailedModal` based on ack. If no reconnect info, calls `uiService.hideModal`.
-        *   `socketService.js` native `disconnect` listener calls `uiService.showConnectionLostMessage`.
-        *   The `GAME_EVENTS.PLAYER_ALREADY_IN_GAME` listener in `socketService.js` correctly calls `uiService.promptForRejoin(data.gameId)`.
-        *   A new `socketService.emitRejoinGame(gameId)` method added for user-confirmed rejoins, emitting `GAME_EVENTS.ACTION_REJOIN_GAME`. Handles ack/timeout for UI feedback.
-        *   `uiService.js` received new methods: `promptForRejoin` (conceptually shows dialog, calls `socketService.emitRejoinGame`), `showConnectionLostMessage`, `showReconnectingModal`, `showReconnectedMessage`, and `showReconnectionFailedModal` to provide user feedback.
-        *   `socketService.handleAssignRole` now also calls `stateService.setPlayerId` with the `playerId` from the server payload.
-        *   `GAME_EVENTS.ACTION_REJOIN_GAME` added to `constants.js`. `GAME_EVENTS.RECONNECT` was already present.
-        *   Conceptual unit tests for reconnection logic added as comments in all three services.
-
-3.  **Testing: Client-Side Service Mocking and Basic Tests**
-    *   **Status: COMPLETED**
-    *   **Details:** Set up a basic testing environment for the conceptual client-side services (`socketService`, `stateService`, `uiService`). Develop mock objects for dependencies and write basic unit tests for defined methods.
-    *   **Original Ref:** Adapted from Longer Term - Item 10
-    *   **Summary:**
-        *   Created test directory `test/client/services/` and new test files: `stateService.test.js`, `socketService.test.js`, and `uiService.test.js`.
-        *   **`stateService.test.js`:** Includes tests for initial state, setters/getters (e.g., `setPlayerId`, `getGameId`, `getPlayerRole`), `hasReconnectInfo`, `updateFullGameState` (including subscriber notification), the subscription mechanism itself (subscribe, unsubscribe, error handling), and various other state getters. A minor fix was noted for `stateService.js` to initialize `this.subscriptions = []`.
-        *   **`socketService.test.js`:** Includes tests for constructor, `_emitWithAck` (success, error, timeout), emitter methods (verifying correct event/payload, Promise handling), and listeners for server-sent/native socket events (`ASSIGN_ROLE`, `STATE_UPDATE`, `ERROR`, `PLAYER_ALREADY_IN_GAME`, `connect`, `disconnect`). Utilized Sinon for comprehensive mocking of `socket.io-client` (including ack simulation), `StateService`, and `UiService`.
-        *   **`uiService.test.js`:** Includes tests for the constructor, action-triggering methods (checking calls to `socketService` and conceptual Promise handling like spinners/messages), conceptual UI display methods (checking console logs and calls to `stateService`), and contextual UI logic methods (e.g., `getBiddingControlsState`). Utilized Sinon for mocking `StateService` and `SocketService`.
-        *   All tests are structured for Mocha/Chai and focus on testing the logical operations within each service rather than actual UI rendering.
-
-4.  **Server: Unit Tests for Bidding Phase**
-    *   **Details:** Write comprehensive unit tests for `src/game/phases/biddingPhase.js` and associated handlers in `src/socket/handlers/biddingHandlers.js`. Cover various scenarios, including different bids, dealer choices, and edge cases. Focus on validating state changes and emitted events.
-    *   **Original Ref:** Derived from Longer Term - Item 10 (Testing Continuous)
-    *   **Status: COMPLETED**
-    *   **Summary:**
-        *   Created `test/phases/biddingPhase.unit.test.js` with tests for `handleOrderUpDecision`, `handleDealerDiscard`, and `handleCallTrumpDecision`, covering player passes, ordering/calling trump, dealer actions, phase transitions (including `ORDER_UP_ROUND2`, `DEALER_DISCARD`, `GOING_ALONE_DECISION`), and misdeal scenarios. Noted that initial state setup for bidding is handled by test helpers.
-        *   Created `test/socket/handlers/biddingHandlers.unit.test.js` with tests for handler registration and individual handlers (`ACTION_ORDER_UP_DECISION`, `ACTION_DEALER_DISCARD`, `ACTION_CALL_TRUMP_DECISION`). Tests cover successful execution (repository calls, phase logic calls, state broadcasting) and error handling (game not found, phase logic errors, role validation).
-        *   Utilized Mocha/Chai/Sinon with comprehensive mocking for dependencies like `gameRepository`, `io`, `socket`, `logger`, and `biddingPhase.js` module functions.
-
-5.  **Server: Integration Tests for Lobby and Game Start**
-    *   **Details:** Develop integration tests covering the flow from players joining a lobby, the game starting, up to and including the initial bidding round. These tests verify interactions between `lobbyHandlers.js`, `playerConnectionHandlers.js`, `biddingPhase.js` (implicitly via `startNewHandPhase.js`), and `state.js`, using a mock `gameRepository`. Simulate multiple client connections and actions.
-    *   **Original Ref:** Derived from Longer Term - Item 10 (Testing Continuous)
-    *   **Status: COMPLETED**
-    *   **Summary:**
-        *   Created `test/integration/lobbyAndGameStart.integration.test.js`.
-        *   Implemented an in-memory `gameRepository` mock and a `MockSocket` class with a `mockIoInstance` to simulate client connections and server broadcasts for focused integration testing.
-        *   Tested the successful flow of 4 players joining a lobby, leading to automatic game start (simulated by calling `startNewHand()` after 4th player joins) and transition into the `ORDER_UP_ROUND1` bidding phase. Verified correct initial game state (player hands, dealer, turn card, active bidder).
-        *   Tested a player disconnecting from the lobby before game start, ensuring the player is removed/marked inactive and other players are updated.
-        *   Tested an attempt to join an already full game/lobby, verifying an error is sent to the attempting client.
-        *   Tests validated interactions with `gameRepository`, correct state updates, and broadcasting of events to simulated clients.
 
 ## Detailed Implementation Plan for Next Sprint Priorities
 
@@ -495,3 +434,65 @@ This section outlines the sub-tasks, affected files, and proposed logic for each
             *   Test `disconnect` handler: player marked inactive, timer logic (conceptual for timer).
 
 ---
+
+## **PREVIOUSLY COMPLETED TASKS (Retained for reference)**
+---
+
+1.  **Client: Comprehensive Error Handling & User Feedback (Client-Side)**
+    *   **Status: COMPLETED**
+    *   **Details:** Implement robust client-side error handling for socket events and user actions. Display clear, user-friendly messages for server errors or invalid operations.
+    *   **Original Ref:** Adapted from Longer Term - Item 9
+    *   **Summary:**
+        *   `socketService.js` emitter methods (`emitOrderUpDecision`, `emitDealerDiscard`, etc.) updated to return Promises via a new `_emitWithAck` helper. This helper uses a conceptual `socket.timeout().emit()` for ack error/timeout handling.
+        *   A global `GAME_EVENTS.ERROR` listener was added to `socketService.js`, calling `uiService.displayGlobalError` upon receiving generic server errors.
+        *   `uiService.js` methods `displayGlobalError(message)`, `showErrorModal(message, title)`, and `displayMessage(message, type)` were added/refined for clearer error presentation and more flexible messaging.
+        *   Action-triggering methods in `uiService.js` (e.g., `promptOrderUp`, `handlePlayCardSelection`) were updated to use the Promise-based emitters from `socketService.js`. They now use `.then()` for success feedback and `.catch()` to display action-specific errors via `showErrorModal`. Conceptual spinner calls (`showSpinner`/`hideSpinner`) were added.
+        *   Relevant `GAME_EVENTS` (e.g., `ERROR`, `ACTION_ORDER_UP_DECISION`) were added/updated in `src/config/constants.js` for consistency.
+        *   Conceptual unit tests for error handling scenarios were added as comments in `socketService.js` and `uiService.js`.
+
+2.  **Client: Reconnection UI Flow**
+    *   **Status: COMPLETED**
+    *   **Details:** Design and implement the client-side UI flow for reconnection. This includes handling `PLAYER_ALREADY_IN_GAME`, prompting for rejoin, attempting reconnection, and updating UI based on success/failure.
+    *   **Original Ref:** Client part of original Longer Term - Item 8
+    *   **Summary:**
+        *   `stateService.js` updated to store `playerId` and `gameId` (methods: `setPlayerId`, `setGameDetails` (for `gameId`), `getPlayerId`, `getGameId`). Implemented `hasReconnectInfo()`. Conceptual `localStorage` comments added.
+        *   `socketService.js` native `connect` listener now attempts auto-rejoin by emitting `GAME_EVENTS.RECONNECT` (using `playerId` and `gameId` from `stateService`) if `hasReconnectInfo()` is true. It calls `uiService.showReconnectingModal`, then `uiService.showReconnectedMessage` or `uiService.showReconnectionFailedModal` based on ack. If no reconnect info, calls `uiService.hideModal`.
+        *   `socketService.js` native `disconnect` listener calls `uiService.showConnectionLostMessage`.
+        *   The `GAME_EVENTS.PLAYER_ALREADY_IN_GAME` listener in `socketService.js` correctly calls `uiService.promptForRejoin(data.gameId)`.
+        *   A new `socketService.emitRejoinGame(gameId)` method added for user-confirmed rejoins, emitting `GAME_EVENTS.ACTION_REJOIN_GAME`. Handles ack/timeout for UI feedback.
+        *   `uiService.js` received new methods: `promptForRejoin` (conceptually shows dialog, calls `socketService.emitRejoinGame`), `showConnectionLostMessage`, `showReconnectingModal`, `showReconnectedMessage`, and `showReconnectionFailedModal` to provide user feedback.
+        *   `socketService.handleAssignRole` now also calls `stateService.setPlayerId` with the `playerId` from the server payload.
+        *   `GAME_EVENTS.ACTION_REJOIN_GAME` added to `constants.js`. `GAME_EVENTS.RECONNECT` was already present.
+        *   Conceptual unit tests for reconnection logic added as comments in all three services.
+
+3.  **Testing: Client-Side Service Mocking and Basic Tests**
+    *   **Status: COMPLETED**
+    *   **Details:** Set up a basic testing environment for the conceptual client-side services (`socketService`, `stateService`, `uiService`). Develop mock objects for dependencies and write basic unit tests for defined methods.
+    *   **Original Ref:** Adapted from Longer Term - Item 10
+    *   **Summary:**
+        *   Created test directory `test/client/services/` and new test files: `stateService.test.js`, `socketService.test.js`, and `uiService.test.js`.
+        *   **`stateService.test.js`:** Includes tests for initial state, setters/getters (e.g., `setPlayerId`, `getGameId`, `getPlayerRole`), `hasReconnectInfo`, `updateFullGameState` (including subscriber notification), the subscription mechanism itself (subscribe, unsubscribe, error handling), and various other state getters. A minor fix was noted for `stateService.js` to initialize `this.subscriptions = []`.
+        *   **`socketService.test.js`:** Includes tests for constructor, `_emitWithAck` (success, error, timeout), emitter methods (verifying correct event/payload, Promise handling), and listeners for server-sent/native socket events (`ASSIGN_ROLE`, `STATE_UPDATE`, `ERROR`, `PLAYER_ALREADY_IN_GAME`, `connect`, `disconnect`). Utilized Sinon for comprehensive mocking of `socket.io-client` (including ack simulation), `StateService`, and `UiService`.
+        *   **`uiService.test.js`:** Includes tests for the constructor, action-triggering methods (checking calls to `socketService` and conceptual Promise handling like spinners/messages), conceptual UI display methods (checking console logs and calls to `stateService`), and contextual UI logic methods (e.g., `getBiddingControlsState`). Utilized Sinon for mocking `StateService` and `SocketService`.
+        *   All tests are structured for Mocha/Chai and focus on testing the logical operations within each service rather than actual UI rendering.
+
+4.  **Server: Unit Tests for Bidding Phase**
+    *   **Details:** Write comprehensive unit tests for `src/game/phases/biddingPhase.js` and associated handlers in `src/socket/handlers/biddingHandlers.js`. Cover various scenarios, including different bids, dealer choices, and edge cases. Focus on validating state changes and emitted events.
+    *   **Original Ref:** Derived from Longer Term - Item 10 (Testing Continuous)
+    *   **Status: COMPLETED**
+    *   **Summary:**
+        *   Created `test/phases/biddingPhase.unit.test.js` with tests for `handleOrderUpDecision`, `handleDealerDiscard`, and `handleCallTrumpDecision`, covering player passes, ordering/calling trump, dealer actions, phase transitions (including `ORDER_UP_ROUND2`, `DEALER_DISCARD`, `GOING_ALONE_DECISION`), and misdeal scenarios. Noted that initial state setup for bidding is handled by test helpers.
+        *   Created `test/socket/handlers/biddingHandlers.unit.test.js` with tests for handler registration and individual handlers (`ACTION_ORDER_UP_DECISION`, `ACTION_DEALER_DISCARD`, `ACTION_CALL_TRUMP_DECISION`). Tests cover successful execution (repository calls, phase logic calls, state broadcasting) and error handling (game not found, phase logic errors, role validation).
+        *   Utilized Mocha/Chai/Sinon with comprehensive mocking for dependencies like `gameRepository`, `io`, `socket`, `logger`, and `biddingPhase.js` module functions.
+
+5.  **Server: Integration Tests for Lobby and Game Start**
+    *   **Details:** Develop integration tests covering the flow from players joining a lobby, the game starting, up to and including the initial bidding round. These tests verify interactions between `lobbyHandlers.js`, `playerConnectionHandlers.js`, `biddingPhase.js` (implicitly via `startNewHandPhase.js`), and `state.js`, using a mock `gameRepository`. Simulate multiple client connections and actions.
+    *   **Original Ref:** Derived from Longer Term - Item 10 (Testing Continuous)
+    *   **Status: COMPLETED**
+    *   **Summary:**
+        *   Created `test/integration/lobbyAndGameStart.integration.test.js`.
+        *   Implemented an in-memory `gameRepository` mock and a `MockSocket` class with a `mockIoInstance` to simulate client connections and server broadcasts for focused integration testing.
+        *   Tested the successful flow of 4 players joining a lobby, leading to automatic game start (simulated by calling `startNewHand()` after 4th player joins) and transition into the `ORDER_UP_ROUND1` bidding phase. Verified correct initial game state (player hands, dealer, turn card, active bidder).
+        *   Tested a player disconnecting from the lobby before game start, ensuring the player is removed/marked inactive and other players are updated.
+        *   Tested an attempt to join an already full game/lobby, verifying an error is sent to the attempting client.
+        *   Tests validated interactions with `gameRepository`, correct state updates, and broadcasting of events to simulated clients.

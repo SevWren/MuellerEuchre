@@ -7,7 +7,7 @@ import esmock from 'esmock';
 chai.use(sinonChai);
 const expect = chai.expect;
 
-import { GAME_PHASES, PLAYER_ROLES, GAME_EVENTS } from '../../src/config/constants.js';
+import { GAME_PHASES, PLAYER_ROLES, GAME_EVENTS, SUITS } from '../../src/config/constants.js';
 import { createInitialGameState, resetFullGame } from '../../src/game/state.js';
 import { initializePlayers } from '../../src/utils/players.js';
 // Logger will be mocked via esmock
@@ -52,28 +52,44 @@ class MockSocket extends EventEmitter {
     this.gameId = null;
     this.playerRole = null;
     this.request = { user };
-    this.join = sinon.spy((room) => this.rooms.add(room));
-    this.leave = sinon.spy((room) => this.rooms.delete(room));
-    this.emit = sinon.spy();
+    this.join = sinon.spy((room) => {
+      this.rooms.add(room);
+    });
+    this.leave = sinon.spy((room) => {
+      this.rooms.delete(room);
+    });
+    this.emit = sinon.spy((event, ...args) => {
+      // console.log(`[MockSocket DEBUG ${this.id}] Emitting event: ${event} with data:`, ...args); // Too verbose for now
+    });
     this.broadcast = {
-      to: sinon.stub().returns({ emit: sinon.spy() })
+      to: sinon.stub().returns({
+        emit: sinon.spy((event, ...args) => {
+          // Intentionally no console.log here for broadcasts to keep test output clean
+        })
+      })
     };
     this._handlers = {};
   }
 
-  on(event, handler) {
-    if (!this._handlers[event]) {
-      this._handlers[event] = [];
+  on(eventName, handler) {
+    // Intentionally no console.log here for event registration to keep test output clean
+    if (!this._handlers[eventName]) {
+      this._handlers[eventName] = [];
     }
-    this._handlers[event].push(handler);
+    this._handlers[eventName].push(handler);
   }
 
-  async _simulateClientEmit(event, data, ackCallback) {
-    const handlers = this._handlers[event];
-    if (handlers) {
-      for (const handler of handlers) {
-        await handler(data, ackCallback);
-      }
+  async _simulateClientEmit(eventName, data, ackCallback) {
+    // Intentionally no console.log here for simulateClientEmit to keep test output clean
+    const eventHandlers = this._handlers[eventName]; // Use the received eventName as key
+    if (eventHandlers && eventHandlers.length > 0) {
+        for (const h of eventHandlers) {
+            await h(data, ackCallback);
+        }
+    } else {
+      // This case might be interesting to log if it happens unexpectedly,
+      // but for now, keeping output clean.
+      // console.log(`[MockSocket Sim DEBUG ${this.id}] No handlers for event: '${eventName}'`);
     }
   }
 
@@ -89,26 +105,33 @@ let stubbedLogger;
 const setupMockIo = () => {
   mockIoInstance = {
     sockets: new Map(),
+    _roomSpies: {}, // Cache for spies per room
     to: sinon.stub().callsFake((roomOrSocketId) => {
-      const targetSockets = [];
-      for (const socket of mockIoInstance.sockets.values()) {
-        if (socket.rooms.has(roomOrSocketId) || socket.id === roomOrSocketId) {
-          targetSockets.push(socket);
-        }
+      if (!mockIoInstance._roomSpies[roomOrSocketId]) {
+        const emitSpy = sinon.spy((event, ...args) => {
+          // Actual emit to mock clients connected to this room
+          const targetSockets = [];
+          for (const socket of mockIoInstance.sockets.values()) {
+            if (socket.rooms.has(roomOrSocketId) || socket.id === roomOrSocketId) {
+              targetSockets.push(socket);
+            }
+          }
+          targetSockets.forEach(s => s.emit(event, ...args));
+        });
+        mockIoInstance._roomSpies[roomOrSocketId] = emitSpy;
       }
-      const emitSpy = sinon.spy((event, ...args) => {
-        targetSockets.forEach(s => s.emit(event, ...args));
-      });
-      const returnedObj = { emit: emitSpy, _spy: emitSpy };
-      return returnedObj;
+      const existingSpy = mockIoInstance._roomSpies[roomOrSocketId];
+      return { emit: existingSpy, _spy: existingSpy }; // Return the cached spy and its reference for getRoomBroadcasts
     }),
-    emit: sinon.spy(),
+    emit: sinon.spy((event, ...args) => {
+         // console.log(`[mockIoInstance DEBUG] Emitting globally, event: ${event}, data:`, ...args); // Too verbose
+    }),
     _addSocket: (socket) => {
       mockIoInstance.sockets.set(socket.id, socket);
     },
     on: sinon.spy(),
     getRoomBroadcasts: (roomId, eventName) => {
-        const roomEmitSpy = mockIoInstance.to(roomId)._spy;
+        const roomEmitSpy = mockIoInstance.to(roomId)._spy; // This will now get the cached spy via .to()
         return roomEmitSpy ? roomEmitSpy.getCalls().filter(call => call.args[0] === eventName) : [];
     }
   };
@@ -129,7 +152,7 @@ const setupMockIo = () => {
 //    guarantee log visibility during debugging.
 // The `ACTION_JOIN_LOBBY` handler itself in `lobbyHandlers.js` was refactored
 // (Turn 50) for `ack(); return;` discipline and game auto-start logic.
-describe.skip('Lobby and Game Start Integration Tests', () => {
+describe('Lobby and Game Start Integration Tests', () => {
   let clients = [];
   let registerLobbyHandlers_esmocked;
   let esmocked_handlePlayerDisconnect;
@@ -143,9 +166,14 @@ describe.skip('Lobby and Game Start Integration Tests', () => {
     mockGameRepository.createGame.resetHistory();
     setupMockIo();
 
+    // Reverted stubbedLogger to use sinon.stub() for cleaner test output
     stubbedLogger = {
-        info: sinon.stub(), error: sinon.stub(), warn: sinon.stub(),
-        debug: sinon.stub(), fatal: sinon.stub(), child: sinon.stub().returnsThis(),
+        info: sinon.stub(),
+        error: sinon.stub(),
+        debug: sinon.stub(),
+        warn: sinon.stub(),
+        fatal: sinon.stub(),
+        child: sinon.stub().returnsThis(), // Ensure child returns the stubbed logger for chained calls
     };
 
     const commonMocks = {
@@ -167,7 +195,8 @@ describe.skip('Lobby and Game Start Integration Tests', () => {
 
       registerLobbyHandlers_esmocked(clientSocket, mockIoInstance);
 
-      clientSocket.on(GAME_EVENTS.RECONNECT_ATTEMPT, async (data, ack) => {
+      // Corrected from RECONNECT_ATTEMPT to RECONNECT
+      clientSocket.on(GAME_EVENTS.RECONNECT, async (data, ack) => {
           await esmocked_handleRejoinGame(clientSocket, mockIoInstance, data.gameId, data.playerId, ack);
       });
       clients.push(clientSocket);
@@ -186,11 +215,13 @@ describe.skip('Lobby and Game Start Integration Tests', () => {
 
     let client1 = clients[0];
     let client1Ack = sinon.spy();
-    await client1._simulateClientEmit(GAME_EVENTS.ACTION_JOIN_LOBBY, { gameIdToJoin: null, playerName: 'Player 1' }, client1Ack);
+    // Removed console.log
+    await client1._simulateClientEmit(GAME_EVENTS.JOIN_GAME, { gameIdToJoin: null, playerName: 'Player 1' }, client1Ack);
 
     expect(client1Ack).to.have.been.calledOnce;
     const ackArgs1 = client1Ack.getCall(0).args[1];
     if (!ackArgs1) {
+        // Retain this error log as it's crucial for test failure diagnosis
         console.log('Ack call args for client1Ack:', client1Ack.getCall(0).args);
         throw new Error(`ackArgs1 is undefined. Ack was likely called with error: ${JSON.stringify(client1Ack.getCall(0).args[0])}`);
     }
@@ -208,7 +239,8 @@ describe.skip('Lobby and Game Start Integration Tests', () => {
     for (let i = 1; i < 4; i++) {
       let client = clients[i];
       let clientAck = sinon.spy();
-      await client._simulateClientEmit(GAME_EVENTS.ACTION_JOIN_LOBBY, { gameIdToJoin: assignedGameId, playerName: `Player ${i+1}` }, clientAck);
+      // Removed console.log
+      await client._simulateClientEmit(GAME_EVENTS.JOIN_GAME, { gameIdToJoin: assignedGameId, playerName: `Player ${i+1}` }, clientAck);
 
       expect(clientAck).to.have.been.calledOnce;
       const ackArgsClient = clientAck.getCall(0).args[1];
@@ -218,7 +250,8 @@ describe.skip('Lobby and Game Start Integration Tests', () => {
       client.playerRole = ackArgsClient.role;
 
       const clientAssignRoleEmit = client.getLastEmit(GAME_EVENTS.ASSIGN_ROLE);
-      expect(clientAssignRoleEmit).to.exist;
+      expect(clientAssignRoleEmit, `ASSIGN_ROLE not emitted for client ${i+1}`).to.exist;
+      // Removed console.log
       expect(clientAssignRoleEmit.args[1]).to.deep.include({
         gameId: assignedGameId,
         role: PLAYER_ROLES[i],
@@ -252,17 +285,19 @@ describe.skip('Lobby and Game Start Integration Tests', () => {
     expect(biddingReadyGameState.makerTeam).to.be.null;
 
     const lastMessage = biddingReadyGameState.gameMessages[biddingReadyGameState.gameMessages.length -1];
-    expect(lastMessage.text).to.include(`New hand started. Dealer is ${dealer}. ${expectedActiveBidder} to make the first bid`);
+    expect(lastMessage.text).to.include(`New hand started. Dealer is ${dealer}. ${biddingReadyGameState.turnCard.id} is up. ${expectedActiveBidder} to make the first bid`);
 
     const roomBroadcasts = mockIoInstance.getRoomBroadcasts(assignedGameId, GAME_EVENTS.STATE_UPDATE);
     expect(roomBroadcasts.length).to.be.greaterThan(0);
-    const finalGameStateBroadcast = roomBroadcasts.pop().args[0];
+    // Corrected to access payload from args[1] as args[0] is the event name
+    const finalGameStateBroadcast = roomBroadcasts.pop().args[1];
     expect(finalGameStateBroadcast.gamePhase).to.equal(GAME_PHASES.ORDER_UP_ROUND1);
 
     clients.forEach(client => {
       const clientStateUpdateCall = client.getLastEmit(GAME_EVENTS.STATE_UPDATE);
       expect(clientStateUpdateCall, `Client ${client.id} did not receive STATE_UPDATE`).to.exist;
-      const clientStateUpdate = clientStateUpdateCall.args[0];
+      // Removed console.log
+      const clientStateUpdate = clientStateUpdateCall.args[1]; // Corrected from args[0] to args[1]
       expect(clientStateUpdate.gamePhase).to.equal(GAME_PHASES.ORDER_UP_ROUND1);
       expect(clientStateUpdate.currentPlayer).to.equal(expectedActiveBidder);
       if(client.playerRole) expect(clientStateUpdate.players[client.playerRole].hand.length).to.equal(5);
@@ -277,7 +312,7 @@ describe.skip('Lobby and Game Start Integration Tests', () => {
     let client3 = clients[2];
 
     let client1Ack = sinon.spy();
-    await client1._simulateClientEmit(GAME_EVENTS.ACTION_JOIN_LOBBY, { gameIdToJoin: null, playerName: 'Player 1' }, client1Ack);
+    await client1._simulateClientEmit(GAME_EVENTS.JOIN_GAME, { gameIdToJoin: null, playerName: 'Player 1' }, client1Ack);
     const ackArgs1 = client1Ack.getCall(0).args[1];
     if (!ackArgs1) throw new Error(`ackArgs1 is undefined for Player 1. Ack error: ${JSON.stringify(client1Ack.getCall(0).args[0])}`);
     assignedGameId = ackArgs1.gameId;
@@ -285,14 +320,14 @@ describe.skip('Lobby and Game Start Integration Tests', () => {
     client1.playerRole = ackArgs1.role;
 
     let client2Ack = sinon.spy();
-    await client2._simulateClientEmit(GAME_EVENTS.ACTION_JOIN_LOBBY, { gameIdToJoin: assignedGameId, playerName: 'Player 2' }, client2Ack);
+    await client2._simulateClientEmit(GAME_EVENTS.JOIN_GAME, { gameIdToJoin: assignedGameId, playerName: 'Player 2' }, client2Ack);
     const ackArgs2 = client2Ack.getCall(0).args[1];
     if (!ackArgs2) throw new Error(`ackArgs2 is undefined for Player 2. Ack error: ${JSON.stringify(client2Ack.getCall(0).args[0])}`);
     client2.gameId = assignedGameId;
     client2.playerRole = ackArgs2.role;
 
     let client3Ack = sinon.spy();
-    await client3._simulateClientEmit(GAME_EVENTS.ACTION_JOIN_LOBBY, { gameIdToJoin: assignedGameId, playerName: 'Player 3' }, client3Ack);
+    await client3._simulateClientEmit(GAME_EVENTS.JOIN_GAME, { gameIdToJoin: assignedGameId, playerName: 'Player 3' }, client3Ack);
     const ackArgs3 = client3Ack.getCall(0).args[1];
     if (!ackArgs3) throw new Error(`ackArgs3 is undefined for Player 3. Ack error: ${JSON.stringify(client3Ack.getCall(0).args[0])}`);
     client3.gameId = assignedGameId;
@@ -307,10 +342,15 @@ describe.skip('Lobby and Game Start Integration Tests', () => {
     expect(updatedGameState.players[client3.playerRole].isConnected).to.be.false;
     expect(updatedGameState.players[client3.playerRole].socketId).to.be.null;
 
+    // Removed console.log for repository state, test is passing
+    // console.log(`[IntegrationTest DEBUG] State of disconnected player ${client3.playerRole} in repository:`, JSON.stringify(updatedGameState.players[client3.playerRole], null, 2));
+
+    // Re-enable client emit checks for disconnect test
     [client1, client2].forEach(client => {
         const clientStateUpdateCall = client.getLastEmit(GAME_EVENTS.STATE_UPDATE);
         expect(clientStateUpdateCall, `Client ${client.id} did not receive STATE_UPDATE after disconnect`).to.exist;
-        const clientStateUpdate = clientStateUpdateCall.args[0];
+        // Removed console.log
+        const clientStateUpdate = clientStateUpdateCall.args[1]; // Corrected from args[0] to args[1]
         expect(clientStateUpdate.players[client3.playerRole].isConnected).to.be.false;
     });
   });
@@ -319,15 +359,20 @@ describe.skip('Lobby and Game Start Integration Tests', () => {
     let assignedGameId;
     for (let i = 0; i < 4; i++) {
         let clientAck = sinon.spy();
-        await clients[i]._simulateClientEmit(GAME_EVENTS.ACTION_JOIN_LOBBY, { gameIdToJoin: assignedGameId, playerName: `Player ${i+1}` }, clientAck);
+        // Removed console.log
+        await clients[i]._simulateClientEmit(GAME_EVENTS.JOIN_GAME, { gameIdToJoin: assignedGameId, playerName: `Player ${i+1}` }, clientAck);
+
+        const ackCall = clientAck.getCall(0);
+        if (!ackCall) throw new Error(`ackSpy not called for Player ${i+1}`);
+
         if (i === 0 && !assignedGameId) {
-            const ackArgsLoop1 = clientAck.getCall(0).args[1];
-            if (!ackArgsLoop1) throw new Error(`ackArgsLoop1 is undefined for Player ${i+1}. Ack error: ${JSON.stringify(clientAck.getCall(0).args[0])}`);
+            const ackArgsLoop1 = ackCall.args[1];
+            if (!ackArgsLoop1) throw new Error(`ackArgsLoop1 is undefined for Player ${i+1}. Ack error: ${JSON.stringify(ackCall.args[0])}`);
             assignedGameId = ackArgsLoop1.gameId;
         }
         clients[i].gameId = assignedGameId;
-        const ackArgsLoop = clientAck.getCall(0).args[1];
-        if (!ackArgsLoop) throw new Error(`ackArgsLoop is undefined for Player ${i+1}. Ack error: ${JSON.stringify(clientAck.getCall(0).args[0])}`);
+        const ackArgsLoop = ackCall.args[1];
+        if (!ackArgsLoop) throw new Error(`ackArgsLoop is undefined for Player ${i+1}. Ack error: ${JSON.stringify(ackCall.args[0])}`);
         clients[i].playerRole = ackArgsLoop.role;
     }
 
@@ -339,7 +384,8 @@ describe.skip('Lobby and Game Start Integration Tests', () => {
     registerLobbyHandlers_esmocked(client5, mockIoInstance);
 
     const client5Ack = sinon.spy();
-    await client5._simulateClientEmit(GAME_EVENTS.ACTION_JOIN_LOBBY, { gameIdToJoin: assignedGameId, playerName: 'Player 5' }, client5Ack);
+    // Removed console.log
+    await client5._simulateClientEmit(GAME_EVENTS.JOIN_GAME, { gameIdToJoin: assignedGameId, playerName: 'Player 5' }, client5Ack);
 
     expect(client5Ack).to.have.been.calledOnce;
     const ackArgs = client5Ack.getCall(0).args[0];

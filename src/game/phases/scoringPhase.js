@@ -1,135 +1,131 @@
-import { updateGameState, resetFullGame } from '../state.js';
-import { GAME_PHASES, WINNING_SCORE, TEAMS, PLAYER_ROLES } from '../../config/constants.js'; // Added PLAYER_ROLES
-import { getNextPlayer } from '../../utils/players.js'; // Changed getNextDealer to getNextPlayer
+// import { updateGameState, resetFullGame } from '../state.js'; // No longer using global updateGameState directly for phase logic. resetFullGame might still be used by gameOverHandlers.
+import { resetFullGame } from '../state.js'; // Retain for handleNewGameRequest
+import { GAME_PHASES, WINNING_SCORE, TEAMS, PLAYER_ROLES } from '../../config/constants.js';
+import { getNextPlayer } from '../../utils/players.js';
 import logger from '../../utils/logger.js';
+import { updateGame } from '../../db/gameRepository.js'; // Import for persistence
 
 /**
- * Calculates the score for the completed hand and updates the game state.
- * @param {object} gameState The current game state.
- * @returns {object} The updated game state with new scores and phase.
+ * Calculates the score for the completed hand and updates the game state, including persistence.
+ * @param {object} gameState The current game state (expected to be mutable or a fresh copy).
+ * @returns {Promise<object>} A promise that resolves to the updated game state.
  */
-function calculateAndApplyScore(gameState) {
+async function calculateAndApplyScore(gameState) {
+  // This function is now responsible for mutating and then saving the gameState.
+  // Ensure the calling context (e.g., a socket handler) is aware of this.
   if (gameState.gamePhase !== GAME_PHASES.SCORING) {
-    // This function should only be called when explicitly in SCORING phase.
-    // The transition to SCORING phase happens in playingPhase.js
-    logger.warn(`[Game ID: ${gameState.gameId}] calculateAndApplyScore called inappropriately during ${gameState.gamePhase}`);
+    logger.warn(`[Game ID: ${gameState.gameId}] calculateAndApplyScore called inappropriately during ${gameState.gamePhase}. Current state will be returned and saved.`);
+    // If called incorrectly, we might still want to save the current state to be safe.
+    await updateGame(gameState.gameId, gameState);
     return gameState;
   }
 
-  let newGameState = { ...gameState };
-  const { tricksTaken, makerTeam, goingAlone, players, gameId } = newGameState;
+  // gameState is modified directly or is a deep copy that will be returned.
+  const { tricksTaken, makerTeam, goingAlone, gameId } = gameState; // Removed players, not directly used here
 
   // Ensure tricksTaken has entries for both teams, even if 0.
-  const currentTricksTaken = {
-    ...{ [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }, // Default to 0 for both
-    ...tricksTaken
+  // Ensure tricksTaken is initialized for both teams
+  gameState.tricksTaken = {
+    [TEAMS.TEAM_NS]: gameState.tricksTaken?.[TEAMS.TEAM_NS] || 0,
+    [TEAMS.TEAM_EW]: gameState.tricksTaken?.[TEAMS.TEAM_EW] || 0,
   };
 
-
-  const makingTeamTricks = currentTricksTaken[makerTeam] || 0; // Default to 0 if makerTeam not in tricksTaken
+  const makingTeamTricks = gameState.tricksTaken[makerTeam] || 0;
   const opponentTeam = makerTeam === TEAMS.TEAM_NS ? TEAMS.TEAM_EW : TEAMS.TEAM_NS;
-  const opponentTricks = currentTricksTaken[opponentTeam] || 0; // Default to 0
+  // opponentTricks not strictly needed for logic below but good for clarity if used
 
   let pointsScored = 0;
   let scoringTeam = null;
   let message = "";
 
   if (makingTeamTricks === 5) { // Makers took all 5 tricks (March)
-    pointsScored = goingAlone ? 4 : 2; // 4 points if alone, 2 if not
+    pointsScored = goingAlone ? 4 : 2;
     scoringTeam = makerTeam;
     message = `Team ${makerTeam} achieved a march${goingAlone ? ' (alone)' : ''}! ${pointsScored} points.`;
-  } else if (makingTeamTricks >= 3) { // Makers made their bid (3 or 4 tricks)
-    pointsScored = goingAlone ? 1 : 1; // Standard 1 point.
-                                      // Rule variation: some play that going alone and making 3 or 4 tricks scores 4 points.
-                                      // Current implementation: 1 point for 3-4 tricks (even if alone), 2 for 5 tricks (not alone), 4 for 5 tricks (alone).
+  } else if (makingTeamTricks >= 3) { // Makers made their bid
+    pointsScored = goingAlone ? 1 : 1; // Standard 1 point for 3-4 tricks, even if alone.
+                                      // March (5 tricks) when alone is 4 points. March (5 tricks) not alone is 2 points.
     scoringTeam = makerTeam;
     message = `Team ${makerTeam} made their bid${goingAlone && makingTeamTricks < 5 ? ' (alone)' : ''}. ${pointsScored} point.`;
-    // If a rule variation (e.g., 4 points for any successful "go alone" bid) is desired, it would be adjusted here.
-    // e.g., if (goingAlone) pointsScored = 4;
-  } else { // Makers were euchred (took less than 3 tricks)
-    pointsScored = 2; // Opponent team gets 2 points
+  } else { // Makers were euchred
+    pointsScored = 2;
     scoringTeam = opponentTeam;
     message = `Team ${makerTeam} was euchred! Team ${opponentTeam} gets ${pointsScored} points.`;
   }
 
-  const newTeamScores = {
-    ...{ [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }, // Ensure both teams exist
-    ...newGameState.teamScores
+  // Ensure teamScores is initialized
+  gameState.teamScores = {
+    [TEAMS.TEAM_NS]: gameState.teamScores?.[TEAMS.TEAM_NS] || 0,
+    [TEAMS.TEAM_EW]: gameState.teamScores?.[TEAMS.TEAM_EW] || 0,
   };
 
   if (scoringTeam) {
-    newTeamScores[scoringTeam] = (newTeamScores[scoringTeam] || 0) + pointsScored;
+    gameState.teamScores[scoringTeam] += pointsScored;
   }
 
-  const scoreMessage = `Current scores: Team NS ${newTeamScores[TEAMS.TEAM_NS]}, Team EW ${newTeamScores[TEAMS.TEAM_EW]}.`;
+  const scoreMessage = `Current scores: Team NS ${gameState.teamScores[TEAMS.TEAM_NS]}, Team EW ${gameState.teamScores[TEAMS.TEAM_EW]}.`;
 
-  newGameState = updateGameState(gs => ({
-    ...gs,
-    teamScores: newTeamScores,
-    message: `${message} ${scoreMessage}`,
-    previousTricksTaken: { ...currentTricksTaken }, // Keep a record of last hand's tricks
-    tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }, // Reset for next hand
-    currentTrick: [],
-    // lastTrickWinner: null, // Optional: Clear if not handled by startNewHand logic elsewhere
-  }));
+  gameState.message = `${message} ${scoreMessage}`;
+  gameState.previousTricksTaken = { ...gameState.tricksTaken }; // Keep a record
+  gameState.tricksTaken = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }; // Reset for next hand
+  gameState.currentTrick = [];
+  // Optional: clear other hand-specific fields if not handled by startNewHand logic
 
-  logger.info(`[Game ID: ${gameId}] Scoring complete. ${message}. Scores: NS ${newTeamScores[TEAMS.TEAM_NS]}, EW ${newTeamScores[TEAMS.TEAM_EW]}`);
-  return checkGameOver(newGameState);
+  logger.info(`[Game ID: ${gameId}] Scoring complete. ${message}. Scores: NS ${gameState.teamScores[TEAMS.TEAM_NS]}, EW ${gameState.teamScores[TEAMS.TEAM_EW]}`);
+
+  // After scoring, check if game is over. This will also persist.
+  return await checkGameOverAndPersist(gameState);
 }
 
 /**
- * Checks if the game is over (a team reached WINNING_SCORE).
- * If over, transitions to GAME_OVER. Otherwise, transitions to DEALING.
- * @param {object} gameState The current game state.
- * @returns {object} The updated game state.
+ * Checks if the game is over and updates phase. Persists the state.
+ * @param {object} gameState The current game state (expected to be mutable or a fresh copy).
+ * @returns {Promise<object>} A promise that resolves to the updated game state.
  */
-function checkGameOver(gameState) {
-  let newGameState = { ...gameState };
-  const { teamScores, gameId, dealer: currentDealer } = newGameState; // Removed players from destructuring
+async function checkGameOverAndPersist(gameState) {
+  const { teamScores, gameId, dealer: currentDealer } = gameState;
 
   const nsScore = teamScores[TEAMS.TEAM_NS] || 0;
   const ewScore = teamScores[TEAMS.TEAM_EW] || 0;
 
-  if (nsScore >= WINNING_SCORE || ewScore >= WINNING_SCORE) {
-    const winningTeam = nsScore >= WINNING_SCORE ? TEAMS.TEAM_NS : TEAMS.TEAM_EW;
+  let winningTeam = null;
+  if (nsScore >= WINNING_SCORE) winningTeam = TEAMS.TEAM_NS;
+  else if (ewScore >= WINNING_SCORE) winningTeam = TEAMS.TEAM_EW;
+
+  if (winningTeam) {
     const finalMessage = `Game Over! Team ${winningTeam} wins with ${teamScores[winningTeam]} points! Final Scores: Team NS ${nsScore}, Team EW ${ewScore}.`;
-    newGameState = updateGameState(gs => ({
-      ...gs,
-      gamePhase: GAME_PHASES.GAME_OVER,
-      winningTeam: winningTeam,
-      currentPlayer: null,
-      message: finalMessage,
-    }));
+    gameState.gamePhase = GAME_PHASES.GAME_OVER;
+    gameState.winningTeam = winningTeam;
+    gameState.currentPlayer = null; // No current player when game is over
+    gameState.message = finalMessage;
     logger.info(`[Game ID: ${gameId}] Game over. Winner: ${winningTeam}. ${finalMessage}`);
   } else {
-    // Determine next dealer for the new hand using getNextPlayer
-    // PLAYER_ROLES from constants should provide the ordered list of roles.
     const nextDealerRole = getNextPlayer(currentDealer, PLAYER_ROLES);
-
     const transitionMessage = `Hand scored. Next hand starting. New dealer: ${nextDealerRole}. Current scores: Team NS ${nsScore}, Team EW ${ewScore}.`;
-    newGameState = updateGameState(gs => {
-      const currentMessage = gs.message; // Get message from the state being updated
-      return {
-        ...gs,
-        gamePhase: GAME_PHASES.DEALING,
-        dealer: nextDealerRole,
-        currentPlayer: nextDealerRole, // Dealer starts the dealing phase (or bidding after dealing)
-        trumpSuit: null,
-        makerTeam: null,
-        goingAlone: false,
-        playerGoingAlone: null, // Also reset who was going alone
-        partnerSittingOut: null,
-        bids: [],
-        orderUpTurn: null, // Who's turn is it to order up/pass
-        kitty: [], // Kitty should be reset
-        turnCard: null,
-        leadSuit: null, // Reset lead suit for the new hand
-        message: `${currentMessage} ${transitionMessage}`, // Prepend existing message
-      };
-    });
+
+    // Reset for new hand
+    gameState.gamePhase = GAME_PHASES.DEALING;
+    gameState.dealer = nextDealerRole;
+    gameState.currentPlayer = nextDealerRole; // Dealer starts the dealing phase
+    gameState.trumpSuit = null;
+    gameState.makerTeam = null;
+    gameState.goingAlone = false;
+    gameState.playerGoingAlone = null;
+    gameState.partnerSittingOut = null;
+    gameState.bids = [];
+    gameState.orderUpTurn = null;
+    gameState.kitty = [];
+    gameState.turnCard = null;
+    gameState.leadSuit = null;
+    // Prepend existing message (from scoring) with transition message for continuity
+    gameState.message = `${gameState.message} ${transitionMessage}`;
     logger.info(`[Game ID: ${gameId}] Hand scored. Transitioning to DEALING. New dealer: ${nextDealerRole}.`);
   }
-  return newGameState;
+
+  // Persist the state after phase transition (GAME_OVER or DEALING)
+  await updateGame(gameId, gameState);
+  logger.info(`[Game ID: ${gameId}] Game state saved after scoring/phase transition. New phase: ${gameState.gamePhase}`);
+  return gameState;
 }
 
 /**

@@ -5,24 +5,11 @@
 // Actual UI rendering and direct DOM manipulation are beyond the scope here.
 
 import { GAME_EVENTS, SUITS } from '../../config/constants.js'; // Assuming shared constants, added SUITS if needed by payloads
+import stateServiceInstance from './stateService.js'; // Import the actual stateService instance
 
-// Conceptual: these would be imported or injected instances of other services
-// For demonstration, these are simple objects with console.log.
-const stateService = {
-  setGameDetails: (details) => console.log('[Conceptual stateService] setGameDetails called with:', details),
-  setPlayerRole: (role) => console.log('[Conceptual stateService] setPlayerRole called with:', role),
-  updatePlayerList: (players) => console.log('[Conceptual stateService] updatePlayerList called with:', players),
-  // Add getters needed by socketService emitters
-  getGameId: () => {
-    console.log('[Conceptual stateService] getGameId called, returning "conceptualGame123"');
-    return 'conceptualGame123'; // Placeholder
-  },
-  getPlayerRole: () => {
-    console.log('[Conceptual stateService] getPlayerRole called, returning "south"');
-    return 'south'; // Placeholder
-  },
-};
-
+// Conceptual: uiService would be imported or injected. For now, it's a simple object.
+// The global mock stateService is no longer primarily used by SocketService methods directly;
+// they will use this.stateService (which will be the imported instance).
 const uiService = { // Placeholder from previous task
   displayAssignedRole: (role) => console.log('[Conceptual uiService] displayAssignedRole called with:', role),
   updateLobbyView: (players) => console.log('[Conceptual uiService] updateLobbyView called with players:', players),
@@ -32,10 +19,14 @@ const uiService = { // Placeholder from previous task
 };
 
 class SocketService {
-  constructor() {
+  constructor(stateServiceParam = stateServiceInstance, uiServiceParam = uiService) { // Allow injection for testing, default to singletons/mocks
     this.socket = {
       on: (event, callback) => {
         console.log(`[Conceptual Socket] Registered listener for event: ${event}`);
+        // Simulate event triggering for STATE_UPDATE for demonstration if not coming from a real server
+        // if (event === GAME_EVENTS.STATE_UPDATE) {
+        //   setTimeout(() => callback({ phase: 'testing_state_update', random: Math.random() }), 2000);
+        // }
       },
       emit: (event, data, ack) => {
         console.log(`[Conceptual Socket] Emitted event: ${event} with data:`, data);
@@ -48,28 +39,39 @@ class SocketService {
       disconnect: () => console.log('[Conceptual Socket] disconnect() called.')
     };
     this._id = `conceptual-socket-${Date.now()}`;
+    this.stateService = stateServiceParam; // Use the injected/imported stateService
+    this.uiService = uiServiceParam; // Use the injected/imported uiService (though not strictly needed for this task's changes)
     this.initializeEventListeners();
   }
 
-  // --- Event Handlers (from Task 2) ---
+  // --- Event Handlers ---
   handleAssignRole({ role, gameId, players, isHost }) {
     console.log('[SocketService] Event received:', GAME_EVENTS.ASSIGN_ROLE, { role, gameId, players, isHost });
-    stateService.setGameDetails({ gameId, isHost });
-    stateService.setPlayerRole(role);
-    stateService.updatePlayerList(players);
-    uiService.displayAssignedRole(role);
-    uiService.updateLobbyView(players);
+    // Use this.stateService for actual instance methods
+    this.stateService.setGameDetails({ gameId, isHost });
+    this.stateService.setPlayerRole(role);
+    this.stateService.updatePlayerList(players); // This might update a simple list or the gameState's player objects
+    this.uiService.displayAssignedRole(role); // uiService calls remain conceptual placeholders
+    this.uiService.updateLobbyView(players);
   }
 
   handleGameFull({ message }) {
     console.log('[SocketService] Event received:', GAME_EVENTS.GAME_FULL, { message });
-    uiService.showErrorModal(message);
+    this.uiService.showErrorModal(message);
   }
 
   handlePlayerAlreadyInGame({ message, gameId }) {
     console.log('[SocketService] Event received:', GAME_EVENTS.PLAYER_ALREADY_IN_GAME, { message, gameId });
-    uiService.displayMessage(message);
-    uiService.promptForRejoin(gameId);
+    this.uiService.displayMessage(message);
+    this.uiService.promptForRejoin(gameId);
+  }
+
+  handleGameStateUpdate(newState) {
+    console.log('[SocketService] Event received:', GAME_EVENTS.STATE_UPDATE, newState);
+    this.stateService.updateFullGameState(newState);
+    // Potentially, uiService could also be directly notified here if not using subscriptions,
+    // but the task specifies subscription via stateService.
+    // For example: this.uiService.renderAllComponents(newState);
   }
 
   // --- Setup Event Listeners ---
@@ -78,6 +80,7 @@ class SocketService {
     this.socket.on(GAME_EVENTS.ASSIGN_ROLE, (data) => this.handleAssignRole(data));
     this.socket.on(GAME_EVENTS.GAME_FULL, (data) => this.handleGameFull(data));
     this.socket.on(GAME_EVENTS.PLAYER_ALREADY_IN_GAME, (data) => this.handlePlayerAlreadyInGame(data));
+    this.socket.on(GAME_EVENTS.STATE_UPDATE, (newState) => this.handleGameStateUpdate(newState)); // Added listener
 
     this.socket.on('connect', () => console.log('[SocketService] Conceptual connect event: Connected with ID', this.socket.id));
     this.socket.on('disconnect', (reason) => console.log('[SocketService] Conceptual disconnect event: Disconnected, reason:', reason));
@@ -85,12 +88,13 @@ class SocketService {
     console.log('[SocketService] Event listeners conceptually initialized.');
   }
 
-  // --- Emitter Methods for Bidding (Task 4) ---
+  // --- Emitter Methods ---
+  // Note: Emitters should now use this.stateService to get gameId, playerRole etc.
 
   emitOrderUpDecision(passes) {
     const payload = {
-      gameId: stateService.getGameId(),
-      playerRole: stateService.getPlayerRole(),
+      gameId: this.stateService.getGameId(), // Use instance
+      playerRole: this.stateService.getPlayerRole(), // Use instance
       passes: passes,
     };
     console.log('[SocketService] Emitting order up decision:', payload);
@@ -99,10 +103,31 @@ class SocketService {
     });
   }
 
+  // --- New Emitter Method for Playing a Card (Task 1 - Client) ---
+  /**
+   * Emits an event to play a card.
+   * @param {string} gameId - The ID of the game.
+   * @param {string} playerRole - The role of the player making the action.
+   * @param {object} card - The card object being played.
+   */
+  emitPlayCard(gameId, playerRole, card) {
+    // This method might be called by uiService, which gets gameId/playerRole from stateService itself.
+    // Or, if called internally, it should use this.stateService.
+    const currentრავgameId = gameId || this.stateService.getGameId();
+    const currentPlayerRole = playerRole || this.stateService.getPlayerRole();
+
+    const payload = { gameId: currentGameId, playerRole: currentPlayerRole, card };
+    console.log('[SocketService] Emitting play card:', payload);
+    // Using GAME_EVENTS.PLAY_CARD as defined in constants.js
+    this.socket.emit(GAME_EVENTS.PLAY_CARD, payload, (response) => {
+      console.log('[SocketService] Ack for PLAY_CARD:', response);
+    });
+  }
+
   emitDealerDiscard(discardedCard) {
     const payload = {
-      gameId: stateService.getGameId(),
-      playerRole: stateService.getPlayerRole(),
+      gameId: this.stateService.getGameId(), // Use instance
+      playerRole: this.stateService.getPlayerRole(), // Use instance
       card: discardedCard,
     };
     console.log('[SocketService] Emitting dealer discard:', payload);
@@ -113,8 +138,8 @@ class SocketService {
 
   emitCallTrumpDecision(suit, passes) {
     const payload = {
-      gameId: stateService.getGameId(),
-      playerRole: stateService.getPlayerRole(),
+      gameId: this.stateService.getGameId(), // Use instance
+      playerRole: this.stateService.getPlayerRole(), // Use instance
       suit: passes ? null : suit,
       passes: passes,
     };
@@ -131,8 +156,8 @@ class SocketService {
    */
   emitGoAloneDecision(goesAlone) {
     const payload = {
-      gameId: stateService.getGameId(),
-      playerRole: stateService.getPlayerRole(),
+      gameId: this.stateService.getGameId(), // Use instance
+      playerRole: this.stateService.getPlayerRole(), // Use instance
       goesAlone: goesAlone,
     };
     console.log('[SocketService] Emitting go alone decision:', payload);
@@ -141,8 +166,9 @@ class SocketService {
     });
   }
 
-  // --- Other Actions (Example from Task 2) ---
+  // --- Other Actions ---
   joinGame(gameId, playerName) {
+    // gameId and playerName are passed in, no need to get from stateService here
     this.socket.emit(GAME_EVENTS.JOIN_GAME, { gameId, playerName }, (response) => {
       console.log('[SocketService] Ack for JOIN_GAME:', response);
     });
@@ -153,5 +179,27 @@ class SocketService {
   }
 }
 
-const socketServiceInstance = new SocketService();
+// Create a single instance of SocketService, injecting the stateService instance
+const socketServiceInstance = new SocketService(stateServiceInstance);
 export default socketServiceInstance;
+
+// Conceptual Unit Test for emitPlayCard (already added in previous task, shown for context):
+// it('should emit PLAY_CARD with the correct payload', () => { ... });
+
+// Conceptual Unit Test for handleGameStateUpdate:
+// it('should call stateService.updateFullGameState with received state', () => {
+//   const mockStateService = { updateFullGameState: sinon.spy() };
+//   const service = new SocketService(mockStateService); // Inject mock
+//   const newState = { phase: 'playing', turn: 'player2' };
+//   service.handleGameStateUpdate(newState);
+//   expect(mockStateService.updateFullGameState).to.have.been.calledOnceWith(newState);
+// });
+
+// Conceptual Unit Test for initializeEventListeners wiring:
+// it('should register a handler for GAME_EVENTS.STATE_UPDATE', () => {
+//   const mockSocket = { on: sinon.spy(), emit: () => {} };
+//   const service = new SocketService(stateServiceInstance); // Can use real or mock stateService
+//   service.socket = mockSocket; // Override socket with mock
+//   service.initializeEventListeners(); // Re-initialize with mock socket
+//   expect(mockSocket.on).to.have.been.calledWith(GAME_EVENTS.STATE_UPDATE, sinon.match.func);
+// });

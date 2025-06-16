@@ -10,6 +10,10 @@ class StateService {
     this.playerRole = null; // e.g., 'south', 'player1'
     this.isHost = false;
     this.players = []; // List of player objects from the server's perspective
+    this.gameId = null;
+    this.playerRole = null; // e.g., 'south', 'player1'
+    this.isHost = false;
+    this.players = []; // List of player objects from the server's perspective
     this.gameState = { // Stores the comprehensive game state received from the server
       players: {}, // This will store player objects keyed by role, including their hands
       turnCard: null,
@@ -59,6 +63,35 @@ class StateService {
         this.players = Object.values(this.gameState.players);
     }
     console.log('[Conceptual StateService] Full gameState updated:', this.gameState);
+
+    // Notify subscribers
+    this.subscriptions.forEach(callback => {
+      try {
+        callback(this.gameState);
+      } catch (error) {
+        console.error('[Conceptual StateService] Error in subscription callback:', error);
+      }
+    });
+    console.log(`[Conceptual StateService] Notified ${this.subscriptions.length} subscribers.`);
+  }
+
+  /**
+   * Subscribes a callback function to game state changes.
+   * @param {function} callback - The function to call when the state changes. It will receive the new state.
+   * @returns {function} An unsubscribe function.
+   */
+  subscribe(callback) {
+    if (typeof callback !== 'function') {
+      console.error('[Conceptual StateService] Attempted to subscribe with non-function:', callback);
+      return () => {}; // Return a no-op unsubscribe function
+    }
+    this.subscriptions.push(callback);
+    console.log('[Conceptual StateService] New subscription added. Total subscribers:', this.subscriptions.length);
+    // Return an unsubscribe function
+    return () => {
+      this.subscriptions = this.subscriptions.filter(sub => sub !== callback);
+      console.log('[Conceptual StateService] Subscription removed. Total subscribers:', this.subscriptions.length);
+    };
   }
 
   // --- New Getter Methods ---
@@ -129,3 +162,62 @@ class StateService {
 // Conceptual singleton instance
 const stateServiceInstance = new StateService();
 export default stateServiceInstance;
+
+// Conceptual Unit Test for updateFullGameState:
+// it('should update the local gameState with newState and notify subscribers', () => {
+//   const service = new StateService(); // Assuming constructor initializes gameState and subscriptions
+//   const initialState = { phase: 'bidding', round: 1 };
+//   const newState = { phase: 'playing', turnCard: { suit: 'Hearts', rank: 'A' }, round: 1 };
+//   service.gameState = initialState; // Set initial state
+
+//   const subscriberCallback = sinon.spy();
+//   service.subscribe(subscriberCallback);
+
+//   service.updateFullGameState(newState);
+
+//   expect(service.gameState).to.deep.equal(newState);
+//   expect(subscriberCallback).to.have.been.calledOnceWith(newState);
+// });
+
+// Conceptual Unit Test for subscription mechanism:
+// it('should call subscribed callbacks when gameState is updated', () => {
+//   const service = new StateService();
+//   const callback1 = sinon.spy();
+//   const callback2 = sinon.spy();
+
+//   const unsubscribe1 = service.subscribe(callback1);
+//   service.subscribe(callback2);
+
+//   const newState = { phase: 'scoring', scores: { NS: 5, EW: 2 } };
+//   service.updateFullGameState(newState);
+
+//   expect(callback1).to.have.been.calledOnceWith(newState);
+//   expect(callback2).to.have.been.calledOnceWith(newState);
+
+//   // Test unsubscribe
+//   const newerState = { phase: 'gameOver' };
+//   unsubscribe1(); // Unsubscribe callback1
+//   service.updateFullGameState(newerState);
+
+//   expect(callback1).to.have.been.calledOnce; // Still only called once
+//   expect(callback2).to.have.been.calledTwice.and.calledWith(newerState); // Called again with newer state
+// });
+
+// Conceptual Unit Test for subscribe method:
+// it('should add a callback to subscriptions and return an unsubscribe function', () => {
+//    const service = new StateService();
+//    const callback = sinon.spy();
+//    expect(service.subscriptions.length).to.equal(0);
+//    const unsubscribe = service.subscribe(callback);
+//    expect(service.subscriptions.length).to.equal(1);
+//    expect(service.subscriptions[0]).to.equal(callback);
+//
+//    unsubscribe();
+//    expect(service.subscriptions.length).to.equal(0);
+// });
+//
+// it('should not add non-function callbacks to subscriptions', () => {
+//    const service = new StateService();
+//    service.subscribe("not a function");
+//    expect(service.subscriptions.length).to.equal(0);
+// });

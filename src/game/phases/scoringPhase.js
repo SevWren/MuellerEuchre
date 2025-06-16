@@ -74,7 +74,7 @@ async function calculateAndApplyScore(gameState) {
   logger.info(`[Game ID: ${gameId}] Scoring complete. ${message}. Scores: NS ${gameState.teamScores[TEAMS.TEAM_NS]}, EW ${gameState.teamScores[TEAMS.TEAM_EW]}`);
 
   // After scoring, check if game is over. This will also persist.
-  return await checkGameOverAndPersist(gameState);
+  return await checkGameOver(gameState); // Renamed call
 }
 
 /**
@@ -82,7 +82,7 @@ async function calculateAndApplyScore(gameState) {
  * @param {object} gameState The current game state (expected to be mutable or a fresh copy).
  * @returns {Promise<object>} A promise that resolves to the updated game state.
  */
-async function checkGameOverAndPersist(gameState) {
+async function checkGameOver(gameState) { // Renamed function
   const { teamScores, gameId, dealer: currentDealer } = gameState;
 
   const nsScore = teamScores[TEAMS.TEAM_NS] || 0;

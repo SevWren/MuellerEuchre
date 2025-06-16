@@ -1,12 +1,10 @@
-import chai from 'chai';
+import { expect } from 'chai'; // Changed import style
 import sinon from 'sinon';
 import { registerPlayingHandlers } from '../../../src/socket/handlers/playingHandlers.js';
 import * as gameRepository from '../../../src/db/gameRepository.js';
 import * as playingPhase from '../../../src/game/phases/playingPhase.js';
-import { GAME_EVENTS, GAME_PHASES, PLAYER_ROLES, SUITS } from '../../../src/config/constants.js'; // Removed TEAMS as not directly used in this test file's assertions
+import { GAME_EVENTS, GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS } from '../../../src/config/constants.js'; // Added TEAMS
 import logger from '../../../src/utils/logger.js';
-
-const { expect } = chai;
 
 describe('Playing Phase Socket Handlers', () => {
   let sandbox;
@@ -24,12 +22,12 @@ describe('Playing Phase Socket Handlers', () => {
       gameId: 'testGame123',
       gamePhase: GAME_PHASES.PLAYING,
       currentPlayer: PLAYER_ROLES[0],
-      players: [{ role: PLAYER_ROLES[0], id: 'socket1', socketId: 'socket1' }], // Ensure player has socketId if checked by SUT
+      players: { [PLAYER_ROLES[0]]: { role: PLAYER_ROLES[0], id: 'socket1', socketId: 'socket1', teamId: TEAMS.TEAM_NS } }, // Ensure player has socketId and teamId
       // ... other necessary game state properties like trumpSuit, currentTrick etc.
       trumpSuit: SUITS.SPADES,
       currentTrick: [],
-      teamScores: { [PLAYER_ROLES[0]]: 0, [PLAYER_ROLES[1]]: 0 }, // Example, adjust if TEAMS const used
-      tricksTaken: { [PLAYER_ROLES[0]]: 0, [PLAYER_ROLES[1]]: 0 },
+      teamScores: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }, // Use TEAMS constants
+      tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }, // Use TEAMS constants
     };
 
     // Stub repository and phase logic

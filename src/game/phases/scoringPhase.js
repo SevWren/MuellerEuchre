@@ -63,14 +63,15 @@ function calculateAndApplyScore(gameState) {
 
   const scoreMessage = `Current scores: Team NS ${newTeamScores[TEAMS.TEAM_NS]}, Team EW ${newTeamScores[TEAMS.TEAM_EW]}.`;
 
-  newGameState = updateGameState(newGameState, {
+  newGameState = updateGameState(gs => ({
+    ...gs,
     teamScores: newTeamScores,
     message: `${message} ${scoreMessage}`,
     previousTricksTaken: { ...currentTricksTaken }, // Keep a record of last hand's tricks
     tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }, // Reset for next hand
     currentTrick: [],
     // lastTrickWinner: null, // Optional: Clear if not handled by startNewHand logic elsewhere
-  });
+  }));
 
   logger.info(`[Game ID: ${gameId}] Scoring complete. ${message}. Scores: NS ${newTeamScores[TEAMS.TEAM_NS]}, EW ${newTeamScores[TEAMS.TEAM_EW]}`);
   return checkGameOver(newGameState);
@@ -92,12 +93,13 @@ function checkGameOver(gameState) {
   if (nsScore >= WINNING_SCORE || ewScore >= WINNING_SCORE) {
     const winningTeam = nsScore >= WINNING_SCORE ? TEAMS.TEAM_NS : TEAMS.TEAM_EW;
     const finalMessage = `Game Over! Team ${winningTeam} wins with ${teamScores[winningTeam]} points! Final Scores: Team NS ${nsScore}, Team EW ${ewScore}.`;
-    newGameState = updateGameState(newGameState, {
+    newGameState = updateGameState(gs => ({
+      ...gs,
       gamePhase: GAME_PHASES.GAME_OVER,
       winningTeam: winningTeam,
       currentPlayer: null,
       message: finalMessage,
-    });
+    }));
     logger.info(`[Game ID: ${gameId}] Game over. Winner: ${winningTeam}. ${finalMessage}`);
   } else {
     // Determine next dealer for the new hand using getNextPlayer
@@ -105,21 +107,25 @@ function checkGameOver(gameState) {
     const nextDealerRole = getNextPlayer(currentDealer, PLAYER_ROLES);
 
     const transitionMessage = `Hand scored. Next hand starting. New dealer: ${nextDealerRole}. Current scores: Team NS ${nsScore}, Team EW ${ewScore}.`;
-    newGameState = updateGameState(newGameState, {
-      gamePhase: GAME_PHASES.DEALING,
-      dealer: nextDealerRole,
-      currentPlayer: nextDealerRole, // Dealer starts the dealing phase (or bidding after dealing)
-      trumpSuit: null,
-      makerTeam: null,
-      goingAlone: false,
-      playerGoingAlone: null, // Also reset who was going alone
-      partnerSittingOut: null,
-      bids: [],
-      orderUpTurn: null, // Who's turn is it to order up/pass
-      kitty: [], // Kitty should be reset
-      turnCard: null,
-      leadSuit: null, // Reset lead suit for the new hand
-      message: transitionMessage,
+    newGameState = updateGameState(gs => {
+      const currentMessage = gs.message; // Get message from the state being updated
+      return {
+        ...gs,
+        gamePhase: GAME_PHASES.DEALING,
+        dealer: nextDealerRole,
+        currentPlayer: nextDealerRole, // Dealer starts the dealing phase (or bidding after dealing)
+        trumpSuit: null,
+        makerTeam: null,
+        goingAlone: false,
+        playerGoingAlone: null, // Also reset who was going alone
+        partnerSittingOut: null,
+        bids: [],
+        orderUpTurn: null, // Who's turn is it to order up/pass
+        kitty: [], // Kitty should be reset
+        turnCard: null,
+        leadSuit: null, // Reset lead suit for the new hand
+        message: `${currentMessage} ${transitionMessage}`, // Prepend existing message
+      };
     });
     logger.info(`[Game ID: ${gameId}] Hand scored. Transitioning to DEALING. New dealer: ${nextDealerRole}.`);
   }
@@ -136,16 +142,13 @@ function handleNewGameRequest(gameState) {
     throw new Error('Can only start a new game from GAME_OVER phase.');
   }
   logger.info(`[Game ID: ${gameState.gameId}] Handling new game request.`);
-  // resetFullGame is expected to set up a new game, possibly keeping players.
-  // The exact parameters for resetFullGame depend on its implementation in state.js
-  // Assuming it can take a list of players to retain (simplified for this example)
-  const playersToKeep = gameState.players.map(p => ({
-    id: p.id, // Assuming player has an id
-    name: p.name, // Assuming player has a name
-    // isHost: p.isHost // Optional: if host status should be maintained
-  }));
-  // If resetFullGame doesn't take arguments or handles players differently, this call needs to match state.js
-  return resetFullGame(); // Or resetFullGame(gameState.gameId, playersToKeep) if supported
+  // resetFullGame is expected to set up a new game.
+  // The concept of "keeping players" by passing them to resetFullGame is removed
+  // as resetFullGame reinitializes players. Client connection logic would handle rejoining/reassigning.
+  // For simplicity, we are just calling resetFullGame() here.
+  // If specific player data needed to be preserved across a reset (e.g. user accounts, stats),
+  // that would be a more complex feature involving a separate data store or different reset logic.
+  return resetFullGame();
 }
 
 export { calculateAndApplyScore, checkGameOver, handleNewGameRequest };

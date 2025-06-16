@@ -2,7 +2,7 @@
  * Manages the Euchre game state, ensuring immutability and controlled updates.
  * @module state
  */
-import { GAME_PHASES, PLAYER_ROLES } from '../config/constants.js';
+import { GAME_PHASES, PLAYER_ROLES, TEAMS } from '../config/constants.js'; // Added TEAMS
 import { initializePlayers } from '../utils/players.js';
 import logger from '../utils/logger.js';
 
@@ -56,12 +56,18 @@ function resetFullGame() {
     currentTrick: [],
     leadSuit: null,
     tricksTaken: {
-      [PLAYER_ROLES[0]]: 0,
-      [PLAYER_ROLES[1]]: 0,
-      [PLAYER_ROLES[2]]: 0,
-      [PLAYER_ROLES[3]]: 0,
+      // Initialize with team constants
+      // These constants should be imported if not already available
+      // For example, if TEAMS is { TEAM_NS: 'NS', TEAM_EW: 'EW' }
+      // Then this would be { 'NS': 0, 'EW': 0 }
+      // Assuming TEAMS.TEAM_NS and TEAMS.TEAM_EW are available (e.g. 1 and 2)
+      [TEAMS.TEAM_NS]: 0,
+      [TEAMS.TEAM_EW]: 0,
     },
-    teamScores: {}, // Placeholder for team scores
+    teamScores: {
+      [TEAMS.TEAM_NS]: 0,
+      [TEAMS.TEAM_EW]: 0,
+    },
     gameMessages: [],
     lastUpdated: Date.now(),
   };

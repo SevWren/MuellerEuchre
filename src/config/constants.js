@@ -4,7 +4,12 @@
  * @module constants
  */
 
-export const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
+export const SUITS = {
+  HEARTS: 'hearts',
+  DIAMONDS: 'diamonds',
+  CLUBS: 'clubs',
+  SPADES: 'spades',
+};
 export const VALUES = ['9', '10', 'J', 'Q', 'K', 'A'];
 
 export const DEBUG_LEVELS = {
@@ -54,11 +59,11 @@ export const GAME_PHASES = {
     GAME_OVER: 'GAME_OVER'
 };
 
-export const PLAYER_ROLES = ['south', 'west', 'north', 'east'];
+export const PLAYER_ROLES = ['south', 'west', 'north', 'east']; // NS are index 0, 2; EW are index 1, 3
 
 export const TEAMS = {
-    TEAM1: 1,
-    TEAM2: 2
+    TEAM_NS: 'NS', // North/South team
+    TEAM_EW: 'EW'  // East/West team
 };
 
 export const CARD_RANKS = {

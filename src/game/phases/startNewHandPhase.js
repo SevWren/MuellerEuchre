@@ -3,45 +3,65 @@
  * @module game/phases/startNewHandPhase
  */
 import logger from '../../utils/logger.js';
-// Removed: import { updateGameState } from '../state.js';
-import { createDeck, shuffleDeck, cardToId } from '../../utils/deck.js'; // Added cardToId for logging if needed
+import { createDeck, shuffleDeck, cardToId } from '../../utils/deck.js';
 import { getNextPlayer } from '../../utils/players.js';
-import { GAME_PHASES, PLAYER_ROLES, TEAMS } from '../../config/constants.js'; // PLAYER_ROLES and TEAMS moved here
+import { GAME_PHASES, PLAYER_ROLES, TEAMS } from '../../config/constants.js';
 
 /**
  * Starts a new hand: rotates dealer, shuffles, deals cards, sets up turn card,
  * and transitions the game state to the first round of bidding.
- * This is now a PURE FUNCTION. It accepts the current game state and returns the new state.
+ * This is a PURE FUNCTION. It accepts the current game state and returns the new state.
  *
  * @param {object} currentGameState - The current game state object.
  * @returns {object} The updated game state object.
- * @throws {Error} if currentGameState is invalid or dealing encounters a critical error.
+ * @throws {object} Error object with message, errorType, and details if input is invalid or dealing encounters a critical error.
  */
 export function startNewHand(currentGameState) {
-  if (!currentGameState || !currentGameState.players || !currentGameState.gameId) {
-    const errorMsg = 'startNewHand: Missing or invalid currentGameState (must include players and gameId).';
-    logger.error({ gameStateProvided: !!currentGameState, gameId: currentGameState?.gameId }, errorMsg);
-    throw new Error(errorMsg);
+  // Enhanced input parameter validation
+  if (!currentGameState || typeof currentGameState !== 'object') {
+    const error = { message: 'startNewHand: currentGameState must be provided as an object.', errorType: 'INVALID_INPUT', details: { gameStateType: typeof currentGameState } };
+    logger.error(error, error.message);
+    throw error;
+  }
+  if (!currentGameState.players || typeof currentGameState.players !== 'object') {
+    const error = { message: 'startNewHand: currentGameState.players must be provided as an object.', errorType: 'INVALID_INPUT', details: { playersType: typeof currentGameState.players } };
+    logger.error({ ...error, gameId: currentGameState.gameId }, error.message); // Log gameId if available
+    throw error;
+  }
+  if (typeof currentGameState.gameId !== 'string' || !currentGameState.gameId.trim()) {
+    const error = { message: 'startNewHand: currentGameState.gameId must be a non-empty string.', errorType: 'INVALID_INPUT', details: { gameId: currentGameState.gameId } };
+    logger.error(error, error.message);
+    throw error;
+  }
+  // Dealer might be null if it's the very first hand from LOBBY and not yet set.
+  // getNextPlayer should handle initial dealer determination if currentGameState.dealer is null.
+  // However, if dealer IS set, it should be valid.
+  if (currentGameState.dealer && (typeof currentGameState.dealer !== 'string' || !currentGameState.dealer.trim() || !PLAYER_ROLES.includes(currentGameState.dealer))) {
+      const error = { message: `startNewHand: currentGameState.dealer ('${currentGameState.dealer}') is invalid.`, errorType: 'INVALID_INPUT', details: { dealer: currentGameState.dealer } };
+      logger.error({ ...error, gameId: currentGameState.gameId }, error.message);
+      throw error;
   }
 
-  // A new hand can typically start after LOBBY (first hand) or after SCORING (subsequent hands)
-  // Or if explicitly in DEALING phase by game logic.
+
+  // Phase validation
   if (![GAME_PHASES.DEALING, GAME_PHASES.LOBBY, GAME_PHASES.SCORING, GAME_PHASES.GAME_OVER].includes(currentGameState.gamePhase)) {
-    const message = `Cannot start a new hand from the current game phase: ${currentGameState.gamePhase}.`;
-    logger.warn({ currentPhase: currentGameState.gamePhase, gameId: currentGameState.gameId }, message);
-    // Instead of returning an object with success:false, throw or handle as error by caller
-    throw new Error(message);
+    const error = {
+      message: `Cannot start a new hand from the current game phase: ${currentGameState.gamePhase}.`,
+      errorType: 'INVALID_PHASE',
+      details: { currentPhase: currentGameState.gamePhase, gameId: currentGameState.gameId }
+    };
+    logger.warn(error, error.message);
+    throw error;
   }
 
   logger.info({ gameId: currentGameState.gameId, currentPhase: currentGameState.gamePhase }, "Starting new hand procedures.");
-
-  // Deep clone to ensure immutability of the input state
-  let newState = JSON.parse(JSON.stringify(currentGameState));
+  let newState = JSON.parse(JSON.stringify(currentGameState)); // Deep clone
 
   try {
-    const newDealer = (newState.gamePhase === GAME_PHASES.LOBBY && newState.dealer) // If LOBBY and dealer already set (e.g. by createInitialGameState)
+    // Determine new dealer: if phase is LOBBY and dealer is already set (e.g. by createInitialGameState), use that. Otherwise, rotate.
+    const newDealer = (newState.gamePhase === GAME_PHASES.LOBBY && newState.dealer && PLAYER_ROLES.includes(newState.dealer))
       ? newState.dealer
-      : getNextPlayer(newState.dealer, PLAYER_ROLES);
+      : getNextPlayer(newState.dealer, PLAYER_ROLES); // getNextPlayer should handle null currentDealer for first hand
 
     logger.info({ oldDealer: currentGameState.dealer, newDealer, gameId: newState.gameId }, "Determining new dealer for the hand.");
     newState.dealer = newDealer;
@@ -49,23 +69,30 @@ export function startNewHand(currentGameState) {
     let freshDeck = createDeck();
     freshDeck = shuffleDeck(freshDeck);
 
-    const newPlayerHands = {
-      [PLAYER_ROLES[0]]: [], [PLAYER_ROLES[1]]: [],
-      [PLAYER_ROLES[2]]: [], [PLAYER_ROLES[3]]: [],
-    };
+    const newPlayerHands = PLAYER_ROLES.reduce((acc, role) => {
+        acc[role] = [];
+        return acc;
+    }, {});
+
 
     let dealingToPlayerIndex = PLAYER_ROLES.indexOf(getNextPlayer(newDealer, PLAYER_ROLES));
 
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 2; i++) { // Two rounds of dealing
       for (let j = 0; j < PLAYER_ROLES.length; j++) {
         const playerRoleToDeal = PLAYER_ROLES[dealingToPlayerIndex % PLAYER_ROLES.length];
-        const cardsToDealCount = (i === 0) ? 3 : 2;
+        const cardsToDealCount = (i === 0) ? 3 : 2; // Deal 3 then 2, or 2 then 3
 
-        if (newState.players[playerRoleToDeal]?.isConnected || newState.players[playerRoleToDeal]?.isActive) {
-          for (let k = 0; k < cardsToDealCount; k++) {
-            if (freshDeck.length > 0) {
-              newPlayerHands[playerRoleToDeal].push(freshDeck.pop());
-            }
+        // Only deal to active/connected players if that's a rule, otherwise deal to all roles
+        // Assuming here all roles get cards regardless of connection status for simplicity of dealing logic.
+        // Connection status can be checked when it's their turn to play/bid.
+        for (let k = 0; k < cardsToDealCount; k++) {
+          if (freshDeck.length > 0) {
+            newPlayerHands[playerRoleToDeal].push(freshDeck.pop());
+          } else {
+            // Should not happen with standard deck size and player count
+            const error = { message: "Error in dealing: Ran out of cards in deck prematurely.", errorType: 'DEALING_ERROR', details: { gameId: newState.gameId } };
+            logger.error(error, error.message);
+            throw error;
           }
         }
         dealingToPlayerIndex++;
@@ -73,27 +100,27 @@ export function startNewHand(currentGameState) {
     }
 
     newState.kitty = freshDeck;
-    if (newState.kitty.length === 0) {
-        const criticalErrorMsg = "Error in dealing: Kitty is empty before setting turn card!";
-        logger.error({ kittyLength: newState.kitty.length, gameId: newState.gameId }, criticalErrorMsg);
-        throw new Error(criticalErrorMsg);
+    if (newState.kitty.length === 0) { // Should be 4 cards in kitty
+        const error = { message: "Error in dealing: Kitty is empty before setting turn card!", errorType: 'DEALING_ERROR', details: { kittyLength: newState.kitty.length, gameId: newState.gameId } };
+        logger.error(error, error.message);
+        throw error;
     }
 
-    newState.turnCard = newState.kitty.pop();
+    newState.turnCard = newState.kitty.pop(); // Turn up the top card of the kitty
 
     if (!newState.turnCard) {
-      const criticalErrorMsg = "Critical error: No turn card could be set from kitty.";
-      logger.error({gameId: newState.gameId}, criticalErrorMsg);
-      throw new Error(criticalErrorMsg);
+      const error = { message: "Critical error: No turn card could be set from kitty.", errorType: 'DEALING_ERROR', details: { gameId: newState.gameId } };
+      logger.error(error, error.message);
+      throw error;
     }
 
     const firstBidder = getNextPlayer(newDealer, PLAYER_ROLES);
 
     PLAYER_ROLES.forEach(role => {
       newState.players[role] = {
-        ...newState.players[role],
-        hand: newPlayerHands[role] || [],
-        tricksWonThisHand: 0,
+        ...newState.players[role], // Preserve existing player info like score, name, id
+        hand: newPlayerHands[role],
+        tricksWonThisHand: 0, // Reset for the new hand
       };
     });
 
@@ -103,9 +130,10 @@ export function startNewHand(currentGameState) {
       timestamp: new Date().toISOString(),
     };
 
+    // Reset state for the new hand
     newState.gamePhase = GAME_PHASES.ORDER_UP_ROUND1;
     newState.currentPlayer = firstBidder;
-    newState.orderUpTurn = firstBidder; // Explicitly set who's turn it is to bid
+    newState.orderUpTurn = firstBidder;
     newState.trumpSuit = null;
     newState.bids = [];
     newState.roundNumber = 1;
@@ -117,26 +145,22 @@ export function startNewHand(currentGameState) {
     newState.partnerSittingOut = null;
     newState.currentTrick = [];
     newState.leadSuit = null;
-    // tricksTaken for teams are reset at the start of a hand, not here.
-    // They are reset when scores are calculated or when a game ends.
-    // For per-hand trick count, that's players[X].tricksWonThisHand.
-    // Game-level tricksTaken by team should be reset when teamScores are reset (new game).
-    // For a new hand within a game, teamScores persist, but tricksTaken by team for point calc should be reset.
-    // This is typically handled by scoring logic before starting a new hand.
-    // Let's assume team-level tricksTaken are reset by scoring or game reset.
-    // For safety, if this function is the sole source of hand reset:
-    newState.tricksTaken = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 };
-
+    newState.tricksTaken = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }; // Reset team tricks for the new hand
 
     newState.gameMessages = [...(newState.gameMessages || []), startHandMessage];
     newState.lastUpdated = Date.now();
 
     logger.info({ gameId: newState.gameId, newPhase: newState.gamePhase, dealer: newState.dealer, turnCard: cardToId(newState.turnCard) }, 'New hand started, cards dealt, phase set to ORDER_UP_ROUND1.');
-    return newState; // Return the new state object
+    return newState;
 
   } catch (error) {
-    logger.error({ error, gameId: currentGameState.gameId }, 'Critical error in startNewHand.');
-    // Re-throw to allow caller to handle; caller should not use a potentially corrupt state.
-    throw error;
+    // If it's already a structured error, re-throw it. Otherwise, wrap it.
+    if (error.errorType) {
+        logger.error({ error, gameId: currentGameState.gameId, phase: 'startNewHand-catch' }, `Re-throwing structured error: ${error.message}`);
+        throw error;
+    }
+    const wrappedError = { message: `Critical error in startNewHand: ${error.message}`, errorType: 'DEALING_ERROR', details: { originalError: error.toString(), gameId: currentGameState.gameId } };
+    logger.error({ error: wrappedError, originalError: error, gameId: currentGameState.gameId }, wrappedError.message);
+    throw wrappedError;
   }
 }

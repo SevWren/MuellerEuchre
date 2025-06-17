@@ -1,7 +1,15 @@
 import { getGame, updateGame } from '../../db/gameRepository.js';
-import { handleNewGameRequest } from '../../game/phases/scoringPhase.js'; // Re-using from scoringPhase.js as it contains new game logic
+import { handleNewGameRequest } from '../../game/phases/scoringPhase.js';
 import { GAME_EVENTS, GAME_PHASES } from '../../config/constants.js';
 import logger from '../../utils/logger.js';
+
+// Helper to create standardized error objects
+const createErrorObject = (action, errorType, message, details) => ({
+  action,
+  errorType,
+  message,
+  details,
+});
 
 /**
  * Registers handlers for game over actions.
@@ -9,71 +17,63 @@ import logger from '../../utils/logger.js';
  * @param {object} io The Socket.IO server instance.
  */
 export function registerGameOverHandlers(socket, io) {
-  socket.on(GAME_EVENTS.ACTION_REQUEST_NEW_GAME, async ({ gameId, playerRole }) => {
-    logger.info(`[Game ID: ${gameId}] Received ${GAME_EVENTS.ACTION_REQUEST_NEW_GAME} from ${playerRole} (socket ${socket.id})`);
+  socket.on(GAME_EVENTS.ACTION_REQUEST_NEW_GAME, async (data) => {
+    const action = GAME_EVENTS.ACTION_REQUEST_NEW_GAME;
+
+    // Input validation
+    if (!data || typeof data.gameId !== 'string' || !data.gameId.trim() || typeof data.playerRole !== 'string' || !data.playerRole.trim()) {
+      const error = createErrorObject(action, 'INVALID_INPUT', 'gameId and playerRole are required and must be non-empty strings.', { receivedData: data });
+      logger.warn({ socketId: socket.id, error, gameId: data?.gameId, playerRole: data?.playerRole }, `Validation error for ${action}`);
+      socket.emit(GAME_EVENTS.ERROR, error); // Note: GAME_EVENTS.ERROR is used here as per original code, not GAME_EVENTS.ACTION_ERROR
+      return;
+    }
+    const { gameId, playerRole } = data;
+
+    logger.info({ gameId, playerRole, socketId: socket.id, action }, `Received ${action}`);
+
     try {
       const gameState = await getGame(gameId);
       if (!gameState) {
-        socket.emit(GAME_EVENTS.ERROR, { message: 'Game not found.' });
-        logger.error(`[Game ID: ${gameId}] Game not found for ${GAME_EVENTS.ACTION_REQUEST_NEW_GAME}`);
+        const error = createErrorObject(action, 'GAME_NOT_FOUND', 'Game not found.', { gameId });
+        logger.warn({ socketId: socket.id, error, gameId, playerRole }, `${action}: Game not found.`);
+        socket.emit(GAME_EVENTS.ERROR, error);
+        return;
+      }
+
+      // Authorization check
+      if (!gameState.players[playerRole] || gameState.players[playerRole].socketId !== socket.id) {
+        const error = createErrorObject(action, 'AUTHORIZATION_ERROR', 'Player not authorized or not part of this game.', { gameId, playerRole, expectedSocketId: gameState.players[playerRole]?.socketId, actualSocketId: socket.id });
+        logger.warn({ socketId: socket.id, error, gameId, playerRole }, `${action}: Authorization failed.`);
+        socket.emit(GAME_EVENTS.ERROR, error);
         return;
       }
 
       if (gameState.gamePhase !== GAME_PHASES.GAME_OVER) {
-        socket.emit(GAME_EVENTS.ERROR, { message: 'Game is not over yet.' });
-        logger.warn(`[Game ID: ${gameId}] ${GAME_EVENTS.ACTION_REQUEST_NEW_GAME} called when game phase is ${gameState.gamePhase}`);
+        const error = createErrorObject(action, 'INVALID_PHASE', 'Game is not over yet.', { gameId, currentPhase: gameState.gamePhase });
+        logger.warn({ socketId: socket.id, error, gameId, playerRole, currentPhase: gameState.gamePhase }, `${action} called when game phase is ${gameState.gamePhase}`);
+        socket.emit(GAME_EVENTS.ERROR, error);
         return;
       }
 
-      // Optional: Check if the player making the request is part of the game.
-      // This can be complex if `resetFullGame` (called by `handleNewGameRequest`)
-      // immediately changes the players list.
-      // For now, allowing any connected client to trigger a reset if game is over.
-      // A more robust check might involve validating playerRole against gameState.players
-      // *before* calling handleNewGameRequest, e.g.:
-      // if (!gameState.players[playerRole] || gameState.players[playerRole].socketId !== socket.id) {
-      //   socket.emit(GAME_EVENTS.ERROR, { message: 'You are not authorized or not part of this game to start a new one.' });
-      //   logger.warn(`[Game ID: ${gameId}] Unauthorized ${GAME_EVENTS.ACTION_REQUEST_NEW_GAME} from ${playerRole} (socket ${socket.id})`);
-      //   return;
-      // }
+      const newGameState = handleNewGameRequest(gameState);
 
+      // The logic regarding gameId potentially changing and how updateGame/clients handle it is complex.
+      // Retaining existing comments and logging for this, as it's important operational context.
+      logger.info({ gameId, newGameId: newGameState.gameId, action }, `Proceeding to update game. Original gameId: ${gameId}, new state's gameId: ${newGameState.gameId}`);
 
-      const newGameState = handleNewGameRequest(gameState); // This returns a fresh LOBBY state
-      // newGameState.gameId will be a new one if resetFullGame generates it.
-      // Or it could re-use the old gameId if resetFullGame is designed that way.
-      // Based on state.js, resetFullGame creates a new gameId.
-      // This means clients would need to be informed of this new gameId if they are to join it.
-      // Current `updateGame` uses the *old* gameId as a key. This might be an issue.
+      await updateGame(gameId, newGameState); // Assumes updateGame correctly handles replacing the state at 'gameId'
 
-      // If resetFullGame creates a new gameId, we should probably use that newId for updateGame.
-      // However, gameRepository.js might be keyed by the original gameId.
-      // For this subtask, assume updateGame can handle overwriting the game state at the original gameId with this new LOBBY state.
-      // Or, that `resetFullGame` in `state.js` is modified to re-use the existing gameId when resetting.
-      // Let's assume `resetFullGame` from `state.js` re-initializes the state for the *existing* `gameId`
-      // by having `updateGame` effectively replace the old game data.
-      // The `resetFullGame` in `state.js` currently generates a `newGameId` internally and gameState becomes this new state.
-      // This means `newGameState.gameId` will be different from the `gameId` parameter.
-      // This needs careful handling.
-
-      // Correct approach: updateGame should use the ID of the game being updated.
-      // If handleNewGameRequest is truly resetting the game under the *same* gameId (by convention):
-      await updateGame(gameId, newGameState);
-
-      // Notify all players in the original game room that a new game is starting (lobby state)
-      // They will receive the new state which includes the potentially new gameId if state.js's resetFullGame created one.
       io.to(gameId).emit(GAME_EVENTS.GAME_STATE_UPDATE, newGameState);
-      logger.info(`[Game ID: ${gameId}] Emitted ${GAME_EVENTS.GAME_STATE_UPDATE} for new game. New state game ID: ${newGameState.gameId}. Phase: ${newGameState.gamePhase}`);
+      logger.info({ originalGameId: gameId, newGameId: newGameState.gameId, playerRole, action }, `${action} processed. Emitted ${GAME_EVENTS.GAME_STATE_UPDATE} to room ${gameId}. New state game ID: ${newGameState.gameId}, Phase: ${newGameState.gamePhase}`);
 
       if (newGameState.gameId !== gameId) {
-        logger.warn(`[Game ID: ${gameId}] Game was reset, and a new gameId ${newGameState.gameId} was generated. Clients in room ${gameId} received the new state. Ensure client handles potential gameId change.`);
-        // If game IDs change, clients might need to re-join or be re-mapped to the new gameId's room.
-        // This is a larger architectural consideration. For now, we emit to the old gameId room.
+        logger.warn({ originalGameId: gameId, newGameId: newGameState.gameId, playerRole, action }, `Game was reset, and a new gameId ${newGameState.gameId} was generated. Clients in room ${gameId} received the new state. Ensure client handles potential gameId change.`);
       }
 
-
-    } catch (error) {
-      logger.error(`[Game ID: ${gameId}] Error in ${GAME_EVENTS.ACTION_REQUEST_NEW_GAME} handler: ${error.message}`);
-      socket.emit(GAME_EVENTS.ERROR, { message: error.message });
+    } catch (e) {
+      const error = createErrorObject(action, 'INTERNAL_SERVER_ERROR', e.message || 'Error processing request new game.', { gameId, playerRole, stack: e.stack });
+      logger.error({ err: e, socketId: socket.id, gameId, playerRole, action }, `Error processing ${action}.`);
+      socket.emit(GAME_EVENTS.ERROR, error);
     }
   });
 }

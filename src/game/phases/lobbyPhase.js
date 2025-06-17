@@ -3,105 +3,79 @@
  * @module game/phases/lobbyPhase
  */
 import logger from '../../utils/logger.js';
-import { updateGameState } from '../state.js'; // Only need updateGameState
+// Removed import of updateGameState from '../state.js';
 import { GAME_PHASES, PLAYER_ROLES } from '../../config/constants.js';
 
 /**
  * Attempts to start the game from the LOBBY phase.
  * Validates if enough players are connected and transitions the game phase.
+ * This is now a pure function. It returns the new game state or throws a structured error.
  *
  * @param {object} currentGameState - The current game state object.
  * @param {string} requestingPlayerRole - The role of the player attempting to start the game.
- * @returns {{success: boolean, message: string, updatedGameState: object}}
- *          An object indicating success, a message, and the (potentially updated) game state.
+ * @returns {object} The updated game state.
+ * @throws {object} Error object with message, errorType, and details.
  */
 export function attemptToStartGame(currentGameState, requestingPlayerRole) {
-  if (!currentGameState || !currentGameState.players || !requestingPlayerRole) {
-    logger.error(
-      { gameStateProvided: !!currentGameState, requestingPlayerRole },
-      'attemptToStartGame: Missing currentGameState or requestingPlayerRole.'
-    );
-    return {
-      success: false,
-      message: 'Internal error: Missing data to start game.',
-      updatedGameState: currentGameState || {}, // Return what was given or empty object
-    };
+  const gameId = currentGameState?.gameId; // For logging context
+
+  // Enhanced input parameter validation
+  if (!currentGameState || !currentGameState.players) {
+    const error = { message: 'Invalid currentGameState: must be provided with players.', errorType: 'INVALID_INPUT', details: { gameStateProvided: !!currentGameState } };
+    logger.error({ error, gameId, requestingPlayerRole }, "attemptToStartGame: Missing or invalid currentGameState.");
+    throw error;
+  }
+  if (typeof requestingPlayerRole !== 'string' || !requestingPlayerRole.trim() || !currentGameState.players[requestingPlayerRole]) {
+    const error = { message: 'Invalid requestingPlayerRole: must be a non-empty string and exist in players.', errorType: 'INVALID_INPUT', details: { requestingPlayerRole } };
+    logger.error({ error, gameId, requestingPlayerRole, players: currentGameState.players }, "attemptToStartGame: Invalid or missing requestingPlayerRole.");
+    throw error;
   }
 
-  if (currentGameState.gamePhase !== GAME_PHASES.LOBBY) {
-    const message = `Game cannot be started from ${currentGameState.gamePhase} phase. Currently in LOBBY phase.`;
-    logger.warn({ currentPhase: currentGameState.gamePhase, requestingPlayerRole }, message);
-    return {
-      success: false,
-      message: message,
-      updatedGameState: currentGameState,
+  logger.info({ gameId, requestingPlayerRole }, 'Attempting to start game.');
+  const prevState = JSON.parse(JSON.stringify(currentGameState)); // Deep clone
+
+  if (prevState.gamePhase !== GAME_PHASES.LOBBY) {
+    const error = {
+      message: `Game cannot be started from ${prevState.gamePhase} phase. Must be in LOBBY.`,
+      errorType: 'INVALID_PHASE',
+      details: { currentPhase: prevState.gamePhase, expectedPhase: GAME_PHASES.LOBBY }
     };
+    logger.warn({ error, gameId, requestingPlayerRole }, error.message);
+    throw error;
   }
 
   const connectedPlayers = PLAYER_ROLES.filter(role =>
-    currentGameState.players[role] && currentGameState.players[role].isConnected
+    prevState.players[role] && prevState.players[role].isConnected
   ).length;
 
-  // Typically Euchre requires 4 players.
-  // Using PLAYER_ROLES.length to be flexible if that constant ever changes for other game modes.
   const requiredPlayers = PLAYER_ROLES.length;
 
   if (connectedPlayers < requiredPlayers) {
-    const message = `Not enough players to start. Need ${requiredPlayers}, have ${connectedPlayers}.`;
-    logger.info({ connectedPlayers, requiredPlayers, requestingPlayerRole }, message);
-    return {
-      success: false,
-      message: message,
-      updatedGameState: currentGameState,
+    const error = {
+      message: `Not enough players to start. Need ${requiredPlayers}, have ${connectedPlayers}.`,
+      errorType: 'NOT_ENOUGH_PLAYERS',
+      details: { connectedPlayers, requiredPlayers }
     };
+    logger.warn({ error, gameId, requestingPlayerRole }, error.message); // Changed from info to warn as it's a failed attempt
+    throw error;
   }
 
   // All conditions met, proceed to start the game
-  try {
-    const newGameState = updateGameState(prevState => {
-      // Ensure we are working with the freshest state from within updateGameState's atomic operation
-      if (prevState.gamePhase !== GAME_PHASES.LOBBY) {
-        // State might have changed between the initial read and now, re-check.
-        // This is a rare edge case but good for robustness.
-        logger.warn({ currentPhase: prevState.gamePhase, gameId: prevState.gameId },
-          'Game phase changed unexpectedly before starting. Aborting start.');
-        // To signal this, we don't change the phase. The caller should see success:false.
-        // However, this function's design implies it returns the state from updateGameState.
-        // A better pattern might be for updateGameState to throw if a pre-condition inside updater fails.
-        // For now, we'll just not transition phase. The returned success:false path is more complex here.
-        // Let's assume for this path, the outer checks are sufficient for now.
-        // A more advanced implementation might involve optimistic locking or versioning in updateGameState.
-      }
+  const gameStartMessage = {
+    type: 'system',
+    text: `Game started by ${prevState.players[requestingPlayerRole]?.name || requestingPlayerRole}. Preparing to deal...`,
+    timestamp: new Date().toISOString(),
+  };
 
-      const gameStartMessage = {
-        type: 'system', // Or use a specific event type from constants if defined
-        text: `Game started by ${currentGameState.players[requestingPlayerRole]?.name || requestingPlayerRole}. Preparing to deal...`,
-        timestamp: new Date().toISOString(),
-      };
+  const updatedGameState = {
+    ...prevState,
+    gamePhase: GAME_PHASES.DEALING,
+    gameMessages: [...(prevState.gameMessages || []), gameStartMessage],
+    // Other state resets for a new hand/game (e.g., current round, bids) would typically
+    // be handled by the dealing logic itself or a dedicated "startNewHand" function.
+    // For now, this function focuses on the phase transition from LOBBY.
+  };
 
-      return {
-        ...prevState,
-        gamePhase: GAME_PHASES.DEALING, // Transition to the next phase
-        gameMessages: [...(prevState.gameMessages || []), gameStartMessage],
-        // Reset or initialize any other state needed for the start of a game/hand
-        // For example, current round, bids, etc., might be reset here or in the DEALING phase logic.
-        // For now, just phase transition.
-      };
-    });
-
-    logger.info({ gameId: newGameState.gameId, newPhase: newGameState.gamePhase, startedBy: requestingPlayerRole }, 'Game started successfully.');
-    return {
-      success: true,
-      message: 'Game starting. Transitioning to dealing phase.',
-      updatedGameState: newGameState,
-    };
-
-  } catch (error) {
-    logger.error({ error, requestingPlayerRole, gameId: currentGameState.gameId }, 'Error during updateGameState in attemptToStartGame.');
-    return {
-      success: false,
-      message: 'An internal error occurred while trying to start the game.',
-      updatedGameState: currentGameState, // Return original state on error
-    };
-  }
+  logger.info({ gameId, newPhase: updatedGameState.gamePhase, startedBy: requestingPlayerRole }, 'Game start conditions met. Transitioning to DEALING phase.');
+  return updatedGameState;
 }

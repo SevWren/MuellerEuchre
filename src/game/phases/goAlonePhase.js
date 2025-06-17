@@ -3,104 +3,105 @@
  * @module game/phases/goAlonePhase
  */
 import logger from '../../utils/logger.js';
-import { updateGameState } from '../state.js';
+// Removed import of updateGameState from '../state.js';
 import { GAME_PHASES, PLAYER_ROLES } from '../../config/constants.js';
 import { getNextPlayer, getPartner } from '../../utils/players.js';
 
 /**
  * Handles the decision of whether the trump-making team wants to "go alone".
+ * This is now a pure function. It takes the current game state and returns the new game state
+ * or throws a structured error if the action is invalid.
  *
  * @param {object} currentGameState - The current game state object.
- * @param {string} decidingPlayerRole - The role of the player making the decision
- *                                      (should be playerWhoOrderedUp or playerWhoCalledTrump).
+ * @param {string} decidingPlayerRole - The role of the player making the decision.
  * @param {boolean} wantsToGoAlone - True if the player/team decides to go alone, false otherwise.
- * @returns {{success: boolean, message: string, updatedGameState: object}}
- *          An object indicating success, a message, and the updated game state.
- *          Returns success:false if the action is invalid for the current state.
+ * @returns {object} The updated game state.
+ * @throws {object} Error object with message, errorType, and details.
  */
 export function handleGoAloneDecision(currentGameState, decidingPlayerRole, wantsToGoAlone) {
-  if (!currentGameState || !currentGameState.players || typeof wantsToGoAlone !== 'boolean' || !PLAYER_ROLES.includes(decidingPlayerRole)) {
-    logger.warn(
-      { gameStateProvided: !!currentGameState, wantsToGoAlone, decidingPlayerRole },
-      'handleGoAloneDecision: Missing or invalid arguments.'
-    );
-    return {
-      success: false,
-      message: 'Internal error: Missing data for go alone decision.',
-      updatedGameState: currentGameState || {},
+  const gameId = currentGameState?.gameId; // For logging context
+
+  // Enhanced input parameter validation
+  if (!currentGameState || !currentGameState.players) {
+    const error = { message: 'Invalid currentGameState: must be provided with players.', errorType: 'INVALID_INPUT', details: { gameStateProvided: !!currentGameState } };
+    logger.error({ error, gameId, decidingPlayerRole }, "handleGoAloneDecision: Missing or invalid currentGameState.");
+    throw error;
+  }
+  if (typeof wantsToGoAlone !== 'boolean') {
+    const error = { message: 'Invalid wantsToGoAlone: must be a boolean.', errorType: 'INVALID_INPUT', details: { wantsToGoAloneType: typeof wantsToGoAlone } };
+    logger.error({ error, gameId, decidingPlayerRole }, "handleGoAloneDecision: Invalid type for wantsToGoAlone.");
+    throw error;
+  }
+  if (typeof decidingPlayerRole !== 'string' || !decidingPlayerRole.trim() || !currentGameState.players[decidingPlayerRole]) {
+    const error = { message: 'Invalid decidingPlayerRole: must be a non-empty string and exist in players.', errorType: 'INVALID_INPUT', details: { decidingPlayerRole } };
+    logger.error({ error, gameId, decidingPlayerRole, players: currentGameState.players }, "handleGoAloneDecision: Invalid or missing decidingPlayerRole.");
+    throw error;
+  }
+
+  logger.info({ gameId, decidingPlayerRole, wantsToGoAlone }, 'Handling "go alone" decision.');
+  const prevState = JSON.parse(JSON.stringify(currentGameState)); // Deep clone
+
+  if (prevState.gamePhase !== GAME_PHASES.GOING_ALONE_DECISION) {
+    const error = {
+      message: `Cannot make "go alone" decision during ${prevState.gamePhase} phase.`,
+      errorType: 'INVALID_PHASE',
+      details: { currentPhase: prevState.gamePhase, expectedPhase: GAME_PHASES.GOING_ALONE_DECISION }
     };
+    logger.warn({ error, gameId, decidingPlayerRole }, error.message);
+    throw error;
   }
 
-  if (currentGameState.gamePhase !== GAME_PHASES.GOING_ALONE_DECISION) {
-    const message = `Cannot make "go alone" decision during ${currentGameState.gamePhase} phase.`;
-    logger.warn({ currentPhase: currentGameState.gamePhase, gameId: currentGameState.gameId, decidingPlayerRole }, message);
-    return { success: false, message, updatedGameState: currentGameState };
+  if (prevState.currentPlayer !== decidingPlayerRole) {
+    const error = {
+      message: `Not ${decidingPlayerRole}'s turn to make "go alone" decision. It's ${prevState.currentPlayer}'s turn.`,
+      errorType: 'NOT_PLAYER_TURN',
+      details: { currentPlayer: prevState.currentPlayer, expectedPlayer: decidingPlayerRole }
+    };
+    logger.warn({ error, gameId, decidingPlayerRole }, error.message);
+    throw error;
   }
 
-  if (currentGameState.currentPlayer !== decidingPlayerRole) {
-    const message = `Not ${decidingPlayerRole}'s turn to make "go alone" decision. It's ${currentGameState.currentPlayer}'s turn.`;
-    logger.warn({ currentPlayer: currentGameState.currentPlayer, decidingPlayerRole, gameId: currentGameState.gameId }, message);
-    return { success: false, message, updatedGameState: currentGameState };
-  }
-
-  const trumpMaker = currentGameState.playerWhoOrderedUp || currentGameState.playerWhoCalledTrump;
+  const trumpMaker = prevState.playerWhoOrderedUp || prevState.playerWhoCalledTrump;
   if (decidingPlayerRole !== trumpMaker) {
-      // This validation might be too strict if the partner of the trump maker can also make this call.
-      // Current design assumes the trump maker (currentPlayer set by biddingPhase) makes the call.
-      const message = `Only the player who made trump (${trumpMaker}) can decide to go alone.`;
-      logger.warn({ decidingPlayerRole, trumpMaker, gameId: currentGameState.gameId }, message);
-      return { success: false, message, updatedGameState: currentGameState };
+    const error = {
+      message: `Only the player who made trump (${trumpMaker}) can decide to go alone.`,
+      errorType: 'AUTHORIZATION_ERROR', // Or 'GAME_RULE_VIOLATION'
+      details: { decidingPlayerRole, expectedPlayer: trumpMaker }
+    };
+    logger.warn({ error, gameId, decidingPlayerRole, trumpMaker }, error.message);
+    throw error;
   }
 
-  try {
-    const newGameState = updateGameState(prevState => {
-      const playerGoingAloneActual = wantsToGoAlone ? trumpMaker : null;
-      const partnerSittingOutActual = wantsToGoAlone ? getPartner(playerGoingAloneActual) : null;
+  // Logic to determine new state based on decision
+  const playerGoingAloneActual = wantsToGoAlone ? trumpMaker : null;
+  const partnerSittingOutActual = wantsToGoAlone ? getPartner(playerGoingAloneActual, PLAYER_ROLES) : null; // Ensure PLAYER_ROLES is passed if getPartner needs it
 
-      let messageText = '';
-      if (wantsToGoAlone) {
-        messageText = `${prevState.players[playerGoingAloneActual]?.name || playerGoingAloneActual} is going alone! ${prevState.players[partnerSittingOutActual]?.name || partnerSittingOutActual} sits out.`;
-        logger.info({ gameId: prevState.gameId, playerGoingAloneActual, partnerSittingOutActual }, "Player is going alone.");
-      } else {
-        messageText = `Team ${prevState.makerTeam || 'Unknown'} will play with a partner.`;
-         logger.info({ gameId: prevState.gameId, makerTeam: prevState.makerTeam }, "Team playing with partner.");
-      }
-
-      // Determine the first player for the PLAYING phase.
-      // Usually player to the left of the dealer.
-      let firstPlayerOfPlayPhase = getNextPlayer(prevState.dealer, PLAYER_ROLES);
-
-      // If that player is the one sitting out, the player to their left starts.
-      if (wantsToGoAlone && partnerSittingOutActual === firstPlayerOfPlayPhase) {
-        firstPlayerOfPlayPhase = getNextPlayer(firstPlayerOfPlayPhase, PLAYER_ROLES);
-      }
-
-      return {
-        ...prevState,
-        goingAlone: wantsToGoAlone,
-        playerGoingAlone: playerGoingAloneActual,
-        partnerSittingOut: partnerSittingOutActual,
-        gamePhase: GAME_PHASES.PLAYING,
-        currentPlayer: firstPlayerOfPlayPhase, // Player to start the first trick
-        gameMessages: [...(prevState.gameMessages || []), { type: 'game_flow', text: messageText, timestamp: new Date().toISOString() }],
-        // Reset currentTrick for the new playing phase
-        currentTrick: [],
-        leadSuit: null,
-      };
-    });
-
-    return {
-      success: true,
-      message: wantsToGoAlone ? 'Going alone decision recorded.' : 'Playing with partner decision recorded.',
-      updatedGameState: newGameState,
-    };
-
-  } catch (error) {
-    logger.error({ error, decidingPlayerRole, gameId: currentGameState.gameId }, 'Error in handleGoAloneDecision during state update.');
-    return {
-      success: false,
-      message: 'An internal error occurred while processing the "go alone" decision.',
-      updatedGameState: currentGameState,
-    };
+  let messageText = '';
+  if (wantsToGoAlone) {
+    messageText = `${prevState.players[playerGoingAloneActual]?.name || playerGoingAloneActual} is going alone! ${prevState.players[partnerSittingOutActual]?.name || partnerSittingOutActual} sits out.`;
+    logger.info({ gameId, playerGoingAloneActual, partnerSittingOutActual }, "Player is going alone.");
+  } else {
+    messageText = `Team ${prevState.makerTeam || 'Unknown'} will play with a partner.`;
+    logger.info({ gameId, makerTeam: prevState.makerTeam }, "Team playing with partner.");
   }
+
+  let firstPlayerOfPlayPhase = getNextPlayer(prevState.dealer, PLAYER_ROLES);
+  if (wantsToGoAlone && partnerSittingOutActual === firstPlayerOfPlayPhase) {
+    firstPlayerOfPlayPhase = getNextPlayer(firstPlayerOfPlayPhase, PLAYER_ROLES);
+  }
+
+  const updatedGameState = {
+    ...prevState,
+    goingAlone: wantsToGoAlone,
+    playerGoingAlone: playerGoingAloneActual,
+    partnerSittingOut: partnerSittingOutActual,
+    gamePhase: GAME_PHASES.PLAYING,
+    currentPlayer: firstPlayerOfPlayPhase,
+    gameMessages: [...(prevState.gameMessages || []), { type: 'game_flow', text: messageText, timestamp: new Date().toISOString() }],
+    currentTrick: [],
+    leadSuit: null,
+  };
+
+  logger.info({ gameId, newPhase: updatedGameState.gamePhase, currentPlayer: updatedGameState.currentPlayer }, '"Go alone" decision processed.');
+  return updatedGameState;
 }

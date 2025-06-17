@@ -69,6 +69,7 @@
     "@types/supertest": "^6.0.2",
     "c8": "^8.0.0",
     "chai": "^5.1.2",
+    "chai-as-promised": "^8.0.1",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.2",

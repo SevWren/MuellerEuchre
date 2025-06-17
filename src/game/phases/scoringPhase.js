@@ -3,28 +3,28 @@ import { resetFullGame } from '../state.js'; // Retain for handleNewGameRequest
 import { GAME_PHASES, WINNING_SCORE, TEAMS, PLAYER_ROLES } from '../../config/constants.js';
 import { getNextPlayer } from '../../utils/players.js';
 import logger from '../../utils/logger.js';
-import { updateGame } from '../../db/gameRepository.js'; // Import for persistence
+import { gameRepository } from '../../db/gameRepository.js'; // Changed import
+import { InvalidPhaseError, PhaseLogicError } from '../logic/errors.js';
 
 /**
- * Calculates the score for the completed hand and updates the game state, including persistence.
- * @param {object} gameState The current game state (expected to be mutable or a fresh copy).
- * @returns {Promise<object>} A promise that resolves to the updated game state.
+ * Calculates the score for the completed hand and updates the game state.
+ * This function will then call `checkGameOver` which handles persistence.
+ * @param {object} gameState The current game state.
+ * @returns {Promise<object>} A promise that resolves to the updated game state after scoring and game over check.
+ * @throws {InvalidPhaseError} If not in the SCORING phase.
+ * @throws {PhaseLogicError} If `makerTeam` is not defined.
  */
 async function calculateAndApplyScore(gameState) {
-  // This function is now responsible for mutating and then saving the gameState.
-  // Ensure the calling context (e.g., a socket handler) is aware of this.
   if (gameState.gamePhase !== GAME_PHASES.SCORING) {
-    logger.warn(`[Game ID: ${gameState.gameId}] calculateAndApplyScore called inappropriately during ${gameState.gamePhase}. Current state will be returned and saved.`);
-    // If called incorrectly, we might still want to save the current state to be safe.
-    await updateGame(gameState.gameId, gameState);
-    return gameState;
+    throw new InvalidPhaseError(`calculateAndApplyScore called inappropriately during ${gameState.gamePhase}.`);
   }
 
-  // gameState is modified directly or is a deep copy that will be returned.
-  const { tricksTaken, makerTeam, goingAlone, gameId } = gameState; // Removed players, not directly used here
+  if (!gameState.makerTeam) {
+    throw new PhaseLogicError("Cannot calculate score: makerTeam is not defined.");
+  }
 
-  // Ensure tricksTaken has entries for both teams, even if 0.
-  // Ensure tricksTaken is initialized for both teams
+  const { tricksTaken, makerTeam, goingAlone, gameId } = gameState;
+
   gameState.tricksTaken = {
     [TEAMS.TEAM_NS]: gameState.tricksTaken?.[TEAMS.TEAM_NS] || 0,
     [TEAMS.TEAM_EW]: gameState.tricksTaken?.[TEAMS.TEAM_EW] || 0,
@@ -93,12 +93,13 @@ async function checkGameOver(gameState) { // Renamed function
   else if (ewScore >= WINNING_SCORE) winningTeam = TEAMS.TEAM_EW;
 
   if (winningTeam) {
-    const finalMessage = `Game Over! Team ${winningTeam} wins with ${teamScores[winningTeam]} points! Final Scores: Team NS ${nsScore}, Team EW ${ewScore}.`;
+    const gameOverMessagePart = `Game Over! Team ${winningTeam} wins with ${teamScores[winningTeam]} points! Final Scores: Team NS ${nsScore}, Team EW ${ewScore}.`;
     gameState.gamePhase = GAME_PHASES.GAME_OVER;
     gameState.winningTeam = winningTeam;
     gameState.currentPlayer = null; // No current player when game is over
-    gameState.message = finalMessage;
-    logger.info(`[Game ID: ${gameId}] Game over. Winner: ${winningTeam}. ${finalMessage}`);
+    // Prepend to keep the scoring details from calculateAndApplyScore
+    gameState.message = `${gameState.message} ${gameOverMessagePart}`;
+    logger.info(`[Game ID: ${gameId}] Game over. Winner: ${winningTeam}. ${gameOverMessagePart}`);
   } else {
     const nextDealerRole = getNextPlayer(currentDealer, PLAYER_ROLES);
     const transitionMessage = `Hand scored. Next hand starting. New dealer: ${nextDealerRole}. Current scores: Team NS ${nsScore}, Team EW ${ewScore}.`;
@@ -123,7 +124,7 @@ async function checkGameOver(gameState) { // Renamed function
   }
 
   // Persist the state after phase transition (GAME_OVER or DEALING)
-  await updateGame(gameId, gameState);
+  await gameRepository.updateGame(gameId, gameState); // Changed to use gameRepository.updateGame
   logger.info(`[Game ID: ${gameId}] Game state saved after scoring/phase transition. New phase: ${gameState.gamePhase}`);
   return gameState;
 }
@@ -132,18 +133,13 @@ async function checkGameOver(gameState) { // Renamed function
  * Handles a request to start a new game from the GAME_OVER state.
  * @param {object} gameState The current game state.
  * @returns {object} A completely reset game state for a new lobby.
+ * @throws {InvalidPhaseError} If the game is not in the GAME_OVER phase.
  */
 function handleNewGameRequest(gameState) {
   if (gameState.gamePhase !== GAME_PHASES.GAME_OVER) {
-    throw new Error('Can only start a new game from GAME_OVER phase.');
+    throw new InvalidPhaseError('Can only start a new game from GAME_OVER phase.');
   }
   logger.info(`[Game ID: ${gameState.gameId}] Handling new game request.`);
-  // resetFullGame is expected to set up a new game.
-  // The concept of "keeping players" by passing them to resetFullGame is removed
-  // as resetFullGame reinitializes players. Client connection logic would handle rejoining/reassigning.
-  // For simplicity, we are just calling resetFullGame() here.
-  // If specific player data needed to be preserved across a reset (e.g. user accounts, stats),
-  // that would be a more complex feature involving a separate data store or different reset logic.
   return resetFullGame();
 }
 

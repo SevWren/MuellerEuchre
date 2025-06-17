@@ -3,10 +3,10 @@
  * @module game/phases/startNewHandPhase
  */
 import logger from '../../utils/logger.js';
-// Removed: import { updateGameState } from '../state.js';
-import { createDeck, shuffleDeck, cardToId } from '../../utils/deck.js'; // Added cardToId for logging if needed
+import { createDeck, shuffleDeck, cardToId } from '../../utils/deck.js';
 import { getNextPlayer } from '../../utils/players.js';
-import { GAME_PHASES, PLAYER_ROLES, TEAMS } from '../../config/constants.js'; // PLAYER_ROLES and TEAMS moved here
+import { GAME_PHASES, PLAYER_ROLES, TEAMS } from '../../config/constants.js';
+import { ValidationError, InvalidPhaseError, PhaseLogicError } from '../logic/errors.js';
 
 /**
  * Starts a new hand: rotates dealer, shuffles, deals cards, sets up turn card,
@@ -15,22 +15,21 @@ import { GAME_PHASES, PLAYER_ROLES, TEAMS } from '../../config/constants.js'; //
  *
  * @param {object} currentGameState - The current game state object.
  * @returns {object} The updated game state object.
- * @throws {Error} if currentGameState is invalid or dealing encounters a critical error.
+ * @throws {ValidationError} If `currentGameState` is missing or invalid.
+ * @throws {InvalidPhaseError} If the game is not in a valid phase to start a new hand.
+ * @throws {PhaseLogicError} If dealing encounters a critical error (e.g., empty kitty).
  */
 export function startNewHand(currentGameState) {
   if (!currentGameState || !currentGameState.players || !currentGameState.gameId) {
     const errorMsg = 'startNewHand: Missing or invalid currentGameState (must include players and gameId).';
-    logger.error({ gameStateProvided: !!currentGameState, gameId: currentGameState?.gameId }, errorMsg);
-    throw new Error(errorMsg);
+    // logger.error({ gameStateProvided: !!currentGameState, gameId: currentGameState?.gameId }, errorMsg); // Logging can be done by caller
+    throw new ValidationError(errorMsg);
   }
 
-  // A new hand can typically start after LOBBY (first hand) or after SCORING (subsequent hands)
-  // Or if explicitly in DEALING phase by game logic.
   if (![GAME_PHASES.DEALING, GAME_PHASES.LOBBY, GAME_PHASES.SCORING, GAME_PHASES.GAME_OVER].includes(currentGameState.gamePhase)) {
     const message = `Cannot start a new hand from the current game phase: ${currentGameState.gamePhase}.`;
-    logger.warn({ currentPhase: currentGameState.gamePhase, gameId: currentGameState.gameId }, message);
-    // Instead of returning an object with success:false, throw or handle as error by caller
-    throw new Error(message);
+    // logger.warn({ currentPhase: currentGameState.gamePhase, gameId: currentGameState.gameId }, message);
+    throw new InvalidPhaseError(message);
   }
 
   logger.info({ gameId: currentGameState.gameId, currentPhase: currentGameState.gamePhase }, "Starting new hand procedures.");
@@ -75,16 +74,16 @@ export function startNewHand(currentGameState) {
     newState.kitty = freshDeck;
     if (newState.kitty.length === 0) {
         const criticalErrorMsg = "Error in dealing: Kitty is empty before setting turn card!";
-        logger.error({ kittyLength: newState.kitty.length, gameId: newState.gameId }, criticalErrorMsg);
-        throw new Error(criticalErrorMsg);
+        // logger.error({ kittyLength: newState.kitty.length, gameId: newState.gameId }, criticalErrorMsg);
+        throw new PhaseLogicError(criticalErrorMsg);
     }
 
     newState.turnCard = newState.kitty.pop();
 
     if (!newState.turnCard) {
       const criticalErrorMsg = "Critical error: No turn card could be set from kitty.";
-      logger.error({gameId: newState.gameId}, criticalErrorMsg);
-      throw new Error(criticalErrorMsg);
+      // logger.error({gameId: newState.gameId}, criticalErrorMsg);
+      throw new PhaseLogicError(criticalErrorMsg);
     }
 
     const firstBidder = getNextPlayer(newDealer, PLAYER_ROLES);

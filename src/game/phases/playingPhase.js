@@ -1,8 +1,9 @@
-import { updateGameState } from '../state.js'; // Removed GameState
-import { isValidPlay } from '../logic/validation.js';
+import { updateGameState } from '../state.js';
+import { validatePlay } from '../logic/validation.js'; // Changed from isValidPlay
 import { getCardRank } from '../../utils/deck.js';
 import { getNextPlayer } from '../../utils/players.js';
 import { GAME_PHASES } from '../../config/constants.js';
+import { PhaseLogicError, NotPlayersTurnError, InvalidPhaseError } from '../logic/errors.js'; // Added error imports
 
 /**
  * Handles a player playing a card.
@@ -12,34 +13,28 @@ import { GAME_PHASES } from '../../config/constants.js';
  * @param {object} gameState The current state of the game. // Changed from GameState to object for consistency
  * @param {string} playerRole The role of the player making the play (e.g., 'player1', 'player2').
  * @param {object} cardPlayed The card object that was played.
- * @returns {GameState} The new game state.
- * @throws {Error} If the play is invalid.
+ * @returns {object} The new game state.
+ * @throws {Error} If the play is invalid (now via validatePlay or PhaseLogicError).
+ * @throws {PhaseLogicError} For internal inconsistencies or logic failures.
+ * @throws {NotPlayersTurnError} If it's not the player's turn (from validatePlay).
+ * @throws {InvalidPhaseError} If not in PLAYING phase (from validatePlay).
+ * @throws {CardNotInHandError} If card not in hand (from validatePlay).
+ * @throws {MustFollowSuitError} If player fails to follow suit (from validatePlay).
  */
 function handlePlayCard(gameState, playerRole, cardPlayed) {
-  if (gameState.gamePhase !== GAME_PHASES.PLAYING) {
-    throw new Error('Not in PLAYING phase.');
-  }
-  if (gameState.currentPlayer !== playerRole) {
-    throw new Error(`Not player ${playerRole}'s turn.`);
-  }
-
-  // gameState.players is an object keyed by role, e.g., gameState.players[playerRole]
+  // Player existence check
   const player = gameState.players[playerRole];
   if (!player) {
-    throw new Error(`Player ${playerRole} not found.`);
+    throw new PhaseLogicError(`Player ${playerRole} not found.`);
   }
 
-  // Corrected call to isValidPlay: playerRole is the 4th argument.
-  // gameState.currentTrick and gameState.trumpSuit are accessible within isValidPlay from gameState.
-  // Assuming player object has 'hand' property.
-  if (!isValidPlay(gameState, player.hand, cardPlayed, playerRole)) {
-    throw new Error('Invalid play.');
-  }
+  // Validate the play (this will throw on invalid phase, turn, or play)
+  validatePlay(gameState, player.hand, cardPlayed, playerRole);
 
-  let newGameState = { ...gameState };
+  let newGameState = { ...gameState }; // Start with a shallow copy
 
   // Remove card from player's hand
-  const newHand = player.hand.filter(card => !(card.suit === cardPlayed.suit && card.rank === cardPlayed.rank));
+  const newHand = player.hand.filter(card => card.id !== cardPlayed.id);
   const updatedPlayers = {
     ...newGameState.players,
     [playerRole]: {
@@ -60,9 +55,9 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
     // gameState.players is an object keyed by role, not an array.
     const winningPlayer = newGameState.players[trickWinnerRole];
 
-    // Use winningPlayer.teamId (updated from .team)
+  // Use winningPlayer.teamId
     if (!winningPlayer || winningPlayer.teamId === undefined) {
-      throw new Error(`Could not determine teamId for trick winner: ${trickWinnerRole}`);
+    throw new PhaseLogicError(`Could not determine teamId for trick winner: ${trickWinnerRole}`);
     }
     const winnerTeam = winningPlayer.teamId;
 
@@ -111,9 +106,8 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
  * @returns {string} The role of the player who won the trick.
  */
 function determineTrickWinner(trick, trumpSuit, leadPlayerRole) {
-  // Logs removed
   if (!trick || trick.length !== 4) {
-    throw new Error('Trick must have 4 cards to determine a winner.');
+    throw new PhaseLogicError('Trick must have 4 cards to determine a winner.');
   }
 
   const leadCard = trick[0];

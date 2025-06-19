@@ -1,4 +1,8 @@
+
 # 🃏 Euchre Multiplayer
+
+> **🚧 Hobby Project & Work in Progress 🚧**
+> Please note: This is a personal hobby project and is actively under development. Features may be incomplete or subject to change.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://github.com/SevWren/MuellerEuchre/actions/workflows/test.yml/badge.svg)](https://github.com/SevWren/MuellerEuchre/actions)

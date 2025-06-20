@@ -13,8 +13,29 @@ import { getRoleBySocketId } from '../../utils/players.js';
 import { gameRepository } from '../../db/gameRepository.js';
 import { GAME_EVENTS, GAME_PHASES } from '../../config/constants.js';
 
+/**
+ * Registers handlers for bidding-related socket events.
+ * These handlers manage the logic for ordering up, dealer discarding, and calling trump.
+ *
+ * @param {import('socket.io').Socket} socket - The socket instance for the connected client.
+ * @param {import('socket.io').Server} io - The Socket.IO server instance.
+ */
 export function registerBiddingHandlers(socket, io) {
 
+  /**
+   * Handles the 'ACTION_ORDER_UP_DECISION' event from a client.
+   * This event is triggered when a player decides to order the dealer up or pass during the first bidding round.
+   * Validates the decision, updates the game state via `handleOrderUpDecision` from `biddingPhase.js`,
+   * persists the new state, and broadcasts it to all players in the game room.
+   * Sends an acknowledgement to the client.
+   *
+   * @param {object} data - The payload from the client.
+   * @param {string} data.gameId - The ID of the game.
+   * @param {'orderUp'|'pass'} data.decision - The player's decision.
+   * @param {function} ack - The acknowledgement callback to inform the client of the result.
+   *                         Called with `(error, response)`: `error` is null on success.
+   *                         `response` contains `{ status: 'ok'|'error', message: string }`.
+   */
   socket.on(GAME_EVENTS.ACTION_ORDER_UP_DECISION, async (data, ack) => {
     ack = typeof ack === 'function' ? ack : () => {};
     if (!data || !data.gameId || typeof data.decision !== 'string') {
@@ -70,6 +91,18 @@ export function registerBiddingHandlers(socket, io) {
     }
   });
 
+  /**
+   * Handles the 'ACTION_DEALER_DISCARD' event from a client.
+   * This event is triggered when the dealer discards a card after being ordered up.
+   * Validates the discard, updates the game state via `handleDealerDiscard` from `biddingPhase.js`,
+   * persists the new state, and broadcasts it.
+   * Sends an acknowledgement to the client.
+   *
+   * @param {object} data - The payload from the client.
+   * @param {string} data.gameId - The ID of the game.
+   * @param {string} data.cardId - The ID of the card the dealer is discarding.
+   * @param {function} ack - The acknowledgement callback.
+   */
   socket.on(GAME_EVENTS.ACTION_DEALER_DISCARD, async (data, ack) => {
     ack = typeof ack === 'function' ? ack : () => {};
     if (!data || !data.gameId || typeof data.cardId !== 'string') {
@@ -122,7 +155,7 @@ export function registerBiddingHandlers(socket, io) {
       const updatedGameState = handleDealerDiscard(currentGameState, playerRole, cardId);
 
       await gameRepository.updateGame(gameId, updatedGameState);
-      io.to(gameId).emit(GAME_EVENTS.GAME_STATE_UPDATE, updatedGameState);
+      io.to(gameId).emit(GAME_EVENTS.GAME_STATE_UPDATE, updatedGameState); // Corrected event name
       logger.info({ gameId, playerRole, cardId }, 'Dealer discard processed, state saved and broadcasted.');
       return ack(null, { status: 'ok', message: 'Dealer discard processed.' });
 
@@ -133,6 +166,19 @@ export function registerBiddingHandlers(socket, io) {
     }
   });
 
+  /**
+   * Handles the 'ACTION_CALL_TRUMP_DECISION' event from a client.
+   * This event is triggered when a player decides to call a trump suit or pass during the second bidding round.
+   * Validates the decision, updates the game state via `handleCallTrumpDecision` from `biddingPhase.js`,
+   * persists the new state, and broadcasts it.
+   * Sends an acknowledgement to the client.
+   *
+   * @param {object} data - The payload from the client.
+   * @param {string} data.gameId - The ID of the game.
+   * @param {'callTrump'|'pass'} data.decision - The player's decision.
+   * @param {string} [data.suit] - The suit called as trump, if `decision` is 'callTrump'.
+   * @param {function} ack - The acknowledgement callback.
+   */
   socket.on(GAME_EVENTS.ACTION_CALL_TRUMP_DECISION, async (data, ack) => {
     ack = typeof ack === 'function' ? ack : () => {};
     if (!data || !data.gameId || typeof data.decision !== 'string' || (data.decision === 'callTrump' && typeof data.suit !== 'string')) {

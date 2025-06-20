@@ -4,7 +4,18 @@
 // for how the client might handle game events and state.
 // Actual UI rendering and direct DOM manipulation are beyond the scope here.
 
+/**
+ * @class StateService
+ * @description Manages the client-side game state, including player information,
+ * game details, and the overall game state received from the server.
+ * It also provides a subscription mechanism for state changes.
+ */
 export class StateService { // Export the class
+  /**
+   * Creates an instance of StateService.
+   * Initializes player, game, and game state properties.
+   * @memberof StateService
+   */
   constructor() {
     // Conceptual: In a real app, these might be initialized from localStorage
     // to persist session across page reloads.
@@ -27,6 +38,13 @@ export class StateService { // Export the class
     console.log('[Conceptual StateService] Initialized');
   }
 
+  /**
+   * Sets the game ID and host status.
+   * @param {object} details - Game details.
+   * @param {string} details.gameId - The ID of the game.
+   * @param {boolean} details.isHost - Whether the current player is the host.
+   * @memberof StateService
+   */
   setGameDetails({ gameId, isHost }) {
     this.gameId = gameId;
     // Conceptual: localStorage.setItem('euchreGameId', gameId);
@@ -34,6 +52,11 @@ export class StateService { // Export the class
     console.log('[Conceptual StateService] setGameDetails:', { gameId: this.gameId, isHost: this.isHost });
   }
 
+  /**
+   * Sets the player's unique ID.
+   * @param {string} id - The player's unique identifier.
+   * @memberof StateService
+   */
   // Added setPlayerId
   setPlayerId(id) {
     this.playerId = id;
@@ -41,6 +64,11 @@ export class StateService { // Export the class
     console.log('[Conceptual StateService] setPlayerId:', this.playerId);
   }
 
+  /**
+   * Sets the player's role in the current game.
+   * @param {string} role - The player's role (e.g., 'south', 'player1').
+   * @memberof StateService
+   */
   setPlayerRole(role) {
     this.playerRole = role;
     // Note: playerRole is specific to a game, might not be stored long-term in localStorage
@@ -49,16 +77,31 @@ export class StateService { // Export the class
   }
 
   // --- Getters for connection/session info ---
+  /**
+   * Gets the player's unique ID.
+   * @returns {string|null} The player's ID, or null if not set.
+   * @memberof StateService
+   */
   getPlayerId() {
     // Conceptual: return this.playerId || localStorage.getItem('euchrePlayerId');
     return this.playerId;
   }
 
+  /**
+   * Gets the current game's ID.
+   * @returns {string|null} The game ID, or null if not set.
+   * @memberof StateService
+   */
   getGameId() {
     // Conceptual: return this.gameId || localStorage.getItem('euchreGameId');
     return this.gameId;
   }
 
+  /**
+   * Gets the player's role in the current game.
+   * @returns {string|null} The player's role, or null if not set.
+   * @memberof StateService
+   */
   getPlayerRole() { // Existing getter, just formalizing its presence
     return this.playerRole;
   }
@@ -66,6 +109,7 @@ export class StateService { // Export the class
   /**
    * Checks if there is enough information to attempt a game reconnection.
    * @returns {boolean} True if playerId and gameId are set, false otherwise.
+   * @memberof StateService
    */
   hasReconnectInfo() {
     const hasInfo = !!(this.getPlayerId() && this.getGameId());
@@ -73,6 +117,12 @@ export class StateService { // Export the class
     return hasInfo;
   }
 
+  /**
+   * Updates the list of players.
+   * This can either update an auxiliary list `this.players` or the `players` object within `this.gameState`.
+   * @param {Array<object>|object} players - The list of players or a player object map from the server.
+   * @memberof StateService
+   */
   updatePlayerList(players) {
     // This might be an array of player data or an object, depending on server structure
     // For consistency with getPlayerHand, assume gameState.players is an object keyed by role
@@ -86,11 +136,21 @@ export class StateService { // Export the class
     }
   }
 
+  /**
+   * Gets the full current game state.
+   * @returns {object} A copy of the current game state.
+   * @memberof StateService
+   */
   getFullGameState() {
     console.log('[Conceptual StateService] getFullGameState called.');
     return { ...this.gameState };
   }
 
+  /**
+   * Updates the full game state with new data from the server and notifies subscribers.
+   * @param {object} newState - The new game state object.
+   * @memberof StateService
+   */
   updateFullGameState(newState) {
     console.log('[Conceptual StateService] updateFullGameState called.');
     this.gameState = newState || {};
@@ -113,8 +173,10 @@ export class StateService { // Export the class
 
   /**
    * Subscribes a callback function to game state changes.
-   * @param {function} callback - The function to call when the state changes. It will receive the new state.
-   * @returns {function} An unsubscribe function.
+   * The callback will be invoked with the new game state whenever `updateFullGameState` is called.
+   * @param {function(object): void} callback - The function to call when the state changes. It will receive the new state.
+   * @returns {function(): void} An unsubscribe function. Call this function to remove the subscription.
+   * @memberof StateService
    */
   subscribe(callback) {
     if (typeof callback !== 'function') {
@@ -134,8 +196,10 @@ export class StateService { // Export the class
 
   /**
    * Gets the hand for the current client's player.
-   * Assumes playerRole is set and gameState.players contains player details.
-   * @returns {Array|null} Array of card objects or null if not available.
+   * Assumes `playerRole` is set and `gameState.players` contains player details keyed by role.
+   * @returns {Array<object>|null} Array of card objects for the player's hand,
+   * or null if player role or player data is not found. Returns an empty array if hand is undefined.
+   * @memberof StateService
    */
   getPlayerHand() {
     if (!this.playerRole || !this.gameState.players || !this.gameState.players[this.playerRole]) {
@@ -148,8 +212,9 @@ export class StateService { // Export the class
   }
 
   /**
-   * Gets the current turn card (kitty top card).
-   * @returns {object|null} The turn card object or null.
+   * Gets the current turn card (also known as the up-card or kitty's top card).
+   * @returns {object|null} The turn card object, or null if not set in the game state.
+   * @memberof StateService
    */
   getTurnCard() {
     const turnCard = this.gameState.turnCard;
@@ -159,7 +224,9 @@ export class StateService { // Export the class
 
   /**
    * Gets the cards currently played in the active trick.
-   * @returns {Array} Array of card objects in the current trick.
+   * @returns {Array<object>} Array of card objects in the current trick.
+   * Returns an empty array if undefined in game state.
+   * @memberof StateService
    */
   getCurrentTrick() {
     const currentTrick = this.gameState.currentTrick;
@@ -169,7 +236,8 @@ export class StateService { // Export the class
 
   /**
    * Gets the scores for each team.
-   * @returns {object|null} Team scores object e.g., { TEAM_NS: 0, TEAM_EW: 0 } or null.
+   * @returns {object|null} Team scores object (e.g., `{ TEAM_NS: 0, TEAM_EW: 0 }`), or null if not set.
+   * @memberof StateService
    */
   getTeamScores() {
     const teamScores = this.gameState.teamScores;
@@ -179,7 +247,8 @@ export class StateService { // Export the class
 
   /**
    * Gets the latest game message or log.
-   * @returns {string} The latest game message.
+   * @returns {string} The latest game message. Returns an empty string if undefined.
+   * @memberof StateService
    */
   getLatestGameMessage() {
     const message = this.gameState.message;
@@ -187,6 +256,12 @@ export class StateService { // Export the class
     return message || ''; // Return empty string if undefined
   }
 
+  /**
+   * Gets the current player's information from the auxiliary `this.players` list.
+   * This might be less relevant if role-based access in `gameState.players` is the primary way to get player info.
+   * @returns {object|null} The player object if found, otherwise null.
+   * @memberof StateService
+   */
   // Example utility to get current player's details from the list
   // This might be less relevant if role-based access in gameState.players is primary
   getCurrentPlayerInfoFromList() {

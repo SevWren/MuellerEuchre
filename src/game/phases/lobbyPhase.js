@@ -9,12 +9,17 @@ import { ValidationError, InvalidPhaseError, PhaseLogicError } from '../logic/er
 
 /**
  * Attempts to start the game from the LOBBY phase.
- * Validates if enough players are connected and transitions the game phase.
+ * Validates if enough players are connected and transitions the game phase from `LOBBY` to `DEALING`.
  *
  * @param {object} currentGameState - The current game state object.
+ * @param {object} currentGameState.players - Player objects keyed by role, indicating their connection status (`isConnected`).
+ * @param {string} currentGameState.gamePhase - Current phase, must be `LOBBY`.
+ * @param {string} [currentGameState.gameId] - ID of the game (for logging).
+ * @param {Array<object>} [currentGameState.gameMessages] - Array of game messages.
+ * @param {string} [currentGameState.dealer] - Role of the dealer (relevant for determining next phase's `currentPlayer`).
  * @param {string} requestingPlayerRole - The role of the player attempting to start the game.
- * @returns {object} The updated game state.
- * @throws {ValidationError} If `currentGameState` or `requestingPlayerRole` is missing.
+ * @returns {object} The updated game state, typically with `gamePhase` set to `DEALING`.
+ * @throws {ValidationError} If `currentGameState` or `requestingPlayerRole` is missing or invalid.
  * @throws {InvalidPhaseError} If the game is not in the LOBBY phase, or if phase changes unexpectedly.
  * @throws {PhaseLogicError} If not enough players are connected.
  */

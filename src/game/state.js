@@ -27,8 +27,35 @@ function deepClone(obj) {
 }
 
 /**
- * Initializes or resets the game state to a default lobby status.
- * @returns {object} A deep copy of the newly initialized game state.
+ * Initializes or resets the internal module `gameState` to a default lobby status.
+ * This function has a side effect of modifying the module-level `gameState` variable.
+ * It creates a new game with a unique ID and initializes all game properties to their default starting values.
+ *
+ * @returns {object} A deep copy of the newly initialized game state. The structure includes:
+ * - `gameId`: {string} Unique identifier for the game.
+ * - `gamePhase`: {string} Initial phase, set to `GAME_PHASES.LOBBY`.
+ * - `players`: {object} Player objects initialized by `initializePlayers()`.
+ * - `deck`: {Array<object>} Empty array, to be populated on deal.
+ * - `kitty`: {Array<object>} Empty array, to be populated on deal.
+ * - `turnCard`: {null|object} Null initially.
+ * - `trumpSuit`: {null|string} Null initially.
+ * - `dealer`: {string} Role of the dealer, defaults to `PLAYER_ROLES[0]`.
+ * - `currentPlayer`: {string} Role of the current player, defaults to `PLAYER_ROLES[0]`.
+ * - `orderUpTurn`: {null|string} Null initially.
+ * - `bids`: {Array<object>} Empty array for bidding history.
+ * - `roundNumber`: {number} Initialized to 1.
+ * - `playerWhoOrderedUp`: {null|string} Null initially.
+ * - `playerWhoCalledTrump`: {null|string} Null initially.
+ * - `makerTeam`: {null|string} Null initially.
+ * - `goingAlone`: {boolean} False initially.
+ * - `playerGoingAlone`: {null|string} Null initially.
+ * - `partnerSittingOut`: {null|string} Null initially.
+ * - `currentTrick`: {Array<object>} Empty array for cards in the current trick.
+ * - `leadSuit`: {null|string} Null initially.
+ * - `tricksTaken`: {object} Tracks tricks taken by each team, initialized to 0 for `TEAMS.TEAM_NS` and `TEAMS.TEAM_EW`.
+ * - `teamScores`: {object} Tracks scores for each team, initialized to 0 for `TEAMS.TEAM_NS` and `TEAMS.TEAM_EW`.
+ * - `gameMessages`: {Array<object>} Empty array for game messages.
+ * - `lastUpdated`: {number} Timestamp of the last update.
  */
 function resetFullGame() {
   const newGameId = `game_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -76,8 +103,12 @@ function resetFullGame() {
 }
 
 /**
- * Returns a deep copy of the current game state.
- * @returns {object} A deep copy of the game state. Returns empty object if not initialized.
+ * Returns a deep copy of the current internal module `gameState`.
+ * If the game state has not been initialized (e.g., by `resetFullGame`),
+ * it logs a warning and returns an empty object.
+ *
+ * @returns {object} A deep copy of the current game state, or an empty object if not initialized.
+ * For the structure of the game state, see `resetFullGame` or `createInitialGameState`.
  */
 function getGameState() {
   if (Object.keys(gameState).length === 0) {
@@ -88,11 +119,17 @@ function getGameState() {
 }
 
 /**
- * Updates the game state using an updater function.
- * @param {function(object): object} updater - A function that takes the current state (deep copy)
- *                                             and returns the new state object.
- * @returns {object} The new game state (a deep copy).
- * @throws {Error} If the updater function does not return an object, or if state is not initialized.
+ * Updates the internal module `gameState` using an updater function.
+ * The updater function receives a deep copy of the current state and should return
+ * an object representing the new state (or a partial state object containing changes to be merged).
+ * This function ensures that updates are applied immutably to the internal `gameState`.
+ * It also updates the `lastUpdated` timestamp.
+ *
+ * @param {function(object): object} updater - A function that takes a deep copy of the current internal `gameState`
+ *                                             and returns an object representing the new desired state or a partial state with changes.
+ * @returns {object} A deep copy of the new, updated internal `gameState`.
+ * @throws {Error} If the game state is not initialized, if the updater is not a function,
+ * or if the updater function does not return a valid object.
  */
 function updateGameState(updater) {
   if (Object.keys(gameState).length === 0) {
@@ -120,6 +157,40 @@ function updateGameState(updater) {
 
 // resetFullGame(); // Don't call resetFullGame on module load if it's meant to be a utility
 
+/**
+ * Creates and returns a new, initial game state object.
+ * This function is a factory for generating a clean state for a new game instance.
+ * It does not modify any internal module state.
+ *
+ * @param {string} [gameIdInput] - Optional. A specific game ID to use. If not provided, a new unique ID is generated.
+ * @returns {object} A new game state object with all properties initialized for the start of a game. This includes:
+ * - `gameId`: {string} Unique identifier for the game.
+ * - `gamePhase`: {string} Initial phase, set to `GAME_PHASES.LOBBY`.
+ * - `players`: {object} Player objects initialized by `initializePlayers()`, keyed by role.
+ * - `deck`: {Array<object>} Empty array.
+ * - `kitty`: {Array<object>} Empty array.
+ * - `turnCard`: {null|object} Set to null.
+ * - `trumpSuit`: {null|string} Set to null.
+ * - `dealer`: {string} Default dealer, typically `PLAYER_ROLES[0]`.
+ * - `currentPlayer`: {string} Default current player, typically player left of dealer (`PLAYER_ROLES[1]`).
+ * - `orderUpTurn`: {null|string} Set to null.
+ * - `bids`: {Array<object>} Empty array.
+ * - `roundNumber`: {number} Set to 1 (for bidding).
+ * - `playerWhoOrderedUp`: {null|string} Set to null.
+ * - `playerWhoCalledTrump`: {null|string} Set to null.
+ * - `makerTeam`: {null|string} Set to null.
+ * - `goingAlone`: {boolean} Set to false.
+ * - `playerGoingAlone`: {null|string} Set to null.
+ * - `partnerSittingOut`: {null|string} Set to null.
+ * - `currentTrick`: {Array<object>} Empty array.
+ * - `leadSuit`: {null|string} Set to null.
+ * - `tricksTaken`: {object} Tracks tricks for `TEAMS.TEAM_NS` and `TEAMS.TEAM_EW`, initialized to 0.
+ * - `teamScores`: {object} Tracks scores for `TEAMS.TEAM_NS` and `TEAMS.TEAM_EW`, initialized to 0.
+ * - `gameMessages`: {Array<object>} Empty array.
+ * - `hostId`: {null|string} Set to null, to be assigned when a host creates/joins.
+ * - `settings`: {object} Contains game settings like `winningScore`.
+ * @property {number} settings.winningScore - Default winning score (e.g., 10).
+ */
 // Exported function to create a new, initial game state object
 export function createInitialGameState(gameIdInput) {
   const gameId = gameIdInput || `game_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;

@@ -9,10 +9,19 @@ import { getRoleBySocketId } from '../../utils/players.js';
 import { gameRepository } from '../../db/gameRepository.js'; // Corrected import
 
 /**
- * Handles a new client connection, attempts to assign them a player role,
- * and updates the game state.
- * @param {object} socket - The Socket.IO socket object for the connected client.
- * @param {object} io - The Socket.IO server instance.
+ * Handles a new client connection.
+ * **Note:** This function's current implementation is largely conceptual and assumes a single,
+ * global game instance managed by `state.js`. It attempts to assign the new connection
+ * to an available slot in this "default" game.
+ * This behavior is problematic for multi-game support and persistence via `gameRepository`
+ * and is expected to be superseded by more specific game joining mechanisms (e.g., in `lobbyHandlers.js`).
+ * It is kept for now to reflect the existing codebase structure but needs significant re-evaluation.
+ *
+ * Emits `GAME_EVENTS.ERROR` or `GAME_EVENTS.GAME_FULL` to the socket on failure to assign.
+ * On success, emits `GAME_EVENTS.ASSIGN_ROLE` to the socket and `GAME_EVENTS.GAME_STATE_UPDATE` to the game room.
+ *
+ * @param {import('socket.io').Socket} socket - The Socket.IO socket object for the connected client.
+ * @param {import('socket.io').Server} io - The Socket.IO server instance.
  */
 export function handlePlayerConnect(socket, io) {
   // This handler is for a new player joining a globally available game (e.g. the first game or a public lobby).
@@ -98,9 +107,19 @@ export function handlePlayerConnect(socket, io) {
 
 /**
  * Handles a player's attempt to rejoin an existing game.
- * This is a conceptual handler. A client would need to emit an event like 'rejoin_game' with gameId and playerInfo.
- * @param {object} socket - The Socket.IO socket object for the connected client.
- * @param {object} io - The Socket.IO server instance.
+ * This function is typically called when a client, upon reconnecting, emits an event
+ * (e.g., `GAME_EVENTS.RECONNECT` or a custom 'rejoin_game_request') with their previous `gameId` and `playerId`.
+ *
+ * It fetches the game state from the repository, validates the rejoin attempt (e.g., player exists, slot is disconnected),
+ * updates the player's `socketId` and `isConnected` status, saves the state, and notifies all players in the game.
+ *
+ * Emits `GAME_EVENTS.ERROR` to the socket on failure.
+ * On success, emits `GAME_EVENTS.GAME_STATE_UPDATE` to the rejoining socket and then to the entire game room.
+ * Also emits a conceptual `PLAYER_RECONNECTED_SUCCESS` event to the room (should be a `GAME_EVENTS` constant).
+ *
+ * @async
+ * @param {import('socket.io').Socket} socket - The Socket.IO socket object for the reconnected client.
+ * @param {import('socket.io').Server} io - The Socket.IO server instance.
  * @param {string} gameId - The ID of the game the player wants to rejoin.
  * @param {string} playerId - The ID or role of the player attempting to rejoin.
  */
@@ -179,13 +198,20 @@ export async function handleRejoinGame(socket, io, gameId, playerId) {
 
 
 /**
- * Handles a client disconnection, updates the player's status in the game state,
- * and notifies other clients.
- * This function might need to determine which game the socket was part of if multiple games are supported.
- * For now, it assumes the socket was part of the global game state or a known gameId (if passed).
- * @param {object} socket - The Socket.IO socket object for the disconnected client.
- * @param {object} io - The Socket.IO server instance.
- * @param {string} gameId_param - Optional: The gameId the socket was associated with.
+ * Handles a client disconnection.
+ * It determines the game and player role associated with the disconnected socket.
+ * Updates the player's `isConnected` status to false and clears their `socketId` in the game state.
+ * Persists the updated game state and notifies other players in the game room about the disconnection
+ * by emitting `GAME_EVENTS.PLAYER_DISCONNECTED` and then `GAME_EVENTS.GAME_STATE_UPDATE`.
+ *
+ * The `gameId_param` is crucial for identifying the game in a multi-game environment.
+ * If not provided, the function attempts a fallback (currently problematic) to a global game state.
+ *
+ * @async
+ * @param {import('socket.io').Socket} socket - The Socket.IO socket object for the disconnected client.
+ * @param {import('socket.io').Server} io - The Socket.IO server instance.
+ * @param {string} [gameId_param=null] - Optional. The ID of the game the socket was associated with.
+ *                                       This should ideally be available (e.g., stored on the socket object).
  */
 export async function handlePlayerDisconnect(socket, io, gameId_param = null) {
   // Determine gameId: from parameter, or from socket's rooms, or from a global map if necessary.

@@ -13,15 +13,25 @@ import { PhaseLogicError, CardNotInHandError } from '../../game/logic/errors.js'
 
 /**
  * Handles a player's decision in the first round of bidding (order up or pass).
+ * Validates the decision using `validateBid`. Updates game state based on ordering up (sets trump, advances to dealer discard)
+ * or passing (advances to next bidder or next bidding round).
+ *
  * @param {object} currentGameState - The current game state.
+ * @param {string} [currentGameState.gameId] - ID of the game (for logging).
+ * @param {object} currentGameState.players - Player objects keyed by role, containing `name` and `teamId`.
+ * @param {object} currentGameState.turnCard - The card turned up for bidding. Requires `suit` property.
+ * @param {string} currentGameState.dealer - The role of the current dealer.
+ * @param {Array<object>} [currentGameState.bids] - Array of previous bids in the current hand.
+ * @param {Array<object>} [currentGameState.gameMessages] - Array of game messages.
+ * @param {number} currentGameState.roundNumber - Current bidding round number (should be 1).
  * @param {string} playerRole - The role of the player making the decision.
  * @param {boolean} wantsToOrderUp - True if the player wants to order the dealer up, false if passing.
  * @returns {object} The updated game state.
- * @throws {ValidationError} If basic bid validation fails (via validateBid).
+ * @throws {ValidationError} If basic bid validation fails (via `validateBid`).
  * @throws {NotPlayersTurnError} If it's not the player's turn (via validateBid).
  * @throws {InvalidBidError} If the bid decision is invalid for the phase (via validateBid).
  * @throws {InvalidPhaseError} If bidding is attempted in wrong phase (via validateBid).
- * @throws {PhaseLogicError} If internal logic like missing turnCard or teamId fails.
+ * @throws {PhaseLogicError} If internal logic like missing `turnCard` or player's `teamId` fails.
  */
 export function handleOrderUpDecision(currentGameState, playerRole, wantsToOrderUp) {
     logger.info({ gameId: currentGameState.gameId, playerRole, wantsToOrderUp }, 'Handling order up decision.');
@@ -87,16 +97,26 @@ export function handleOrderUpDecision(currentGameState, playerRole, wantsToOrder
 
 /**
  * Handles the dealer's discard after being ordered up.
+ * Validates the discard action using `validateDealerDiscard`. Updates the dealer's hand by removing the
+ * discarded card and adding the `turnCard`. Advances game to `GOING_ALONE_DECISION` phase.
+ *
  * @param {object} currentGameState - The current game state.
- * @param {string} dealerRole - The role of the dealer.
- * @param {string} cardToDiscardId - The ID of the card the dealer wishes to discard.
+ * @param {string} [currentGameState.gameId] - ID of the game (for logging).
+ * @param {object} currentGameState.players - Player objects keyed by role. The dealer's entry must have a `hand` array.
+ * @param {string} currentGameState.dealer - The role of the current dealer.
+ * @param {object} currentGameState.turnCard - The card the dealer picked up. Requires `id`, `suit`, `rank`.
+ * @param {string|null} currentGameState.playerWhoOrderedUp - Role of player who ordered up.
+ * @param {string|null} currentGameState.playerWhoCalledTrump - Role of player who called trump.
+ * @param {Array<object>} [currentGameState.gameMessages] - Array of game messages.
+ * @param {string} dealerRole - The role of the dealer (must match `currentGameState.dealer`).
+ * @param {string} cardToDiscardId - The ID of the card the dealer wishes to discard from their hand.
  * @returns {object} The updated game state.
- * @throws {ValidationError} If basic discard validation fails (via validateDealerDiscard).
+ * @throws {ValidationError} If basic discard validation fails (via `validateDealerDiscard`).
  * @throws {NotPlayersTurnError} If it's not the player's turn (via validateDealerDiscard).
  * @throws {InvalidDiscardError} If the discard is invalid (via validateDealerDiscard).
  * @throws {InvalidPhaseError} If discarding is attempted in wrong phase (via validateDealerDiscard).
  * @throws {CardNotInHandError} If card to discard not in hand (via validateDealerDiscard or preliminary check).
- * @throws {PhaseLogicError} If internal logic like missing turnCard fails, or preliminary card ID check fails.
+ * @throws {PhaseLogicError} If internal logic like missing `turnCard` fails, or if the preliminary card ID check fails.
  */
 export function handleDealerDiscard(currentGameState, dealerRole, cardToDiscardId) {
     logger.info({ gameId: currentGameState.gameId, dealerRole, cardToDiscardId }, 'Handling dealer discard.');
@@ -154,16 +174,26 @@ export function handleDealerDiscard(currentGameState, dealerRole, cardToDiscardI
 
 /**
  * Handles a player's decision in the second round of bidding (call trump or pass).
+ * Validates the decision using `validateBid`. Updates game state based on calling trump (sets trump, advances to
+ * `GOING_ALONE_DECISION` phase) or passing (advances to next bidder or handles misdeal if dealer passes).
+ *
  * @param {object} currentGameState - The current game state.
+ * @param {string} [currentGameState.gameId] - ID of the game (for logging).
+ * @param {object} currentGameState.players - Player objects keyed by role, containing `name` and `teamId`.
+ * @param {string} currentGameState.dealer - The role of the current dealer.
+ * @param {Array<object>} [currentGameState.bids] - Array of previous bids in the current hand.
+ * @param {Array<object>} [currentGameState.gameMessages] - Array of game messages.
+ * @param {number} currentGameState.roundNumber - Current bidding round number (should be 2).
+ * @param {object} [currentGameState.turnCard] - The card turned up in round 1 (used for "cannot call turned suit" rule).
  * @param {string} playerRole - The role of the player making the decision.
  * @param {boolean} wantsToCall - True if the player wants to call a suit, false if passing.
- * @param {string} [suitCalled] - The suit called as trump, if wantsToCall is true.
+ * @param {string} [suitCalled] - The suit called as trump, if `wantsToCall` is true. Must be a valid suit and not the turned-down suit.
  * @returns {object} The updated game state.
- * @throws {ValidationError} If basic bid validation fails (via validateBid).
+ * @throws {ValidationError} If basic bid validation fails (via `validateBid`).
  * @throws {NotPlayersTurnError} If it's not the player's turn (via validateBid).
  * @throws {InvalidBidError} If the bid decision is invalid for the phase (via validateBid).
  * @throws {InvalidPhaseError} If bidding is attempted in wrong phase (via validateBid).
- * @throws {PhaseLogicError} If internal logic like missing makerTeam fails.
+ * @throws {PhaseLogicError} If internal logic like missing player's `teamId` fails.
  */
 export function handleCallTrumpDecision(currentGameState, playerRole, wantsToCall, suitCalled = null) {
     logger.info({ gameId: currentGameState.gameId, playerRole, wantsToCall, suitCalled }, 'Handling call trump decision.');

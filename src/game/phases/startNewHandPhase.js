@@ -10,13 +10,22 @@ import { ValidationError, InvalidPhaseError, PhaseLogicError } from '../logic/er
 
 /**
  * Starts a new hand: rotates dealer, shuffles, deals cards, sets up turn card,
- * and transitions the game state to the first round of bidding.
- * This is now a PURE FUNCTION. It accepts the current game state and returns the new state.
+ * and transitions the game state to the first round of bidding (`ORDER_UP_ROUND1`).
+ * This function is designed to be pure; it takes the current game state, performs a deep clone,
+ * and then returns a completely new state object representing the start of the new hand.
  *
  * @param {object} currentGameState - The current game state object.
- * @returns {object} The updated game state object.
- * @throws {ValidationError} If `currentGameState` is missing or invalid.
- * @throws {InvalidPhaseError} If the game is not in a valid phase to start a new hand.
+ * @param {object} currentGameState.players - Player objects, used to determine connection status and previous dealer.
+ * @param {string} currentGameState.gameId - ID of the game.
+ * @param {string} currentGameState.gamePhase - Current phase of the game (e.g., `DEALING`, `LOBBY`, `SCORING`).
+ * @param {string} [currentGameState.dealer] - Role of the dealer from the previous hand.
+ * @param {Array<object>} [currentGameState.gameMessages] - Existing game messages to be preserved.
+ * @returns {object} A new game state object, fully reset and prepared for the start of a new hand.
+ * Key properties set include: `dealer`, `players` (with new hands), `kitty`, `turnCard`,
+ * `gamePhase` (to `ORDER_UP_ROUND1`), `currentPlayer`, `trumpSuit` (to null), `bids` (empty array),
+ * `roundNumber` (to 1), `tricksTaken` (reset), etc.
+ * @throws {ValidationError} If `currentGameState` or essential properties like `players` or `gameId` are missing.
+ * @throws {InvalidPhaseError} If the game is not in a valid phase to start a new hand (e.g., `DEALING`, `LOBBY`, `SCORING`, `GAME_OVER`).
  * @throws {PhaseLogicError} If dealing encounters a critical error (e.g., empty kitty).
  */
 export function startNewHand(currentGameState) {

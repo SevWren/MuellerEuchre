@@ -9,11 +9,19 @@ export const useSocket = () => {
     const [isConnected, setIsConnected] = useState(socketService.isConnected);
     const [connectionQuality, setConnectionQuality] = useState(socketService.getConnectionQuality());
 
+    /**
+     * Handles the socket connect event.
+     * Updates the isConnected state to true.
+     */
     // Handle connection state changes
     const handleConnect = useCallback(() => {
         setIsConnected(true);
     }, []);
 
+    /**
+     * Handles the socket disconnect event.
+     * Updates the isConnected state to false and resets connection quality.
+     */
     const handleDisconnect = useCallback(() => {
         setIsConnected(false);
         setConnectionQuality({
@@ -24,6 +32,11 @@ export const useSocket = () => {
         });
     }, []);
 
+    /**
+     * Handles the socket quality_update event.
+     * Updates the connectionQuality state with the new quality data.
+     * @param {object} quality - The new connection quality data.
+     */
     // Handle connection quality updates
     const handleQualityUpdate = useCallback((quality) => {
         setConnectionQuality(prev => ({

@@ -1,8 +1,18 @@
 import { log } from '../../utils/logger.js';
 import { GAME_EVENTS, STORAGE_KEYS } from '../../config/constants.js';
 
+/**
+ * @namespace safeStorage
+ * @description A helper object to safely access localStorage, handling potential errors.
+ */
 // Helper to safely access localStorage
 const safeStorage = {
+    /**
+     * Safely retrieves an item from localStorage.
+     * @param {string} key - The key of the item to retrieve.
+     * @returns {string|null} The item's value, or null if not found or an error occurs.
+     * @memberof safeStorage
+     */
     getItem: (key) => {
         try {
             return localStorage.getItem(key);
@@ -11,6 +21,13 @@ const safeStorage = {
             return null;
         }
     },
+    /**
+     * Safely sets an item in localStorage.
+     * @param {string} key - The key of the item to set.
+     * @param {string} value - The value to set for the item.
+     * @returns {boolean} True if the item was set successfully, false otherwise.
+     * @memberof safeStorage
+     */
     setItem: (key, value) => {
         try {
             localStorage.setItem(key, value);
@@ -20,6 +37,12 @@ const safeStorage = {
             return false;
         }
     },
+    /**
+     * Safely removes an item from localStorage.
+     * @param {string} key - The key of the item to remove.
+     * @returns {boolean} True if the item was removed successfully, false otherwise.
+     * @memberof safeStorage
+     */
     removeItem: (key) => {
         try {
             localStorage.removeItem(key);
@@ -31,7 +54,18 @@ const safeStorage = {
     }
 };
 
+/**
+ * @class StateSyncService
+ * @description Manages client-side state synchronization with the server,
+ * handling offline queueing, state persistence, and reconnection logic.
+ * It ensures that the client's game state is consistent and actions are reliably sent.
+ */
 class StateSyncService {
+    /**
+     * Creates an instance of StateSyncService.
+     * @param {import('./socketService.js').SocketService} socketService - The socket service instance for server communication.
+     * @memberof StateSyncService
+     */
     constructor(socketService) {
         this.socketService = socketService;
         this.currentState = null;
@@ -53,7 +87,13 @@ class StateSyncService {
     }
 
     /**
-     * Initialize the state sync service
+     * Initializes the StateSyncService.
+     * Sets up event listeners for socket events (STATE_UPDATE, reconnect, disconnect).
+     * Loads any saved state from storage and starts the offline queue processing timer.
+     * This method should be called once when the service is created.
+     * @async
+     * @returns {Promise<void>}
+     * @memberof StateSyncService
      */
     async initialize() {
         if (this.initialized) return;
@@ -78,8 +118,12 @@ class StateSyncService {
     }
 
     /**
-     * Handle game state updates from the server
-     * @param {Object} newState - The new game state
+     * Handles incoming game state updates from the server via `GAME_EVENTS.STATE_UPDATE`.
+     * If replaying actions, this method will ignore updates until replay is complete.
+     * Merges the new state with the current state or performs a full update.
+     * Saves the updated state to storage and notifies listeners.
+     * @param {object} newState - The new game state received from the server.
+     * @memberof StateSyncService
      */
     handleGameUpdate(newState) {
         // If we're replaying actions, don't process updates until done
@@ -109,7 +153,11 @@ class StateSyncService {
     }
 
     /**
-     * Handle reconnection events
+     * Handles the 'reconnect' event from the socket service.
+     * Attempts to replay any pending actions that were queued while offline.
+     * If replay fails or there are no pending actions, requests a full state update from the server.
+     * @async
+     * @memberof StateSyncService
      */
     async handleReconnect() {
         log(1, 'Connection restored, syncing state...');
@@ -139,7 +187,9 @@ class StateSyncService {
     }
 
     /**
-     * Handle disconnection events
+     * Handles the 'disconnect' event from the socket service.
+     * Sets the service to offline mode and saves the current state to storage.
+     * @memberof StateSyncService
      */
     handleDisconnect() {
         log(1, 'Connection lost, buffering actions...');
@@ -152,7 +202,10 @@ class StateSyncService {
     }
 
     /**
-     * Request the full game state from the server
+     * Requests the full game state from the server using `GAME_EVENTS.REQUEST_FULL_STATE`.
+     * Updates the current state and notifies listeners upon successful retrieval.
+     * @async
+     * @memberof StateSyncService
      */
     async requestFullState() {
         try {
@@ -167,9 +220,15 @@ class StateSyncService {
     }
 
     /**
-     * Send an action to the server with automatic reconnection handling
-     * @param {string} event - The event name
-     * @param {...any} args    // Send an action to the server
+     * Sends an action to the server via `socketService.send`.
+     * If the client is offline, the action is added to an offline queue to be sent upon reconnection.
+     * If an error occurs during sending (e.g., disconnection), the action is queued.
+     * @param {string} event - The event name to send.
+     * @param {...any} args - Arguments for the event.
+     * @returns {Promise<any>} A promise that resolves with the server's response or rejects on error.
+     * @throws {Error} If offline and action is queued, or if `socketService.send` throws an error not related to disconnection.
+     * @memberof StateSyncService
+     */
     async sendAction(event, ...args) {
         if (!this.socketService.isConnected) {
             // If not connected, add to offline queue
@@ -209,7 +268,13 @@ class StateSyncService {
     }
 
     /**
-     * Process the offline queue
+     * Processes actions stored in the offline queue.
+     * This is typically called periodically by a timer or after reconnection.
+     * Sends actions one by one; if an action fails due to connection issues, processing stops.
+     * Successfully sent actions are removed from the queue.
+     * Requests a full state update if any actions were processed.
+     * @async
+     * @memberof StateSyncService
      */
     async processOfflineQueue() {
         if (this.offlineQueue.length === 0 || !this.socketService.isConnected) {
@@ -251,7 +316,11 @@ class StateSyncService {
     }
     
     /**
-     * Save state to localStorage
+     * Saves the current game state to localStorage via `safeStorage`.
+     * Certain sensitive or large parts of the state (e.g., players, deck) are excluded.
+     * Includes a timestamp with the saved state.
+     * @param {object} state - The game state to save.
+     * @memberof StateSyncService
      */
     saveStateToStorage(state) {
         if (!state) return;
@@ -276,7 +345,11 @@ class StateSyncService {
     }
     
     /**
-     * Load state from localStorage
+     * Loads the game state from localStorage via `safeStorage`.
+     * If the saved state is older than a defined threshold (e.g., 1 hour), it is discarded.
+     * @async
+     * @returns {Promise<object|null>} The loaded game state, or null if no valid state is found.
+     * @memberof StateSyncService
      */
     async loadStateFromStorage() {
         try {
@@ -300,7 +373,9 @@ class StateSyncService {
     }
     
     /**
-     * Save offline queue to storage
+     * Saves the current offline action queue to localStorage via `safeStorage`.
+     * Includes a timestamp with the saved queue.
+     * @memberof StateSyncService
      */
     saveOfflineQueue() {
         try {
@@ -314,7 +389,10 @@ class StateSyncService {
     }
     
     /**
-     * Load offline queue from storage
+     * Loads the offline action queue from localStorage via `safeStorage`.
+     * If the saved queue is older than a defined threshold (e.g., 24 hours), it is discarded.
+     * @returns {Array<object>} The loaded offline queue, or an empty array if no valid queue is found.
+     * @memberof StateSyncService
      */
     loadOfflineQueue() {
         try {
@@ -337,7 +415,10 @@ class StateSyncService {
     }
     
     /**
-     * Clean up resources
+     * Cleans up resources used by the service.
+     * Clears the offline queue timer and removes socket event listeners.
+     * This should be called when the service is no longer needed (e.g., user logs out).
+     * @memberof StateSyncService
      */
     dispose() {
         if (this.offlineTimer) {
@@ -353,18 +434,20 @@ class StateSyncService {
     }
 
     /**
-     * Get the current game state
-     * @returns {Object} The current game state
+     * Gets a deep clone of the current game state.
+     * @returns {object|null} A deep clone of the current game state, or null if no state is set.
+     * @memberof StateSyncService
      */
     getState() {
         return this.deepClone(this.currentState);
     }
 
     /**
-     * Subscribe to state changes
-     * @param {string} event - The event to listen for
-     * @param {Function} callback - The callback function
-     * @returns {Function} Unsubscribe function
+     * Subscribes a callback function to a specific event (e.g., 'stateChange').
+     * @param {string} event - The event name to subscribe to (e.g., 'stateChange').
+     * @param {function(any): void} callback - The function to call when the event occurs. It will receive event data.
+     * @returns {function(): void} An unsubscribe function. Call this to remove the subscription.
+     * @memberof StateSyncService
      */
     subscribe(event, callback) {
         if (!this.listeners.has(event)) {
@@ -384,7 +467,10 @@ class StateSyncService {
     }
 
     /**
-     * Notify all listeners of a state change
+     * Notifies all subscribers of the 'stateChange' event with the current game state.
+     * This is called internally after the state is updated.
+     * @memberof StateSyncService
+     * @private
      */
     notifyStateChange() {
         if (!this.currentState) return;
@@ -392,9 +478,11 @@ class StateSyncService {
     }
 
     /**
-     * Notify all listeners of a specific event
-     * @param {string} event - The event name
-     * @param {any} data - The event data
+     * Notifies all listeners subscribed to a specific event.
+     * @param {string} event - The event name.
+     * @param {any} data - The data to pass to the listeners' callback functions.
+     * @memberof StateSyncService
+     * @private
      */
     notifyListeners(event, data) {
         const callbacks = this.listeners.get(event) || [];
@@ -408,19 +496,26 @@ class StateSyncService {
     }
 
     /**
-     * Deep clone an object
-     * @param {Object} obj - The object to clone
-     * @returns {Object} A deep clone of the object
+     * Creates a deep clone of an object using `JSON.parse(JSON.stringify(obj))`.
+     * @param {object} obj - The object to clone.
+     * @returns {object} A deep clone of the object. Returns null if obj is null or undefined.
+     * @memberof StateSyncService
+     * @private
      */
     deepClone(obj) {
+        if (obj === null || obj === undefined) return null;
         return JSON.parse(JSON.stringify(obj));
     }
 
     /**
-     * Merge two states, with newState taking precedence
-     * @param {Object} current - The current state
-     * @param {Object} newState - The new state to merge in
-     * @returns {Object} The merged state
+     * Merges the `newState` into the `current` state.
+     * This is a shallow merge for top-level properties, with special handling for nested `players` object.
+     * Can be customized for more complex state structures.
+     * @param {object} current - The current state object.
+     * @param {object} newState - The new state object to merge in.
+     * @returns {object} The merged state object.
+     * @memberof StateSyncService
+     * @private
      */
     mergeStates(current, newState) {
         // Simple deep merge for now - can be optimized for specific state structure
@@ -440,6 +535,13 @@ class StateSyncService {
 // Export a singleton instance
 let instance = null;
 
+/**
+ * Creates and returns a singleton instance of StateSyncService.
+ * If an instance already exists, it returns that instance.
+ * Initializes the service and loads the offline queue from storage upon first creation.
+ * @param {import('./socketService.js').SocketService} socketService - The socket service instance.
+ * @returns {StateSyncService} The singleton instance of StateSyncService.
+ */
 export function createStateSyncService(socketService) {
     if (!instance) {
         instance = new StateSyncService(socketService);

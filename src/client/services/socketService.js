@@ -23,7 +23,18 @@ let uiServicePlaceholder = {
 
 const DEFAULT_SOCKET_TIMEOUT = 5000; // 5 seconds for acknowledgements
 
+/**
+ * @class SocketService
+ * @description Manages client-side socket communication, event handling, and emits game actions.
+ * It interacts with StateService to update game state and UIService to display messages and errors.
+ */
 export class SocketService { // Export the class
+  /**
+   * Creates an instance of SocketService.
+   * @param {import('./stateService.js').StateService} [stateServiceParam=stateServiceInstance] - The state service instance.
+   * @param {object} [uiServiceParam=uiServicePlaceholder] - The UI service instance.
+   * @memberof SocketService
+   */
   constructor(stateServiceParam = stateServiceInstance, uiServiceParam = uiServicePlaceholder) { // Allow injection for testing
     this.socket = { // This is a conceptual socket object.
       on: (event, callback) => {
@@ -75,6 +86,18 @@ export class SocketService { // Export the class
   }
 
   // --- Event Handlers ---
+  /**
+   * Handles the ASSIGN_ROLE event from the server.
+   * Sets game details, player ID, player role, and updates the player list in the state service.
+   * Also triggers UI updates for assigned role and lobby view.
+   * @param {object} payload - The event payload.
+   * @param {string} payload.role - The role assigned to the player.
+   * @param {string} payload.gameId - The ID of the game.
+   * @param {Array<object>} payload.players - The list of players in the game.
+   * @param {boolean} payload.isHost - Whether the player is the host.
+   * @param {string} payload.playerId - The ID of the player.
+   * @memberof SocketService
+   */
   handleAssignRole({ role, gameId, players, isHost, playerId }) { // Assuming server sends playerId
     console.log('[SocketService] Event received:', GAME_EVENTS.ASSIGN_ROLE, { role, gameId, players, isHost, playerId });
     // Use this.stateService for actual instance methods
@@ -87,22 +110,50 @@ export class SocketService { // Export the class
     if (this.uiService && this.uiService.updateLobbyView) this.uiService.updateLobbyView(players);
   }
 
+  /**
+   * Handles the GAME_FULL event from the server.
+   * Displays an error modal indicating the game is full.
+   * @param {object} payload - The event payload.
+   * @param {string} payload.message - The message indicating the game is full.
+   * @memberof SocketService
+   */
   handleGameFull({ message }) {
     console.log('[SocketService] Event received:', GAME_EVENTS.GAME_FULL, { message });
     if (this.uiService && this.uiService.showErrorModal) this.uiService.showErrorModal(message);
   }
 
+  /**
+   * Handles the PLAYER_ALREADY_IN_GAME event from the server.
+   * Displays a message and prompts the user to rejoin if they are already in the game.
+   * @param {object} payload - The event payload.
+   * @param {string} payload.message - The message indicating the player is already in the game.
+   * @param {string} payload.gameId - The ID of the game the player is already in.
+   * @memberof SocketService
+   */
   handlePlayerAlreadyInGame({ message, gameId }) {
     console.log('[SocketService] Event received:', GAME_EVENTS.PLAYER_ALREADY_IN_GAME, { message, gameId });
     if (this.uiService && this.uiService.displayMessage) this.uiService.displayMessage(message);
     if (this.uiService && this.uiService.promptForRejoin) this.uiService.promptForRejoin(gameId);
   }
 
+  /**
+   * Handles the STATE_UPDATE event from the server.
+   * Updates the full game state in the state service.
+   * @param {object} newState - The new game state received from the server.
+   * @memberof SocketService
+   */
   handleGameStateUpdate(newState) {
     console.log('[SocketService] Event received:', GAME_EVENTS.STATE_UPDATE, newState);
     this.stateService.updateFullGameState(newState);
   }
 
+  /**
+   * Handles generic ERROR events from the server.
+   * Displays a global error message using the UI service.
+   * @param {object} payload - The event payload.
+   * @param {string} payload.message - The error message from the server.
+   * @memberof SocketService
+   */
   // Generic error handler from server
   handleGenericError({ message }) {
     console.error('[SocketService] Generic error from server:', message);
@@ -110,6 +161,12 @@ export class SocketService { // Export the class
     this.uiService.displayGlobalError(message || 'An unspecified error occurred on the server.');
   }
 
+  /**
+   * Initializes all socket event listeners.
+   * This includes game-specific events and native socket events like 'connect', 'disconnect'.
+   * Handles reconnection logic on 'connect'.
+   * @memberof SocketService
+   */
   // --- Setup Event Listeners ---
   initializeEventListeners() {
     console.log('[SocketService] Initializing event listeners...');
@@ -168,6 +225,16 @@ export class SocketService { // Export the class
   // --- Emitter Methods ---
   // Note: Emitters should now use this.stateService to get gameId, playerRole etc.
 
+  /**
+   * Promisified wrapper for socket.emit with acknowledgement and timeout.
+   * @param {string} event - The event name to emit.
+   * @param {object} payload - The data to send with the event.
+   * @param {number} [timeout=DEFAULT_SOCKET_TIMEOUT] - Timeout duration in milliseconds.
+   * @returns {Promise<object>} A promise that resolves with the server's acknowledgement response data,
+   * or rejects on error or timeout.
+   * @private
+   * @memberof SocketService
+   */
   _emitWithAck(event, payload, timeout = DEFAULT_SOCKET_TIMEOUT) {
     return new Promise((resolve, reject) => {
       console.log(`[SocketService] Emitting ${event} with payload:`, payload);
@@ -190,6 +257,12 @@ export class SocketService { // Export the class
     });
   }
 
+  /**
+   * Emits a decision on whether to order up the dealer.
+   * @param {boolean} passes - True if the player passes, false otherwise.
+   * @returns {Promise<object>} Server acknowledgement.
+   * @memberof SocketService
+   */
   emitOrderUpDecision(passes) {
     const payload = {
       gameId: this.stateService.getGameId(),
@@ -199,6 +272,14 @@ export class SocketService { // Export the class
     return this._emitWithAck(GAME_EVENTS.ACTION_ORDER_UP_DECISION, payload);
   }
 
+  /**
+   * Emits an event to play a card.
+   * @param {string} [gameId] - The ID of the game. Defaults to current game ID from state service.
+   * @param {string} [playerRole] - The role of the player. Defaults to current player role from state service.
+   * @param {object} card - The card object to play.
+   * @returns {Promise<object>} Server acknowledgement.
+   * @memberof SocketService
+   */
   emitPlayCard(gameId, playerRole, card) {
     const currentრავgameId = gameId || this.stateService.getGameId();
     const currentPlayerRole = playerRole || this.stateService.getPlayerRole();
@@ -206,6 +287,12 @@ export class SocketService { // Export the class
     return this._emitWithAck(GAME_EVENTS.PLAY_CARD, payload);
   }
 
+  /**
+   * Emits the dealer's discard action.
+   * @param {object} discardedCard - The card object the dealer discards.
+   * @returns {Promise<object>} Server acknowledgement.
+   * @memberof SocketService
+   */
   emitDealerDiscard(discardedCard) {
     const payload = {
       gameId: this.stateService.getGameId(),
@@ -215,6 +302,13 @@ export class SocketService { // Export the class
     return this._emitWithAck(GAME_EVENTS.ACTION_DEALER_DISCARD, payload);
   }
 
+  /**
+   * Emits a decision on calling trump.
+   * @param {string | null} suit - The suit called as trump, or null if passing.
+   * @param {boolean} passes - True if the player passes, false otherwise.
+   * @returns {Promise<object>} Server acknowledgement.
+   * @memberof SocketService
+   */
   emitCallTrumpDecision(suit, passes) {
     const payload = {
       gameId: this.stateService.getGameId(),
@@ -225,6 +319,12 @@ export class SocketService { // Export the class
     return this._emitWithAck(GAME_EVENTS.ACTION_CALL_TRUMP_DECISION, payload);
   }
 
+  /**
+   * Emits a decision on whether the player is going alone.
+   * @param {boolean} goesAlone - True if the player decides to go alone, false otherwise.
+   * @returns {Promise<object>} Server acknowledgement.
+   * @memberof SocketService
+   */
   emitGoAloneDecision(goesAlone) {
     const payload = {
       gameId: this.stateService.getGameId(),
@@ -234,6 +334,13 @@ export class SocketService { // Export the class
     return this._emitWithAck(GAME_EVENTS.ACTION_GO_ALONE_DECISION, payload);
   }
 
+  /**
+   * Emits an event to join a game.
+   * @param {string} gameId - The ID of the game to join.
+   * @param {string} playerName - The name of the player joining.
+   * @returns {Promise<object>} Server acknowledgement. ASSIGN_ROLE event is expected upon success.
+   * @memberof SocketService
+   */
   joinGame(gameId, playerName) {
     const payload = { gameId, playerName };
     // This one might not need gameId/playerRole from stateService if it's pre-connection.
@@ -244,6 +351,10 @@ export class SocketService { // Export the class
   /**
    * Emitter for user-confirmed rejoin attempt.
    * Called after uiService.promptForRejoin confirms.
+   * @param {string} gameIdToRejoin - The ID of the game to rejoin.
+   * @returns {Promise<object>} Server acknowledgement. A STATE_UPDATE event is expected upon success.
+   * @throws {Error} If player ID is not found in stateService.
+   * @memberof SocketService
    */
   emitRejoinGame(gameIdToRejoin) {
     const playerId = this.stateService.getPlayerId();
@@ -270,6 +381,10 @@ export class SocketService { // Export the class
       });
   }
 
+  /**
+   * Calls the conceptual socket's connect method.
+   * @memberof SocketService
+   */
   connect() {
     this.socket.connect();
   }

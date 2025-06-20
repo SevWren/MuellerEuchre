@@ -63,8 +63,10 @@ export function shuffleDeck(deck) {
 
 /**
  * Formats a card object into a concise string ID (e.g., "KH", "9S").
- * @param {object} card - The card object { suit, value }.
- * @returns {string} The string representation of the card.
+ * @param {object} card - The card object.
+ * @param {string} card.suit - The suit of the card (e.g., 'hearts').
+ * @param {string} card.value - The rank/value of the card (e.g., 'K', '9').
+ * @returns {string} The string representation of the card (e.g., 'KH'), or '??' if card is invalid.
  */
 export function cardToId(card) {
   if (!card || !card.suit || !card.value) {
@@ -81,7 +83,9 @@ export function cardToId(card) {
 /**
  * Checks if a card is the Right Bower.
  * The Right Bower is the Jack of the trump suit.
- * @param {object} card - The card object { suit, value }.
+ * @param {object} card - The card object.
+ * @param {string} card.suit - The suit of the card.
+ * @param {string} card.value - The rank/value of the card.
  * @param {string} trumpSuit - The current trump suit.
  * @returns {boolean} True if the card is the Right Bower.
  */
@@ -92,7 +96,9 @@ export function isRightBower(card, trumpSuit) {
 /**
  * Checks if a card is the Left Bower.
  * The Left Bower is the Jack of the suit of the same color as trump.
- * @param {object} card - The card object { suit, value }.
+ * @param {object} card - The card object.
+ * @param {string} card.suit - The suit of the card.
+ * @param {string} card.value - The rank/value of the card.
  * @param {string} trumpSuit - The current trump suit.
  * @returns {boolean} True if the card is the Left Bower.
  */
@@ -103,12 +109,17 @@ export function isLeftBower(card, trumpSuit) {
 }
 
 /**
- * Calculates the rank of a card for trick evaluation.
- * Higher numbers indicate higher rank.
- * @param {object} card - The card object { suit, value }.
+ * Calculates the rank of a card for trick evaluation or general power comparison.
+ * Higher numbers indicate higher rank. Considers Right Bower, Left Bower, other trumps,
+ * cards of the led suit (if provided), and off-suit cards.
+ *
+ * @param {object} card - The card object.
+ * @param {string} card.suit - The suit of the card.
+ * @param {string} card.value - The rank/value of the card.
  * @param {string} trumpSuit - The current trump suit.
- * @param {string} [ledSuit] - The suit that was led in the current trick. If null, assumes not following suit.
- * @returns {number} The rank of the card.
+ * @param {string} [ledSuit=null] - The suit that was led in the current trick.
+ * If `null`, the card's on-suit status (if not trump) is not prioritized as if following suit.
+ * @returns {number} The numerical rank of the card. Returns 0 if arguments are invalid.
  */
 export function getCardRank(card, trumpSuit, ledSuit = null) {
   if (!card || !card.value || !card.suit || !trumpSuit) {
@@ -141,11 +152,18 @@ export function getCardRank(card, trumpSuit, ledSuit = null) {
 
 /**
  * Sorts a player's hand. Primarily for UI display.
- * Order: Trump (Bowers first, then A-9), then other suits by a defined order (e.g., color, then specific suit order), then by rank within suit.
- * This is a suggested sorting, can be adapted.
- * @param {Array<object>} hand - The player's hand (array of card objects).
+ * Sorts a player's hand for UI display or consistent ordering.
+ * The general sorting order is:
+ * 1. Trump cards: Right Bower, Left Bower, then Ace down to Nine of trump.
+ * 2. Non-trump cards: Grouped by a defined suit order (e.g., Spades, Clubs, Diamonds, Hearts, excluding trump),
+ *    and then ranked from Ace down to Nine within each suit.
+ * This function returns a new sorted array and does not mutate the original hand.
+ *
+ * @param {Array<object>} hand - The player's hand, an array of card objects.
+ * Each card object should have `suit` and `value` properties.
  * @param {string} trumpSuit - The current trump suit.
- * @returns {Array<object>} A new array with the hand sorted.
+ * @returns {Array<object>} A new array containing the sorted hand. Returns an empty array if hand is invalid,
+ * or a basic rank-sorted hand if `trumpSuit` is not provided.
  */
 export function sortHand(hand, trumpSuit) {
   if (!hand || !Array.isArray(hand)) return [];

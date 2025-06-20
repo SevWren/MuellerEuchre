@@ -11,19 +11,41 @@ import { createInitialGameState } from '../../game/state.js';
 import { startNewHand } from '../../game/phases/startNewHandPhase.js'; // Now a pure function
 
 // Temporary minimal utility functions
+
+/**
+ * Assigns a role to a player within the game state.
+ * Updates player's details like ID, name, socket ID, connection status, role, and team.
+ * Initializes tricksWonThisHand and score if not present. Marks player as active.
+ * This is a helper function and assumes `gameState` is a mutable copy or will be treated as such.
+ * @private
+ * @param {object} gameState - The current game state object (will be modified or should be a copy).
+ * @param {string} role - The player role to assign (e.g., 'south').
+ * @param {string} userId - The unique ID of the user.
+ * @param {string} playerName - The display name of the player.
+ * @param {string} socketId - The socket ID of the player.
+ * @returns {object} The modified game state with the player assigned.
+ */
 const TEAMS = APP_TEAMS;
 function assignRoleToPlayer(gameState, role, userId, playerName, socketId) {
-  const newGameState = JSON.parse(JSON.stringify(gameState));
+  const newGameState = JSON.parse(JSON.stringify(gameState)); // Ensure a deep copy for safety if original gameState is from a cache
   newGameState.players[role] = {
     ...(newGameState.players[role] || {}), id: userId, name: playerName,
     socketId: socketId, isConnected: true, role: role,
-    teamId: (PLAYER_ROLES.indexOf(role) % 2 === 0) ? TEAMS.TEAM_NS : TEAMS.TEAM_EW,
+    teamId: (PLAYER_ROLES.indexOf(role) % 2 === 0) ? TEAMS.TEAM_NS : TEAMS.TEAM_EW, // Assign team based on role index
   };
   if (newGameState.players[role].tricksWonThisHand === undefined) newGameState.players[role].tricksWonThisHand = 0;
-  if (newGameState.players[role].score === undefined) newGameState.players[role].score = 0;
+  if (newGameState.players[role].score === undefined) newGameState.players[role].score = 0; // Player score might be distinct from team score
   newGameState.players[role].isActive = true;
   return newGameState;
 }
+
+/**
+ * Checks if the lobby is full (all player roles are taken by connected and active players).
+ * @private
+ * @param {object} gameState - The current game state.
+ * @param {object} gameState.players - Player objects keyed by role.
+ * @returns {boolean} True if the lobby is full, false otherwise.
+ */
 function isLobbyFull(gameState) {
   if (!gameState || !gameState.players) return false;
   return PLAYER_ROLES.every(role =>
@@ -32,6 +54,15 @@ function isLobbyFull(gameState) {
     gameState.players[role].isActive
   );
 }
+
+/**
+ * Finds the next available player role in the game.
+ * A role is available if it's not taken, or the player in that role is not connected or not active.
+ * @private
+ * @param {object} gameState - The current game state.
+ * @param {object} gameState.players - Player objects keyed by role.
+ * @returns {string|null} The next available role, or null if all roles are filled by active, connected players.
+ */
 function getNextAvailableRole(gameState) {
   if (!gameState || !gameState.players) return null;
   for (const role of PLAYER_ROLES) {
@@ -43,7 +74,25 @@ function getNextAvailableRole(gameState) {
 }
 // End temporary utils
 
+/**
+ * Registers handlers for lobby-related socket events, such as starting a game or joining a game.
+ *
+ * @param {import('socket.io').Socket} socket - The socket instance for the connected client.
+ * @param {import('socket.io').Server} io - The Socket.IO server instance for broadcasting.
+ */
 export function registerLobbyHandlers(socket, io) {
+  /**
+   * Handles the 'request_start_game' event from a client.
+   * This custom event is used by a player in the lobby to initiate the game start process.
+   * It validates the request, calls `attemptToStartGame` to change phase to DEALING,
+   * then calls `startNewHand` to deal cards and set up for bidding.
+   * The updated game state is persisted and broadcast.
+   *
+   * @param {object} data - Payload from the client.
+   * @param {string} data.gameId - The ID of the game to start.
+   * @param {function} ack - Acknowledgement callback to respond to the client.
+   *                         Called with `(error, response)`.
+   */
   socket.on('request_start_game', async (data, ack) => {
     ack = typeof ack === 'function' ? ack : () => {};
     if (!data || !data.gameId) {
@@ -128,6 +177,31 @@ export function registerLobbyHandlers(socket, io) {
     }
   });
 
+  /**
+   * Handles the 'JOIN_GAME' event from a client.
+   * Allows a player to join an existing game lobby or create a new game if no `gameIdToJoin` is provided.
+   *
+   * If creating a new game:
+   * - Generates a new game ID.
+   * - Initializes game state using `createInitialGameState`.
+   * - Assigns the player as host and the first role.
+   * - Saves the game to the repository.
+   *
+   * If joining an existing game:
+   * - Retrieves the game state.
+   * - Validates game phase (must be LOBBY).
+   * - Checks if player is rejoining or if a new role is available.
+   * - Assigns an available role or reconnects the player.
+   * - If the lobby becomes full, automatically transitions to dealing by calling `startNewHand`.
+   *
+   * Emits `GAME_EVENTS.ASSIGN_ROLE` to the joining client and `GAME_EVENTS.STATE_UPDATE` to the game room.
+   * Sends an acknowledgement to the client.
+   *
+   * @param {object} data - Payload from the client.
+   * @param {string} data.playerName - The name of the player joining.
+   * @param {string} [data.gameIdToJoin] - Optional. The ID of the game to join. If null/undefined, a new game is created.
+   * @param {function} ack - Acknowledgement callback.
+   */
   socket.on(GAME_EVENTS.JOIN_GAME, async (data, ack) => {
     ack = typeof ack === 'function' ? ack : () => {};
     if (!data || typeof data.playerName !== 'string') {
@@ -137,39 +211,47 @@ export function registerLobbyHandlers(socket, io) {
 
     const { playerName } = data;
     let { gameIdToJoin } = data;
-    const user = socket.request.user || { id: socket.id };
+    const user = socket.request.user || { id: socket.id }; // Assuming user might be populated by auth middleware
 
     try {
       let gameState;
       let assignedRole;
       let isNewGame = false;
 
-      if (!gameIdToJoin) {
+      if (!gameIdToJoin) { // Create a new game
         isNewGame = true;
         gameIdToJoin = `game_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         gameState = createInitialGameState(gameIdToJoin);
-        gameState.hostId = user.id;
-        assignedRole = PLAYER_ROLES[0];
+        gameState.hostId = user.id; // Assign host
+        assignedRole = PLAYER_ROLES[0]; // First player takes the first role
         gameState = assignRoleToPlayer(gameState, assignedRole, user.id, playerName, socket.id);
 
-        await gameRepository.createGame(gameIdToJoin, gameState);
+        // Assuming createGame handles the initial save of a new game document.
+        // If gameRepository.createGame doesn't exist, this would be an updateGame with upsert.
+        // For clarity, if createGame is preferred for new documents:
+        await gameRepository.createGame(gameIdToJoin, gameState); // Or updateGame with upsert if createGame is not defined
         logger.info(`New game created by ${playerName} (${user.id}) with ID: ${gameIdToJoin}. Player assigned role ${assignedRole}.`);
 
-        socket.join(gameIdToJoin);
-        socket.gameId = gameIdToJoin;
+        socket.join(gameIdToJoin); // Join the Socket.IO room for this game
+        socket.gameId = gameIdToJoin; // Store gameId on socket for easy access
         if(socket.request.user) socket.request.user.role = assignedRole; else socket.request.user = { role: assignedRole, id: user.id};
 
+
+        // Inform the client of their role and game details
         socket.emit(GAME_EVENTS.ASSIGN_ROLE, {
             gameId: gameIdToJoin, role: assignedRole, players: gameState.players,
             isHost: true, playerId: user.id
         });
 
-        await gameRepository.updateGame(gameIdToJoin, gameState);
+        // No need to broadcast initial state here if createGame saved it,
+        // or if the expectation is that players join one by one and state is broadcast on each join.
+        // However, if createGame doesn't broadcast, and for consistency:
+        await gameRepository.updateGame(gameIdToJoin, gameState); // Ensure latest state is saved
         io.to(gameIdToJoin).emit(GAME_EVENTS.STATE_UPDATE, gameState);
         logger.info(`Player ${playerName} (${user.id}) created game ${gameIdToJoin} as ${assignedRole}. State broadcasted.`);
         return ack(null, { status: 'ok', message: 'New game created and joined.', gameId: gameIdToJoin, role: assignedRole, players: gameState.players, gameState });
 
-      } else {
+      } else { // Join an existing game
         gameState = await gameRepository.getGame(gameIdToJoin);
         if (!gameState) {
           logger.warn(`Player ${playerName} (${user.id}) tried to join non-existent game: ${gameIdToJoin}`);
@@ -180,31 +262,35 @@ export function registerLobbyHandlers(socket, io) {
           return ack({ status: 'error', message: `Game ${gameIdToJoin} is not in lobby phase.` });
         }
 
+        // Check if player is rejoining (was previously in game and disconnected)
         let existingPlayerRole = null;
         for(const role of PLAYER_ROLES){
             if(gameState.players[role] && gameState.players[role].id === user.id && !gameState.players[role].isConnected) {
-                existingPlayerRole = role;
+                existingPlayerRole = role; // Player is rejoining
                 break;
             }
              if(gameState.players[role] && gameState.players[role].id === user.id && gameState.players[role].isConnected) {
+                // Player is trying to join again while already connected (e.g., from another tab)
                 logger.warn(`Player ${playerName} (${user.id}) attempted to join game ${gameIdToJoin} but is already connected as ${role}.`);
                 return ack({ status: 'error', message: 'You are already in this game.' });
             }
         }
 
-        if(existingPlayerRole) {
+        if(existingPlayerRole) { // Rejoining player
             assignedRole = existingPlayerRole;
+            // Update socketId and connection status for the rejoining player
             gameState.players[assignedRole].socketId = socket.id;
             gameState.players[assignedRole].isConnected = true;
-            gameState.players[assignedRole].name = playerName;
-            gameState.players[assignedRole].isActive = true;
-        } else {
+            gameState.players[assignedRole].name = playerName; // Update name if changed
+            gameState.players[assignedRole].isActive = true; // Mark as active again
+        } else { // New player joining
             if (isLobbyFull(gameState)) {
               logger.warn(`Player ${playerName} (${user.id}) tried to join full game (lobby full check): ${gameIdToJoin}`);
               return ack({ status: 'error', message: 'Game is full.' });
             }
             assignedRole = getNextAvailableRole(gameState);
             if (!assignedRole) {
+                 // This should ideally not happen if isLobbyFull is false, but as a safeguard:
                  logger.error(`Lobby join error: No role available in game ${gameIdToJoin} despite not being full.`);
                 return ack({ status: 'error', message: 'Failed to assign role, lobby might be in an inconsistent state.' });
             }
@@ -215,6 +301,7 @@ export function registerLobbyHandlers(socket, io) {
         socket.gameId = gameIdToJoin;
         if(socket.request.user) socket.request.user.role = assignedRole; else socket.request.user = { role: assignedRole, id: user.id};
 
+
         socket.emit(GAME_EVENTS.ASSIGN_ROLE, {
             gameId: gameIdToJoin, role: assignedRole, players: gameState.players,
             isHost: gameState.hostId === user.id, playerId: user.id
@@ -223,6 +310,7 @@ export function registerLobbyHandlers(socket, io) {
         let finalAckMessage = 'Joined existing game.';
         let finalGameStateToSaveAndBroadcast = gameState;
 
+        // Check if lobby is full after this player joins and if game should auto-start
         if (isLobbyFull(finalGameStateToSaveAndBroadcast) && finalGameStateToSaveAndBroadcast.gamePhase === GAME_PHASES.LOBBY) {
             logger.info(`Lobby for game ${gameIdToJoin} is now full. Starting game automatically.`);
             try {
@@ -231,11 +319,12 @@ export function registerLobbyHandlers(socket, io) {
                 finalAckMessage = 'Joined game, and game is now starting.';
             } catch (snhError) {
                 logger.error(`Failed to auto-start new hand for game ${gameIdToJoin} after lobby full: ${snhError.message}`, snhError);
+                // If auto-start fails, emit error to room, but player still joined.
                 io.to(gameIdToJoin).emit(GAME_EVENTS.ACTION_ERROR, { message: `Failed to auto-start game: ${snhError.message}` });
                 // Player still joined, but game didn't start. Save current lobby state.
                 // gameState here is before startNewHand was called or failed.
                 await gameRepository.updateGame(gameIdToJoin, gameState);
-                io.to(gameIdToJoin).emit(GAME_EVENTS.STATE_UPDATE, gameState);
+                io.to(gameIdToJoin).emit(GAME_EVENTS.STATE_UPDATE, gameState); // Broadcast current lobby state
                 return ack(null, { status: 'ok', message: 'Joined lobby, but failed to auto-start game.', gameId: gameIdToJoin, role: assignedRole, players: gameState.players, gameState: gameState });
             }
         }

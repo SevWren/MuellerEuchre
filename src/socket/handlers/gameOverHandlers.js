@@ -1,14 +1,34 @@
+/**
+ * Socket event handlers for game over and new game request actions.
+ * @module socket/handlers/gameOverHandlers
+ */
 import { getGame, updateGame } from '../../db/gameRepository.js';
 import { handleNewGameRequest } from '../../game/phases/scoringPhase.js'; // Re-using from scoringPhase.js as it contains new game logic
 import { GAME_EVENTS, GAME_PHASES } from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 
 /**
- * Registers handlers for game over actions.
- * @param {object} socket The socket instance for the client.
- * @param {object} io The Socket.IO server instance.
+ * Registers event handlers related to game over scenarios, primarily handling requests to start a new game.
+ *
+ * @param {import('socket.io').Socket} socket - The socket instance for the connected client.
+ * @param {import('socket.io').Server} io - The Socket.IO server instance, used for broadcasting to rooms.
  */
 export function registerGameOverHandlers(socket, io) {
+  /**
+   * Handles the 'ACTION_REQUEST_NEW_GAME' event from a client.
+   * This event is typically sent when a player wishes to start a new game after the current one has concluded.
+   * It validates that the current game is indeed over, then calls game logic to reset the state to a new lobby,
+   * persists this new state, and broadcasts it to all players in the (original) game room.
+   *
+   * Note on game ID handling: If `handleNewGameRequest` (and subsequently `resetFullGame` from `state.js`)
+   * generates a new `gameId` for the reset game, clients will receive this new ID in the state update.
+   * They might need to adjust their subscriptions or re-join based on the application's room management strategy.
+   * This handler currently emits the new state to the *original* `gameId` room.
+   *
+   * @param {object} payload - The data received from the client.
+   * @param {string} payload.gameId - The ID of the game from which the new game is requested.
+   * @param {string} payload.playerRole - The role of the player making the request (for logging/authorization).
+   */
   socket.on(GAME_EVENTS.ACTION_REQUEST_NEW_GAME, async ({ gameId, playerRole }) => {
     logger.info(`[Game ID: ${gameId}] Received ${GAME_EVENTS.ACTION_REQUEST_NEW_GAME} from ${playerRole} (socket ${socket.id})`);
     try {

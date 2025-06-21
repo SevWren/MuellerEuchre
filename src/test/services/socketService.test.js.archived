@@ -1,1 +1,0 @@
-This test file (src/test/services/socketService.test.js) has been archived because it tests a client-side service whose server-side Socket.IO counterpart has been archived for a complete rewrite, rendering these tests obsolete.

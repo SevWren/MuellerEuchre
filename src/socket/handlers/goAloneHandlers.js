@@ -10,16 +10,32 @@ import { getGame, updateGame } from '../../db/gameRepository.js';
 import { GAME_EVENTS } from '../../config/constants.js';
 
 /**
- * Registers "go alone" decision event handlers for a given socket.
- * @param {object} socket - The Socket.IO socket instance for a client.
- * @param {object} io - The Socket.IO server instance.
+ * Registers event handlers for the "go alone" decision phase of the game.
+ * Specifically, it listens for a player's decision on whether to play alone or with their partner.
+ *
+ * @param {import('socket.io').Socket} socket - The socket instance for the connected client.
+ * @param {import('socket.io').Server} io - The Socket.IO server instance, used for broadcasting.
  */
 export function registerGoAloneHandlers(socket, io) {
   const eventName = GAME_EVENTS.ACTION_GO_ALONE_DECISION;
 
   /**
-   * Handles 'action_go_alone_decision' from a client.
-   * Expected data: { gameId: string, decision: boolean }
+   * Handles the 'ACTION_GO_ALONE_DECISION' event emitted by a client.
+   * This event signifies the trump-making player's choice to "go alone" or play with their partner.
+   *
+   * The handler validates the incoming data, retrieves the game state, determines the player's role,
+   * and then calls `handleGoAloneDecision` from `goAlonePhase.js` to process the decision.
+   *
+   * If the decision is processed successfully (indicated by `result.success`), the updated game state
+   * is saved to the database and broadcast to all clients in the game room via `GAME_EVENTS.GAME_STATE_UPDATE`.
+   * If processing fails, an `ACTION_ERROR` is emitted back to the originating client.
+   *
+   * Note: This handler does not use an explicit `ack` callback pattern like some other handlers.
+   * Success/failure is communicated via `GAME_STATE_UPDATE` or `ACTION_ERROR` respectively.
+   *
+   * @param {object} data - The payload received from the client.
+   * @param {string} data.gameId - The ID of the game for which the decision is being made.
+   * @param {boolean} data.decision - True if the player chooses to go alone, false otherwise.
    */
   socket.on(eventName, async (data) => {
     if (!data || !data.gameId || typeof data.decision !== 'boolean') {

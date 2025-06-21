@@ -9,27 +9,12 @@ import { PhaseLogicError, NotPlayersTurnError, InvalidPhaseError } from '../logi
  * Handles a player playing a card.
  * Validates the play, updates the current trick, determines the next player,
  * and transitions to scoring if the hand is over.
- * This function relies on `validatePlay` to ensure the move is legal before proceeding.
- * It uses `updateGameState` for state transitions, implying it works with previous state to produce a new one.
  *
- * @param {object} gameState - The current state of the game.
- * @param {object} gameState.players - Player objects keyed by role, each with a `hand` array and `teamId`.
- * @param {Array<object>} gameState.currentTrick - Array of cards currently played in the trick.
- * @param {string} gameState.trumpSuit - The current trump suit.
- * @param {object} gameState.tricksTaken - Object tracking tricks taken by each team.
- * @param {string|null} gameState.currentPlayer - The role of the player whose turn it is.
- * @param {string|null} gameState.lastTrickWinner - The role of the player who won the last trick.
- * @param {string} [gameState.message] - Current game message.
- * @param {string} gameState.gamePhase - Current game phase (should be `PLAYING`).
- * @param {boolean} [gameState.goingAlone] - Flag indicating if a player is going alone.
- * @param {string|null} [gameState.partnerSittingOut] - Role of the partner sitting out, if any.
- * @param {string} playerRole - The role of the player making the play (e.g., 'player1', 'player2').
- * @param {object} cardPlayed - The card object that was played. Must have `id`, `rank`, and `suit`.
- * @param {string} cardPlayed.id - Unique identifier of the card.
- * @param {string} cardPlayed.rank - Rank of the card.
- * @param {string} cardPlayed.suit - Suit of the card.
- * @returns {object} The new game state after the card play.
- * @throws {PhaseLogicError} For internal inconsistencies (e.g., player not found, teamId missing for winner) or logic failures.
+ * @param {object} gameState The current state of the game. // Changed from GameState to object for consistency
+ * @param {string} playerRole The role of the player making the play (e.g., 'player1', 'player2').
+ * @param {object} cardPlayed The card object that was played.
+ * @returns {object} The new game state.
+ * @throws {Error} If the play is invalid (now via validatePlay or PhaseLogicError).
  * @throws {PhaseLogicError} For internal inconsistencies or logic failures.
  * @throws {NotPlayersTurnError} If it's not the player's turn (from validatePlay).
  * @throws {InvalidPhaseError} If not in PLAYING phase (from validatePlay).
@@ -113,30 +98,23 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
 }
 
 /**
- * Determines the winner of a completed trick based on Euchre rules.
- * It considers the trump suit, the lead suit, and card ranks (including bowers).
+ * Determines the winner of a completed trick.
  *
- * @param {Array<object>} trick - Array of cards played in the trick. Each card object in the array
- * should have `playedBy` (string), `suit` (string), and `rank` (string) properties.
- * It is assumed that the cards are in the order they were played.
- * @param {string} trumpSuit - The trump suit for the current hand.
- * @param {string} leadPlayerRole - The role of the player who led the trick (not directly used in current logic but good for context,
- * as `leadCard.suit` is derived from the first card in `trick`).
- * @returns {string} The role (`playedBy`) of the player who won the trick.
- * @throws {PhaseLogicError} If the trick does not contain exactly 4 cards.
+ * @param {Array<object>} trick Array of cards played in the trick, with {playedBy, suit, rank}.
+ * @param {string} trumpSuit The trump suit for the current hand.
+ * @param {string} leadPlayerRole The role of the player who led the trick.
+ * @returns {string} The role of the player who won the trick.
  */
-function determineTrickWinner(trick, trumpSuit, leadPlayerRole) { // leadPlayerRole is context, leadCard.suit is key
+function determineTrickWinner(trick, trumpSuit, leadPlayerRole) {
   if (!trick || trick.length !== 4) {
     throw new PhaseLogicError('Trick must have 4 cards to determine a winner.');
   }
 
-  const leadCard = trick[0]; // The first card played in the trick establishes the lead suit (unless trumped)
+  const leadCard = trick[0];
   let winningCard = leadCard;
 
   for (let i = 1; i < trick.length; i++) {
     const currentCard = trick[i];
-    // getCardRank needs the lead suit of the trick to correctly value off-suit cards.
-    // The lead suit for rank comparison is always based on the first card played in the trick.
     const winningRank = getCardRank(winningCard, trumpSuit, leadCard.suit);
     const currentRank = getCardRank(currentCard, trumpSuit, leadCard.suit);
 

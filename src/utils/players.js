@@ -6,25 +6,27 @@ import { PLAYER_ROLES, TEAMS } from '../config/constants.js';
 import logger from './logger.js'; // Use the new Pino logger
 
 /**
- * Gets the team identifier (from `TEAMS` constants, e.g., `TEAMS.TEAM_NS`) for a given player role.
- * This function assumes a standard 4-player game where players at even indices in `PLAYER_ROLES`
- * (e.g., 0 and 2) form one team (e.g., `TEAMS.TEAM_NS`), and players at odd indices (e.g., 1 and 3)
- * form the other team (e.g., `TEAMS.TEAM_EW`).
- *
- * @param {string} playerRole - The player's role (e.g., 'south', 'west'). Must be a value from `PLAYER_ROLES`.
- * @returns {string|null} The team identifier (e.g., `TEAMS.TEAM_NS`, `TEAMS.TEAM_EW`) or `null` if the role is invalid.
- * @private Used internally, primarily by `isTeammate` and `initializePlayers`.
+ * Gets the team identifier for a given player role.
+ * (e.g., 'north' and 'south' are on one team, 'east' and 'west' on another).
+ * @param {string} playerRole - The player's role (e.g., 'south', 'west').
+ * @returns {string} The team identifier (e.g., 'north+south', 'east+west') or empty string if role is invalid.
+ * @private // This function is only used internally by isTeammate
  */
 function getTeamForPlayer(playerRole) {
-  const roleIndex = PLAYER_ROLES.indexOf(playerRole);
-  if (roleIndex === -1) {
-    logger.warn({ playerRole }, 'Invalid playerRole provided to getTeamForPlayer');
-    return null;
+  if (PLAYER_ROLES.slice(0, 2).includes(playerRole)) { // e.g., 'south', 'north' if PLAYER_ROLES[0]='south', PLAYER_ROLES[2]='north'
+    // This assumes specific ordering in PLAYER_ROLES for teams.
+    // A more robust way would be to have team definitions in constants.
+    // For now, assuming PLAYER_ROLES = ['south', 'west', 'north', 'east']
+    // Team 1: south, north
+    // Team 2: west, east
+    if (playerRole === PLAYER_ROLES[0] || playerRole === PLAYER_ROLES[2]) { // south or north
+        return `${PLAYER_ROLES[0]}_${PLAYER_ROLES[2]}`; // e.g. "south_north"
+    } else if (playerRole === PLAYER_ROLES[1] || playerRole === PLAYER_ROLES[3]) { // west or east
+        return `${PLAYER_ROLES[1]}_${PLAYER_ROLES[3]}`; // e.g. "west_east"
+    }
   }
-  // Assuming PLAYER_ROLES = ['south', 'west', 'north', 'east']
-  // Team NS: south (0), north (2) -> even indices
-  // Team EW: west (1), east (3) -> odd indices
-  return (roleIndex % 2 === 0) ? TEAMS.TEAM_NS : TEAMS.TEAM_EW;
+  logger.warn({ playerRole }, 'Invalid playerRole provided to getTeamForPlayer');
+  return '';
 }
 
 /**
@@ -68,20 +70,16 @@ export function getPartner(playerRole) {
 }
 
 /**
- * Gets the next player in the turn order.
- * Handles "going alone" scenarios by skipping the partner who is sitting out.
- *
- * @param {string} currentPlayerRole - The role of the current player.
- * @param {Array<string>} [playerSlots=PLAYER_ROLES] - An ordered array of player roles defining the turn sequence.
- *                                                     Defaults to `PLAYER_ROLES`.
- * @param {boolean} [goingAlone=false] - Flag indicating if a player has chosen to "go alone".
- * @param {string|null} [partnerSittingOut=null] - The role of the partner who is sitting out, if `goingAlone` is true.
- * @returns {string|undefined} The role of the next player, or `undefined` if inputs are invalid
- * (e.g., `currentPlayerRole` not in `playerSlots`, or `playerSlots` is not an array of 4).
+ * Gets the next player in turn order, skipping a sitting out partner if applicable.
+ * @param {string} currentPlayerRole - The current player's role.
+ * @param {Array<string>} [playerSlots=PLAYER_ROLES] - Ordered array of player roles for the current game. Defaults to PLAYER_ROLES.
+ * @param {boolean} [goingAlone=false] - Whether a player is "going alone".
+ * @param {string} [partnerSittingOut] - The role of the partner who is sitting out (if goingAlone is true).
+ * @returns {string|undefined} The next player's role, or undefined if inputs are invalid.
  */
 export function getNextPlayer(currentPlayerRole, playerSlots = PLAYER_ROLES, goingAlone = false, partnerSittingOut = null) {
-    if (!currentPlayerRole || !Array.isArray(playerSlots) || playerSlots.length !== 4) {
-        logger.warn({ currentPlayerRole, playerSlotsProvided: playerSlots }, 'Invalid parameters for getNextPlayer: requires currentPlayerRole and valid playerSlots (array of 4).');
+    if (!currentPlayerRole || !playerSlots || playerSlots.length !== 4) {
+        logger.warn({ currentPlayerRole, playerSlots }, 'Invalid parameters for getNextPlayer: requires currentPlayerRole and valid playerSlots (array of 4).');
         return undefined;
     }
 
@@ -96,7 +94,7 @@ export function getNextPlayer(currentPlayerRole, playerSlots = PLAYER_ROLES, goi
 
     // If going alone, and the next player is the one sitting out, skip them.
     if (goingAlone && partnerSittingOut && nextPlayer === partnerSittingOut) {
-        nextIndex = (nextIndex + 1) % playerSlots.length; // Skip again
+        nextIndex = (nextIndex + 1) % playerSlots.length;
         nextPlayer = playerSlots[nextIndex];
     }
 
@@ -104,14 +102,10 @@ export function getNextPlayer(currentPlayerRole, playerSlots = PLAYER_ROLES, goi
 }
 
 /**
- * Retrieves a player object from the game state by their socket ID.
- *
- * @param {object} gameState - The current game state.
- * @param {object} gameState.players - An object where player data is stored, keyed by role.
- *                                   Each player object is expected to have a `socketId` property.
- * @param {string} socketId - The socket ID to search for.
- * @returns {object|null} The player object (the value from the `gameState.players` map)
- *                        if found, or `null` if not found or if inputs are invalid.
+ * Gets a player object by their socket ID from the game state.
+ * @param {object} gameState - The current game state, containing a `players` object.
+ * @param {string} socketId - The socket ID to look up.
+ * @returns {object|null} The player object (value from the gameState.players map) or null if not found or inputs are invalid.
  */
 export function getPlayerBySocketId(gameState, socketId) {
     if (!gameState || !gameState.players || typeof gameState.players !== 'object' || !socketId) {
@@ -120,7 +114,7 @@ export function getPlayerBySocketId(gameState, socketId) {
     }
     
     for (const role in gameState.players) {
-        if (gameState.players[role] && gameState.players[role].socketId === socketId) { // Added null check for player[role]
+        if (gameState.players[role].socketId === socketId) {
             return gameState.players[role];
         }
     }
@@ -128,14 +122,10 @@ export function getPlayerBySocketId(gameState, socketId) {
 }
 
 /**
- * Retrieves a player's role (e.g., 'south', 'west') from the game state by their socket ID.
- *
- * @param {object} gameState - The current game state.
- * @param {object} gameState.players - An object where player data is stored, keyed by role.
- *                                   Each player object is expected to have a `socketId` property.
- * @param {string} socketId - The socket ID to search for.
- * @returns {string|null} The player's role (a key from the `gameState.players` map)
- *                        if found, or `null` if not found or if inputs are invalid.
+ * Gets a player's role by their socket ID from the game state.
+ * @param {object} gameState - The current game state, containing a `players` object.
+ * @param {string} socketId - The socket ID to look up.
+ * @returns {string|null} The player's role (key from the gameState.players map) or null if not found or inputs are invalid.
  */
 export function getRoleBySocketId(gameState, socketId) {
     if (!gameState || !gameState.players || typeof gameState.players !== 'object' || !socketId) {
@@ -144,7 +134,7 @@ export function getRoleBySocketId(gameState, socketId) {
     }
     
     for (const role in gameState.players) {
-        if (gameState.players[role] && gameState.players[role].socketId === socketId) { // Added null check for player[role]
+        if (gameState.players[role].socketId === socketId) {
             return role;
         }
     }
@@ -152,30 +142,24 @@ export function getRoleBySocketId(gameState, socketId) {
 }
 
 /**
- * Initializes the `players` object for a new game state.
- * Creates entries for each role defined in `PLAYER_ROLES`. Each player is initialized with:
- * - A default name based on their role (e.g., 'South').
- * - `socketId` set to `null`.
- * - An empty `hand` array.
- * - A `teamId` determined by their position (based on `TEAMS` and `PLAYER_ROLES` constants).
- * - `score` initialized to 0 (note: team scores are primary in Euchre; this might be individual contribution or placeholder).
- * - `isConnected` set to `false`.
- * - `tricksWonThisHand` initialized to 0.
- *
- * @returns {object} An initialized players object, where keys are player roles (e.g., 'south')
- *                   and values are player data objects.
+ * Initializes the players object with default values for a new game.
+ * Each player has a team, empty hand, zero score, null socketId, default name,
+ * isConnected status, and zero tricksWonThisHand.
+ * @returns {object} The initialized players object, mapping roles to player data.
  */
 export function initializePlayers() {
     const players = {};
     PLAYER_ROLES.forEach((role, index) => {
-        // Determine team based on PLAYER_ROLES order and TEAMS constants
-        const teamId = getTeamForPlayer(role); // Use getTeamForPlayer for consistency
+        // Determine team: PLAYER_ROLES = ['south', 'west', 'north', 'east']
+        // South & North (indices 0, 2) are TEAM_NS
+        // West & East (indices 1, 3) are TEAM_EW
+        const teamId = (index % 2 === 0) ? TEAMS.TEAM_NS : TEAMS.TEAM_EW;
         players[role] = {
             name: role.charAt(0).toUpperCase() + role.slice(1), // e.g., 'South'
             socketId: null,
             hand: [],
-            teamId: teamId,
-            score: 0, // Individual player score, team scores are separate in gameState.teamScores
+            teamId: teamId, // Assign to TEAM_NS or TEAM_EW
+            score: 0, // Overall game score for this player's team (might be redundant if teamScores used in gameState)
             isConnected: false,
             tricksWonThisHand: 0,
         };
@@ -185,13 +169,8 @@ export function initializePlayers() {
 
 /**
  * Gets the team ID for a given player object.
- *
  * @param {object} player - The player object.
- * @param {string} player.teamId - The team identifier associated with the player.
- * @param {string} [player.id] - Player's unique ID (for logging).
- * @param {string} [player.name] - Player's name (for logging).
- * @returns {string|undefined} The team ID (e.g., `TEAMS.TEAM_NS`) of the player,
- *                             or `undefined` if player object is invalid or `teamId` is not set.
+ * @returns {number|undefined} The team ID of the player, or undefined if player is invalid or teamId is not set.
  */
 export function getPlayerTeam(player) {
   if (!player || typeof player !== 'object') {

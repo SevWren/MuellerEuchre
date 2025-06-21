@@ -1,51 +1,14 @@
 import { getGame, updateGame } from '../../db/gameRepository.js';
 import { handlePlayCard } from '../../game/phases/playingPhase.js';
-/**
- * Socket event handlers for the main card playing phase of the game.
- * @module socket/handlers/playingHandlers
- */
-import { getGame, updateGame } from '../../db/gameRepository.js';
-import { handlePlayCard } from '../../game/phases/playingPhase.js';
 import { GAME_EVENTS, GAME_PHASES } from '../../config/constants.js'; // Added GAME_PHASES
 import logger from '../../utils/logger.js';
 
 /**
- * Registers event handlers related to the card playing phase of the game.
- * Specifically, it listens for a player's action to play a card.
- *
- * @param {import('socket.io').Socket} socket - The socket instance for the connected client.
- * @param {import('socket.io').Server} io - The Socket.IO server instance, used for broadcasting.
+ * Registers handlers for playing phase actions.
+ * @param {object} socket The socket instance for the client.
+ * @param {object} io The Socket.IO server instance.
  */
 export function registerPlayingHandlers(socket, io) {
-  /**
-   * Handles the 'ACTION_PLAY_CARD' event emitted by a client.
-   * This event signifies a player's attempt to play a card during their turn.
-   *
-   * The handler performs the following steps:
-   * 1. Retrieves the current game state using `gameId`.
-   * 2. Validates the basic structure of the `card` object.
-   * 3. Calls `handlePlayCard` from `playingPhase.js` to process the card play. This function
-   *    internally validates the play (turn, phase, card validity, rules like following suit)
-   *    and returns the new game state.
-   * 4. If the play is successful, the updated game state is saved to the database.
-   * 5. The new game state is broadcast to all clients in the game room via `GAME_EVENTS.GAME_STATE_UPDATE`.
-   * 6. If the game phase transitions to `SCORING` as a result of the play (i.e., hand is over),
-   *    this is logged.
-   *
-   * Errors during this process (e.g., game not found, invalid card data, errors from `handlePlayCard`
-   * such as `NotPlayersTurnError`, `InvalidPhaseError`, `CardNotInHandError`, `MustFollowSuitError`)
-   * are caught, logged, and a generic `GAME_EVENTS.ERROR` is emitted back to the originating client.
-   *
-   * Note: This handler does not use an explicit `ack` callback.
-   *
-   * @param {object} payload - The data received from the client.
-   * @param {string} payload.gameId - The ID of the game.
-   * @param {string} payload.playerRole - The role of the player playing the card.
-   * @param {object} payload.card - The card object being played.
-   * @param {string} payload.card.suit - The suit of the card.
-   * @param {string} payload.card.rank - The rank of the card.
-   * @param {string} payload.card.id - The unique ID of the card.
-   */
   socket.on(GAME_EVENTS.ACTION_PLAY_CARD, async ({ gameId, playerRole, card }) => {
     logger.info(`[Game ID: ${gameId}] Received ${GAME_EVENTS.ACTION_PLAY_CARD} from ${playerRole} with card ${card.rank} of ${card.suit}`);
     try {

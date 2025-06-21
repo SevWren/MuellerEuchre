@@ -11,20 +11,7 @@ import socketServiceInstance from './socketService.js'; // Import the actual soc
 // The global/mock stateService and socketService objects defined previously are illustrative
 // but the UiService class will now use the imported singleton instances by default.
 
-/**
- * @class UiService
- * @description Handles UI updates and user interactions. It acts as a bridge between the
- * services (StateService, SocketService) and the actual UI rendering logic (conceptual).
- * Methods in this class are typically called to display information, prompt users,
- * or handle user-initiated game actions.
- */
 export class UiService { // Export the class
-  /**
-   * Creates an instance of UiService.
-   * @param {import('./stateService.js').StateService} [stateServiceParam=stateServiceInstance] - The state service instance.
-   * @param {import('./socketService.js').SocketService} [socketServiceParam=socketServiceInstance] - The socket service instance.
-   * @memberof UiService
-   */
   constructor(stateServiceParam = stateServiceInstance, socketServiceParam = socketServiceInstance) {
     this.stateService = stateServiceParam;
     this.socketService = socketServiceParam; // socketServiceInstance will be the updated one
@@ -52,21 +39,10 @@ export class UiService { // Export the class
     // e.g., in a cleanup method: if (this.unsubscribeStateChanges) this.unsubscribeStateChanges();
   }
 
-  /**
-   * Displays the role assigned to the player.
-   * @param {string} role - The role assigned to the player (e.g., 'south', 'dealer').
-   * @memberof UiService
-   */
   displayAssignedRole(role) {
     console.log(`[Conceptual UiService] Displaying assigned role: ${role}`);
   }
 
-  /**
-   * Updates the lobby view with the current list of players and their status.
-   * @param {Array<object>} players - An array of player objects. Each object may contain
-   * properties like `name`, `role`, and `isConnected`.
-   * @memberof UiService
-   */
   updateLobbyView(players) {
     console.log('[Conceptual UiService] Updating lobby view with players:');
     (players || []).forEach(player => {
@@ -74,23 +50,11 @@ export class UiService { // Export the class
     });
   }
 
-  /**
-   * Displays a generic message to the user.
-   * @param {string} message - The message content to display.
-   * @param {'info'|'error'|'success'} [type='info'] - The type of message, which can influence its styling.
-   * @memberof UiService
-   */
   displayMessage(message, type = 'info') { // Added type for styling (info, error, success)
     // In a real UI, this might change the color or icon of the message.
     console.log(`[Conceptual UiService] Displaying message (type: ${type}): "${message}"`);
   }
 
-  /**
-   * Shows an error modal dialog for action-specific errors.
-   * @param {string} message - The error message to display in the modal.
-   * @param {string} [title='Error'] - The title of the error modal.
-   * @memberof UiService
-   */
   // Refined showErrorModal to be more specific for action errors.
   showErrorModal(message, title = 'Error') {
     // This could be a dedicated modal for critical errors.
@@ -98,12 +62,6 @@ export class UiService { // Export the class
     // For example, a pop-up: alert(`[${title}] ${message}`);
   }
 
-  /**
-   * Displays a global error message, typically for non-action-specific errors from the server.
-   * This might be implemented as a banner or a toast notification.
-   * @param {string} message - The global error message to display.
-   * @memberof UiService
-   */
   // New method for global, non-action-specific errors (e.g., from server GAME_EVENTS.ERROR)
   displayGlobalError(message) {
     console.error(`[Conceptual UiService] Displaying GLOBAL error: "${message}"`);
@@ -112,13 +70,6 @@ export class UiService { // Export the class
     this.displayMessage(`Global Error: ${message}`, 'error');
   }
 
-  /**
-   * Prompts the user to rejoin a game they were previously in.
-   * Handles user confirmation (simulated) and calls `socketService.emitRejoinGame`.
-   * Displays feedback messages based on the outcome of the rejoin attempt.
-   * @param {string} gameId - The ID of the game to prompt for rejoining.
-   * @memberof UiService
-   */
   promptForRejoin(gameId) {
     console.log(`[Conceptual UiService] Displaying prompt for rejoining game ID: ${gameId}.`);
     // Conceptual: In a real UI, this would be a modal with "Yes" / "No" buttons.
@@ -149,12 +100,6 @@ export class UiService { // Export the class
     }
   }
 
-  /**
-   * Displays a message indicating that the connection to the server has been lost.
-   * Typically used to inform the user that reconnection attempts are underway.
-   * @param {string} [reason='Connection to server lost.'] - The reason for the connection loss.
-   * @memberof UiService
-   */
   showConnectionLostMessage(reason = 'Connection to server lost.') {
     console.warn(`[Conceptual UiService] Displaying connection lost message: "${reason} Attempting to reconnect..."`);
     // This should be a non-modal, persistent message (e.g., a banner).
@@ -162,24 +107,12 @@ export class UiService { // Export the class
     this.displayMessage(`${reason} Attempting to reconnect...`, 'error'); // Use displayMessage for a banner-like message
   }
 
-  /**
-   * Shows a modal or prominent message indicating that the client is currently reconnecting.
-   * This should ideally be a blocking UI to prevent user actions during auto-reconnection.
-   * @param {string} [message='Reconnecting to server...'] - The message to display.
-   * @memberof UiService
-   */
   showReconnectingModal(message = 'Reconnecting to server...') {
     console.log(`[Conceptual UiService] Displaying reconnecting modal: "${message}"`);
     // This should be a blocking modal to prevent actions while auto-reconnecting.
     this.showSpinner(message); // Use spinner as a full-screen modal concept
   }
 
-  /**
-   * Displays a message confirming successful reconnection to the server.
-   * Hides any "reconnecting" modals or spinners.
-   * @param {string} [message='Successfully reconnected!'] - The success message.
-   * @memberof UiService
-   */
   showReconnectedMessage(message = 'Successfully reconnected!') {
     console.log(`[Conceptual UiService] Displaying reconnected message: "${message}"`);
     this.hideSpinner(); // Hide any reconnecting modal/spinner
@@ -187,12 +120,6 @@ export class UiService { // Export the class
     // Potentially hide any persistent "connection lost" banners.
   }
 
-  /**
-   * Shows a modal dialog indicating that reconnection attempts have failed.
-   * Hides any "reconnecting" modals and provides information to the user.
-   * @param {string} [reason='Failed to reconnect.'] - The reason for the failure.
-   * @memberof UiService
-   */
   showReconnectionFailedModal(reason = 'Failed to reconnect.') {
     console.error(`[Conceptual UiService] Displaying reconnection failed modal: "${reason} Please check your internet connection or try joining again."`);
     this.hideSpinner(); // Hide any reconnecting modal/spinner
@@ -200,10 +127,6 @@ export class UiService { // Export the class
     // Offer options like "Try Again" (manual reconnect) or "Go to Lobby".
   }
 
-  /**
-   * Hides a generic modal, typically one shown during reconnection attempts (e.g., a spinner).
-   * @memberof UiService
-   */
   // Helper to hide generic modals if one is shown by showReconnectingModal
   hideModal() {
     console.log('[Conceptual UiService] Hiding generic modal (e.g., spinner).');
@@ -212,19 +135,11 @@ export class UiService { // Export the class
 
 
   // --- UI Update Methods for Core Game Info (from Task 3) ---
-  /**
-   * Displays the current player's hand. Retrieves hand data from StateService.
-   * @memberof UiService
-   */
   displayPlayerHand() {
     const hand = this.stateService.getPlayerHand(); // Fetches fresh data from the injected stateService
     console.log('[UiService - Conceptual] Displaying Player Hand:', hand ? hand.map(c => `${c.rank} of ${c.suit}`).join(', ') : 'No hand found');
   }
 
-  /**
-   * Displays the current turn card (up-card/kitty top card). Retrieves data from StateService.
-   * @memberof UiService
-   */
   displayTurnCard() {
     const turnCard = this.stateService.getTurnCard(); // Fetches fresh data
     if (turnCard) {
@@ -234,10 +149,6 @@ export class UiService { // Export the class
     }
   }
 
-  /**
-   * Displays the cards currently played in the active trick. Retrieves data from StateService.
-   * @memberof UiService
-   */
   displayCurrentTrick() {
     const currentTrick = this.stateService.getCurrentTrick(); // Fetches fresh data
     console.log('[UiService - Conceptual] Displaying Current Trick:');
@@ -250,10 +161,6 @@ export class UiService { // Export the class
     }
   }
 
-  /**
-   * Displays the current team scores. Retrieves data from StateService.
-   * @memberof UiService
-   */
   displayTeamScores() {
     const scores = this.stateService.getTeamScores(); // Fetches fresh data
     if (scores) {
@@ -266,10 +173,6 @@ export class UiService { // Export the class
     }
   }
 
-  /**
-   * Displays the latest game message or log. Retrieves data from StateService.
-   * @memberof UiService
-   */
   displayGameMessages() {
     const message = this.stateService.getLatestGameMessage(); // Fetches fresh data
     console.log(`[UiService - Conceptual] Displaying Game Message: "${message || 'No new messages.'}"`);
@@ -278,13 +181,6 @@ export class UiService { // Export the class
   // --- UI Interaction Logic Methods for Bidding (Task 4) ---
   // These methods use the injected socketService to send messages.
   // They also use stateService (injected) to get current game context if needed.
-  /**
-   * Handles the user's decision to order up the dealer or pass.
-   * Emits the decision via SocketService and provides UI feedback.
-   * @param {boolean} passesDecision - True if the player passes, false if they order up.
-   * @returns {Promise<object>} A promise resolving with the server's acknowledgement or rejecting on error.
-   * @memberof UiService
-   */
   promptOrderUp(passesDecision) { // Parameterized for testing/simulation
     console.log(`[UiService - Conceptual] User decided to pass on ordering up: ${passesDecision}.`);
     this.showSpinner('Submitting your decision...');
@@ -304,13 +200,6 @@ export class UiService { // Export the class
       });
   }
 
-  /**
-   * Handles the dealer's action of discarding a card after picking up the turn card.
-   * Emits the discard action via SocketService and provides UI feedback.
-   * @param {object} cardToDiscard - The card object to be discarded.
-   * @returns {Promise<object>|void} A promise resolving with server ack, or void if validation fails.
-   * @memberof UiService
-   */
   promptDealerDiscard(cardToDiscard) { // Parameterized
     const hand = this.stateService.getPlayerHand(); // Still useful for context or pre-validation
     if (!hand || hand.length === 0) {
@@ -340,14 +229,6 @@ export class UiService { // Export the class
       });
   }
 
-  /**
-   * Handles the user's decision to call trump or pass during the second round of bidding.
-   * Emits the decision via SocketService and provides UI feedback.
-   * @param {string|null} suit - The suit chosen as trump, or null if passing.
-   * @param {boolean} passesDecision - True if the player passes.
-   * @returns {Promise<object>} A promise resolving with the server's acknowledgement or rejecting on error.
-   * @memberof UiService
-   */
   promptCallTrump(suit, passesDecision) { // Parameterized
     console.log(`[UiService - Conceptual] User decided on trump call. Suit: ${suit}, Passes: ${passesDecision}`);
     this.showSpinner('Submitting trump call...');
@@ -366,14 +247,6 @@ export class UiService { // Export the class
       });
   }
 
-  /**
-   * Handles the maker's decision to go alone or play with their partner.
-   * Validates that the current player is the maker before emitting.
-   * Emits the decision via SocketService and provides UI feedback.
-   * @param {boolean} goesAloneDecision - True if the maker decides to go alone.
-   * @returns {Promise<object>|void} A promise resolving with server ack, or void if not maker.
-   * @memberof UiService
-   */
   promptGoAlone(goesAloneDecision) { // Parameterized
     const playerRole = this.stateService.getPlayerRole();
     const maker = this.stateService.getMaker();
@@ -400,14 +273,6 @@ export class UiService { // Export the class
       });
   }
 
-  /**
-   * Handles the user's selection of a card to play.
-   * Validates the card object and emits the play card action via SocketService.
-   * Provides UI feedback based on the outcome.
-   * @param {object} card - The card object selected by the player. Expected to have `suit`, `rank`, and `id`.
-   * @returns {Promise<object>} A promise resolving with the server's acknowledgement or rejecting on error/validation failure.
-   * @memberof UiService
-   */
   handlePlayCardSelection(card) {
     console.log('[UiService - Conceptual] Handling play card selection for card:', card ? card.id : 'undefined');
     if (!card || typeof card.suit !== 'string' || typeof card.rank !== 'string' || typeof card.id !== 'string') {
@@ -435,28 +300,14 @@ export class UiService { // Export the class
   }
 
   // --- Other conceptual UI update methods ---
-  /**
-   * Shows a loading spinner or similar indicator on the UI. (Conceptual)
-   * @param {string} [message='Loading...'] - Message to display with the spinner.
-   * @memberof UiService
-   */
   showSpinner(message = 'Loading...') {
     console.log(`[Conceptual UiService] Show spinner: ${message}`);
   }
 
-  /**
-   * Hides any active loading spinner. (Conceptual)
-   * @memberof UiService
-   */
   hideSpinner() {
     console.log('[Conceptual UiService] Hide spinner');
   }
 
-  /**
-   * Navigates to a different view or screen in the application. (Conceptual)
-   * @param {string} viewName - The name or identifier of the view to navigate to.
-   * @memberof UiService
-   */
   navigateTo(viewName) {
     console.log(`[Conceptual UiService] Navigating to view: ${viewName}`);
   }
@@ -464,12 +315,8 @@ export class UiService { // Export the class
   // --- UI Element Contextual State (Task 3 - Client) ---
 
   /**
-   * Determines the state of bidding controls (e.g., Order Up, Pass, Call Trump)
-   * based on the current game state.
-   * @returns {{visible: boolean, enabled: boolean, canOrderUp: boolean, canCallTrump: boolean}}
-   * An object describing the visibility and enabled status of bidding controls,
-   * and specific actions like ordering up or calling trump.
-   * @memberof UiService
+   * Determines the state of bidding controls (e.g., Order Up, Pass, Call Trump).
+   * @returns {object} Object like { visible: boolean, enabled: boolean, specificActions: {} }
    */
   getBiddingControlsState() {
     const playerRole = this.stateService.getPlayerRole(); // Role of this client's player
@@ -495,10 +342,8 @@ export class UiService { // Export the class
   }
 
   /**
-   * Determines the state of "Go Alone" controls based on the current game state.
-   * @returns {{visible: boolean, enabled: boolean}}
-   * An object describing the visibility and enabled status of "Go Alone" controls.
-   * @memberof UiService
+   * Determines the state of "Go Alone" controls.
+   * @returns {object} Object like { visible: boolean, enabled: boolean }
    */
   getGoAloneControlsState() {
     const playerRole = this.stateService.getPlayerRole();
@@ -518,13 +363,9 @@ export class UiService { // Export the class
   }
 
   /**
-   * Determines if the current player can play cards and if a specific card is playable,
-   * based on game rules (e.g., current turn, game phase, following suit).
-   * @param {object|null} [card=null] - The card object to check playability for. If null, checks general playability.
-   * @returns {{canPlayOnSurface: boolean, isCardPlayable: boolean, message: string}}
-   * An object describing whether the player can generally play, if the specific card is playable,
-   * and a message (e.g., explaining why a card is not playable).
-   * @memberof UiService
+   * Determines if the current player can play cards and if a specific card is playable.
+   * @param {object} card - The card object to check playability for (optional).
+   * @returns {object} Object like { canPlay: boolean, isCardPlayable: boolean, message: string }
    */
   getCardPlayabilityState(card = null) {
     const playerRole = this.stateService.getPlayerRole();
@@ -570,11 +411,8 @@ export class UiService { // Export the class
 
 
   /**
-   * Determines the state of the "Request New Game" button, typically visible and enabled
-   * when the current game is over.
-   * @returns {{visible: boolean, enabled: boolean}}
-   * An object describing the visibility and enabled status of the new game button.
-   * @memberof UiService
+   * Determines the state of the "Request New Game" button.
+   * @returns {object} Object like { visible: boolean, enabled: boolean }
    */
   getRequestNewGameButtonState() {
     const gamePhase = this.stateService.gameState?.phase;

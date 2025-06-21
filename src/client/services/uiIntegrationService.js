@@ -1,21 +1,7 @@
 import { log } from '../../utils/logger.js';
 import { GAME_EVENTS } from '../../config/constants.js';
 
-/**
- * @class UIIntegrationService
- * @description Service responsible for integrating game state updates with the UI.
- * It subscribes to state changes from StateSyncService and calls appropriate methods
- * on the gameUI object to render updates. It also manages UI elements like
- * connection status indicators and toast notifications.
- */
 export class UIIntegrationService {
-    /**
-     * Creates an instance of UIIntegrationService.
-     * @param {import('./stateSyncService.js').StateSyncService} stateSyncService - The state synchronization service.
-     * @param {object} gameUI - The main UI object containing methods to update the game's visual representation.
-     * This object is expected to have methods like `updateBoard`, `updateHands`, `showLobby`, etc.
-     * @memberof UIIntegrationService
-     */
     constructor(stateSyncService, gameUI) {
         this.stateSyncService = stateSyncService;
         this.gameUI = gameUI;
@@ -29,11 +15,7 @@ export class UIIntegrationService {
     }
     
     /**
-     * Initializes the UIIntegrationService.
-     * Subscribes to state and connection status changes from StateSyncService.
-     * Calls `initializeUI` to set up necessary DOM elements and styles.
-     * This method should be called once when the service is created.
-     * @memberof UIIntegrationService
+     * Initialize the UI integration service
      */
     initialize() {
         if (this.isInitialized) return;
@@ -52,11 +34,7 @@ export class UIIntegrationService {
     }
     
     /**
-     * Initializes core UI components managed by this service, such as
-     * the connection status indicator and toast notification container.
-     * Also adds necessary CSS styles to the document head.
-     * @memberof UIIntegrationService
-     * @private
+     * Initialize UI components and event listeners
      */
     initializeUI() {
         // Create connection status indicator
@@ -74,11 +52,8 @@ export class UIIntegrationService {
     }
     
     /**
-     * Handles game state changes received from StateSyncService.
-     * Triggers updates to the game board, player information, and phase-specific UI elements.
-     * @param {object} state - The new game state.
-     * @memberof UIIntegrationService
-     * @private
+     * Handle game state changes
+     * @param {Object} state - The new game state
      */
     handleStateChange(state) {
         if (!state) return;
@@ -94,15 +69,8 @@ export class UIIntegrationService {
     }
     
     /**
-     * Handles connection status changes received from StateSyncService.
-     * Updates the visual connection indicator and shows toast notifications
-     * for connection status (e.g., disconnected, reconnecting, reconnected).
-     * @param {object} status - Connection status object.
-     * @param {boolean} status.isConnected - Whether the client is currently connected.
-     * @param {boolean} status.isReconnecting - Whether the client is attempting to reconnect.
-     * @param {string} [status.lastError] - Description of the last connection error, if any.
-     * @memberof UIIntegrationService
-     * @private
+     * Handle connection status changes
+     * @param {Object} status - Connection status object
      */
     handleConnectionStatus(status) {
         const { isConnected, isReconnecting, lastError } = status;
@@ -124,11 +92,8 @@ export class UIIntegrationService {
     }
     
     /**
-     * Updates the main game board UI using methods from the `gameUI` object.
-     * This typically includes rendering cards, scores, and player hands.
-     * @param {object} state - The current game state.
-     * @memberof UIIntegrationService
-     * @private
+     * Update the game board based on the current state
+     * @param {Object} state - The current game state
      */
     updateGameBoard(state) {
         // Update game board UI
@@ -148,11 +113,8 @@ export class UIIntegrationService {
     }
     
     /**
-     * Updates the display of player-specific information, such as current player indicator,
-     * dealer status, and other player details, using methods from the `gameUI` object.
-     * @param {object} state - The current game state.
-     * @memberof UIIntegrationService
-     * @private
+     * Update player information display
+     * @param {Object} state - The current game state
      */
     updatePlayerInfo(state) {
         if (!state.players || !this.gameUI.updatePlayerInfo) return;
@@ -166,11 +128,8 @@ export class UIIntegrationService {
     }
     
     /**
-     * Directs UI updates based on the current game phase (e.g., LOBBY, DEALING, BIDDING).
-     * Calls specific handler methods for each phase.
-     * @param {object} state - The current game state.
-     * @memberof UIIntegrationService
-     * @private
+     * Handle UI updates based on game phase
+     * @param {Object} state - The current game state
      */
     handleGamePhase(state) {
         if (!state.gamePhase) return;
@@ -197,11 +156,7 @@ export class UIIntegrationService {
     }
     
     /**
-     * Handles UI updates specific to the LOBBY game phase.
-     * Typically involves showing the lobby screen with player lists and start game options.
-     * @param {object} state - The current game state.
-     * @memberof UIIntegrationService
-     * @private
+     * Handle lobby phase UI
      */
     handleLobbyPhase(state) {
         if (this.gameUI.showLobby) {
@@ -213,11 +168,7 @@ export class UIIntegrationService {
     }
     
     /**
-     * Handles UI updates specific to the DEALING game phase.
-     * May show animations or indicators related to card dealing.
-     * @param {object} state - The current game state.
-     * @memberof UIIntegrationService
-     * @private
+     * Handle dealing phase UI
      */
     handleDealingPhase(state) {
         if (this.gameUI.showDealing) {
@@ -229,11 +180,7 @@ export class UIIntegrationService {
     }
     
     /**
-     * Handles UI updates specific to the BIDDING game phase.
-     * Shows bidding options, current bids, and the up-card.
-     * @param {object} state - The current game state.
-     * @memberof UIIntegrationService
-     * @private
+     * Handle bidding phase UI
      */
     handleBiddingPhase(state) {
         if (this.gameUI.showBidding) {
@@ -247,11 +194,7 @@ export class UIIntegrationService {
     }
     
     /**
-     * Handles UI updates specific to the PLAYING game phase.
-     * Displays the current trick, trump suit, and indicates whose turn it is.
-     * @param {object} state - The current game state.
-     * @memberof UIIntegrationService
-     * @private
+     * Handle playing phase UI
      */
     handlePlayingPhase(state) {
         if (this.gameUI.showPlaying) {
@@ -265,11 +208,7 @@ export class UIIntegrationService {
     }
     
     /**
-     * Handles UI updates specific to the GAME_OVER game phase.
-     * Displays game results, scores, and potentially options for a new game.
-     * @param {object} state - The current game state.
-     * @memberof UIIntegrationService
-     * @private
+     * Handle game over UI
      */
     handleGameOver(state) {
         if (this.gameUI.showGameOver) {
@@ -282,11 +221,10 @@ export class UIIntegrationService {
     }
     
     /**
-     * Displays a toast notification message on the UI.
-     * @param {string} message - The message to display in the toast.
-     * @param {'info'|'success'|'warning'|'error'} [type='info'] - The type of toast, determining its appearance.
-     * @param {number} [duration=3000] - How long the toast should be visible in milliseconds.
-     * @memberof UIIntegrationService
+     * Show a toast notification
+     * @param {string} message - The message to display
+     * @param {string} type - The type of notification (info, success, warning, error)
+     * @param {number} duration - How long to show the toast in ms (default: 3000)
      */
     showToast(message, type = 'info', duration = 3000) {
         const toast = document.createElement('div');
@@ -307,10 +245,7 @@ export class UIIntegrationService {
     }
     
     /**
-     * Adds CSS styles required for the connection indicator and toast notifications
-     * to the document's head.
-     * @memberof UIIntegrationService
-     * @private
+     * Add CSS styles for UI components
      */
     addStyles() {
         const style = document.createElement('style');
@@ -393,12 +328,7 @@ export class UIIntegrationService {
     }
     
     /**
-     * Placeholder method to determine if the current user can start the game.
-     * Actual implementation will depend on game-specific rules (e.g., number of players).
-     * @param {object} state - The current game state.
-     * @returns {boolean} True if the game can be started, false otherwise.
-     * @memberof UIIntegrationService
-     * @private
+     * Check if the current user can start the game
      */
     canStartGame(state) {
         // Implementation depends on your game's rules
@@ -407,27 +337,16 @@ export class UIIntegrationService {
     }
     
     /**
-     * Placeholder method to determine if it is the current client's player's turn.
-     * Actual implementation depends on how the current player is identified in the state
-     * and how the client's own player ID is retrieved (likely from StateSyncService or StateService).
-     * @param {object} state - The current game state.
-     * @returns {boolean} True if it's the current user's turn, false otherwise.
-     * @memberof UIIntegrationService
-     * @private
+     * Check if it's the current user's turn
      */
     isMyTurn(state) {
         // Implementation depends on how you track the current user
         // This is a placeholder - implement according to your requirements
-        return state.currentPlayer === this.stateSyncService.getCurrentPlayerId(); // Assuming StateSyncService has such a method
+        return state.currentPlayer === this.stateSyncService.getCurrentPlayerId();
     }
     
     /**
-     * Placeholder method to calculate game statistics from the game state.
-     * Actual implementation will depend on what statistics are relevant to the game.
-     * @param {object} state - The current game state.
-     * @returns {object} An object containing calculated game statistics.
-     * @memberof UIIntegrationService
-     * @private
+     * Calculate game statistics
      */
     calculateGameStats(state) {
         // Implementation depends on what stats you want to track
@@ -439,10 +358,7 @@ export class UIIntegrationService {
     }
     
     /**
-     * Cleans up resources used by the UIIntegrationService.
-     * Unsubscribes from StateSyncService events and removes DOM elements
-     * created by this service (connection indicator, toast container).
-     * @memberof UIIntegrationService
+     * Clean up resources
      */
     destroy() {
         // Remove event listeners
@@ -465,14 +381,6 @@ export class UIIntegrationService {
 // Export a singleton instance
 let instance = null;
 
-/**
- * Creates and returns a singleton instance of UIIntegrationService.
- * If an instance already exists, it returns that instance.
- * Initializes the service upon first creation.
- * @param {import('./stateSyncService.js').StateSyncService} stateSyncService - The state synchronization service.
- * @param {object} gameUI - The main UI object.
- * @returns {UIIntegrationService} The singleton instance of UIIntegrationService.
- */
 export function createUIIntegrationService(stateSyncService, gameUI) {
     if (!instance) {
         instance = new UIIntegrationService(stateSyncService, gameUI);

@@ -7,9 +7,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "mocha test/server/**/*.test.js test/phases/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --timeout 10000",
-    "test:watch": "mocha test/server/**/*.test.js test/phases/**/*.test.js test/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --watch --timeout 10000",
-    "test:debug": "node --inspect node_modules/mocha/bin/mocha test/server/**/*.test.js test/phases/**/*.test.js test/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --timeout 10000",
+    "test": "mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --timeout 10000",
+    "test:watch": "mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --watch --timeout 10000",
+    "test:debug": "node --inspect node_modules/mocha/bin/mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --timeout 10000",
     "clean:coverage": "if exist coverage rmdir /s /q coverage",
     "test:coverage": "c8 --reporter=json --reporter=text",
     "test:compare-coverage": "node scripts/compareCoverage.js",

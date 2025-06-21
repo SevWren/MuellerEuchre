@@ -1,22 +1,8 @@
 import { MongoClient, ObjectId } from 'mongodb';
-import { MongoClient, ObjectId } from 'mongodb';
 import { log } from '../utils/logger.js';
 import databaseConfig from '../config/database.js';
 
-/**
- * @class GameRepository
- * @description Handles all database operations related to game states.
- * It provides methods to connect to MongoDB, create/update game documents,
- * retrieve game states, and find active games for players.
- * It also manages database indexes and connection lifecycle.
- */
 class GameRepository {
-    /**
-     * Creates an instance of GameRepository.
-     * Initializes the MongoDB client, database, and collection to null,
-     * and sets the connected status to false.
-     * @memberof GameRepository
-     */
     constructor() {
         this.client = null;
         this.db = null;
@@ -25,14 +11,8 @@ class GameRepository {
     }
 
     /**
-     * Connects to the MongoDB database using configuration from `databaseConfig`.
-     * Initializes the MongoDB client, database, and 'games' collection.
-     * Sets the `connected` flag to true on success.
-     * Also calls `createIndexes` to ensure necessary database indexes are present.
-     * @async
-     * @returns {Promise<void>} A promise that resolves when connection is successful, or rejects on error.
-     * @throws {Error} If connection to MongoDB fails.
-     * @memberof GameRepository
+     * Connects to the MongoDB database
+     * @returns {Promise<void>}
      */
     async connect() {
         if (this.connected) return;
@@ -60,14 +40,8 @@ class GameRepository {
     }
 
     /**
-     * Creates necessary indexes for the 'games' collection to optimize queries
-     * and enforce constraints (e.g., unique gameId, TTL for game documents).
-     * This method is called internally after a successful database connection.
-     * @async
+     * Creates necessary indexes for the games collection
      * @private
-     * @returns {Promise<void>} A promise that resolves when indexes are created, or rejects on error.
-     * @throws {Error} If index creation fails.
-     * @memberof GameRepository
      */
     async createIndexes() {
         try {
@@ -98,15 +72,16 @@ class GameRepository {
     }
 
     /**
-     * Updates an existing game state in the database or creates a new one if it doesn't exist (upsert).
-     * The `gameState` object should ideally contain the `gameId`.
-     * It also sets `updatedAt` and `createdAt` (on insert) timestamps.
-     * @async
-     * @param {string} gameId - The ID of the game to update or create.
-     * @param {object} gameState - The full game state object to save.
-     * @returns {Promise<string>} A promise that resolves with the game ID on successful update/creation.
-     * @throws {Error} If not connected to the database, if `gameId` is not provided, or if the database operation fails.
-     * @memberof GameRepository
+     * Saves a game state to the database
+     * @param {Object} gameState - The game state to save
+     * @returns {Promise<string>} The game ID
+     */
+    /**
+     * Updates an existing game state or creates it if it doesn't exist (upsert).
+     * Renamed from saveGame for clarity based on task requirements.
+     * @param {string} gameId - The ID of the game to update.
+     * @param {Object} gameState - The full game state to save.
+     * @returns {Promise<string>} The game ID.
      */
     async updateGame(gameId, gameState) {
         if (!this.connected) {
@@ -157,13 +132,10 @@ class GameRepository {
     }
 
     /**
-     * Retrieves a game state from the database by its game ID.
-     * @async
+     * Retrieves a game state from the database.
+     * Renamed from loadGame for clarity.
      * @param {string} gameId - The ID of the game to retrieve.
-     * @returns {Promise<object|null>} A promise that resolves with the game state object if found (excluding MongoDB's `_id`),
-     * or null if the game is not found or an error occurs.
-     * @throws {Error} If not connected to the database.
-     * @memberof GameRepository
+     * @returns {Promise<Object|null>} The loaded game state, or null if not found.
      */
     async getGame(gameId) {
         if (!this.connected) {
@@ -198,13 +170,9 @@ class GameRepository {
     }
 
     /**
-     * Finds active (not game over) games where the specified player ID is listed among the players.
-     * Results are sorted by the last update time in descending order and limited to 10 games.
-     * @async
-     * @param {string} playerId - The ID of the player to find active games for.
-     * @returns {Promise<Array<object>>} A promise that resolves with an array of game state objects.
-     * @throws {Error} If not connected to the database or if the query fails.
-     * @memberof GameRepository
+     * Finds active games for a player
+     * @param {string} playerId - The player's ID
+     * @returns {Promise<Array>} List of active games for the player
      */
     async findActiveGamesByPlayer(playerId) {
         if (!this.connected) {
@@ -228,11 +196,8 @@ class GameRepository {
     }
 
     /**
-     * Closes the MongoDB client connection if it is active.
-     * Sets the `connected` flag to false.
-     * @async
-     * @returns {Promise<void>} A promise that resolves when the connection is closed.
-     * @memberof GameRepository
+     * Closes the database connection
+     * @returns {Promise<void>}
      */
     async disconnect() {
         if (this.client) {
@@ -243,21 +208,9 @@ class GameRepository {
     }
 }
 
-/**
- * @description Singleton instance of the GameRepository.
- * Use this instance to interact with the game database.
- * @type {GameRepository}
- */
 // Export a singleton instance
 export const gameRepository = new GameRepository();
 
-/**
- * @function cleanup
- * @description Handles graceful shutdown of the database connection on process termination signals (SIGINT, SIGTERM).
- * Attempts to disconnect the `gameRepository` instance.
- * @async
- * @private
- */
 // Handle process termination
 const cleanup = async () => {
     try {

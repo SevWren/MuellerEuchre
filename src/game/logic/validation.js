@@ -35,16 +35,8 @@ function getEffectiveSuit(card, trumpSuit) {
  * Throws custom errors if the play is invalid.
  *
  * @param {object} gameState - The current game state.
- * @param {string} gameState.gamePhase - The current phase of the game.
- * @param {string} gameState.currentPlayer - The role of the player whose turn it is.
- * @param {Array<object>} [gameState.currentTrick] - The cards already played in the current trick.
- * @param {string} gameState.trumpSuit - The current trump suit.
- * @param {string} [gameState.gameId] - The ID of the game (for logging).
- * @param {Array<object>} playerHand - An array of card objects for the player's hand. Each card should have an `id`.
- * @param {object} cardToPlay - The card object the player intends to play. Must have an `id`, `suit`, and `value`.
- * @param {string} cardToPlay.id - Unique identifier for the card.
- * @param {string} cardToPlay.suit - Suit of the card.
- * @param {string} cardToPlay.value - Rank/value of the card.
+ * @param {Array<object>} playerHand - An array of card objects for the player's hand.
+ * @param {object} cardToPlay - The card object the player intends to play.
  * @param {string} playerRole - The role of the player making the play.
  * @throws {ValidationError} If basic arguments are missing or invalid.
  * @throws {InvalidPhaseError} If the game is not in the 'PLAYING' phase.
@@ -99,14 +91,9 @@ export function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
  * Validates if a player's bid (order up or call trump) is legal.
  *
  * @param {object} gameState - The current game state.
- * @param {string} gameState.gamePhase - The current phase of the game (e.g., 'ORDER_UP_ROUND1', 'ORDER_UP_ROUND2').
- * @param {string} gameState.currentPlayer - The role of the player whose turn it is to bid.
- * @param {object} [gameState.turnCard] - The card that was turned up. Relevant for 'ORDER_UP_ROUND1' and 'ORDER_UP_ROUND2'.
- * @param {string} gameState.dealer - The role of the current dealer.
- * @param {Array<object>} [gameState.bids] - A list of bids made so far in the current bidding round.
  * @param {string} playerRole - The role of the player making the bid.
- * @param {'orderUp'|'pass'|'callTrump'} decision - The bidding decision made by the player.
- * @param {string} [suit] - The suit being called, if `decision` is 'callTrump'. Must be a valid suit from `SUITS`.
+ * @param {string} decision - 'orderUp', 'pass', or 'callTrump'.
+ * @param {string} [suit] - The suit being called, if decision is 'callTrump'.
  * @throws {ValidationError} If basic arguments are missing or invalid.
  * @throws {NotPlayersTurnError} If it's not the specified player's turn to bid.
  * @throws {InvalidPhaseError} If bidding is attempted outside of valid bidding phases.
@@ -172,14 +159,9 @@ export function validateBid(gameState, playerRole, decision, suit = null) {
  * Assumes dealer's hand already includes the picked-up turnCard (so, 6 cards).
  *
  * @param {object} gameState - The current game state.
- * @param {string} gameState.gamePhase - The current phase of the game (should be 'DEALER_DISCARD').
- * @param {string} gameState.dealer - The role of the current dealer.
- * @param {string} gameState.currentPlayer - The role of the player whose turn it is (should be the dealer).
- * @param {string} [gameState.gameId] - The ID of the game (for logging).
  * @param {string} playerRole - The role of the player attempting to discard (must be the dealer).
- * @param {object} cardToDiscard - The card object the dealer intends to discard. Must have an `id`.
- * @param {string} cardToDiscard.id - Unique identifier for the card to be discarded.
- * @param {Array<object>} playerHand - The dealer's current hand (should contain 6 cards). Each card should have an `id`.
+ * @param {object} cardToDiscard - The card object the dealer intends to discard.
+ * @param {Array<object>} playerHand - The dealer's current hand (should contain 6 cards).
  * @throws {ValidationError} If basic arguments are missing or invalid.
  * @throws {InvalidPhaseError} If discarding is attempted outside of the 'DEALER_DISCARD' phase.
  * @throws {InvalidDiscardError} If a non-dealer tries to discard, or if the action is otherwise invalid specific to discard rules.

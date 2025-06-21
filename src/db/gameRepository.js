@@ -1,5 +1,4 @@
 import { MongoClient, ObjectId } from 'mongodb';
-import { MongoClient, ObjectId } from 'mongodb';
 import { log } from '../utils/logger.js';
 import databaseConfig from '../config/database.js';
 

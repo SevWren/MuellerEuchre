@@ -108,3 +108,7 @@ index - Copy.html
 #Misc code editor files
 *.windsurfrules
 ENVIRONMENT_INSTABILITY.MD
+
+#Archive
+archived_files_for_rewrite/
+archived_files_for_rewrite

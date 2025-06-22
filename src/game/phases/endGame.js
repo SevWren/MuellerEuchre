@@ -2,17 +2,9 @@ import { GAME_PHASES, WINNING_SCORE } from '../../config/constants.js';
 import { log } from '../../utils/logger.js';
 
 /**
- * Checks if the game has been won by comparing team scores against `WINNING_SCORE`.
- * If a team has won, it calls `endGame` to update the game state.
- *
- * @param {object} gameState - Current game state.
- * @param {object} gameState.scores - Object containing scores for teams (e.g., `{'north+south': 5, 'east+west': 3}`).
- * @param {boolean} [gameState.gameOver] - Flag indicating if the game is over.
- * @param {string|null} [gameState.winningTeam] - The team that won, if any.
- * @param {string} [gameState.currentPhase] - The current phase of the game.
- * @param {Array<object>} [gameState.messages] - Array of game messages.
- * @param {object} [gameState.matchStats] - Statistics for the overall match.
- * @returns {object} The potentially updated game state. If the game is over, state will reflect this; otherwise, original state is returned.
+ * Checks if the game has been won and updates the game state accordingly
+ * @param {Object} gameState - Current game state
+ * @returns {Object} Updated game state with game over status if applicable
  */
 export function checkGameOver(gameState) { // gameState is already a deep copy from handleEndOfHand's perspective or should be treated as mutable
     log(1, '[checkGameOver] Checking for game over condition');
@@ -22,14 +14,14 @@ export function checkGameOver(gameState) { // gameState is already a deep copy f
     
     // Check if either team has reached the winning score
     // Ensure calculateTeamScores uses the passed gameState directly
-    const teamScores = calculateTeamScores(gameState);
-    const winningTeam = Object.entries(teamScores).find(
-        ([_, score]) => score >= WINNING_SCORE
-    )?.[0];
+    const currentTeamScores = calculateTeamScores(gameState); // Renamed to avoid conflict
+    const winningTeam = Object.entries(currentTeamScores).find(
+        ([teamId, score]) => score >= WINNING_SCORE
+    )?.[0]; // teamId will be TEAMS.TEAM_NS or TEAMS.TEAM_EW
     
     if (winningTeam) {
         // endGame will modify the gameState object directly (or its clone if passed)
-        return endGame(gameState, winningTeam);
+        return endGame(gameState, winningTeam, currentTeamScores); // Pass scores to avoid recalculation
     }
     
     // No winner yet
@@ -37,35 +29,27 @@ export function checkGameOver(gameState) { // gameState is already a deep copy f
 }
 
 /**
- * Updates the game state to reflect that the game has ended.
- * Sets `gameOver` to true, records the `winningTeam`, changes `currentPhase` to `GAME_OVER`,
- * adds a game over message, and updates match statistics.
- * This function mutates the passed `gameState` object.
- *
+ * Handles the end of a game
  * @private
- * @param {object} gameState - Current game state to be modified.
- * @param {boolean} gameState.gameOver - Will be set to true.
- * @param {string|null} gameState.winningTeam - Will be set to the `winningTeam` argument.
- * @param {string} gameState.currentPhase - Will be set to `GAME_PHASES.GAME_OVER`.
- * @param {Array<object>} gameState.messages - Game over message will be added.
- * @param {object} gameState.matchStats - Match statistics will be updated.
- * @param {string} winningTeam - The identifier of the team that won the game (e.g., 'north+south').
- * @returns {object} The modified `gameState` object.
+ * @param {Object} gameState - Current game state
+ * @param {string} winningTeam - The team that won the game
+ * @returns {Object} Updated game state with game over status
  */
-function endGame(gameState, winningTeam) {
-    log(1, `[endGame] Game over! ${winningTeam} wins!`);
+function endGame(gameState, winningTeam, finalScores) { // Added finalScores parameter
+    const winningTeamDisplay = winningTeam === TEAMS.TEAM_NS ? 'North/South' : 'East/West';
+    log(1, `[endGame] Game over! ${winningTeamDisplay} wins!`);
     
     // Update game state
     gameState.gameOver = true;
-    gameState.winningTeam = winningTeam;
+    gameState.winningTeam = winningTeam; // Should be TEAMS.TEAM_NS or TEAMS.TEAM_EW
     gameState.currentPhase = GAME_PHASES.GAME_OVER;
     
     // Add game message
     gameState.messages = gameState.messages || [];
     gameState.messages.push({
         type: 'game_over',
-        team: winningTeam,
-        text: `Game Over! ${winningTeam} wins the game!`,
+        team: winningTeam, // Store short form
+        text: `Game Over! Team ${winningTeamDisplay} wins the game!`,
         important: true
     });
     
@@ -73,28 +57,28 @@ function endGame(gameState, winningTeam) {
     gameState.matchStats = gameState.matchStats || {
         gamesPlayed: 0,
         teamWins: {
-            'north+south': 0,
-            'east+west': 0
+            [TEAMS.TEAM_NS]: 0,
+            [TEAMS.TEAM_EW]: 0
         },
         lastUpdated: new Date().toISOString()
     };
     
     gameState.matchStats.gamesPlayed += 1;
-    gameState.matchStats.teamWins[winningTeam] += 1;
+    // Ensure winningTeam is the correct key ('NS' or 'EW')
+    if (gameState.matchStats.teamWins.hasOwnProperty(winningTeam)) {
+        gameState.matchStats.teamWins[winningTeam] += 1;
+    } else {
+        log(3, `[endGame] Attempted to increment win for unknown team: ${winningTeam}`);
+    }
     gameState.matchStats.lastUpdated = new Date().toISOString();
     
     return gameState;
 }
 
 /**
- * Resets the game state to prepare for a new game.
- * This typically involves clearing scores, player hands (implicitly by resetting players object),
- * game over status, and setting the phase to LOBBY.
- * Creates a deep copy of the input `gameState` to avoid mutating the original object from the previous game.
- *
- * @param {object} gameState - The current (likely game-over) game state.
- * This object is not mutated; a deep copy is made.
- * @returns {object} A new game state object, reset for a new game.
+ * Handles a request to start a new game
+ * @param {Object} gameState - Current game state
+ * @returns {Object} Reset game state for a new game
  */
 export function startNewGame(gameState) {
     log(1, '[startNewGame] Starting a new game');
@@ -111,8 +95,8 @@ export function startNewGame(gameState) {
     
     // Reset player scores
     updatedState.scores = {
-        'north+south': 0,
-        'east+west': 0
+        [TEAMS.TEAM_NS]: 0,
+        [TEAMS.TEAM_EW]: 0
     };
     
     // Add game message
@@ -126,54 +110,59 @@ export function startNewGame(gameState) {
 }
 
 /**
- * Calculates the current scores for each team based on the `gameState.scores` object.
- * Returns a new object with scores for 'north+south' and 'east+west', defaulting to 0 if not present.
- *
+ * Calculates the current scores for each team
  * @private
- * @param {object} gameState - Current game state.
- * @param {object} [gameState.scores] - Object containing current scores for teams.
- * @returns {object} An object containing team scores, e.g., `{'north+south': 0, 'east+west': 0}`.
+ * @param {Object} gameState - Current game state
+ * @returns {Object} Team scores
  */
-function calculateTeamScores(gameState) {
+function calculateTeamScores(gameState) { // Expects gameState.scores to use TEAMS.TEAM_NS/EW keys
     return {
-        'north+south': gameState.scores?.['north+south'] || 0,
-        'east+west': gameState.scores?.['east+west'] || 0
+        [TEAMS.TEAM_NS]: gameState.scores?.[TEAMS.TEAM_NS] || 0,
+        [TEAMS.TEAM_EW]: gameState.scores?.[TEAMS.TEAM_EW] || 0
     };
 }
 
 /**
- * Processes the end of a hand: calculates points scored based on tricks won and the maker team,
- * updates team scores, adds relevant game messages, and then checks if the game is over.
- * Creates a deep copy of the `gameState` to ensure modifications do not affect previous states directly.
- *
- * @param {object} gameState - The current game state at the end of a hand.
- * @param {Array<object>} gameState.tricks - Array of completed tricks, each indicating the winning team.
- * @param {string} gameState.makerTeam - The team that made trump.
- * @param {object} gameState.scores - Current scores for each team.
- * @param {Array<object>} gameState.messages - Array of game messages.
- * @returns {object} The updated game state after scoring and checking for game over. This will be a new object.
+ * Handles the end of a hand and updates scores
+ * @param {Object} gameState - Current game state
+ * @returns {Object} Updated game state with scores and next phase
  */
 export function handleEndOfHand(gameState) {
     log(1, '[handleEndOfHand] Processing end of hand');
     log(1, `[handleEndOfHand] Initial gameState.scores: NS=${gameState.scores?.['north+south']}, EW=${gameState.scores?.['east+west']}`);
     
     // Create a deep copy of the game state
-    const updatedState = JSON.parse(JSON.stringify(gameState));
-    log(1, `[handleEndOfHand] Cloned updatedState.scores: NS=${updatedState.scores?.['north+south']}, EW=${updatedState.scores?.['east+west']}`);
+    const updatedState = JSON.parse(JSON.stringify(gameState)); // Deep copy
+    // Ensure scores are initialized with TEAMS constants if not present
+    updatedState.scores = {
+        [TEAMS.TEAM_NS]: updatedState.scores?.[TEAMS.TEAM_NS] || 0,
+        [TEAMS.TEAM_EW]: updatedState.scores?.[TEAMS.TEAM_EW] || 0,
+    };
+    log(1, `[handleEndOfHand] Cloned updatedState.scores: NS=${updatedState.scores[TEAMS.TEAM_NS]}, EW=${updatedState.scores[TEAMS.TEAM_EW]}`);
     
     // Calculate tricks won by each team
+    // Expects trick.team to be TEAMS.TEAM_NS or TEAMS.TEAM_EW from test/game setup
     const tricksByTeam = {
-        'north+south': 0,
-        'east+west': 0
+        [TEAMS.TEAM_NS]: 0,
+        [TEAMS.TEAM_EW]: 0
     };
     
     updatedState.tricks.forEach(trick => {
-        tricksByTeam[trick.team] = (tricksByTeam[trick.team] || 0) + 1;
+        if (tricksByTeam.hasOwnProperty(trick.team)) {
+            tricksByTeam[trick.team]++;
+        } else {
+            log(2, `[handleEndOfHand] Encountered trick with unknown team: ${trick.team}`);
+        }
     });
     
     // Determine if makers made their bid
-    const makerTeam = updatedState.makerTeam;
-    const makerTricks = tricksByTeam[makerTeam] || 0;
+    const makerTeam = updatedState.makerTeam; // Expected to be TEAMS.TEAM_NS or TEAMS.TEAM_EW
+    if (!makerTeam || !tricksByTeam.hasOwnProperty(makerTeam)) {
+        log(3, `[handleEndOfHand] Invalid or missing makerTeam: ${makerTeam}. Cannot determine score.`);
+        // Potentially return state or throw error, for now, it will likely result in no score change.
+        return checkGameOver(updatedState); // Or handle error more explicitly
+    }
+    const makerTricks = tricksByTeam[makerTeam]; // Already initialized to 0
     const makerWon = makerTricks >= 3;
     let points = 0;
     let scoringTeam = null;
@@ -213,9 +202,12 @@ export function handleEndOfHand(gameState) {
     }
     
     // Add score summary
+    const teamNSDisplay = TEAMS.TEAM_NS; // Could be 'N/S' or similar for display later
+    const teamEWDisplay = TEAMS.TEAM_EW;
+
     updatedState.messages.push({
         type: 'score_summary',
-        text: `Scores - North/South: ${updatedState.scores['north+south']}, East/West: ${updatedState.scores['east+west']}`,
+        text: `Scores - ${teamNSDisplay}: ${updatedState.scores[TEAMS.TEAM_NS]}, ${teamEWDisplay}: ${updatedState.scores[TEAMS.TEAM_EW]}`,
         important: true
     });
     
@@ -224,12 +216,18 @@ export function handleEndOfHand(gameState) {
 }
 
 /**
- * Determines the opponent team for a given team identifier.
- *
+ * Gets the opponent team for a given team.
+ * Expects team to be TEAMS.TEAM_NS or TEAMS.TEAM_EW.
  * @private
- * @param {string} team - The team identifier (e.g., 'north+south' or 'east+west').
- * @returns {string} The identifier of the opposing team.
+ * @param {string} team - The team to get the opponent for (e.g., TEAMS.TEAM_NS).
+ * @returns {string} The opponent team (e.g., TEAMS.TEAM_EW).
  */
 function getOpponentTeam(team) {
-    return team === 'north+south' ? 'east+west' : 'north+south';
+    if (team === TEAMS.TEAM_NS) return TEAMS.TEAM_EW;
+    if (team === TEAMS.TEAM_EW) return TEAMS.TEAM_NS;
+    log(3, `[getOpponentTeam] Unknown team provided: ${team}`);
+    return null; // Or throw an error
 }
+
+// Import TEAMS from constants to be used in this module
+import { TEAMS } from '../../config/constants.js';

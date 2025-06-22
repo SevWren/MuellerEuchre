@@ -96,13 +96,14 @@ describe('End Game Phase', () => {
             // },
             // messages: [] // Alias for gameMessages
             // Explicitly set initial scores for a target WINNING_SCORE of 10 for testing handleEndOfHand
+            // Use TEAMS constants for keys to align with endGame.js refactor
             scores: {
-                'north+south': 8,
-                'east+west': 7
+                [TEAMS.TEAM_NS]: 8,
+                [TEAMS.TEAM_EW]: 7
             },
         };
-        // Align scores and teamScores (use teamScores as primary)
-        gameState.teamScores = gameState.scores;
+        // Align scores and teamScores (use teamScores as primary, which now uses short keys)
+        gameState.teamScores = gameState.scores; // gameState.scores now uses TEAMS.TEAM_NS etc.
         gameState.messages = gameState.gameMessages; // Ensure gameState.messages is initialized from gameMessages
         gameState.winningTeam = undefined; // Ensure explicitly undefined for tests checking it
 
@@ -124,24 +125,25 @@ describe('End Game Phase', () => {
          */
         it('should update scores and detect game over when winning score is reached', () => {
             // Simulate makers winning 3 tricks (just enough to make their bid)
-            gameState.tricks = Array(3).fill({ team: 'north+south' });
+            gameState.makerTeam = TEAMS.TEAM_NS; // Makers are North/South
+            gameState.tricks = Array(3).fill({ team: TEAMS.TEAM_NS });
             
             const result = handleEndOfHand(gameState);
             
             // Should update scores (north+south should reach WINNING_SCORE)
-            expect(result.scores['north+south']).to.equal(WINNING_SCORE - 1);
-            expect(result.scores['east+west']).to.equal(WINNING_SCORE - 3);
+            expect(result.scores[TEAMS.TEAM_NS]).to.equal(WINNING_SCORE - 1); // N/S score should be 9
+            expect(result.scores[TEAMS.TEAM_EW]).to.equal(7); // E/W score should remain 7
             
             // Should add score messages
             expect(result.messages.some(m => 
                 m.type === 'score' && 
-                m.text.includes('Team north+south made their bid! 1 point.')
+                m.text.includes(`Team ${TEAMS.TEAM_NS} made their bid! 1 point.`)
             )).to.be.true;
             
             // Should add score summary
             expect(result.messages.some(m => 
                 m.type === 'score_summary' && 
-                m.text.includes('Scores - North/South')
+                m.text.includes(`Scores - ${TEAMS.TEAM_NS}: ${WINNING_SCORE - 1}, ${TEAMS.TEAM_EW}: 7`)
             )).to.be.true;
             
             // Should not be game over yet (not enough points)
@@ -156,19 +158,20 @@ describe('End Game Phase', () => {
          */
         it('should award 2 points for a march', () => {
             // Simulate makers winning all 5 tricks
-            gameState.tricks = Array(5).fill({ team: 'north+south' });
+            gameState.makerTeam = TEAMS.TEAM_NS; // Makers are North/South
+            gameState.tricks = Array(5).fill({ team: TEAMS.TEAM_NS });
             
             const result = handleEndOfHand(gameState);
             
             // Should award 2 points for march
-            expect(result.scores['north+south']).to.equal(WINNING_SCORE);
+            expect(result.scores[TEAMS.TEAM_NS]).to.equal(WINNING_SCORE); // N/S score should be 10
             expect(result.messages.some(m => 
-                m.text.includes('made a march! 2 points!')
+                m.text.includes(`Team ${TEAMS.TEAM_NS} made a march! 2 points!`)
             )).to.be.true;
             
             // Should be game over now
             expect(result.gameOver).to.be.true;
-            expect(result.winningTeam).to.equal('north+south');
+            expect(result.winningTeam).to.equal(TEAMS.TEAM_NS);
             expect(result.currentPhase).to.equal(GAME_PHASES.GAME_OVER);
         });
         
@@ -179,14 +182,15 @@ describe('End Game Phase', () => {
          */
         it('should award 2 points for euchre', () => {
             // Simulate makers getting euchred (0 tricks)
-            gameState.tricks = Array(5).fill({ team: 'east+west' });
+            gameState.makerTeam = TEAMS.TEAM_NS; // Makers are North/South
+            gameState.tricks = Array(5).fill({ team: TEAMS.TEAM_EW }); // Opponents (East/West) take all tricks
             
             const result = handleEndOfHand(gameState);
             
             // Should award 2 points to opponents for euchre
-            expect(result.scores['east+west']).to.equal(WINNING_SCORE - 1);
+            expect(result.scores[TEAMS.TEAM_EW]).to.equal(WINNING_SCORE - 1); // E/W score should be 9
             expect(result.messages.some(m => 
-                m.text.includes('was euchred! 2 points for')
+                m.text.includes(`Team ${TEAMS.TEAM_NS} was euchred! 2 points for ${TEAMS.TEAM_EW}!`)
             )).to.be.true;
         });
     });
@@ -203,23 +207,24 @@ describe('End Game Phase', () => {
          */
         it('should detect when a team has won', () => {
             // Set a team's score to the winning score
-            gameState.scores['north+south'] = WINNING_SCORE;
+            gameState.scores[TEAMS.TEAM_NS] = WINNING_SCORE; // N/S reaches winning score
             
             const result = checkGameOver(gameState);
             
             expect(result.gameOver).to.be.true;
-            expect(result.winningTeam).to.equal('north+south');
-            expect(result.currentPhase).to.equal(GAME_PHASES.GAME_OVER);
+            expect(result.winningTeam).to.equal(TEAMS.TEAM_NS);
+            expect(result.currentPhase).to.equal(GAME_PHASES.GAME_OVER); // Phase changes to GAME_OVER
             
             // Should add game over message
+            const winningTeamDisplay = TEAMS.TEAM_NS === 'NS' ? 'North/South' : (TEAMS.TEAM_NS || 'Unknown'); // Handle potential display name mapping if needed
             expect(result.messages.some(m => 
                 m.type === 'game_over' && 
-                m.text.includes('north+south wins the game!')
+                m.text.includes(`Team ${winningTeamDisplay} wins the game!`)
             )).to.be.true;
             
             // Should update match stats
             expect(result.matchStats.gamesPlayed).to.equal(1);
-            expect(result.matchStats.teamWins['north+south']).to.equal(1);
+            expect(result.matchStats.teamWins[TEAMS.TEAM_NS]).to.equal(1);
         });
         
         /**
@@ -229,11 +234,11 @@ describe('End Game Phase', () => {
          */
         it('should not detect game over when no team has won', () => {
             // Scores are below winning threshold
-            gameState.scores = { 'north+south': 0, 'east+west': 0 };
+            gameState.scores = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 };
             
             const result = checkGameOver(gameState);
             
-            expect(result.gameOver).to.be.undefined; // Or .to.be.false if explicitly set
+            expect(result.gameOver).to.be.undefined; // Or .to.be.false if explicitly set, `undefined` is fine
             expect(result.winningTeam).to.be.undefined; // Changed from .to.be.null
             // The original test had SCORING here. If checkGameOver is called from scoring,
             // and game is not over, it should transition to DEALING.
@@ -309,29 +314,41 @@ describe('End Game Phase', () => {
         it('should reset the game state for a new game', () => {
             // Set up a completed game state
             const completedGame = {
-                ...gameState,
+                ...gameState, // Spread the base gameState from beforeEach
                 gameOver: true,
-                winningTeam: 'north+south',
+                winningTeam: TEAMS.TEAM_NS, // Use constant
                 currentPhase: GAME_PHASES.GAME_OVER,
-                players: { north: {}, east: {}, south: {}, west: {} },
-                matchStats: { gamesPlayed: 1, teamWins: { 'north+south': 1, 'east+west': 0 } }
+                // Players might be reset differently or kept if they are to stay for next game
+                // For this test, startNewGame is expected to clear them for a fresh lobby.
+                players: {
+                    [PLAYER_ROLES[0]]: { id: 'p1', name: 'South', teamId: TEAMS.TEAM_NS },
+                    [PLAYER_ROLES[1]]: { id: 'p2', name: 'West', teamId: TEAMS.TEAM_EW },
+                    [PLAYER_ROLES[2]]: { id: 'p3', name: 'North', teamId: TEAMS.TEAM_NS },
+                    [PLAYER_ROLES[3]]: { id: 'p4', name: 'East', teamId: TEAMS.TEAM_EW },
+                },
+                scores: { [TEAMS.TEAM_NS]: WINNING_SCORE, [TEAMS.TEAM_EW]: 5 }, // Example scores
+                matchStats: { gamesPlayed: 1, teamWins: { [TEAMS.TEAM_NS]: 1, [TEAMS.TEAM_EW]: 0 } }
             };
             
             const result = startNewGame(completedGame);
             
             // Should reset game state
             expect(result.gameOver).to.be.false;
-            expect(result.winningTeam).to.be.null;
-            expect(result.currentPhase).to.equal(GAME_PHASES.LOBBY);
-            expect(result.players).to.deep.equal({});
+            expect(result.winningTeam).to.be.null; // Winning team is reset
+            expect(result.currentPhase).to.equal(GAME_PHASES.LOBBY); // Should go to LOBBY
+            expect(result.players).to.deep.equal({}); // Players should be empty for a new lobby
             
             // Should reset scores
             expect(result.scores).to.deep.equal({
-                'north+south': 0,
-                'east+west': 0
+                [TEAMS.TEAM_NS]: 0,
+                [TEAMS.TEAM_EW]: 0
             });
             
-            // Should keep match stats
+            // Should keep match stats (incremented gamesPlayed is responsibility of checkGameOver/endGame)
+            // startNewGame should preserve the existing matchStats object for continuity of gamesPlayed / teamWins from previous games.
+            // The test setup for completedGame already has gamesPlayed:1.
+            // If startNewGame is only resetting for a *new* series of matches, then matchStats itself could be reset.
+            // Assuming it preserves for now.
             expect(result.matchStats.gamesPlayed).to.equal(1);
             
             // Should add new game message

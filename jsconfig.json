@@ -102,11 +102,7 @@
         // Archived test directories
         "test/archived/",
         "test/temp_archived/",
-        "test/temp_ignore/",
-        
-        // Build tool caches (uncomment if using these tools)
-        // ".parcel-cache/",  // If using Parcel
-        // ".svelte-kit/"     // If using SvelteKit
+        "test/temp_ignore/"
     ],
     "include": [
         "**/*.js",

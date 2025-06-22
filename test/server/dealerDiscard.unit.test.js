@@ -1,38 +1,11 @@
-/**
- * @file dealerDiscard.unit.test.js - Unit tests for Euchre server dealer discard functionality
- * @module test/server/dealerDiscard.unit
- * @description 
- * Comprehensive test suite for the dealer discard functionality in the Euchre game server.
- * 
- * These tests verify that the server correctly handles the dealer's discard phase by:
- * - Validating discard attempts against game state
- * - Enforcing game rules (6-card hand requirement, dealer-only actions)
- * - Maintaining game state integrity during discards
- * - Properly handling error conditions and edge cases
- * - Emitting appropriate events to clients
- * 
- * Test Cases:
- * - Rejects discard when not in AWAITING_DEALER_DISCARD phase
- * - Rejects discard from non-dealer player
- * - Validates dealer has exactly 6 cards before discard
- * - Successfully processes valid dealer discard
- * - Rejects discard of card not in dealer's hand
- * 
- * @requires assert - Node.js assertion library
- * @requires chai - BDD/TDD assertion library
- * @requires sinon - Test spies, stubs and mocks
- * @requires ../../server3.mjs - Server implementation being tested
- * @see {@link module:server3} for the implementation being tested
- * @see {@link handleDealerDiscard} for the main function under test
- * @since 1.0.0
- */
-
 import assert from 'assert';
 
-// Remove these unused imports
+// Verify if we should remove these unused imports
 //import { expect } from 'chai';
 //import sinon from 'sinon';
-import * as server3Module from '../../server3.mjs';
+
+
+import * as server3Module from '../../server3.mjs'; // We need to refactor this file to not rely on the global server3 import as it no longer exists
 
 // Debug configuration
 const DEBUG = Object.freeze({
@@ -50,7 +23,8 @@ const DEBUG = Object.freeze({
 });
 
 // Import after DEBUG is defined to avoid reference error
-const { DEBUG_LEVELS } = server3Module;
+
+const { DEBUG_LEVELS } = server3Module; // resolve this as '../../server3.mjs' no longer exists
 
 // Create a closure to store emitted messages
 const createMockIo = (emittedMessages) => {
@@ -79,7 +53,7 @@ function createServer(emittedMessages) {
     const ioMock = createMockIo(emittedMessages);
     
     return {
-        ...server3Module,
+        ...server3Module,  // resolve this as '../../server3.mjs' no longer exists
         getIo: () => ioMock,
         gameState: null,
         io: ioMock

@@ -4,111 +4,24 @@ import assert from 'assert';
 //import { expect } from 'chai';
 //import sinon from 'sinon';
 
+import { handleDealerDiscard } from '../../src/game/phases/biddingPhase.js';
+import {
+    CardNotInHandError,
+    InvalidPhaseError,
+    NotPlayersTurnError,
+    InvalidDiscardError
+} from '../../src/game/logic/errors.js';
 
-import * as server3Module from '../../server3.mjs'; // We need to refactor this file to not rely on the global server3 import as it no longer exists
-
-// Debug configuration
-const DEBUG = Object.freeze({
-    enabled: process.env.DEBUG_TESTS === 'true',
-    log: function(...args) {
-        if (this.enabled) {
-            console.log('[DEBUG]', ...args);
-        }
-    },
-    error: function(...args) {
-        if (this.enabled) {
-            console.error('[ERROR]', ...args);
-        }
-    }
-});
-
-// Import after DEBUG is defined to avoid reference error
-
-const { DEBUG_LEVELS } = server3Module; // resolve this as '../../server3.mjs' no longer exists
-
-// Create a closure to store emitted messages
-const createMockIo = (emittedMessages) => {
-    return {
-        to: () => ({
-            emit: (event, message) => {
-                // Store emitted messages for testing
-                emittedMessages.push({ event, message });
-            }
-        }),
-        emit: (event, message) => {
-            // Store broadcast messages
-            emittedMessages.push({ event, message, broadcast: true });
-        },
-        in: () => ({
-            emit: (event, message) => {
-                // Store room messages
-                emittedMessages.push({ event, message, room: true });
-            }
-        })
-    };
-};
-
-// Create a wrapper for the server module that will use our mock IO
-function createServer(emittedMessages) {
-    const ioMock = createMockIo(emittedMessages);
-    
-    return {
-        ...server3Module,  // resolve this as '../../server3.mjs' no longer exists
-        getIo: () => ioMock,
-        gameState: null,
-        io: ioMock
-    };
-}
 
 describe('Euchre Server Dealer Discard Functions', function() {
-    /** @type {Object} server - The server instance being tested */
-    let server;
-    
     /** @type {Object} gameState - The game state object */
     let gameState;
-    
-    /** @type {Object} ioMock - Mock IO instance */
-    let ioMock;
-    
-    /** @type {Array} emittedMessages - Array to store emitted messages for testing */
-    let emittedMessages = [];
 
     /**
      * @description Before each test, reset the test environment and set up mocks.
      * Initializes a clean server instance with a mocked socket.io interface.
      */
     beforeEach(async () => {
-        emittedMessages = [];
-        const fakeSocket = {
-            emit: (event, message) => {
-                emittedMessages.push({ event, message });
-            },
-            on: () => {},
-            id: 'fakeSocketId'
-        };
-        
-        // Create mock IO instance
-        const ioMock = {
-            sockets: {
-                sockets: {
-                    fakeSocketId: fakeSocket
-                }
-            },
-            to: () => ({ emit: (event, message) => emittedMessages.push({ event, message }) }),
-            emit: () => {},
-            on: () => {},
-            in: () => ({ emit: () => {} })
-        };
-        
-        // Reset emitted messages
-        emittedMessages.length = 0;
-        
-        // Create server instance with our emitted messages array
-        server = createServer(emittedMessages);
-        
-        // Set up the test game state
-        server.gameState = gameState;
-        
         // Initialize game state with all required properties
         gameState = {
             gamePhase: 'LOBBY',
@@ -130,54 +43,8 @@ describe('Euchre Server Dealer Discard Functions', function() {
             playerWhoCalledTrump: null,
             dealerHasDiscarded: false,
             // Add gameMessages array to prevent undefined errors
-            gameMessages: []
-        };
-        
-        // Set the game state on the server
-        server.gameState = gameState;
-        
-        // Store the original function
-        const originalHandleDealerDiscard = server.handleDealerDiscard;
-        
-        // Create a wrapper function that will use our test state
-        server.handleDealerDiscard = function(dealerRole, cardToDiscard) {
-            // Track emitted messages for this operation
-            const messageCount = emittedMessages.length;
-            DEBUG.log(`handleDealerDiscard called - dealer: ${dealerRole}, card:`, cardToDiscard);
-            
-            try {
-                // Call the original function with our test's gameState
-                const result = originalHandleDealerDiscard.call(this, dealerRole, cardToDiscard, gameState);
-                
-                DEBUG.log(`handleDealerDiscard completed - result: ${result}`);
-                const newMessages = emittedMessages.slice(messageCount);
-                if (newMessages.length > 0) {
-                    DEBUG.log('Emitted messages:', newMessages);
-                }
-                
-                // If the function failed and no error was emitted, add one
-                if (result === false && !newMessages.some(m => m.event === 'action_error')) {
-                    const errorMsg = 'An unknown error occurred';
-                    emittedMessages.push({
-                        event: 'action_error',
-                        message: errorMsg,
-                        to: gameState.players[dealerRole]?.id
-                    });
-                    if (getIo() && gameState.players[dealerRole]?.id) {
-                        getIo().to(gameState.players[dealerRole].id).emit('action_error', errorMsg);
-                    }
-                }
-                
-                return result;
-            } catch (error) {
-                DEBUG.error('Error in handleDealerDiscard:', error);
-                emittedMessages.push({
-                    event: 'error',
-                    message: error.message,
-                    error: error
-                });
-                throw error;
-            }
+            gameMessages: [],
+            turnCard: null, // Added as per rework plan
         };
     });
 
@@ -200,13 +67,13 @@ describe('Euchre Server Dealer Discard Functions', function() {
             gameState.gamePhase = 'PLAYING_TRICKS';
             gameState.dealer = 'south';
             gameState.currentPlayer = 'south';
-            gameState.players.south.hand = [{ id: 1, suit: 'hearts', value: 'A' }];
-            
-            // Execute
-            const result = server.handleDealerDiscard('south', { id: 1, suit: 'hearts', value: 'A' });
-            
-            // Verify
-            assert.strictEqual(result, false, 'Should return false for wrong phase');
+            gameState.players.south.hand = [{ id: 'H1A', suit: 'hearts', value: 'A' }]; // Card ID as string
+            gameState.turnCard = { id: 'D1K', suit: 'diamonds', value: 'K' }; // Example turn card
+
+            // Execute and Verify
+            assert.throws(() => {
+                handleDealerDiscard(gameState, 'south', 'H1A');
+            }, InvalidPhaseError, 'Should throw InvalidPhaseError for wrong phase');
             assert.strictEqual(gameState.dealerHasDiscarded, false, 'dealerHasDiscarded should remain false');
         });
 
@@ -219,52 +86,40 @@ describe('Euchre Server Dealer Discard Functions', function() {
             // Setup test
             gameState.gamePhase = 'AWAITING_DEALER_DISCARD';
             gameState.dealer = 'south';
-            gameState.currentPlayer = 'south';
-            gameState.players.north.hand = [{ id: 1, suit: 'hearts', value: 'A' }];
-            
-            // Execute
-            const result = server.handleDealerDiscard('north', { id: 1, suit: 'hearts', value: 'A' });
-            
-            // Verify
-            assert.strictEqual(result, false, 'Should return false for non-dealer player');
+            gameState.currentPlayer = 'south'; // Current player is dealer
+            gameState.players.north.hand = [{ id: 'H1A', suit: 'hearts', value: 'A' }];
+            gameState.turnCard = { id: 'D1K', suit: 'diamonds', value: 'K' };
+
+
+            // Execute and Verify
+            assert.throws(() => {
+                handleDealerDiscard(gameState, 'north', 'H1A'); // Attempt by 'north'
+            }, NotPlayersTurnError, 'Should throw NotPlayersTurnError for non-dealer player');
             assert.strictEqual(gameState.dealerHasDiscarded, false, 'dealerHasDiscarded should remain false');
         });
 
         /**
          * @test {handleDealerDiscard}
          * @description Verifies that the server enforces the rule that the dealer
-         * must have exactly 6 cards before discarding one.
+         * must have exactly 6 cards (after picking up the turn card) before discarding one.
          */
-        it('should reject discard when hand size is not 6', function() {
+        it('should reject discard when hand size is not 6 (after including turnCard)', function() {
             // Setup test
             gameState.gamePhase = 'AWAITING_DEALER_DISCARD';
             gameState.dealer = 'south';
             gameState.currentPlayer = 'south';
-            gameState.players.south.hand = [
-                { id: 1, suit: 'hearts', value: 'A' },
-                { id: 2, suit: 'hearts', value: 'K' },
-                { id: 3, suit: 'hearts', value: 'Q' },
-                { id: 4, suit: 'hearts', value: 'J' },
-                { id: 5, suit: 'hearts', value: '10' }
+            gameState.turnCard = { id: 'C1A', suit: 'clubs', value: 'A' }; // Turn card to be picked up
+            gameState.players.south.hand = [ // Hand currently has 4 cards, + turn card = 5
+                { id: 'H1A', suit: 'hearts', value: 'A' },
+                { id: 'H1K', suit: 'hearts', value: 'K' },
+                { id: 'H1Q', suit: 'hearts', value: 'Q' },
+                { id: 'H1J', suit: 'hearts', value: 'J' },
             ];
             
-            // Clear any previous messages
-            const messageCount = emittedMessages.length;
-            
-            // Execute
-            const result = server.handleDealerDiscard('south', { id: 1, suit: 'hearts', value: 'A' });
-            
-            // Get new messages
-            const newMessages = emittedMessages.slice(messageCount);
-            
-            // Verify
-            assert.strictEqual(result, false, 'Should return false for invalid hand size');
-            assert.ok(
-                newMessages.some(m => m.event === 'action_error' && 
-                    (m.message.includes('6 cards') || m.message.includes('invalid hand'))),
-                'Should show error about needing exactly 6 cards. Got: ' + 
-                JSON.stringify(newMessages, null, 2)
-            );
+            // Execute and Verify
+            assert.throws(() => {
+                handleDealerDiscard(gameState, 'south', 'H1A');
+            }, InvalidDiscardError, 'Should throw InvalidDiscardError for invalid hand size');
             assert.strictEqual(gameState.dealerHasDiscarded, false, 'dealerHasDiscarded should remain false');
         });
 
@@ -275,67 +130,49 @@ describe('Euchre Server Dealer Discard Functions', function() {
          */
         it('should successfully process valid dealer discard', function() {
             // Setup test
+            const turnCardToPickup = { id: 'S19', suit: 'spades', value: '9' };
             gameState = {
+                ...gameState, // Spread previous default gameState
                 gamePhase: 'AWAITING_DEALER_DISCARD',
                 dealer: 'south',
                 currentPlayer: 'south',
-                playerWhoCalledTrump: 'west',
-                kitty: [],
-                messages: [],
+                playerWhoCalledTrump: 'west', // west ordered up south (dealer)
+                turnCard: turnCardToPickup,
                 players: {
+                    ...gameState.players,
                     south: {
                         id: 'south-1',
                         name: 'Player 1',
-                        hand: [
-                            { id: 1, suit: 'hearts', value: 'A' },
-                            { id: 2, suit: 'hearts', value: 'K' },
-                            { id: 3, suit: 'hearts', value: 'Q' },
-                            { id: 4, suit: 'hearts', value: 'J' },
-                            { id: 5, suit: 'hearts', value: '10' },
-                            { id: 6, suit: 'hearts', value: '9' }
+                        hand: [ // Dealer's hand before picking up turnCard (5 cards)
+                            { id: 'H1A', suit: 'hearts', value: 'A' },
+                            { id: 'H1K', suit: 'hearts', value: 'K' },
+                            { id: 'H1Q', suit: 'hearts', value: 'Q' },
+                            { id: 'H1J', suit: 'hearts', value: 'J' },
+                            { id: 'H1T', suit: 'hearts', value: '10' },
                         ]
                     },
-                    west: {
-                        id: 'west-1',
-                        name: 'Player 2',
-                        hand: []
-                    },
-                    north: {
-                        id: 'north-1',
-                        name: 'Player 3',
-                        hand: []
-                    },
-                    east: {
-                        id: 'east-1',
-                        name: 'Player 4',
-                        hand: []
-                    }
+                    west: { id: 'west-1', name: 'Player 2', hand: [] },
+                    north: { id: 'north-1', name: 'Player 3', hand: [] },
+                    east: { id: 'east-1', name: 'Player 4', hand: [] }
                 },
-                playerSlots: ['south', 'west', 'north', 'east'],
-                team1Score: 0,
-                team2Score: 0,
-                currentTrickPlays: [],
-                tricksWon: { team1: 0, team2: 0 },
-                dealerHasDiscarded: false
+                dealerHasDiscarded: false // Ensure this is false before the operation
             };
             
-            // Make sure the server is using our test state
-            server.gameState = gameState;
-            
+            const cardToDiscardId = 'H1T'; // Dealer discards '10 of Hearts'
+
             // Execute
-            const result = server.handleDealerDiscard('south', { id: 6, suit: 'hearts', value: '9' });
+            const nextGameState = handleDealerDiscard(gameState, 'south', cardToDiscardId);
             
             // Verify
-            assert.strictEqual(result, true, 'Should return true for successful discard');
-            assert.strictEqual(gameState.dealerHasDiscarded, true, 'dealerHasDiscarded should be set to true');
-            assert.strictEqual(gameState.gamePhase, 'AWAITING_GO_ALONE', 'Should move to next phase');
-            assert.strictEqual(gameState.currentPlayer, 'west', 'Current player should be set to player who called trump');
-            assert.strictEqual(gameState.kitty.length, 1, 'Kitty should have one card');
-            assert.strictEqual(gameState.players.south.hand.length, 5, 'Dealer should have one less card');
-            assert.strictEqual(
-                gameState.kitty[0].id, 6,
-                'Discarded card should be in the kitty'
-            );
+            assert.ok(nextGameState, 'Should return a new game state object');
+            assert.strictEqual(nextGameState.dealerHasDiscarded, true, 'dealerHasDiscarded should be set to true');
+            assert.strictEqual(nextGameState.gamePhase, 'GOING_ALONE_DECISION', 'Should move to GOING_ALONE_DECISION phase');
+            assert.strictEqual(nextGameState.currentPlayer, 'west', 'Current player should be set to player who called trump');
+            assert.strictEqual(nextGameState.players.south.hand.length, 5, 'Dealer should have 5 cards after discard');
+            assert.ok(nextGameState.players.south.hand.some(card => card.id === turnCardToPickup.id), 'Dealer hand should contain the picked up turnCard');
+            assert.ok(!nextGameState.players.south.hand.some(card => card.id === cardToDiscardId), 'Dealer hand should not contain the discarded card');
+            assert.strictEqual(nextGameState.turnCard, null, 'turnCard should be null in the new state');
+            // Kitty check is removed as per rework plan: "The concept of a kitty being explicitly updated... is not present"
         });
 
         /**
@@ -348,33 +185,23 @@ describe('Euchre Server Dealer Discard Functions', function() {
             gameState.gamePhase = 'AWAITING_DEALER_DISCARD';
             gameState.dealer = 'south';
             gameState.currentPlayer = 'south';
-            gameState.players.south.hand = [
-                { id: 1, suit: 'hearts', value: 'A' },
-                { id: 2, suit: 'hearts', value: 'K' },
-                { id: 3, suit: 'hearts', value: 'Q' },
-                { id: 4, suit: 'hearts', value: 'J' },
-                { id: 5, suit: 'hearts', value: '10' },
-                { id: 6, suit: 'hearts', value: '9' }
+            gameState.turnCard = { id: 'S1A', suit: 'spades', value: 'A' }; // Turn card
+            gameState.players.south.hand = [ // Hand has 5 cards, + turn card = 6
+                { id: 'H1A', suit: 'hearts', value: 'A' },
+                { id: 'H1K', suit: 'hearts', value: 'K' },
+                { id: 'H1Q', suit: 'hearts', value: 'Q' },
+                { id: 'H1J', suit: 'hearts', value: 'J' },
+                { id: 'H1T', suit: 'hearts', value: '10' },
             ];
+            const cardNotInHandId = 'D1K'; // Diamond King is not in hand
+
+            // Execute and Verify
+            assert.throws(() => {
+                handleDealerDiscard(gameState, 'south', cardNotInHandId);
+            }, CardNotInHandError, 'Should throw CardNotInHandError for card not in hand');
             
-            // Clear any previous messages
-            const messageCount = emittedMessages.length;
-            
-            // Execute
-            const result = server.handleDealerDiscard('south', { id: 7, suit: 'hearts', value: '8' });
-            
-            // Get new messages
-            const newMessages = emittedMessages.slice(messageCount);
-            
-            // Verify
-            assert.strictEqual(result, false, 'Should return false for card not in hand');
-            assert.ok(
-                newMessages.some(m => m.event === 'action_error' && 
-                    (m.message.includes('not found') || m.message.includes('not in hand'))),
-                'Should show error about card not found in hand. Got: ' + 
-                JSON.stringify(newMessages, null, 2)
-            );
-            assert.strictEqual(gameState.players.south.hand.length, 6, 'Hand size should remain unchanged');
+            // Original gameState should be unchanged by the failed attempt
+            assert.strictEqual(gameState.players.south.hand.length, 5, 'Hand size should remain unchanged');
             assert.strictEqual(gameState.dealerHasDiscarded, false, 'dealerHasDiscarded should remain false');
         });
     });

@@ -44,7 +44,7 @@ You are a **Senior Software Architect LLM** assigned to analyze the **Euchre Mul
 - Identify and summarize coverage from:
   - Unit tests in `/test/server/`, `/test/phases/`, and `/src/test/`
   - Integration tests like `gameFlow.test.js`, `multiGame.integration.test.js`
-- Include path references and coverage estimates.
+- Include RELATIVE path references and coverage estimates.
 
 ### 🔧 2. What’s Missing or Broken
 - Identify:
@@ -68,6 +68,7 @@ For every broken or poorly performing unit test:
   - **Test file path**
   - **Target module/function**
   - **Expected behavior**
+  - **ABSOLUTE Paths when WE SHOULD ALWAYS USE RELATIVE Paths**
 - Provide root cause reasoning:
   - Mocking mismatch (e.g., socket, db, state object)
   - Poor isolation (test leaks state)

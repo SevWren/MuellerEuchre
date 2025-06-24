@@ -111,4 +111,5 @@ ENVIRONMENT_INSTABILITY.MD
 archived_files_for_rewrite/
 archived_files_for_rewrite
 .vscode/settings.json
-.vscode/settings.json
+main_branch_test_log.txt
+file_tree.txt

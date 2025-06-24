@@ -81,7 +81,7 @@ describe('Validation Logic - validatePlay', () => {
   // Test case for invalid game phase (uses generalValidatePlay)
   it('should throw InvalidPhaseError if game is not in PLAYING phase', () => {
     const gameState = { ...baseGameState, gamePhase: GAME_PHASES.DEALER_DISCARD };
-    expect(() => generalValidatePlay(gameState, player1Hand, player1Hand[0], player1Role)).to.throw(InvalidPhaseError);
+    expect(() => generalValidatePlay(gameState, player1Hand, player1Hand[0], player1Role)).to.throw(InvalidPhaseError, /Cannot play card during .*/);
   });
 
   // Test case for not player's turn (uses generalValidatePlay)
@@ -325,7 +325,7 @@ describe('Validation Logic - validateBid', () => {
   // Phase validation
   it('should throw InvalidPhaseError if bidding is attempted outside bidding phases', () => {
     const gameState = { ...baseBidGameState, gamePhase: GAME_PHASES.PLAYING };
-    expect(() => validateBid(gameState, PLAYER_ROLES[0], 'pass')).to.throw(InvalidPhaseError);
+    expect(() => validateBid(gameState, PLAYER_ROLES[0], 'pass')).to.throw(InvalidPhaseError, /Cannot make bid decision during .*/);
   });
 
   // Round 1 Bidding Logic
@@ -470,7 +470,7 @@ describe('Validation Logic - validateDealerDiscard', () => {
   // Phase validation
   it('should throw InvalidPhaseError if not in DEALER_DISCARD phase', () => {
     const gameState = { ...baseDiscardGameState, gamePhase: GAME_PHASES.PLAYING };
-    expect(() => validateDealerDiscard(gameState, dealerRole, cardToDiscard, dealerHand)).to.throw(InvalidPhaseError);
+    expect(() => validateDealerDiscard(gameState, dealerRole, cardToDiscard, dealerHand)).to.throw(InvalidPhaseError, /Cannot discard card during .*/);
   });
 
   // Dealer validation

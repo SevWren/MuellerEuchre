@@ -206,19 +206,19 @@ describe('Euchre Server Dealer Discard Functions', function() {
         /**
          * @test {handleDealerDiscard}
          * @description Verifies that the server enforces the rule that the dealer
-         * must have exactly 6 cards before discarding one.
+         * must have exactly 6 cards (after picking up the turn card) before discarding one.
          */
-        it('should reject discard when hand size is not 6', function() {
+        it('should reject discard when hand size is not 6 (after including turnCard)', function() {
             // Setup test
             gameState.gamePhase = 'AWAITING_DEALER_DISCARD';
             gameState.dealer = 'south';
             gameState.currentPlayer = 'south';
-            gameState.players.south.hand = [
-                { id: 1, suit: 'hearts', value: 'A' },
-                { id: 2, suit: 'hearts', value: 'K' },
-                { id: 3, suit: 'hearts', value: 'Q' },
-                { id: 4, suit: 'hearts', value: 'J' },
-                { id: 5, suit: 'hearts', value: '10' }
+            gameState.turnCard = { id: 'C1A', suit: 'clubs', value: 'A' }; // Turn card to be picked up
+            gameState.players.south.hand = [ // Hand currently has 4 cards, + turn card = 5
+                { id: 'H1A', suit: 'hearts', value: 'A' },
+                { id: 'H1K', suit: 'hearts', value: 'K' },
+                { id: 'H1Q', suit: 'hearts', value: 'Q' },
+                { id: 'H1J', suit: 'hearts', value: 'J' },
             ];
             
             const cardToAttemptDiscard = gameState.players.south.hand[0]; // { id: 1, suit: 'hearts', value: 'A' }
@@ -269,6 +269,7 @@ describe('Euchre Server Dealer Discard Functions', function() {
                 kitty: [], // Kitty will receive the discarded card
                 messages: [],
                 players: {
+                    ...gameState.players,
                     south: {
                         id: 'south-1',
                         name: 'Player 1',
@@ -281,6 +282,9 @@ describe('Euchre Server Dealer Discard Functions', function() {
                             cardToDiscard // H9
                         ]
                     },
+                    west: { id: 'west-1', name: 'Player 2', hand: [] },
+                    north: { id: 'north-1', name: 'Player 3', hand: [] },
+                    east: { id: 'east-1', name: 'Player 4', hand: [] }
                     west: { id: 'west-1', name: 'Player 2', hand: [] },
                     north: { id: 'north-1', name: 'Player 3', hand: [] },
                     east: { id: 'east-1', name: 'Player 4', hand: [] }

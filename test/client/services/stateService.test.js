@@ -1,4 +1,4 @@
-// test/client/services/stateService.test.js
+// File located at test/client/services/stateService.test.js
 import * as chai from 'chai';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';

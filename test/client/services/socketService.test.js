@@ -5,28 +5,28 @@ import sinonChai from 'sinon-chai';
 import { SocketService } from '../../../src/client/services/socketService.js'; // Use named import for the class
 import { GAME_EVENTS } from '../../../src/config/constants.js'; // Adjust if necessary
 
-chai.use(sinonChai);
-const expect = chai.expect;
+chai.use(sinonChai); // Use sinon-chai for better assertions on spies and stubs
+const expect = chai.expect; // Use expect from chai for assertions
 
 // Default placeholder for uiService if the actual one isn't mocked in a specific test context
 const uiServicePlaceholder = {
-    displayGlobalError: sinon.spy(),
-    displayAssignedRole: sinon.spy(),
-    updateLobbyView: sinon.spy(),
-    displayMessage: sinon.spy(),
-    showErrorModal: sinon.spy(),
-    promptForRejoin: sinon.spy(),
-    showConnectionLostMessage: sinon.spy(),
-    showReconnectingModal: sinon.spy(),
-    showReconnectedMessage: sinon.spy(),
-    showReconnectionFailedModal: sinon.spy(),
-    hideModal: sinon.spy(),
+    displayGlobalError: sinon.spy(), // Spy for displayGlobalError
+    displayAssignedRole: sinon.spy(), // Spy for displayAssignedRole
+    updateLobbyView: sinon.spy(), // Spy for updateLobbyView
+    displayMessage: sinon.spy(), // Spy for displayMessage
+    showErrorModal: sinon.spy(), // Spy for showErrorModal
+    promptForRejoin: sinon.spy(), // Spy for promptForRejoin
+    showConnectionLostMessage: sinon.spy(), // Spy for showConnectionLostMessage
+    showReconnectingModal: sinon.spy(), // Spy for showReconnectingModal
+    showReconnectedMessage: sinon.spy(), // Spy for showReconnectedMessage
+    showReconnectionFailedModal: sinon.spy(), // Spy for showReconnectionFailedModal
+    hideModal: sinon.spy(), //
 };
 
 describe('SocketService', () => {
-  let socketService;
-  let mockSocket;
-  let mockStateService;
+  let socketService; // Instance of SocketService
+  let mockSocket; // Mock socket object
+  let mockStateService; // Mock state service
   let mockUiService; // Use this for most tests
 
   beforeEach(() => {

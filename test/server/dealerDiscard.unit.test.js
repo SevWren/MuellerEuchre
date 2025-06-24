@@ -4,10 +4,6 @@ import sinon from 'sinon';
 import { handleDealerDiscard } from '../../src/game/phases/biddingPhase.js'; // Adjusted path
 import { DEBUG_LEVELS, GAME_PHASES } from '../../src/config/constants.js';
 
-// Verify if we should remove these unused imports
-//import { expect } from 'chai';
-
-
 // Debug configuration
 const DEBUG = Object.freeze({
     enabled: process.env.DEBUG_TESTS === 'true',
@@ -44,8 +40,6 @@ const createMockIo = (emittedMessages) => {
         })
     };
 };
-
-// server3.mjs related 'createServer' function is no longer needed and removed.
 
 describe('Euchre Server Dealer Discard Functions', function() {
     /** @type {Function} mockedHandleDealerDiscard - The imported and potentially esmocked version of handleDealerDiscard */

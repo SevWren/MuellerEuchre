@@ -3,17 +3,17 @@ import * as chai from 'chai';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import { UiService } from '../../../src/client/services/uiService.js'; // Use named import for the class
-import { GAME_PHASES, SUITS } from '../../../src/config/constants.js'; // Adjust path
+import { GAME_PHASES, SUITS } from '../../../src/config/constants.js'; // Relative Path Windows/Jules
 
 chai.use(sinonChai);
 const expect = chai.expect;
 
-describe('UiService', () => {
+describe('UiService', () => { // Test suite for UiService
   let uiService;
   let mockStateService;
   let mockSocketService;
 
-  beforeEach(() => {
+  beforeEach(() => { // Setup before each test
     mockStateService = {
       getPlayerHand: sinon.stub().returns([{ id: 'AH', rank: 'A', suit: 'HEARTS' }]),
       getTurnCard: sinon.stub().returns({ id: 'KD', rank: 'K', suit: 'DIAMONDS' }),

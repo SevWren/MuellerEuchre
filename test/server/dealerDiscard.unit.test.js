@@ -223,27 +223,14 @@ describe('Euchre Server Dealer Discard Functions', function() {
             
             const cardToAttemptDiscard = gameState.players.south.hand[0]; // { id: 1, suit: 'hearts', value: 'A' }
             
-            // Configure mockValidateDealerDiscard to throw for this specific scenario
-            mockValidateDealerDiscard = sinon.spy((gs, role, card, hand) => {
+            // Configure the behavior of the mockValidateDealerDiscard stub (from beforeEach)
+            // specifically for this test case.
+            mockValidateDealerDiscard.callsFake((gs, role, card, hand) => {
                 if (hand.length !== 6) {
                     throw new Error('Invalid hand size for discard (must be 6).');
                 }
-            });
-
-            // Re-esmock to apply the new mock behavior for this test case
-            // This is tricky because esmock is usually top-level.
-            // A better way would be to configure the spy behavior before the call.
-            // For now, let's assume the spy is checked after the call.
-            // The spy in beforeEach is generic. We need to make it throw for this test.
-            // So, we will modify the existing spy's behavior for this call.
-            
-            const originalMockValidate = mockValidateDealerDiscard; // Save original spy from beforeEach
-            mockValidateDealerDiscard.callsFake((gs, role, card, hand) => { // Temporarily change behavior
-                if (hand.length !== 6) {
-                    throw new Error('Invalid hand size for discard (must be 6).');
-                }
-                // Call the original spy implementation if you want to track calls globally
-                // originalMockValidate(gs, role, card, hand);
+                // If hand.length is 6, it will do nothing (default stub behavior),
+                // which is fine as this test expects the throw.
             });
 
             // Execute and Verify
@@ -322,7 +309,7 @@ describe('Euchre Server Dealer Discard Functions', function() {
             // The handleDealerDiscard function from biddingPhase.js does not set/unset 'dealerHasDiscarded'.
             // It spreads the input gameState. If dealerHasDiscarded was 'false' in input, it remains 'false'.
             assert.strictEqual(newState.dealerHasDiscarded, false, 'dealerHasDiscarded should remain false as it was in the input gameState');
-            assert.strictEqual(newState.gamePhase, 'GOING_ALONE_DECISION', 'Should move to GOING_ALONE_DECISION phase');
+            assert.strictEqual(newState.gamePhase, GAME_PHASES.GOING_ALONE_DECISION, 'Should move to GOING_ALONE_DECISION phase');
             assert.strictEqual(newState.currentPlayer, 'west', 'Current player should be set to player who ordered up/called trump');
 
             // Kitty is not directly updated by biddingPhase.handleDealerDiscard; it expects the caller to manage this.

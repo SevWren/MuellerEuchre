@@ -1,8 +1,8 @@
 import assert from 'assert';
 import esmock from 'esmock';
 import sinon from 'sinon';
-import { handleDealerDiscard } from '../../../src/game/phases/biddingPhase.js'; // Re-typed path
-import { DEBUG_LEVELS } from '../../../src/config/constants.js';
+import { handleDealerDiscard } from '../../src/game/phases/biddingPhase.js'; // Adjusted path
+import { DEBUG_LEVELS } from '../../src/config/constants.js';
 
 // Verify if we should remove these unused imports
 //import { expect } from 'chai';
@@ -97,16 +97,16 @@ describe('Euchre Server Dealer Discard Functions', function() {
         // we would mock errors.js itself. For now, assume real error is fine.
         // MockCardNotInHandError = sinon.stub(); // Example if we wanted to mock instantiation
 
-        actualHandleDealerDiscard = await esmock('../../../src/game/phases/biddingPhase.js', { // Re-typed path
-            '../../../src/game/logic/validation.js': {
+        actualHandleDealerDiscard = await esmock('../../src/game/phases/biddingPhase.js', { // Adjusted path
+            '../../src/game/logic/validation.js': { // Adjusted path for mock
                 validateDealerDiscard: mockValidateDealerDiscard,
             },
-            '../../../src/utils/logger.js': mockLogger,
-            '../../../src/utils/deck.js': {
+            '../../src/utils/logger.js': mockLogger, // Adjusted path for mock
+            '../../src/utils/deck.js': { // Adjusted path for mock
                 cardToId: mockCardToId,
             },
             // If CardNotInHandError needed to be mocked (e.g. to check constructor calls)
-            // '../../../src/game/logic/errors.js': {
+            // '../../src/game/logic/errors.js': { // Adjusted path for mock
             //   CardNotInHandError: MockCardNotInHandError
             // }
         });

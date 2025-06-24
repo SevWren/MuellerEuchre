@@ -285,9 +285,6 @@ describe('Euchre Server Dealer Discard Functions', function() {
                     west: { id: 'west-1', name: 'Player 2', hand: [] },
                     north: { id: 'north-1', name: 'Player 3', hand: [] },
                     east: { id: 'east-1', name: 'Player 4', hand: [] }
-                    west: { id: 'west-1', name: 'Player 2', hand: [] },
-                    north: { id: 'north-1', name: 'Player 3', hand: [] },
-                    east: { id: 'east-1', name: 'Player 4', hand: [] }
                 },
                 playerSlots: ['south', 'west', 'north', 'east'],
                 team1Score: 0, team2Score: 0,

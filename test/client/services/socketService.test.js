@@ -1,9 +1,9 @@
-// test/client/services/socketService.test.js
+// File located at test/client/services/socketService.test.js
 import * as chai from 'chai';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 import { SocketService } from '../../../src/client/services/socketService.js'; // Use named import for the class
-import { GAME_EVENTS } from '../../../src/config/constants.js'; // Adjust if necessary
+import { GAME_EVENTS } from '../../../src/config/constants.js'; // Import the constants directly
 
 chai.use(sinonChai); // Use sinon-chai for better assertions on spies and stubs
 const expect = chai.expect; // Use expect from chai for assertions
@@ -31,7 +31,8 @@ describe('SocketService', () => {
 
   beforeEach(() => {
     // Mock StateService
-    mockStateService = {
+    // Create fresh spies for each test run to ensure isolation.
+    mockStateService = { 
       getGameId: sinon.stub().returns('testGame123'),
       getPlayerRole: sinon.stub().returns('player1'),
       getPlayerId: sinon.stub().returns('playerTestId123'),
@@ -63,8 +64,8 @@ describe('SocketService', () => {
     mockSocket = {
       on: sinon.spy(),
       emit: sinon.stub(), // This will be the raw emit
-      connect: sinon.spy(),
-      disconnect: sinon.spy(),
+      connect: sinon.spy(), // Simulate connect method
+      disconnect: sinon.spy(), // Simulate connect and disconnect methods
       //timeout: sinon.stub().returnsThis(), // Chainable timeout
       // For _emitWithAck, the mock 'emit' needs to handle the ack callback
       // We'll make the default mockSocket.emit simulate an immediate successful ack
@@ -320,27 +321,27 @@ describe('SocketService', () => {
             socketService._emitWithAck.restore();
         });
 
-        it('on "connect" should handle failed rejoin attempt', async () => {
-            mockStateService.hasReconnectInfo.returns(true);
+        it('on "connect" should handle failed rejoin attempt', async () => { // Simulate a failed rejoin attempt
+            mockStateService.hasReconnectInfo.returns(true); // Simulate reconnect info exists
             sinon.stub(socketService, '_emitWithAck').rejects(new Error('Rejoin failed'));
 
-            await connectHandler();
+            await connectHandler(); // Simulate connect with rejoin attempt
 
-            expect(mockUiService.showReconnectingModal).to.have.been.calledOnce;
-            expect(mockUiService.showReconnectionFailedModal).to.have.been.calledOnceWith('Rejoin failed');
+            expect(mockUiService.showReconnectingModal).to.have.been.calledOnce; // Show reconnecting modal
+            expect(mockUiService.showReconnectionFailedModal).to.have.been.calledOnceWith('Rejoin failed'); // Show reconnection failed modal
             socketService._emitWithAck.restore();
         });
 
-        it('on "connect" should handle no reconnect info', async () => {
-            mockStateService.hasReconnectInfo.returns(false);
-            await connectHandler();
-            expect(mockUiService.showReconnectingModal).to.have.been.calledOnce;
-            expect(mockUiService.hideModal).to.have.been.calledOnce; // Or specific message
+        it('on "connect" should handle no reconnect info', async () => { // Simulate a fresh connect without reconnect info
+            mockStateService.hasReconnectInfo.returns(false); // Simulate no reconnect info
+            await connectHandler(); // Simulate connect without reconnect info
+            expect(mockUiService.showReconnectingModal).to.have.been.calledOnce; // Show reconnecting modal
+            expect(mockUiService.hideModal).to.have.been.calledOnce; // Hide reconnecting modal
             expect(mockUiService.displayMessage).to.have.been.calledOnceWith("Connected to server.", "success");
         });
 
         it('on "disconnect" should call uiService.showConnectionLostMessage', () => {
-            disconnectHandler('Server unavailable');
+            disconnectHandler('Server unavailable'); // Simulate disconnect with a message
             expect(mockUiService.showConnectionLostMessage).to.have.been.calledOnceWith('Server unavailable');
         });
     });

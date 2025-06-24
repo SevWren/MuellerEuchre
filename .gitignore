@@ -31,7 +31,9 @@ pids
 !.vscode/extensions.json
 !.vscode/launch.json
 !.vscode/settings.json
+.vscode/settings.json
 !.vscode/tasks.json
+.vscode
 #backup files
 *.backup
 *.bak
@@ -108,3 +110,5 @@ ENVIRONMENT_INSTABILITY.MD
 #Archive
 archived_files_for_rewrite/
 archived_files_for_rewrite
+.vscode/settings.json
+.vscode/settings.json

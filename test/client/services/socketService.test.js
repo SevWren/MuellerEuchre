@@ -44,8 +44,20 @@ describe('SocketService', () => {
     };
 
     // Mock UiService (specific spies for methods called by SocketService)
-    mockUiService = { ...uiServicePlaceholder }; // Spread placeholder and override as needed
-    sinon.resetHistory(); // Reset spies on the placeholder if it's reused
+    // Create fresh spies for each test run to ensure isolation.
+    mockUiService = {
+        displayGlobalError: sinon.spy(),
+        displayAssignedRole: sinon.spy(),
+        updateLobbyView: sinon.spy(),
+        displayMessage: sinon.spy(),
+        showErrorModal: sinon.spy(),
+        promptForRejoin: sinon.spy(),
+        showConnectionLostMessage: sinon.spy(),
+        showReconnectingModal: sinon.spy(),
+        showReconnectedMessage: sinon.spy(),
+        showReconnectionFailedModal: sinon.spy(),
+        hideModal: sinon.spy(),
+    };
 
     // Mock Socket object (socket.io-client)
     mockSocket = {

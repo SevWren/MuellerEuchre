@@ -2,7 +2,7 @@ import assert from 'assert';
 import esmock from 'esmock';
 import sinon from 'sinon';
 import { handleDealerDiscard } from '../../src/game/phases/biddingPhase.js'; // Adjusted path
-import { DEBUG_LEVELS } from '../../src/config/constants.js';
+import { DEBUG_LEVELS, GAME_PHASES } from '../../src/config/constants.js';
 
 // Verify if we should remove these unused imports
 //import { expect } from 'chai';

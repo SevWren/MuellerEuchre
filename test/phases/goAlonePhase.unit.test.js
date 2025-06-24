@@ -53,9 +53,9 @@ describe('GoAlonePhase Logic', () => {
     getPartnerMock = sinon.stub();
 
     const goAlonePhaseModule = await esmock('../../src/game/phases/goAlonePhase.js', {
-      '/app/src/game/state.js': { updateGameState: updateGameStateStub },
-      '/app/src/utils/logger.js': defaultLoggerMock,
-      '/app/src/utils/players.js': {
+      '../../src/game/state.js': { updateGameState: updateGameStateStub },
+      '../../src/utils/logger.js': defaultLoggerMock,
+      '../../src/utils/players.js': {
         getNextPlayer: getNextPlayerMock,
         getPartner: getPartnerMock,
       },

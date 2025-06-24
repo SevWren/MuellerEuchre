@@ -62,13 +62,13 @@ describe('StartNewHandPhase Logic', () => {
     getNextPlayerMock = sinon.stub();
 
     const startNewHandPhaseModule = await esmock('../../src/game/phases/startNewHandPhase.js', {
-      '/app/src/utils/deck.js': {
+      '../../src/utils/deck.js': {
         createDeck: createDeckMock,
         shuffleDeck: shuffleDeckMock,
         cardToId: cardToIdMock,
       },
-      '/app/src/utils/players.js': { getNextPlayer: getNextPlayerMock },
-      '/app/src/utils/logger.js': defaultLoggerMock,
+      '../../src/utils/players.js': { getNextPlayer: getNextPlayerMock },
+      '../../src/utils/logger.js': defaultLoggerMock,
       // No state.js or gameRepository.js mocks needed as startNewHand is pure
     });
     startNewHand = startNewHandPhaseModule.startNewHand;

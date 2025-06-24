@@ -50,8 +50,8 @@ describe('LobbyPhase Logic', () => {
     });
 
     const lobbyPhaseModule = await esmock('../../src/game/phases/lobbyPhase.js', {
-      '/app/src/game/state.js': { updateGameState: updateGameStateStub },
-      '/app/src/utils/logger.js': defaultLoggerMock,
+      '../../src/game/state.js': { updateGameState: updateGameStateStub },
+      '../../src/utils/logger.js': defaultLoggerMock,
       // Errors are imported by test file for assertions
     });
     attemptToStartGame = lobbyPhaseModule.attemptToStartGame;

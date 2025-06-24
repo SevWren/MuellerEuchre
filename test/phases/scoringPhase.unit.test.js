@@ -59,12 +59,11 @@ describe('ScoringPhase Logic', () => {
 
     beforeEach(async () => {
       updateGameMock = sinon.stub().resolves();
-      const absModulePath = '/app/src/game/phases/scoringPhase.js';
-      const scoringPhaseModule = await esmock(absModulePath, {
-        '/app/src/db/gameRepository.js': {
+      const scoringPhaseModule = await esmock('../../src/game/phases/scoringPhase.js', {
+        '../../src/db/gameRepository.js': {
           gameRepository: { updateGame: updateGameMock }
         },
-        '/app/src/utils/logger.js': defaultLoggerMock,
+        '../../src/utils/logger.js': defaultLoggerMock,
       });
       calculateAndApplyScore = scoringPhaseModule.calculateAndApplyScore;
     });
@@ -174,8 +173,8 @@ describe('ScoringPhase Logic', () => {
     beforeEach(async () => {
       resetFullGameMock = sinon.stub().returns({ gameId: 'newTestGame', gamePhase: GAME_PHASES.LOBBY });
       const scoringPhaseModule = await esmock('../../src/game/phases/scoringPhase.js', {
-        '/app/src/game/state.js': { resetFullGame: resetFullGameMock },
-        '/app/src/utils/logger.js': defaultLoggerMock,
+        '../../src/game/state.js': { resetFullGame: resetFullGameMock },
+        '../../src/utils/logger.js': defaultLoggerMock,
         // Mock other external deps if handleNewGameRequest uses them
       });
       handleNewGameRequest = scoringPhaseModule.handleNewGameRequest;

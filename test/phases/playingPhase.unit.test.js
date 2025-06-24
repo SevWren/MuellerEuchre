@@ -77,11 +77,11 @@ describe('PlayingPhase Logic', () => {
       getNextPlayerMock = sinon.stub().returns(PLAYER_ROLES[2]); // Default next player (North)
 
       const playingPhaseModule = await esmock('../../src/game/phases/playingPhase.js', {
-        '/app/src/game/logic/validation.js': { validatePlay: validatePlayMock },
-        '/app/src/utils/deck.js': { getCardRank: getCardRankMock },
-        '/app/src/utils/players.js': { getNextPlayer: getNextPlayerMock },
-        '/app/src/utils/logger.js': loggerMock, // Assuming playingPhase.js might use logger directly
-        '/app/src/game/state.js': { // Mock updateGameState to simplify state checks
+        '../../src/game/logic/validation.js': { validatePlay: validatePlayMock },
+        '../../src/utils/deck.js': { getCardRank: getCardRankMock },
+        '../../src/utils/players.js': { getNextPlayer: getNextPlayerMock },
+        '../../src/utils/logger.js': loggerMock, // Assuming playingPhase.js might use logger directly
+        '../../src/game/state.js': { // Mock updateGameState to simplify state checks
             updateGameState: (fn) => {
                 const current = JSON.parse(JSON.stringify(baseGameState)); // Simulate access to current state
                 const changes = fn(current);
@@ -257,9 +257,9 @@ describe('PlayingPhase Logic', () => {
     beforeEach(async () => {
       getCardRankMock = sinon.stub();
       const playingPhaseModule = await esmock('../../src/game/phases/playingPhase.js', {
-        '/app/src/utils/deck.js': { getCardRank: getCardRankMock },
+        '../../src/utils/deck.js': { getCardRank: getCardRankMock },
         // Mock other dependencies if determineTrickWinner starts using them
-        '/app/src/utils/logger.js': loggerMock,
+        '../../src/utils/logger.js': loggerMock,
       });
       determineTrickWinner = playingPhaseModule.determineTrickWinner;
     });

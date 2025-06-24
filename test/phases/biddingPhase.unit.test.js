@@ -98,9 +98,9 @@ describe('BiddingPhase Logic', () => {
     beforeEach(async () => {
       validateBidMock = sinon.stub();
       const biddingPhaseModule = await esmock('../../src/game/phases/biddingPhase.js', {
-        '/app/src/game/logic/validation.js': { validateBid: validateBidMock },
-        '/app/src/utils/logger.js': baseLoggerMock,
-        '/app/src/game/logic/errors.js': { PhaseLogicError }
+        '../../src/game/logic/validation.js': { validateBid: validateBidMock },
+        '../../src/utils/logger.js': baseLoggerMock,
+        '../../src/game/logic/errors.js': { PhaseLogicError }
       });
       handleOrderUpDecision = biddingPhaseModule.handleOrderUpDecision;
       gameStateInOrderUpRound1 = setupBiddingState(PLAYER_ROLES[0], 1, SUITS.DIAMONDS);
@@ -188,12 +188,12 @@ describe('BiddingPhase Logic', () => {
     beforeEach(async () => {
       validateDealerDiscardMock = sinon.stub();
       const biddingPhaseModule = await esmock('../../src/game/phases/biddingPhase.js', {
-          '/app/src/game/logic/validation.js': {
+          '../../src/game/logic/validation.js': {
             validateDealerDiscard: validateDealerDiscardMock,
             validateBid: sinon.stub()
           },
-          '/app/src/utils/logger.js': baseLoggerMock,
-          '/app/src/game/logic/errors.js': { PhaseLogicError, CardNotInHandError, InvalidDiscardError, NotPlayersTurnError, ValidationError, InvalidPhaseError }
+          '../../src/utils/logger.js': baseLoggerMock,
+          '../../src/game/logic/errors.js': { PhaseLogicError, CardNotInHandError, InvalidDiscardError, NotPlayersTurnError, ValidationError, InvalidPhaseError }
       });
       handleDealerDiscard = biddingPhaseModule.handleDealerDiscard;
 
@@ -266,14 +266,14 @@ describe('BiddingPhase Logic', () => {
     beforeEach(async () => {
       validateBidMock = sinon.stub();
       const biddingPhaseModule = await esmock('../../src/game/phases/biddingPhase.js', {
-          '/app/src/game/logic/validation.js': {
+          '../../src/game/logic/validation.js': {
             validateBid: validateBidMock,
             // Provide stubs for other validation functions if they are in the same file
             // and might be called by other functions in biddingPhase.js
             validateDealerDiscard: sinon.stub(),
           },
-          '/app/src/utils/logger.js': baseLoggerMock,
-          '/app/src/game/logic/errors.js': { PhaseLogicError, InvalidBidError, NotPlayersTurnError, ValidationError, InvalidPhaseError }
+          '../../src/utils/logger.js': baseLoggerMock,
+          '../../src/game/logic/errors.js': { PhaseLogicError, InvalidBidError, NotPlayersTurnError, ValidationError, InvalidPhaseError }
       });
       handleCallTrumpDecision = biddingPhaseModule.handleCallTrumpDecision;
 

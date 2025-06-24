@@ -74,10 +74,11 @@ describe('Euchre Server Dealer Discard Functions', function() {
     beforeEach(async () => {
         emittedMessages = []; // Reset for clarity, though direct emissions might not occur
 
-        mockValidateDealerDiscard = sinon.spy((_gameState, _dealerRole, _cardToDiscard, _dealerHand) => {
-            // Default successful validation: return true or nothing
-            // Throw an error in specific tests if needed
-        });
+        mockValidateDealerDiscard = sinon.stub();
+        // Default behavior for the stub (can be overridden in specific tests)
+        // For most tests, we want it to behave like a successful validation (do nothing, or return true)
+        // If a test needs it to throw, it can configure it: mockValidateDealerDiscard.throws(new Error(...));
+        // Or for the specific hand size test: mockValidateDealerDiscard.callsFake((gs, role, card, hand) => { ... });
         
         mockLogger = {
             info: sinon.spy(),
@@ -318,7 +319,9 @@ describe('Euchre Server Dealer Discard Functions', function() {
             sinon.assert.calledWith(mockLogger.info, sinon.match.has("discarded", mockCardToId(cardToDiscard)));
 
             // Check returned state
-            assert.strictEqual(newState.dealerHasDiscarded, undefined, 'dealerHasDiscarded should not be set on gameState by biddingPhase.handleDealerDiscard'); // This flag might be managed by the caller/socket handler
+            // The handleDealerDiscard function from biddingPhase.js does not set/unset 'dealerHasDiscarded'.
+            // It spreads the input gameState. If dealerHasDiscarded was 'false' in input, it remains 'false'.
+            assert.strictEqual(newState.dealerHasDiscarded, false, 'dealerHasDiscarded should remain false as it was in the input gameState');
             assert.strictEqual(newState.gamePhase, 'GOING_ALONE_DECISION', 'Should move to GOING_ALONE_DECISION phase');
             assert.strictEqual(newState.currentPlayer, 'west', 'Current player should be set to player who ordered up/called trump');
 

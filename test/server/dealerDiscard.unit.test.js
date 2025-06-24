@@ -1,7 +1,7 @@
 import assert from 'assert';
 import esmock from 'esmock';
 import sinon from 'sinon';
-import { handleDealerDiscard } from '../../../src/game/phases/biddingPhase.js';
+import { handleDealerDiscard } from '../../../src/game/phases/biddingPhase.js'; // Re-typed path
 import { DEBUG_LEVELS } from '../../../src/config/constants.js';
 
 // Verify if we should remove these unused imports
@@ -97,7 +97,7 @@ describe('Euchre Server Dealer Discard Functions', function() {
         // we would mock errors.js itself. For now, assume real error is fine.
         // MockCardNotInHandError = sinon.stub(); // Example if we wanted to mock instantiation
 
-        actualHandleDealerDiscard = await esmock('../../../src/game/phases/biddingPhase.js', {
+        actualHandleDealerDiscard = await esmock('../../../src/game/phases/biddingPhase.js', { // Re-typed path
             '../../../src/game/logic/validation.js': {
                 validateDealerDiscard: mockValidateDealerDiscard,
             },

@@ -44,7 +44,6 @@ export function registerGameOverHandlers(socket, io) {
       // Based on state.js, resetFullGame creates a new gameId.
       // This means clients would need to be informed of this new gameId if they are to join it.
       // Current `updateGame` uses the *old* gameId as a key. This might be an issue.
-
       // If resetFullGame creates a new gameId, we should probably use that newId for updateGame.
       // However, gameRepository.js might be keyed by the original gameId.
       // For this subtask, assume updateGame can handle overwriting the game state at the original gameId with this new LOBBY state.

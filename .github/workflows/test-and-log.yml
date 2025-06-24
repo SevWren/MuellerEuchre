@@ -1,0 +1,43 @@
+# .github/workflows/test-and-log.yml
+
+name: Run Tests and Save Output
+
+# 1. Define the trigger for the workflow
+on:
+  push:
+    branches: [ main ] # Runs on pushes to the main branch
+  pull_request:
+    branches: [ main ] # Runs on pull requests targeting the main branch
+
+# 2. Define the job(s) to be run
+jobs:
+  run-tests-and-save-log:
+    name: Test and Save Log
+    runs-on: ubuntu-latest # Use a standard Linux virtual machine
+
+    steps:
+      # 3. Step to check out your repository's code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 4. Step to set up the correct Node.js version
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc' # Automatically uses the version from your .nvmrc file
+          cache: 'npm' # Caches npm dependencies for faster runs
+
+      # 5. Step to install project dependencies
+      - name: Install dependencies
+        run: npm ci # 'ci' is faster and more reliable for automation than 'install'
+
+      # 6. Step to run the tests and capture the output
+      - name: Run tests and capture output
+        run: npm test > test-results.log 2>&1 || true
+
+      # 7. Step to upload the log file as an artifact
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results # The name of the artifact bundle
+          path: test-results.log # The path to the file you want to upload

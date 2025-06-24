@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import esmock from 'esmock';
-import { GAME_PHASES, SUITS, PLAYER_ROLES, VALUES } from '../../../../src/config/constants.js';
+import { GAME_PHASES, SUITS, PLAYER_ROLES, VALUES } from '../../../src/config/constants.js';
 import {
   ValidationError,
   InvalidPhaseError,
@@ -9,7 +9,7 @@ import {
   MustFollowSuitError,
   InvalidBidError,
   InvalidDiscardError,
-} from '../../../../src/game/logic/errors.js';
+} from '../../../src/game/logic/errors.js';
 
 // Mock logger to prevent console output during tests
 const loggerMock = {
@@ -52,9 +52,9 @@ describe('Validation Logic - validatePlay', () => {
       return false;
     };
 
-    const validationModule = await esmock('../../../../src/game/logic/validation.js', { // Adjusted path
-      '../../../../src/utils/logger.js': loggerMock, // Adjusted path
-      '../../../../src/utils/deck.js': { // Adjusted path
+    const validationModule = await esmock('../../../src/game/logic/validation.js', { // Reverted path
+      '../../../src/utils/logger.js': loggerMock, // Reverted path
+      '../../../src/utils/deck.js': { // Reverted path
         isLeftBower: (card, trumpSuit) => generalIsLeftBowerMock(card, trumpSuit),
       },
     });
@@ -111,9 +111,9 @@ describe('Validation Logic - validatePlay', () => {
         return false;
       };
 
-      const validationModule = await esmock('../../../../src/game/logic/validation.js', { // Adjusted path
-        '../../../../src/utils/logger.js': loggerMock, // Adjusted path
-        '../../../../src/utils/deck.js': { // Adjusted path
+      const validationModule = await esmock('../../../src/game/logic/validation.js', { // Reverted path
+        '../../../src/utils/logger.js': loggerMock, // Reverted path
+        '../../../src/utils/deck.js': { // Reverted path
           isLeftBower: (card, trumpSuit) => isLeftBowerMock(card, trumpSuit),
         },
       });
@@ -286,8 +286,8 @@ describe('Validation Logic - validateBid', () => {
   beforeEach(async () => {
     // For validateBid, we don't have deck.js dependencies currently, so esmock is simpler
     // If validateBid started using something from deck.js, we'd need to mock it here.
-    const validationModule = await esmock('../../../../src/game/logic/validation.js', { // Adjusted path
-      '../../../../src/utils/logger.js': loggerMock, // Adjusted path
+    const validationModule = await esmock('../../../src/game/logic/validation.js', { // Reverted path
+      '../../../src/utils/logger.js': loggerMock, // Reverted path
       // No need to mock deck.js for validateBid unless it's used by validateBid
     });
     validateBid = validationModule.validateBid;
@@ -424,8 +424,8 @@ describe('Validation Logic - validateDealerDiscard', () => {
   const cardToDiscard = { id: 'TC', suit: SUITS.CLUBS, value: VALUES.TEN }; // A card presumed to be in hand
 
   beforeEach(async () => {
-    const validationModule = await esmock('../../../../src/game/logic/validation.js', { // Adjusted path
-      '../../../../src/utils/logger.js': loggerMock, // Adjusted path
+    const validationModule = await esmock('../../../src/game/logic/validation.js', { // Reverted path
+      '../../../src/utils/logger.js': loggerMock, // Reverted path
       // No deck.js dependency for validateDealerDiscard
     });
     validateDealerDiscard = validationModule.validateDealerDiscard;

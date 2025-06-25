@@ -89,7 +89,6 @@ describe('PlayingPhase Logic', () => {
                 return baseGameState;
             }
         },
-        // '../../game/logic/errors.js': { PhaseLogicError, NotPlayersTurnError, InvalidPhaseError }
         '../../src/game/logic/errors.js': { PhaseLogicError, NotPlayersTurnError, InvalidPhaseError }        
       });
       handlePlayCard = playingPhaseModule.handlePlayCard;

@@ -262,7 +262,7 @@ describe('BiddingPhase Logic', () => {
       // is somehow not referenced correctly at the game state level for the function's operation.
       // The function expects currentGameState.turnCard to be the card that was picked up.
       // This test ensures that if this reference is missing, it's handled.
-      expect(() => handleDealerDiscard(stateWithoutTurnCard, dealer, cardToDiscardFrom6CardHand.id))
+      expect(() => handleDealerDiscard(stateWithoutTurnCardOnTable, dealer, cardToDiscardFrom6CardHand.id))
         .to.throw(PhaseLogicError, "Cannot discard: turn card is missing from game state.");
     });
 

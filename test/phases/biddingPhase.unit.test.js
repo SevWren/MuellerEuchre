@@ -211,48 +211,81 @@ describe('BiddingPhase Logic', () => {
         { id: 'AC', suit: SUITS.CLUBS, value: VALUES.ACE },
         { id: '9S', suit: SUITS.SPADES, value: VALUES.NINE },
       ];
-      gameStateForDiscard.players[dealer].hand = [...testDealerHand];
+      // Original 5 cards for the dealer
+      testDealerHand = [
+        { id: 'TC', suit: SUITS.CLUBS, value: VALUES.TEN },
+        { id: 'QC', suit: SUITS.CLUBS, value: VALUES.QUEEN },
+        { id: 'KC', suit: SUITS.CLUBS, value: VALUES.KING },
+        { id: 'AC', suit: SUITS.CLUBS, value: VALUES.ACE },
+        { id: '9S', suit: SUITS.SPADES, value: VALUES.NINE },
+      ];
+      // The hand provided to handleDealerDiscard should be after pickup.
+      gameStateForDiscard.players[dealer].hand = [...testDealerHand, gameStateForDiscard.turnCard]; // Now 6 cards
       gameStateForDiscard.makerTeam = gameStateForDiscard.players[orderingPlayer].teamId;
     });
 
-    it('should call validateDealerDiscard with correct arguments', () => {
-      const cardToDiscardObj = testDealerHand[0];
-      validateDealerDiscardMock.returns(true);
-      handleDealerDiscard(gameStateForDiscard, dealer, cardToDiscardObj.id);
-      expect(validateDealerDiscardMock.calledOnceWith(gameStateForDiscard, dealer, cardToDiscardObj, testDealerHand)).to.be.true;
+    it('should call validateDealerDiscard with correct arguments (6-card hand)', () => {
+      const cardToDiscardFrom6CardHand = gameStateForDiscard.players[dealer].hand[0]; // e.g., TC
+      validateDealerDiscardMock.returns(true); // Assume validation passes
+
+      handleDealerDiscard(gameStateForDiscard, dealer, cardToDiscardFrom6CardHand.id);
+
+      expect(validateDealerDiscardMock.calledOnce).to.be.true;
+      const validationArgs = validateDealerDiscardMock.firstCall.args;
+      expect(validationArgs[0]).to.deep.equal(gameStateForDiscard); // gameState
+      expect(validationArgs[1]).to.equal(dealer); // dealerRole
+      expect(validationArgs[2]).to.deep.equal(cardToDiscardFrom6CardHand); // cardToDiscardObject
+      expect(validationArgs[3]).to.deep.equal(gameStateForDiscard.players[dealer].hand); // The 6-card hand
+      expect(validationArgs[3].length).to.equal(6);
     });
 
-    it('should throw CardNotInHandError if card ID not in hand (preliminary check)', () => {
-        expect(() => handleDealerDiscard(gameStateForDiscard, dealer, 'XX'))
+    it('should throw CardNotInHandError if card ID not in hand (preliminary check on 6-card hand)', () => {
+        expect(() => handleDealerDiscard(gameStateForDiscard, dealer, 'XX')) // XX is not in the 6-card hand
             .to.throw(CardNotInHandError, "Card XX not found in dealer's hand.");
     });
 
-    it('should propagate errors from validateDealerDiscard', () => {
-      const cardToDiscardObj = testDealerHand[0];
+    it('should propagate errors from validateDealerDiscard (when called with 6-card hand)', () => {
+      const cardToDiscardFrom6CardHand = gameStateForDiscard.players[dealer].hand[0];
       const expectedError = new InvalidDiscardError("Only the dealer can discard.");
       validateDealerDiscardMock.throws(expectedError);
-      expect(() => handleDealerDiscard(gameStateForDiscard, dealer, cardToDiscardObj.id))
+      expect(() => handleDealerDiscard(gameStateForDiscard, dealer, cardToDiscardFrom6CardHand.id))
         .to.throw(expectedError);
     });
 
-    it('should throw PhaseLogicError if turnCard is missing (after validation passes)', () => {
-      const cardToDiscardObj = testDealerHand[0];
+    it('should throw PhaseLogicError if turnCard is missing in gameState (after validation passes)', () => {
+      const cardToDiscardFrom6CardHand = gameStateForDiscard.players[dealer].hand[0];
       validateDealerDiscardMock.returns(true);
-      const stateWithoutTurnCard = { ...gameStateForDiscard, turnCard: null };
-      expect(() => handleDealerDiscard(stateWithoutTurnCard, dealer, cardToDiscardObj.id))
+      const stateWithoutTurnCardOnTable = { ...gameStateForDiscard, turnCard: null };
+      // Note: The turnCard is already part of the dealer's 6-card hand in this setup.
+      // The function's internal logic uses gameState.turnCard for logging and potentially other things.
+      // If gameState.turnCard is null, it means the card that *was* the turn card (and now in hand)
+      // is somehow not referenced correctly at the game state level for the function's operation.
+      // The function expects currentGameState.turnCard to be the card that was picked up.
+      // This test ensures that if this reference is missing, it's handled.
+      expect(() => handleDealerDiscard(stateWithoutTurnCard, dealer, cardToDiscardFrom6CardHand.id))
         .to.throw(PhaseLogicError, "Cannot discard: turn card is missing from game state.");
     });
 
-    it('should allow dealer to discard a card and pick up the turn card (after validation passes)', () => {
-      const cardToDiscardObj = testDealerHand[0];
-      validateDealerDiscardMock.returns(true);
-      const actualTurnCardInState = gameStateForDiscard.turnCard;
+    it('should allow dealer to discard a card, resulting in a 5-card hand (after validation passes)', () => {
+      // gameStateForDiscard.players[dealer].hand is already 6 cards.
+      // Let's say the dealer discards the first card from these 6.
+      const cardToDiscardObj = gameStateForDiscard.players[dealer].hand[0]; // e.g., TC
+      const pickedUpTurnCard = gameStateForDiscard.turnCard; // e.g., AD (Diamonds Ace)
+
+      validateDealerDiscardMock.returns(true); // Assume validation passes
+
       const nextState = handleDealerDiscard(gameStateForDiscard, dealer, cardToDiscardObj.id);
 
-      expect(nextState.players[dealer].hand.length).to.equal(5);
-      const pickedUpCard = nextState.players[dealer].hand.find(c => c.id === actualTurnCardInState.id);
-      expect(pickedUpCard).to.exist;
-      expect(pickedUpCard.id).to.equal(actualTurnCardInState.id);
+      expect(nextState.players[dealer].hand.length).to.equal(5); // Corrected assertion
+      // Ensure the card that was on the table (pickedUpTurnCard) is in the final 5-card hand,
+      // unless it was the one discarded.
+      if (cardToDiscardObj.id !== pickedUpTurnCard.id) {
+        expect(nextState.players[dealer].hand.some(c => c.id === pickedUpTurnCard.id)).to.be.true;
+      }
+      // Ensure the discarded card is NOT in the hand.
+      expect(nextState.players[dealer].hand.some(c => c.id === cardToDiscardObj.id)).to.be.false;
+      // Ensure game state's turnCard (on table) is now null.
+      expect(nextState.turnCard).to.be.null;
     });
   });
 

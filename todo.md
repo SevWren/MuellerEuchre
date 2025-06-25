@@ -1,6 +1,12 @@
+
+
 # Project TODO List
 
-This file outlines the next crucial steps for the Euchre Multiplayer game development, following the foundational rewrite of core server components.
+Tues June 24 2025:
+Still unable to find the cause of Jules's environment breaking after one instance of running `npm test`
+Attempting to use windsurf: Remember to 
+
+This Below contents outlines the next crucial steps for the Euchre Multiplayer game development, following the foundational rewrite of core server components.
 
 ## Next Sprint Priorities (Generated Tasks)
 

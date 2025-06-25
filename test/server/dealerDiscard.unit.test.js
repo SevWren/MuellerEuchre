@@ -250,75 +250,82 @@ describe('Euchre Server Dealer Discard Functions', function() {
             // Setup test
             // Ensure mockValidateDealerDiscard does not throw for this valid case
             // The default spy in beforeEach is fine.
-            const cardToDiscard = { id: 'H9', suit: 'hearts', value: '9' };
-            const turnUpCard = { id: 'HT', suit: 'hearts', value: '10' };
+            // Setup: Dealer 'south' has 5 cards. Picks up 'turnUpCard', resulting in 6. Then discards 'cardToDiscardFromHand'.
+            const originalHand = [
+                { id: 'HA', suit: 'hearts', value: 'A' },
+                { id: 'HK', suit: 'hearts', value: 'K' },
+                { id: 'HQ', suit: 'hearts', value: 'Q' },
+                { id: 'HJ', suit: 'hearts', value: 'J' },
+                { id: 'H9', suit: 'hearts', value: '9' } // Card that will be kept
+            ];
+            const turnUpCard = { id: 'HT', suit: 'hearts', value: '10' }; // This is the card picked up
+            const cardToDiscardFromHand = { id: 'HA', suit: 'hearts', value: 'A' }; // Dealer chooses to discard Ace of Hearts
+
+            // The hand that handleDealerDiscard receives (and validateDealerDiscard)
+            // is the hand *after* picking up the turn card.
+            const dealerHandAfterPickup = [...originalHand, turnUpCard]; // Now 6 cards
 
             gameState = {
-                gamePhase: 'AWAITING_DEALER_DISCARD', // Correct phase from constants.js
+                gamePhase: GAME_PHASES.DEALER_DISCARD, // Correct phase from constants.js
                 dealer: 'south',
                 currentPlayer: 'south',
                 playerWhoCalledTrump: 'west', // or playerWhoOrderedUp
                 playerWhoOrderedUp: 'west', // biddingPhase uses this to set next player
-                turnCard: turnUpCard, // Dealer picks this up
-                kitty: [], // Kitty will receive the discarded card
+                turnCard: turnUpCard, // This is the card that was on the table, now conceptually in hand
+                kitty: [],
                 messages: [],
                 players: {
-                    ...gameState.players,
+                    ...gameState.players, // Spread existing players for other roles
                     south: {
                         id: 'south-1',
                         name: 'Player 1',
-                        hand: [
-                            { id: 'HA', suit: 'hearts', value: 'A' },
-                            { id: 'HK', suit: 'hearts', value: 'K' },
-                            { id: 'HQ', suit: 'hearts', value: 'Q' },
-                            { id: 'HJ', suit: 'hearts', value: 'J' },
-                            { id: 'H10', suit: 'hearts', value: '10' }, // This is actually the turnUpCard in this test's logic
-                            cardToDiscard // H9
-                        ]
+                        hand: dealerHandAfterPickup // Hand of 6 cards
                     },
+                    // Ensure other players exist for functions like getNextPlayer if they are called
                     west: { id: 'west-1', name: 'Player 2', hand: [] },
                     north: { id: 'north-1', name: 'Player 3', hand: [] },
                     east: { id: 'east-1', name: 'Player 4', hand: [] }
                 },
-                playerSlots: ['south', 'west', 'north', 'east'],
+                playerSlots: ['south', 'west', 'north', 'east'], // ensure this matches roles used
                 team1Score: 0, team2Score: 0,
                 currentTrickPlays: [],
                 tricksWon: { team1: 0, team2: 0 },
-                dealerHasDiscarded: false,
+                dealerHasDiscarded: false, // This property is not used by biddingPhase.js
                 gameMessages: []
             };
             
             // Execute
-            const newState = actualHandleDealerDiscard.handleDealerDiscard(gameState, 'south', cardToDiscard.id);
+            // handleDealerDiscard is called with the ID of the card to be removed from the 6-card hand.
+            const newState = actualHandleDealerDiscard.handleDealerDiscard(gameState, 'south', cardToDiscardFromHand.id);
             
             // Verify
             assert.ok(newState, 'Should return a new game state object for successful discard');
 
             // Check mocks
             sinon.assert.calledOnce(mockValidateDealerDiscard);
-            sinon.assert.calledWith(mockValidateDealerDiscard, gameState, 'south', sinon.match({id: cardToDiscard.id}), gameState.players.south.hand);
+            // validateDealerDiscard is called with the 6-card hand
+            sinon.assert.calledWith(mockValidateDealerDiscard, gameState, 'south', sinon.match({id: cardToDiscardFromHand.id}), dealerHandAfterPickup);
             sinon.assert.calledWith(mockLogger.info, sinon.match.has("pickedUp", mockCardToId(turnUpCard)));
-            sinon.assert.calledWith(mockLogger.info, sinon.match.has("discarded", mockCardToId(cardToDiscard)));
+            sinon.assert.calledWith(mockLogger.info, sinon.match.has("discarded", mockCardToId(cardToDiscardFromHand)));
 
             // Check returned state
-            // The handleDealerDiscard function from biddingPhase.js does not set/unset 'dealerHasDiscarded'.
-            // It spreads the input gameState. If dealerHasDiscarded was 'false' in input, it remains 'false'.
-            assert.strictEqual(newState.dealerHasDiscarded, false, 'dealerHasDiscarded should remain false as it was in the input gameState');
             assert.strictEqual(newState.gamePhase, GAME_PHASES.GOING_ALONE_DECISION, 'Should move to GOING_ALONE_DECISION phase');
             assert.strictEqual(newState.currentPlayer, 'west', 'Current player should be set to player who ordered up/called trump');
 
-            // Kitty is not directly updated by biddingPhase.handleDealerDiscard; it expects the caller to manage this.
-            // The function adds the turnCard to hand and removes the discarded card.
-            // The discarded card is not placed in `newState.kitty` by `handleDealerDiscard`.
-            // This test's original expectation for kitty needs to change.
-            // assert.strictEqual(newState.kitty.length, 1, 'Kitty should have one card');
-            // assert.strictEqual(newState.kitty[0].id, cardToDiscard.id, 'Discarded card should be in the kitty');
             assert.strictEqual(newState.players.south.hand.length, 5, 'Dealer should have 5 cards');
-            assert.ok(newState.players.south.hand.some(card => card.id === turnUpCard.id), 'Dealer hand should contain the turnUpCard');
-            assert.ok(!newState.players.south.hand.some(card => card.id === cardToDiscard.id), 'Dealer hand should not contain the discarded card');
-            assert.strictEqual(newState.turnCard, null, 'gameState.turnCard should be null after discard');
+            // The turnUpCard (HT) should be in the final hand (unless it was the one discarded, which it isn't in this setup)
+            assert.ok(newState.players.south.hand.some(card => card.id === turnUpCard.id), 'Dealer hand should contain the turnUpCard (HT)');
+            // The cardToDiscardFromHand (HA) should NOT be in the final hand
+            assert.ok(!newState.players.south.hand.some(card => card.id === cardToDiscardFromHand.id), 'Dealer hand should not contain the discarded card (HA)');
 
-            assert.ok(newState.gameMessages.some(msg => msg.text.includes('picked up') && msg.text.includes(mockCardToId(turnUpCard))), 'Game message should reflect discard');
+            // Ensure other original cards (except the discarded one) are still there
+            const expectedKeptCards = originalHand.filter(c => c.id !== cardToDiscardFromHand.id);
+            expectedKeptCards.forEach(keptCard => {
+                assert.ok(newState.players.south.hand.some(card => card.id === keptCard.id), `Kept card ${keptCard.id} should be in hand`);
+            });
+
+            assert.strictEqual(newState.turnCard, null, 'gameState.turnCard (on table) should be null after discard');
+            assert.ok(newState.gameMessages.some(msg => msg.text.includes('picked up') && msg.text.includes(mockCardToId(turnUpCard)) && msg.text.includes('discarded') && msg.text.includes(mockCardToId(cardToDiscardFromHand))), 'Game message should reflect discard');
         });
 
         /**

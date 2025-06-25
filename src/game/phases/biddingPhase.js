@@ -125,9 +125,10 @@ export function handleDealerDiscard(currentGameState, dealerRole, cardToDiscardI
         throw new PhaseLogicError("Cannot discard: turn card is missing from game state.");
     }
 
-    // Re-construct hand for immutability: filter out discarded, add turnCard
+    // Re-construct hand for immutability: filter out discarded
     const newDealerHand = dealerHand.filter(card => card.id !== cardToDiscardId);
-    newDealerHand.push(turnCard);
+    // The turnCard is already part of dealerHand at this stage (conceptually, dealer picked it up, now has 6 cards).
+    // So, we just remove the cardToDiscardId. The newDealerHand will have 5 cards.
 
     const newPlayersData = {
         ...currentGameState.players,

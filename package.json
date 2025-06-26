@@ -19,7 +19,7 @@
     "pretest:compare-coverage": "rimraf coverage",
     "test:integration": "mocha --loader=esm test/phases/startHand.integration.test.js --timeout 10000",
     "test:all": "npm test && npm run test:integration",
-    "test:coverage:ci": "npm run clean:coverage && c8 --reporter=lcov --all --loader=esm mocha --loader=esm",
+    "test:coverage:ci": "npm run clean:coverage && c8 --reporter=lcov --all mocha --loader=esm test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --timeout 10000",
     "coverage:report": "npx c8 report --reporter=text-lcov | npx coveralls",
     "lint": "eslint . --ext .js,.jsx",
     "lint:fix": "eslint . --ext .js,.jsx --fix",

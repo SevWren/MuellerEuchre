@@ -1,22 +1,15 @@
-
-
 # Project TODO List
 
 Tues June 24 2025:
 Still unable to find the cause of Jules's environment breaking after one instance of running `npm test`
-Attempting to use windsurf: Remember to 
 
-This Below contents outlines the next crucial steps for the Euchre Multiplayer game development, following the foundational rewrite of core server components.
+This document outlines the next crucial steps for the Euchre Multiplayer game development, following the foundational rewrite of core server components.
 
 ## Next Sprint Priorities (Generated Tasks)
 
 1.  **Server: Comprehensive Error Handling & Validation**
     *   **Details:** Systematically review all server-side socket handlers and game phase logic. Ensure all error conditions are caught, logged appropriately, and result in meaningful error events/messages being sent to the client. Strengthen input validation for all actions.
     *   **Original Ref:** Adapted from Longer Term - Item 9
-
-2.  **UI: Visual Polish - Card and Player Representations (Conceptual)**
-    *   **Details (Conceptual):** Define improved visual representations for cards (distinguishing suits and ranks clearly) and player positions on the game board. Specify how active player, dealer, and trick winner could be visually highlighted.
-    *   **Original Ref:** New/Enhancement
 
 3.  **Server: Unit Tests for Playing Phase**
     *   **Details:** Write comprehensive unit tests for `src/game/phases/playingPhase.js` and associated handlers in `src/socket/handlers/playingHandlers.js`. Cover various scenarios like valid/invalid plays, trick completion, hand completion, and effects of "go alone".
@@ -500,5 +493,7 @@ This section outlines the sub-tasks, affected files, and proposed logic for each
         *   Implemented an in-memory `gameRepository` mock and a `MockSocket` class with a `mockIoInstance` to simulate client connections and server broadcasts for focused integration testing.
         *   Tested the successful flow of 4 players joining a lobby, leading to automatic game start (simulated by calling `startNewHand()` after 4th player joins) and transition into the `ORDER_UP_ROUND1` bidding phase. Verified correct initial game state (player hands, dealer, turn card, active bidder).
         *   Tested a player disconnecting from the lobby before game start, ensuring the player is removed/marked inactive and other players are updated.
+        *   Tested an attempt to join an already full game/lobby, verifying an error is sent to the attempting client.
+        *   Tests validated interactions with `gameRepository`, correct state updates, and broadcasting of events to simulated clients.
         *   Tested an attempt to join an already full game/lobby, verifying an error is sent to the attempting client.
         *   Tests validated interactions with `gameRepository`, correct state updates, and broadcasting of events to simulated clients.

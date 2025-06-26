@@ -13,7 +13,7 @@ This document outlines the path forward for the Euchre Multiplayer project, foll
 
 **2. Key Outcomes of Analysis:**
     A significant portion of the server-side JavaScript codebase and test infrastructure was found to have critical flaws. Consequently, these files have been moved to the `archived_files_for_rewrite/` directory, and placeholder files (ending  in `.archived`) have been left in their original locations. This includes:
-    *   Core server logic and entry points (`server3.mjs`, `src/server.js`).
+    *   Core server logic and entry points (DO NOT USED THE old `server3.mjs` method/file, WE EXPLICITLY use the new `src/server.js`).
     *   Fundamental state management modules (`src/game/state.js`, `src/game/stateManager.js`).
     *   The entire server-side socket handling infrastructure (`src/socket/*`).
     *   Most game phase logic modules (`src/game/phases/*`).

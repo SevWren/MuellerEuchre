@@ -1,77 +1,78 @@
-## Euchre Multiplayer Rewrite - LLM Prompt Template
+## Euchre Multiplayer Rewrite - Project Implementation Plan & Architectural Mandate
 
-### Role and Core Mission
+### Core Architectural Mandate: The Layered Methodology
 
-You are an expert AI software engineer tasked with continuing the from-scratch rewrite of the Euchre Multiplayer project. Your primary goal is to build a stable, maintainable, and robust application by systematically implementing features according to the established layered development plan. You must address the critical architectural flaws that led to the original codebase being archived.
+This is the non-negotiable architectural blueprint for the project. All work, without exception, MUST adhere to these principles of separation of concerns. Every task must be understood and implemented through the lens of its impact on one or more of these layers.
 
----
+*   **Layer 1: Pure Core & Game Logic**
+    *   **Responsibility:** Contains all pure, stateless game rules and business logic (e.g., determining a valid play, calculating a trick winner, validating a bid).
+    *   **Constraints:** MUST NOT contain any state management, I/O, or network code. Functions in this layer receive data, process it, and return a result. They are fully deterministic.
 
-### 1. Project Context & History
+*   **Layer 2: State Management**
+    *   **Responsibility:** The single source of truth for the entire `gameState`. Manages atomic and immutable updates to the game state.
+    *   **Responsibility:** When `gameState` reaches 500+ lines, `gameState` may be split over multiple numbered `gameState` files. If so, then ensure all instances of `gameState` are read.
+    *   **Constraints:** All state changes MUST flow through this layer. No other layer is permitted to mutate the `gameState` object directly.
 
-**Current State:** The project has just completed a massive analysis and archival phase. A significant portion of the original server-side code and test infrastructure was identified as critically flawed and has been moved to an archive. This was done to address pervasive issues with file integrity, module loading, and application stability. Some core components have been rewritten according to the layered plan (e.g., logger, deck utilities, player utilities, validation logic, state manager, and initial game phase logic like playing and scoring).
+*   **Layer 3: Network & Socket Handlers**
+    *   **Responsibility:** A thin communication layer. Listens for events from clients, validates incoming data, and calls functions in the lower layers (e.g., state management or phase logic) to execute actions. Broadcasts updated state back to clients.
+    *   **Constraints:** MUST NOT contain any complex game logic. Its job is to orchestrate, not to think.
 
-**Key Historical Flaws to Avoid (Lessons Learned):** Before rewriting any module or implementing new features, you **MUST** consult the detailed analysis logs (`info_to_reprogram_permanetly_archived_files_part*.md`) to understand the specific flaws of the original implementation. Key anti-patterns that you must avoid repeating include:
+*   **Layer 4: Phase & Application Logic**
+    *   **Responsibility:** Manages the game's state machine, transitioning between phases (e.g., from `BIDDING` to `PLAYING`). Uses functions from Layer 1 (Core Logic) to make decisions and functions from Layer 2 (State) to apply updates.
+    *   **Constraints:** Acts as the "controller" logic that connects the other layers.
 
-*   **State Management:**
-    *   **NO** direct mutation of shared state objects.
-    *   **NO** returning direct references to mutable cached objects.
-    *   **NO** non-atomic "read-modify-write" operations that can cause race conditions.
-*   **Server & Performance:**
-    *   **NO** synchronous file I/O (like `fs.appendFileSync`) in the main event loop, especially for logging.
-    *   **NO** monkey-patching core objects (e.g., `socket.on`, `console.log`).
-*   **Code Architecture:**
-    *   **NO** server-side code importing from client-side utilities (e.g., `src/game/phases` must not import from `src/client/utils`).
-    *   **NO** duplicated game logic. Strive for a single source of truth for rules (e.g., one `getCardRank` function, one `isValidPlay` function).
-*   **Testing & Security:**
-    *   **NO** logic that bypasses game rules in test environments (`NODE_ENV === 'test'`).
-    *   **NO** non-functional security middleware (e.g., placeholder authentication/authorization).
-    *   **NO** incompatible test tooling (e.g., using `proxyquire` in an ES Module project).
-    *   **NO** excessive global namespace pollution in test setup files.
+*   **Layer 5: Persistence**
+    *   **Responsibility:** Handles saving the game state to and retrieving it from a database.
+    *   **Constraints:** Interacts only with the State Management and Network layers at defined checkpoints (e.g., after a hand, on player disconnect).
 
 ---
 
-### 2. Guiding Principles & Methodology
+### Next Sprint Priorities
 
-You will adhere strictly to the following principles and methodology for all development work.
+1.  **Enforce Robust Error Handling Across All Layers.**
+2.  **Develop Unit Tests for the Playing Phase.**
+3.  **Develop Unit Tests for the Scoring Phase.**
+4.  **Develop Unit Tests for the 'Go Alone' Decision Phase.**
+5.  **Stabilize the Test Suite by Resolving Intermittent Failures.**
 
-**A. Guiding Methodology: Layered Development**
-(Derived from `Thursday-Jules.txt`)
-We are rebuilding the application in distinct, manageable layers. Your work must follow this sequence, ensuring each layer is solid before building the next.
-*   **Layer 1: Core Game Logic & Utilities (TDD Focus):** Implement pure, stateless functions for game rules (card ranking, validation, turn logic) and essential utilities (logger). *Much of this layer is already rewritten.*
-*   **Layer 2: State Management:** Create a robust, centralized state manager that uses the pure functions from Layer 1 to perform atomic, immutable state updates via a `dispatchAction` pattern (currently implemented via `updateGameState(updaterFn)` in `src/game/state.js`). *This layer is already rewritten.*
-*   **Layer 3: Network API (Thin Handlers):** Implement Socket.IO handlers that are simple wrappers. They validate input, create action objects, and call the Layer 2 state manager. They contain **no game logic**. *Some handlers are rewritten.*
-*   **Layer 4: User Interface:** Refactor client-side components to display state from the server and emit events to the Layer 3 API.
-*   **Layer 5: Manual & Automated E2E Testing:** Verify the integrated system.
+---
 
-**B. Architectural & Quality Guidelines**
+### Detailed Implementation Strategy
 
-*   **Code Style:** Use ES6+ features (ES Modules: `import/export`). Write JSDoc for all functions. Use camelCase for variables/functions and PascalCase for classes. Ensure code is clear, readable, and well-commented where complex logic exists.
-*   **Data Integrity & State Management:**
-    *   **Immutability:** All game state updates performed via the Layer 2 State Manager (`src/game/state.js`) **must** result in a new state object. Do not mutate the existing state directly. The `updateGameState(updaterFn)` pattern in `src/game/state.js` achieves this by applying the `updaterFn` to a deep clone of the current state and then assigning a new deep clone of the result as the current state. Your `updaterFn` should operate on the provided state clone and return the modified state (or the relevant portion that was changed to be merged).
-        *   *Example (Conceptual inside an updater function passed to `state.js`'s `updateGameState`):*
-            ```javascript
-            function myUpdater(currentGameStateClone) {
-              // currentGameStateClone is a deep clone
-              currentGameStateClone.currentPlayer = 'newPlayer'; // Modify the clone
-              // ... other logic
-              return currentGameStateClone; // Return the modified clone
-            }
-            // Somewhere else:
-            // const newGameState = updateGameState(myUpdater);
-            ```
-    *   **Atomicity:** State changes should be atomic. Operations that involve multiple steps on the state should be encapsulated within a single call to the state update mechanism (`updateGameState`) to prevent inconsistent states.
-    *   **Single Source of Truth:** The Layer 2 State Manager (`src/game/state.js`) is the *only* module responsible for holding and modifying the game state. Other modules (especially Layer 3 socket handlers) must retrieve state via its getters (which provide clones, e.g., `getGameState()`) and propose updates via its designated update functions (`updateGameState(updaterFn)`).
-    *   **Input Validation:** Rigorously validate all inputs at the boundaries of your modules, especially data coming from external sources like client sockets or database reads. Use the validation utilities (e.g., `src/game/logic/validation.js`) where appropriate.
-*   **Error Handling:**
-    *   Use the new asynchronous logger (`src/utils/logger.js` via `pino`) for all server-side logging.
-    *   Implement comprehensive error handling in all functions, especially in socket handlers and game phase logic. Errors should be logged server-side and, where appropriate, a sanitized error message should be communicated to the client (e.g., using a specific `GAME_EVENTS.ERROR` type).
-    *   Avoid generic `catch (e)` blocks where possible; handle specific, anticipated error types.
-*   **Modularity & Cohesion:**
-    *   Functions and modules should have a single, well-defined responsibility.
-    *   Keep functions short and focused.
-    *   Avoid circular dependencies between modules.
-    *   Utilize the centralized utility modules (`src/utils/deck.js`, `src/utils/players.js`, etc.) for common operations. Do not duplicate logic.
-*   **Asynchronous Operations:**
+Each priority must be implemented according to the Core Architectural Mandate.
+
+**1. Enforce Robust Error Handling Across All Layers**
+*   **Goal:** Make the server resilient and prevent crashes.
+*   **Architectural Implementation:**
+    *   **Layer 3 (Network Handlers):** Wrap all calls to lower layers in `try/catch` blocks. Validate all incoming client data *before* processing. On any error (validation failure or thrown exception from a lower layer), log the error server-side and emit a structured error message to the specific client.
+    *   **Layers 1 & 4 (Core/Phase Logic):** Functions in these layers MUST throw specific, descriptive errors when an invalid action is attempted (e.g., playing out of turn, bidding illegally). They should not handle the error themselves; they report it upwards to the Network Layer.
+
+**2. Develop Unit Tests for the Playing Phase**
+*   **Goal:** Achieve high confidence in the card-playing mechanics.
+*   **Architectural Implementation:**
+    *   **Layer 1 Tests:** Write unit tests that target the pure logic functions in isolation. Provide mock inputs and assert the return values for functions like `isValidPlay` and `determineTrickWinner`.
+    *   **Layer 4 Tests:** Write tests for the phase-management logic. Simulate a `PLAYING` phase, call the `handlePlayCard` function, and assert that the correct state transitions and updates occur.
+
+**3. Develop Unit Tests for the Scoring Phase**
+*   **Goal:** Verify all scoring outcomes are calculated correctly.
+*   **Architectural Implementation:**
+    *   **Layer 1 Tests:** Write unit tests for any pure score calculation functions. Provide a completed hand state and assert that the correct point values are returned for all scenarios (euchre, march, etc.).
+    *   **Layer 4 Tests:** Write tests for the `SCORING` phase logic. Assert that it correctly calls the Layer 1 scoring functions and applies the results to the game state via the Layer 2 State Manager, before correctly transitioning to the next game phase (`GAME_OVER` or `DEALING`).
+
+**4. Develop Unit Tests for the 'Go Alone' Decision Phase**
+*   **Goal:** Ensure the "go alone" mechanic works as intended.
+*   **Architectural Implementation:**
+    *   **Layer 4 Tests:** Target the `GOING_ALONE_DECISION` phase logic. Provide a game state where a maker has just been determined, then simulate the "go alone" decision. Assert that the `gameState` is correctly updated (e.g., a partner is marked as sitting out) and that the game transitions to the `PLAYING` phase.
+
+**5. Stabilize the Test Suite by Resolving Intermittent Failures**
+*   **Goal:** Create a reliable and trustworthy automated testing process.
+*   **Architectural Implementation:**
+    *   This is a process task. Identify any tests, particularly integration tests that cross multiple layers (like reconnection), that fail inconsistently. Isolate the race condition or asynchronous issue. If a fix is not immediate, disable the test with `it.skip()` and add a detailed `// TODO:` comment explaining the problem, ensuring the main test suite remains stable for development on individual layers.
+
+---
+
+### Completed Tasks
+*(This section remains, serving as a historical log of what has been accomplished)*
     *   Use `async/await` for all asynchronous operations (e.g., database interactions from `gameRepository.js`, some file system operations if any were still needed, waiting for promises).
     *   Ensure promises are properly handled (awaited or returned explicitly).
 *   **Babel Usage (Server-Side Application Code):**

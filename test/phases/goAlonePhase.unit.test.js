@@ -1,3 +1,22 @@
+/**
+ * @file test/phases/goAlonePhase.unit.test.js
+ * @module test/phases/goAlonePhase.unit
+ * @description
+ *   Unit tests for the "Go Alone" phase logic in Euchre Multiplayer.
+ *   These tests verify correct validation, error handling, and state transitions
+ *   when a player decides to go alone or play with a partner.
+ *
+ *   CURRENT STATE:
+ *     - Tests use esmock to mock dependencies and isolate the pure logic.
+ *     - All validation, error, and state transition scenarios are covered.
+ *     - The test file is focused on Layer 1 logic, not on state management or network.
+ *
+ *   WHEN THE PROJECT IS COMPLETE:
+ *     - This file will serve as the authoritative test suite for "Go Alone" logic in Layer 1.
+ *     - All possible decision paths and edge cases will be validated here.
+ *     - No test will require integration with state, persistence, or network code.
+ */
+
 import { expect } from 'chai';
 import sinon from 'sinon';
 import esmock from 'esmock';

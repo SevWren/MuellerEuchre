@@ -23,6 +23,32 @@ class GamePersistence {
         const data = this.fs.readFileSync(`${this.basePath}/${gameId}.json`, 'utf8');
         return JSON.parse(data);
     }
+
+    // --- Add these methods to support player data persistence ---
+    /**
+     * Saves player data to a file named {playerId}.player.json in the basePath.
+     * @param {string} playerId
+     * @param {object} playerData
+     */
+    savePlayerData(playerId, playerData) {
+        const data = JSON.stringify(playerData);
+        this.fs.writeFileSync(`${this.basePath}/${playerId}.player.json`, data);
+        return true;
+    }
+
+    /**
+     * Loads player data from a file named {playerId}.player.json in the basePath.
+     * @param {string} playerId
+     * @returns {object|null}
+     */
+    loadPlayerData(playerId) {
+        const filePath = `${this.basePath}/${playerId}.player.json`;
+        if (!this.fs.existsSync(filePath)) {
+            return null;
+        }
+        const data = this.fs.readFileSync(filePath, 'utf8');
+        return JSON.parse(data);
+    }
 }
 
 // Use ES module export

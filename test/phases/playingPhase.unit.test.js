@@ -1,3 +1,22 @@
+/**
+ * @file test/phases/playingPhase.unit.test.js
+ * @module test/phases/playingPhase.unit
+ * @description
+ *   Unit tests for the playing phase logic of the Euchre Multiplayer game.
+ *   These tests cover card play validation, trick resolution, error handling,
+ *   and phase transitions for the main play loop.
+ *
+ *   CURRENT STATE:
+ *     - Tests use esmock to mock all dependencies and isolate the pure logic.
+ *     - All scenarios for card play, trick completion, and error propagation are covered.
+ *     - The file is focused on Layer 1 logic, not on state management or network.
+ *
+ *   WHEN THE PROJECT IS COMPLETE:
+ *     - This file will serve as the definitive test suite for Layer 1 playing phase logic.
+ *     - All rules for card play, trick resolution, and phase transitions will be validated here.
+ *     - No test will require integration with state, persistence, or network code.
+ */
+
 import { expect } from 'chai';
 import sinon from 'sinon';
 import esmock from 'esmock';

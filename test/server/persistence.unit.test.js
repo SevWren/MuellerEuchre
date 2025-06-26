@@ -1,17 +1,27 @@
 /**
- * @file server3.persistence.test.js - Test suite for game state persistence
- * @module test/server3.persistence
- * @description Comprehensive test suite for the Euchre game state persistence system.
- * 
- * This test suite verifies the functionality related to saving and loading game state,
- * including auto-save features, state restoration, and error handling for persistence
- * operations.
- * 
+ * @file persistence.unit.test.js
+ * @module test/server/persistence.unit
+ * @description
+ *   Comprehensive test suite for the Euchre game state persistence system.
+ *   This suite verifies saving and loading of game state, auto-save features,
+ *   state restoration, error handling for persistence operations, and player
+ *   reconnection logic. It also covers the GamePersistence class for
+ *   per-game and per-player data persistence.
+ *
+ *   The tests use a MockServer class to simulate server persistence logic,
+ *   and mock/stub the filesystem and logger as needed. All tests are
+ *   self-contained and do not depend on any legacy server3.mjs module.
+ *
+ *   NOTE: If this file or related test files become too large or unwieldy,
+ *   they may be refactored into multiple smaller files in the future,
+ *   named and numbered accordingly (e.g., persistence.unit.part1.test.js, etc.).
+ *
  * @requires assert
  * @requires sinon
  * @requires fs
  * @requires path
- * @requires ../../server3.mjs
+ * @requires chai
+ * @requires ../../server/GamePersistence.js (for GamePersistence class)
  */
 
 import assert from "assert";
@@ -20,6 +30,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from 'url';
 import { expect } from 'chai';
+import { GamePersistence } from './persistence/gameState.unit.test.js';
 
 // Get directory name in ES module
 const __filename = fileURLToPath(import.meta.url);
@@ -153,6 +164,7 @@ class MockServer {
  * @description Test suite for game state persistence functionality.
  * Covers saving, loading, and managing game state across server restarts.
  */
+
 describe('Game State Persistence', function() {
     /** @type {Object} server - The server instance being tested */
     let server;

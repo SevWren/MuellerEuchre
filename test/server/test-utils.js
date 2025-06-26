@@ -1,4 +1,3 @@
-import proxyquire from "proxyquire";
 import sinon from "sinon";
 
 const config = {

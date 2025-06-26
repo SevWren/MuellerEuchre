@@ -1,3 +1,22 @@
+/**
+ * @file test/phases/scoringPhase.unit.test.js
+ * @module test/phases/scoringPhase.unit
+ * @description
+ *   Unit tests for the scoring phase logic of the Euchre Multiplayer game.
+ *   These tests cover score calculation, hand completion, game over detection,
+ *   and new game initialization logic.
+ *
+ *   CURRENT STATE:
+ *     - Tests use esmock to mock persistence and logger dependencies.
+ *     - All scoring scenarios, error conditions, and phase transitions are covered.
+ *     - The file is focused on pure logic, not on state management or network.
+ *
+ *   WHEN THE PROJECT IS COMPLETE:
+ *     - This file will be the canonical test suite for Layer 1 scoring phase logic.
+ *     - All rules for scoring, hand completion, and game over will be validated here.
+ *     - No test will require integration with state, persistence, or network code.
+ */
+
 import { expect } from 'chai';
 import sinon from 'sinon';
 import esmock from 'esmock';

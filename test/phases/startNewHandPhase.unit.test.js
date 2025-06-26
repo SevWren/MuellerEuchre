@@ -1,3 +1,22 @@
+/**
+ * @file test/phases/startNewHandPhase.unit.test.js
+ * @module test/phases/startNewHandPhase.unit
+ * @description
+ *   Unit tests for the start new hand phase logic of the Euchre Multiplayer game.
+ *   These tests cover deck creation, dealing, dealer rotation, and error handling
+ *   for starting a new hand.
+ *
+ *   CURRENT STATE:
+ *     - Tests use esmock to mock deck, player, and logger dependencies.
+ *     - All scenarios for dealing, dealer rotation, and error propagation are covered.
+ *     - The file is focused on Layer 1 logic, not on state management or network.
+ *
+ *   WHEN THE PROJECT IS COMPLETE:
+ *     - This file will serve as the definitive test suite for Layer 1 start new hand logic.
+ *     - All rules for dealing, dealer rotation, and hand initialization will be validated here.
+ *     - No test will require integration with state, persistence, or network code.
+ */
+
 import { expect } from 'chai';
 import sinon from 'sinon';
 import esmock from 'esmock';

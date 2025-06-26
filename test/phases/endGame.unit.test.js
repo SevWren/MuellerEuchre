@@ -1,17 +1,21 @@
 /**
- * @file endGame.unit.test.js - Unit tests for the EndGame module
- * @module test/endGame.unit
- * @description Comprehensive test suite for the end-game functionality in the Euchre game.
- * Tests cover the complete end-game workflow including:
- * - Score calculation and updates
- * - Game over detection
- * - Match statistics tracking
- * - New game initialization
- * 
- * @requires chai
- * @requires ../src/game/phases/endGame.js
- * @requires ../src/config/constants.js
- * @see {@link module:src/game/phases/endGame} for the implementation being tested
+ * @file test/phases/endGame.unit.test.js
+ * @module test/phases/endGame.unit
+ * @description
+ *   Unit tests for the end-game logic of the Euchre Multiplayer game.
+ *   These tests cover score calculation, game over detection, match statistics,
+ *   and new game initialization.
+ *
+ *   CURRENT STATE:
+ *     - Tests use esmock to isolate the endGame phase logic and mock logger/utilities.
+ *     - The suite verifies correct scoring, march/euchre detection, and game over transitions.
+ *     - Tests are written to validate pure logic functions, not network or persistence.
+ *
+ *   WHEN THE PROJECT IS COMPLETE:
+ *     - This file will be the definitive test suite for Layer 1 (Core Logic) end-game logic.
+ *     - All state transitions and scoring rules will be validated here, with no side effects.
+ *     - The suite will ensure that the end-game logic is robust, stateless, and fully decoupled
+ *       from state management, persistence, and network layers.
  */
 
 import { expect } from 'chai';

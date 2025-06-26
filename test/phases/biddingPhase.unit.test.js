@@ -1,3 +1,28 @@
+/**
+ * @file test/phases/biddingPhase.unit.test.js
+ * @module test/phases/biddingPhase.unit
+ * @description
+ *   Unit tests for the bidding phase logic of the Euchre Multiplayer game.
+ *   These tests cover the pure functions responsible for handling order up decisions,
+ *   dealer discards, and call trump decisions, including all validation and state transitions.
+ *
+ *   CURRENT STATE:
+ *     - These tests use esmock to isolate and mock dependencies for each function under test.
+ *     - The tests verify correct argument validation, error propagation, and state transitions
+ *       for each bidding phase action.
+ *     - The test structure is aligned with the layered rewrite plan: all logic under test is pure,
+ *       stateless, and does not mutate shared state directly.
+ *     - The test file is self-contained and does not depend on any legacy or archived modules.
+ *
+ *   WHEN THE PROJECT IS COMPLETE:
+ *     - This file will serve as the canonical unit test suite for Layer 1 (Core Logic) bidding phase.
+ *     - All tests will target only pure functions, with all state mutation and persistence handled
+ *       by Layer 2 (state management) and Layer 3 (network API).
+ *     - No test will require integration with socket handlers, persistence, or UI code.
+ *     - The test suite will guarantee that all bidding rules, edge cases, and error conditions
+ *       are enforced at the logic layer, supporting robust and maintainable state management above.
+ */
+
 import { expect } from 'chai';
 import sinon from 'sinon';
 // We will import functions under test via esmock for relevant describe blocks

@@ -1,3 +1,36 @@
+/**
+ * @file src/db/gameRepository.js
+ * @module db/gameRepository
+ * @description
+ *   MongoDB persistence layer for Euchre Multiplayer game state.
+ *   This module is responsible for connecting to the database, saving, loading,
+ *   and querying game state for active games. It is designed to be used by the
+ *   state management and network layers (Layer 2 and Layer 3) and must not
+ *   contain any game logic or state mutation outside of persistence operations.
+ *
+ *   Current State:
+ *     - Implements a singleton GameRepository class for MongoDB.
+ *     - Provides async connect, updateGame (upsert), getGame, and disconnect methods.
+ *     - Handles TTL index for automatic cleanup of stale games.
+ *     - Used by socket handlers and phase logic for persistence after key state transitions.
+ *     - All code is ES Module and uses async/await.
+ *     - Logging is performed via the async logger (see src/utils/logger.js).
+ *
+ *   Limitations / TODOs for Full Production Readiness:
+ *     - No support for multi-game concurrency or sharding (single collection).
+ *     - No transactional guarantees for multi-step updates (atomic per game only).
+ *     - No schema validation at the DB layer (relies on application-level validation).
+ *     - No support for player/user persistence (only game state).
+ *     - No automated backup/restore or migration logic.
+ *     - No explicit error codes for client consumption (errors are logged and thrown).
+ *     - No integration with Redis or other caching for performance.
+ *
+ *   This file is architected to support a fully working 4-person multiplayer online Euchre game,
+ *   but assumes that all state management, validation, and game logic are handled in other layers.
+ *   It should be reviewed and extended as the codebase approaches production and as new persistence
+ *   requirements (e.g., player stats, audit logs, game history) are identified.
+ */
+
 import { MongoClient, ObjectId } from 'mongodb';
 import { log } from '../utils/logger.js';
 import databaseConfig from '../config/database.js';

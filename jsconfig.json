@@ -33,8 +33,9 @@
         "strictFunctionTypes": true,
         "baseUrl": ".",
         "paths": {
-            "@/*": ["src/*"],
-            "@public/*": ["public/*"]
+            "@/*": ["src/*"], //SRC alias
+            "@public/*": ["public/*"], //Public alias (unused mostly for now)
+            "@test/*": ["test/*"] //unit tests
         }
     },
     "exclude": [
@@ -55,17 +56,13 @@
         "tmp",
         "**/*.tmp",
 
-        // Logs and debug files
-        "logs",
-        "*.log",
-        "npm-debug.log*",
-        "yarn-debug.log*",
-        "yarn-error.log*",
-        "lerna-debug.log*",
-
+        // Logs and debug files (now recursive)
+        "logs", // This correctly excludes the top-level 'logs' directory and its contents
+        "**/*.log", // Excludes any .log file in any subdirectory
+        
         // Environment and IDE
         ".env*",
-        // ".vscode/*", // It's often useful to have vscode settings linted/checked
+        ".vscode/*", // THIS SHOULD NEVER be checked. This is why this is in exclude & not include
         ".idea",
         ".DS_Store",
         "Thumbs.db",
@@ -76,7 +73,7 @@
         "*.lcov",
 
         // Package manager specific (these are not source code)
-        // "package-lock.json", // Not typically included for JS parsing
+        "package-lock.json", // Not typically included for JS parsing
         // "yarn.lock",
         // "pnpm-lock.yaml",
         // "shrinkwrap.json",
@@ -96,14 +93,8 @@
         // Development and editor files
         ".history/",
 
-        // Test artifacts
-        "**/cypress/screenshots/",
-        "**/cypress/videos/",
-
-        // Archived test directories
-        "test/archived/",
-        "test/temp_archived/",
-        "test/temp_ignore/",
+        // misc text files
+        "**/*.txt",
 
         // Specific files from root that are not source
         "package-lock.json",
@@ -112,7 +103,12 @@
         "todo.md",
         "todo_possible_amendment.md",
         "readme.md",
-        "ENVIRONMENT_INSTABILITY.md.errors"
+        "ENVIRONMENT_INSTABILITY.md.errors",
+
+        // LLM Specific Files
+        "Repo_To_LLM",
+        
+
     ],
     "include": [
         "src/**/*.js",
@@ -120,19 +116,10 @@
         "public/js/**/*.js", // Specifically include JS files in public/js
         "test/**/*.js",
         "test/**/*.jsx", // If any tests use JSX
-        // "*.js", // For any JS files directly in the root, if necessary e.g. config files
-        // The following are kept from original if still desired, but might be too broad
-        // or covered by the specific includes above.
-        // Consider if these are truly needed if src, public/js, and test are specified.
         "**/*.ts", // Keep for future proofing or if TS files exist
         "**/*.tsx", // Keep for future proofing or if TS files exist
         "**/__mocks__", // If mock directories are outside /test
         "**/cypress", // If cypress tests are not under /test
         "**/e2e", // If e2e tests are not under /test
-        "**/docs/**/*.js", // If docs contain executable JS examples
-        "**/examples/**/*.js", // If examples contain executable JS
-        "**/benchmarks/**/*.js", // If benchmarks contain executable JS
-        ".tmp/test_output.js", // From original, keep if this temp file needs parsing
-        ".tmp/test-node-env.js" // From original, keep if this temp file needs parsing
     ]
 }

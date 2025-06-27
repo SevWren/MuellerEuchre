@@ -1,31 +1,41 @@
 # Project TODO List
 
-Tues June 24 2025:
+Thurs June 26 2025:
 Still unable to find the cause of Jules's environment breaking after one instance of running `npm test`
+Investigate no failing tests returned when calling npm test via cmd prompt vs all tests pass via powershell
 
 This document outlines the next crucial steps for the Euchre Multiplayer game development, following the foundational rewrite of core server components.
 
-## Next Sprint Priorities (Generated Tasks)
+# Project TODO List
 
-1.  **Server: Comprehensive Error Handling & Validation**
-    *   **Details:** Systematically review all server-side socket handlers and game phase logic. Ensure all error conditions are caught, logged appropriately, and result in meaningful error events/messages being sent to the client. Strengthen input validation for all actions.
-    *   **Original Ref:** Adapted from Longer Term - Item 9
+## Next Sprint Priorities (Coverage & Stability Focus)
 
-3.  **Server: Unit Tests for Playing Phase**
-    *   **Details:** Write comprehensive unit tests for `src/game/phases/playingPhase.js` and associated handlers in `src/socket/handlers/playingHandlers.js`. Cover various scenarios like valid/invalid plays, trick completion, hand completion, and effects of "go alone".
-    *   **Original Ref:** Derived from Longer Term - Item 10 (Testing Continuous)
+The primary goal of this sprint is to significantly increase test coverage from its current ~53% and improve overall code robustness. We will achieve this by systematically adding unit tests for critical infrastructure (database, utilities) and for the success and failure paths of each game phase.
 
-4.  **Server: Unit Tests for Scoring Phase**
-    *   **Details:** Write comprehensive unit tests for `src/game/phases/scoringPhase.js` and associated handlers (if any directly for scoring actions, or verify integration with game over/new hand). Cover score calculation for makers/opponents, march, euchre, and game over conditions.
-    *   **Original Ref:** Derived from Longer Term - Item 10 (Testing Continuous)
+The task "Server: Comprehensive Error Handling & Validation" will be accomplished by completing the unit tests below, as they will verify that error conditions are handled correctly.
 
-5.  **Server: Unit Tests for Go-Alone Phase**
-    *   **Details:** Write comprehensive unit tests for `src/game/phases/goAlonePhase.js` (if it exists as a distinct phase logic file) and its integration with `src/socket/handlers/goAloneHandlers.js`. Test maker deciding to go alone or with partner, and the impact on `gameState` (e.g., `partnerSittingOut`).
-    *   **Original Ref:** Derived from Longer Term - Item 10 (Testing Continuous)
+---
 
-6.  **Server: Review and Stabilize/Disable Reconnection Tests**
-    *   **Details:** Review all existing server-side tests (unit and integration) for any tests specifically covering reconnection or auto-reconnection logic. If these tests are proving problematic to pass reliably or are consuming excessive time to fix during general development, temporarily disable them (e.g., using `.skip()` or by commenting them out with a clear `TODO`). The goal is to ensure the main test suite remains stable for other development efforts.
-    *   **Original Ref:** User Feedback (Turn 21)
+**1. Server: Unit Tests for `gameRepository.js`**
+*   **Details:** This is the highest priority as it's a critical infrastructure component with low coverage. Create a new test file `test/db/gameRepository.unit.test.js`. Use `esmock` to mock the `mongodb` library. Write tests that cover all failure paths, such as connection errors, database errors on read/write, and handling for when a game is not found.
+
+**2. Server: Unit Tests for `deck.js` Utility**
+*   **Details:** This is a high-impact, quick win. Create a new test file `test/utils/deck.unit.test.js`. Write comprehensive tests for all pure functions: `createDeck`, `shuffleDeck`, `isRightBower`, `isLeftBower`, `getCardRank`, and `sortHand`. Aim for 100% coverage on this critical utility file.
+
+**3. Server: Unit Tests for Bidding Phase (Success & Error Paths)**
+*   **Details:** Create `test/phases/biddingPhase.unit.test.js` and `test/socket/handlers/biddingHandlers.unit.test.js`. Cover all logic in `biddingPhase.js` (ordering up, dealer discard, calling trump, misdeals). For the handlers, test what happens when a player acts out of turn, in the wrong phase, or provides invalid data.
+
+**4. Server: Unit Tests for Go-Alone Phase (Success & Error Paths)**
+*   **Details:** Create `test/phases/goAlonePhase.unit.test.js` and `test/socket/handlers/goAloneHandlers.unit.test.js`. Test the decision logic for both going alone and playing with a partner. For the handler, verify that only the correct player can make the decision and that errors are emitted for invalid attempts.
+
+**5. Server: Unit Tests for Playing Phase (Success & Error Paths)**
+*   **Details:** Create `test/phases/playingPhase.unit.test.js` and `test/socket/handlers/playingHandlers.unit.test.js`. Cover valid/invalid plays (following suit, playing trump), trick completion, hand completion, and the transition to the scoring phase. Test the socket handler for errors when a player plays out of turn.
+
+**6. Server: Unit Tests for Scoring Phase (Success & Error Paths)**
+*   **Details:** Create `test/phases/scoringPhase.unit.test.js` and `test/socket/handlers/gameOverHandlers.unit.test.js`. Cover score calculation for all scenarios (makers win, euchred, march, alone). Test the transition to the next hand or to the `GAME_OVER` phase. Test the "request new game" handler.
+
+**7. Server: Review and Stabilize/Disable Reconnection Tests**
+*   **Details:** This is a CI health task. Review all existing server-side tests (especially integration tests) for any tests specifically covering reconnection logic. If these tests are flaky or failing intermittently, temporarily disable them using `.skip()` and create a follow-up task to fix them. A stable CI is crucial for reliable coverage reporting.
 
 ---
 

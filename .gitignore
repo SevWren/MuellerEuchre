@@ -86,6 +86,7 @@ analysis of logic errors (Needs addressing) Sunday Evening.txt
 analysis of logic errors (Needs addressing).txt
 index - Copy.html
 *copy*.*
+test_results.txt
 
 #Misc code editor files
 *.windsurfrules
@@ -98,3 +99,18 @@ main_branch_test_log.txt
 file_tree.txt
 server3_migration_audit.md
 resolve_assertion_errors_plan.md
+
+#LLM Related text files
+mueller_euchre_repo_llm.txt
+run-gitingest.bat
+.kilocode/rules/memory-bank/brief.md
+.kilocode/rules/memory-bank/context.md
+.kilocode/rules/memory-bank/architecture.md
+.kilocode/rules/memory-bank/mueller_euchre_kilo_code.md
+.kilocode/rules/memory-bank/product.md
+.kilocode/rules/memory-bank/tasks.md
+.kilocode/rules/memory-bank/tech.md
+Repo_To_LLM/mueller_euchre_repo_llm (1).pdf
+Repo_To_LLM/mueller_euchre_repo_llm.pdf
+npm_test_dos_output.txt
+npm_test_powershell_output.txt

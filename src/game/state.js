@@ -1,3 +1,8 @@
+//FILE ARCHIVED Semi? Permanetly
+//As it was coded before we moved onto layer 2
+//we are  not sure if it adhered to ANY of the proper development
+//plan & techniques.  Revisit this file at a later date
+
 /**
  * Manages the Euchre game state, ensuring immutability and controlled updates.
  * @module state
@@ -105,7 +110,13 @@ function updateGameState(updater) {
   }
 
   const currentClone = deepClone(gameState);
-  const newPartialState = updater(currentClone);
+  let newPartialState;
+  try {
+    newPartialState = updater(currentClone);
+  } catch (err) {
+    logger.error('updateGameState: updater function threw an error.');
+    throw err;
+  }
 
   if (typeof newPartialState !== 'object' || newPartialState === null) {
     logger.error('updateGameState: updater function did not return a valid object.');

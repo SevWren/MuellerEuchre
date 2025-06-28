@@ -17,7 +17,7 @@ describe('Validation Logic - validatePlay', () => {
   let loggerMock; // Declare loggerMock
   let generalValidatePlay;
   let generalIsLeftBowerMock;
-  
+
   const baseGameState = {
     gamePhase: GAME_PHASES.PLAYING,
     currentPlayer: PLAYER_ROLES[0], // PLAYER_1
@@ -101,11 +101,11 @@ describe('Validation Logic - validatePlay', () => {
   // Test case for card not in hand (uses generalValidatePlay)
   it('should throw CardNotInHandError if the card is not in player\'s hand', () => {
     const cardNotInHand = { id: 'QH', suit: SUITS.HEARTS, value: VALUES.QUEEN };
-    expect(() => generalValidatePlay(baseGameState, player1Hand, cardNotInHand, player1Role)).to.throw(CardNotInHandError, `Card QH is not in ${PLAYER_ROLES[0]}'s hand.`);
+    expect(() => generalValidatePlay(baseGameState, player1Hand, cardNotInHand, player1Role)).to.throw(CardNotInHandError, `Card QH is not in ${player1Role}'s hand.`);
   });
 
   // Test cases for following suit - This block will manage its own validatePlay and isLeftBowerMock
-  describe('Following Suit Logic', () => {
+  describe('Following Suit Logic (General)', () => {
     let validatePlay; // Specific to this describe block
     let isLeftBowerMock; // Specific to this describe block
 
@@ -149,7 +149,7 @@ describe('Validation Logic - validatePlay', () => {
       const ledCard = { card: { id: 'QC', suit: SUITS.CLUBS, value: VALUES.QUEEN }, player: PLAYER_ROLES[1] };
       const gameState = { ...baseGameState, currentTrick: [ledCard], trumpSuit: SUITS.SPADES };
       const cardToPlay = player1Hand[2]; // AS (Spades)
-      expect(() => validatePlay(gameState, player1Hand, cardToPlay, player1Role)).to.throw(MustFollowSuitError, `Must follow suit. Led suit is ${SUITS.CLUBS}, attempted to play ${SUITS.SPADES}.`);
+      expect(() => validatePlay(gameState, player1Hand, cardToPlay, player1Role)).to.throw(MustFollowSuitError, 'Must follow suit. Led suit is clubs, attempted to play spades.');
     });
 
     it('should allow playing an off-suit card if player does not have the led suit', () => {
@@ -162,9 +162,52 @@ describe('Validation Logic - validatePlay', () => {
       expect(validatePlay(gameState, player1Hand, cardToPlay, player1Role)).to.equal(true);
     });
 
-    it('should correctly use trump suit for Left Bower when checking "must follow suit" (player has Left Bower of led suit)', () => {
-      // This test will redefine isLeftBowerMock locally for its specific scenario
-      isLeftBowerMock = (card, trumpSuit) => card.id === 'JC' && trumpSuit === SUITS.SPADES; // JC is SPADES for this test
+    it('should allow playing any card if the led card suit cannot be determined (e.g. null/undefined card) and log a warning', () => {
+        const ledCard = { card: null, player: PLAYER_ROLES[1] };
+        const gameState = { ...baseGameState, currentTrick: [ledCard] };
+        const cardToPlay = player1Hand[0]; // AC
+        expect(() => validatePlay(gameState, player1Hand, cardToPlay, player1Role)).to.not.throw();
+        expect(loggerMock.warn.calledOnceWithMatch({ ledCard: null }, "Led card's effective suit could not be determined.")).to.be.true;
+    });
+
+  });
+
+  // Test cases for Left Bower specific following suit logic
+  describe('Following Suit Logic (Left Bower Scenarios)', () => {
+    let validatePlay; // Specific to this describe block
+    let isLeftBowerMock; // Specific to this describe block
+
+    // This beforeEach will be overridden by specific tests if needed,
+    // but provides a default for this block if a test doesn't redefine it.
+    beforeEach(async () => {
+        // Default mock for Left Bower scenarios
+        isLeftBowerMock = (card, trumpSuit) => {
+            // Default behavior: JC is Left Bower if trump is Spades
+            if (trumpSuit === SUITS.SPADES && card.id === 'JC') return true;
+            // Add other default Left Bower rules if necessary for tests in this block
+            return false;
+        };
+
+        const validationModule = await esmock('../../../src/game/logic/validation.js', {
+            '../../../src/utils/logger.js': loggerMock,
+            '../../../src/utils/deck.js': {
+                isLeftBower: (card, trumpSuit) => isLeftBowerMock(card, trumpSuit),
+            },
+        });
+        validatePlay = validationModule.validatePlay;
+    });
+
+    it('should correctly use trump suit for Left Bower when checking "must follow suit" (player has Left Bower of led suit)', async () => {
+      // Redefine isLeftBowerMock specifically for this test's esmock call
+      const specificIsLeftBowerMock = (card, trumpSuit) => card.id === 'JC' && trumpSuit === SUITS.SPADES; // JC is SPADES for this test
+
+      const validationModule = await esmock('../../../src/game/logic/validation.js', {
+          '../../../src/utils/logger.js': loggerMock,
+          '../../../src/utils/deck.js': {
+              isLeftBower: (card, trumpSuit) => specificIsLeftBowerMock(card, trumpSuit),
+          },
+      });
+      const validatePlaySpecific = validationModule.validatePlay;
 
       const localPlayerHand = [
         { id: 'JC', suit: SUITS.CLUBS, value: VALUES.JACK }, // Effective SPADE
@@ -175,39 +218,55 @@ describe('Validation Logic - validatePlay', () => {
       const gameState = { ...baseGameState, trumpSuit: SUITS.SPADES, currentTrick: [ledCard] };
       const cardToPlay = localPlayerHand[0]; // Playing JC (effective SPADE)
 
-      // isLeftBowerMock(QC, Spades) -> false. Led suit CLUBS.
-      // isLeftBowerMock(JC, Spades) -> true. JC is SPADES.
-      // isLeftBowerMock(TC, Spades) -> false. TC is CLUBS.
+      // specificIsLeftBowerMock(QC, Spades) -> false. Led suit CLUBS.
+      // specificIsLeftBowerMock(JC, Spades) -> true. JC is SPADES.
+      // specificIsLeftBowerMock(TC, Spades) -> false. TC is CLUBS.
       // Player has TC (true Club), card played JC (Spade). Should throw.
-      expect(() => validatePlay(gameState, localPlayerHand, cardToPlay, player1Role))
+      expect(() => validatePlaySpecific(gameState, localPlayerHand, cardToPlay, player1Role))
         .to.throw(MustFollowSuitError, `Must follow suit. Led suit is ${SUITS.CLUBS}, attempted to play ${SUITS.SPADES}.`);
 
       // Playing the TC (true Club) should be valid
       const cardToPlayCorrectly = localPlayerHand[1]; // TC
-      expect(() => validatePlay(gameState, localPlayerHand, cardToPlayCorrectly, player1Role)).to.not.throw();
+      expect(() => validatePlaySpecific(gameState, localPlayerHand, cardToPlayCorrectly, player1Role)).to.not.throw();
     });
 
-    it('should correctly use trump suit for Left Bower when determining led suit (Left Bower was led)', () => {
-      isLeftBowerMock = (card, trumpSuit) => card.id === 'JC' && trumpSuit === SUITS.SPADES;  // JC is SPADES for this test
+    it('should correctly use trump suit for Left Bower when determining led suit (Left Bower was led)', async () => {
+      const specificIsLeftBowerMock = (card, trumpSuit) => card.id === 'JC' && trumpSuit === SUITS.SPADES;  // JC is SPADES for this test
+
+      const validationModule = await esmock('../../../src/game/logic/validation.js', {
+          '../../../src/utils/logger.js': loggerMock,
+          '../../../src/utils/deck.js': {
+              isLeftBower: (card, trumpSuit) => specificIsLeftBowerMock(card, trumpSuit),
+          },
+      });
+      const validatePlaySpecific = validationModule.validatePlay;
 
       const ledCard = { card: { id: 'JC', suit: SUITS.CLUBS, value: VALUES.JACK }, player: PLAYER_ROLES[1] }; // Led JC (effective Spade)
       const gameState = { ...baseGameState, trumpSuit: SUITS.SPADES, currentTrick: [ledCard] };
       const cardToPlay = player1Hand[2]; // AS (Spade) - follows effective suit (Spades)
-      // isLeftBowerMock(JC, Spades) -> true. Led suit SPADES.
+      // specificIsLeftBowerMock(JC, Spades) -> true. Led suit SPADES.
       // Player hand (player1Hand) has AS, KS (Spades). Card played AS (Spade). Valid.
-      expect(() => validatePlay(gameState, player1Hand, cardToPlay, player1Role)).to.not.throw();
-      expect(validatePlay(gameState, player1Hand, cardToPlay, player1Role)).to.equal(true);
+      expect(() => validatePlaySpecific(gameState, player1Hand, cardToPlay, player1Role)).to.not.throw();
+      expect(validatePlaySpecific(gameState, player1Hand, cardToPlay, player1Role)).to.equal(true);
 
       // Player plays a Club (AC) when Left Bower (Spade) was led. Player has other spades (AS, KS).
       const cardToPlayWrong = player1Hand[0]; // AC (Club)
-      // isLeftBowerMock(AC, Spades) -> false. AC is CLUBS.
+      // specificIsLeftBowerMock(AC, Spades) -> false. AC is CLUBS.
       // Player has Spades (AS, KS). Led suit SPADES. Card played CLUBS. Should throw.
-      expect(() => validatePlay(gameState, player1Hand, cardToPlayWrong, player1Role))
+      expect(() => validatePlaySpecific(gameState, player1Hand, cardToPlayWrong, player1Role))
         .to.throw(MustFollowSuitError, `Must follow suit. Led suit is ${SUITS.SPADES}, attempted to play ${SUITS.CLUBS}.`);
     });
 
-    it('should allow playing Left Bower if it matches the led suit (which is trump)', () => {
-        isLeftBowerMock = (card, trumpSuit) => card.id === 'JS' && trumpSuit === SUITS.CLUBS; // JS is CLUBS for this test
+    it('should allow playing Left Bower if it matches the led suit (which is trump)', async () => {
+        const specificIsLeftBowerMock = (card, trumpSuit) => card.id === 'JS' && trumpSuit === SUITS.CLUBS; // JS is CLUBS for this test
+
+        const validationModule = await esmock('../../../src/game/logic/validation.js', {
+            '../../../src/utils/logger.js': loggerMock,
+            '../../../src/utils/deck.js': {
+                isLeftBower: (card, trumpSuit) => specificIsLeftBowerMock(card, trumpSuit),
+            },
+        });
+        const validatePlaySpecific = validationModule.validatePlay;
 
         const localHand = [
             { id: 'JS', suit: SUITS.SPADES, value: VALUES.JACK }, // Effective Club
@@ -216,16 +275,24 @@ describe('Validation Logic - validatePlay', () => {
         const ledCard = { card: { id: 'AC', suit: SUITS.CLUBS, value: VALUES.ACE }, player: PLAYER_ROLES[1] }; // Led CLUBS
         const gameState = { ...baseGameState, trumpSuit: SUITS.CLUBS, currentTrick: [ledCard] };
         const cardToPlay = localHand[0]; // JS (effective Club)
-        // isLeftBowerMock(AC, Clubs) -> false. Led suit CLUBS.
-        // isLeftBowerMock(JS, Clubs) -> true. JS is CLUBS.
+        // specificIsLeftBowerMock(AC, Clubs) -> false. Led suit CLUBS.
+        // specificIsLeftBowerMock(JS, Clubs) -> true. JS is CLUBS.
         // Player has JS (effective Club). Card played JS (effective Club). Valid.
-        expect(() => validatePlay(gameState, localHand, cardToPlay, player1Role)).to.not.throw();
-        expect(validatePlay(gameState, localHand, cardToPlay, player1Role)).to.equal(true);
+        expect(() => validatePlaySpecific(gameState, localHand, cardToPlay, player1Role)).to.not.throw();
+        expect(validatePlaySpecific(gameState, localHand, cardToPlay, player1Role)).to.equal(true);
     });
 
 
-    it('should throw MustFollowSuitError if player has Left Bower of led suit (trump) but plays non-trump, non-led', () => {
-        isLeftBowerMock = (card, trumpSuit) => card.id === 'JS' && trumpSuit === SUITS.CLUBS; // JS is CLUBS for this test
+    it('should throw MustFollowSuitError if player has Left Bower of led suit (trump) but plays non-trump, non-led', async () => {
+        const specificIsLeftBowerMock = (card, trumpSuit) => card.id === 'JS' && trumpSuit === SUITS.CLUBS; // JS is CLUBS for this test
+
+        const validationModule = await esmock('../../../src/game/logic/validation.js', {
+            '../../../src/utils/logger.js': loggerMock,
+            '../../../src/utils/deck.js': {
+                isLeftBower: (card, trumpSuit) => specificIsLeftBowerMock(card, trumpSuit),
+            },
+        });
+        const validatePlaySpecific = validationModule.validatePlay;
 
         const hand = [
             { id: 'JS', suit: SUITS.SPADES, value: VALUES.JACK },   // Effective Club (Trump)
@@ -237,19 +304,9 @@ describe('Validation Logic - validatePlay', () => {
         const cardToAttempt = hand[2]; // AS (Spade)
 
         // Player has KH (Heart), must play it.
-        expect(() => validatePlay(currentGameState, hand, cardToAttempt, player1Role))
+        expect(() => validatePlaySpecific(currentGameState, hand, cardToAttempt, player1Role))
             .to.throw(MustFollowSuitError, `Must follow suit. Led suit is ${SUITS.HEARTS}, attempted to play ${SUITS.SPADES}.`);
     });
-
-
-    it('should allow playing any card if the led card suit cannot be determined (e.g. null/undefined card) and log a warning', () => {
-        const ledCard = { card: null, player: PLAYER_ROLES[1] };
-        const gameState = { ...baseGameState, currentTrick: [ledCard] };
-        const cardToPlay = player1Hand[0]; // AC
-        expect(() => validatePlay(gameState, player1Hand, cardToPlay, player1Role)).to.not.throw();
-        expect(loggerMock.warn.calledOnceWithMatch({ ledCard: null }, "Led card's effective suit could not be determined.")).to.be.true;
-    });
-
   });
 
   // Valid play scenarios (using generalValidatePlay)
@@ -422,9 +479,9 @@ describe('Validation Logic - validateBid', () => {
       });
        it('should throw InvalidBidError if dealer tries to "callTrump" with turned down suit (stick the dealer)', () => {
         expect(() => validateBid(baseBidGameState, PLAYER_ROLES[3], 'callTrump', SUITS.SPADES)).to.throw(InvalidBidError, `Cannot call the suit that was turned down (${SUITS.SPADES}).`);
-      });
-    });
-  });
+       });
+     });
+   });
 });
 
 describe('Validation Logic - validateDealerDiscard', () => {
@@ -536,3 +593,11 @@ describe('Validation Logic - validateDealerDiscard', () => {
     // TODO: Add a spy on logger.warn and assert it was called, if possible with current tools. For now, just checking no throw.
   });
 });
+
+describe('Sanity check', () => {
+  it('should run tests and output this line', () => {
+    console.log('Sanity check: test is running');
+  });
+});
+
+// Add other validation function tests here as needed

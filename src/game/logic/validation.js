@@ -3,7 +3,7 @@
  * @module validation
  */
 import { GAME_PHASES, SUITS, PLAYER_ROLES } from '../../config/constants.js';
-import { isLeftBower } from '../../utils/deck.js';
+import { isLeftBower, areSameColor } from '../../utils/deck.js';
 import logger from '../../utils/logger.js';
 import {
   ValidationError,
@@ -68,19 +68,17 @@ export function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
   const ledCard = currentTrick && currentTrick.length > 0 ? currentTrick[0].card : null;
 
   if (ledCard) {
-    const currentLedSuit = getEffectiveSuit(ledCard, trumpSuit);
+    const trueLedCard = currentTrick[0].card;
+    const currentLedEffectiveSuit = getEffectiveSuit(trueLedCard, trumpSuit);
+
+    // Check if the player has any card that matches the effective led suit
+    const playerMustFollow = playerHand.some(handCard => getEffectiveSuit(handCard, trumpSuit) === currentLedEffectiveSuit);
+
     const cardToPlayEffectiveSuit = getEffectiveSuit(cardToPlay, trumpSuit);
 
-    if (currentLedSuit) { // Ensure ledSuit is valid before proceeding
-      const playerHasLedSuit = playerHand.some(handCard => getEffectiveSuit(handCard, trumpSuit) === currentLedSuit);
-      if (playerHasLedSuit && cardToPlayEffectiveSuit !== currentLedSuit) {
-        // The original error message from the previous subtask, before adding "Player has..."
-        throw new MustFollowSuitError(`Must follow suit. Led suit is ${currentLedSuit}, attempted to play ${cardToPlayEffectiveSuit}.`);
-      }
-    } else {
-      // This case should ideally not happen if ledCard is valid.
-      // If getEffectiveSuit returns null for a valid ledCard, it implies an issue with isLeftBower or card structure.
-      logger.warn({ ledCard, trumpSuit, gameId: gameState.gameId }, "Led card's effective suit could not be determined. Play allowed by default, but this may indicate an issue.");
+    // If the player must follow suit, the card they play must effectively match the effective led suit.
+    if (playerMustFollow && cardToPlayEffectiveSuit !== currentLedEffectiveSuit) {
+         throw new MustFollowSuitError(`Must follow suit. Led suit is ${currentLedEffectiveSuit}, attempted to play ${cardToPlayEffectiveSuit}.`);
     }
   }
 

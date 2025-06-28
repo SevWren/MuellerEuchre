@@ -1,8 +1,23 @@
-import esmock from 'esmock'; // Import esmock for mocking ES Modules
+/**
+ * Unit tests for player utility functions in the Euchre Multiplayer game.
+ * @module test/utils/players.unit.test
+ * @description
+ *   Comprehensive test suite for player management utilities including:
+ *   - Player initialization (initializePlayers)
+ *   - Team identification (getPlayerTeam)
+ *   - Teammate verification (isTeammate)
+ *   - Partner lookup (getPartner)
+ *   - Socket-based player lookup (getPlayerBySocketId, getRoleBySocketId)
+ *   - Turn progression (getNextPlayer)
+ *
+ * @see {@link module:src/utils/players} for the implementation being tested
+ * @since 1.0.0
+ */
+import esmock from 'esmock';
 import { initializePlayers, getPlayerTeam, isTeammate, getPartner, getPlayerBySocketId, getRoleBySocketId, getNextPlayer } from '../../src/utils/players.js';
 import { TEAMS, PLAYER_ROLES } from '../../src/config/constants.js';
-import { expect } from 'chai'; // Assuming chai is used, common in JS projects
-import sinon from 'sinon'; // Import sinon for mocking logger
+import { expect } from 'chai';
+import sinon from 'sinon';
 
 // Mock logger to prevent console output during tests
 const loggerMock = {

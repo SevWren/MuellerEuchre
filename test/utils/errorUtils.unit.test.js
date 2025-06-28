@@ -1,3 +1,14 @@
+/**
+ * Unit tests for error utility functions in the Euchre Multiplayer game.
+ * @module test/utils/errorUtils.unit.test
+ * @description
+ *   Test suite for error payload creation utility functions.
+ *   - Tests cover the createErrorPayload function which standardizes error responses
+ *   - Verifies proper handling of action, message, and details parameters
+ *
+ * @see {@link module:src/utils/errorUtils} for the implementation being tested
+ * @since 1.0.0
+ */
 import { expect } from 'chai';
 import { createErrorPayload } from '../../src/utils/errorUtils.js';
 import { GAME_EVENTS } from '../../src/config/constants.js';

@@ -114,3 +114,6 @@ docs/File Reviews/gemini_review-scoringPhase.js-startNewHandPhase.js-lobbyPhase.
 docs/File Reviews/validation.unit.test.js.review.md
 memory-bank/rules_improvement_plan.md
 .kilocodemodes
+test/game/phases/lobbyPhase.unit.test.js.aistudio.js
+test/game/logic/validation.js.aistudio.js
+test/utils/deck.unit.test.js.aistudio.js

@@ -1,20 +1,19 @@
 /**
- * @file test/phases/startNewHandPhase.unit.test.js
- * @module test/phases/startNewHandPhase.unit
- * @description
- *   Unit tests for the start new hand phase logic of the Euchre Multiplayer game.
- *   These tests cover deck creation, dealing, dealer rotation, and error handling
- *   for starting a new hand.
+ * @file test/game/phases/startNewHandPhase.unit.test.js
+ * @module test/game/phases/startNewHandPhase.unit
+ * @description Unit tests for the start new hand phase logic in Euchre Multiplayer game.
+ * Tests validate Layer 1 core logic for deck creation, card dealing, dealer rotation, and error handling.
+ * Focuses on pure game logic without state management or network integration.
  *
- *   CURRENT STATE:
- *     - Tests use esmock to mock deck, player, and logger dependencies.
- *     - All scenarios for dealing, dealer rotation, and error propagation are covered.
- *     - The file is focused on Layer 1 logic, not on state management or network.
+ * CURRENT STATE:
+ * - Uses esmock for mocking deck, player, and logger dependencies
+ * - Comprehensive coverage of dealing scenarios, dealer rotation, and error propagation
+ * - Strictly tests Layer 1 logic (src/game/phases/startNewHandPhase.js) without side effects
  *
- *   WHEN THE PROJECT IS COMPLETE:
- *     - This file will serve as the definitive test suite for Layer 1 start new hand logic.
- *     - All rules for dealing, dealer rotation, and hand initialization will be validated here.
- *     - No test will require integration with state, persistence, or network code.
+ * WHEN THE PROJECT IS COMPLETE:
+ * - Will serve as the definitive test suite for hand initialization logic
+ * - All dealing rules and dealer rotation mechanics will be validated here
+ * - Tests will remain isolated from state management and persistence layers
  */
 
 import { expect } from 'chai';
@@ -35,7 +34,12 @@ const defaultLoggerMock = {
   debug: sinon.stub(),
 };
 
-// Helper to create a base game state for tests
+/**
+ * Creates a base game state object for testing purposes
+ * @param {string} [phase=GAME_PHASES.LOBBY] - Initial game phase
+ * @param {string} [dealer=PLAYER_ROLES[0]] - Initial dealer role
+ * @returns {Object} A fully initialized game state object with players and required fields
+ */
 const createBaseGameState = (phase = GAME_PHASES.LOBBY, dealer = PLAYER_ROLES[0]) => {
   const gameState = {
     gameId: 'startNewHandTestGame',
@@ -60,13 +64,26 @@ const createBaseGameState = (phase = GAME_PHASES.LOBBY, dealer = PLAYER_ROLES[0]
   return gameState;
 };
 
-// Helper to create a mock deck
+/**
+ * Generates a mock deck with configurable number of cards
+ * @param {number} [numCards=24] - Number of cards to generate in the deck
+ * @returns {Array} An array of mock card objects with sequential IDs and cycling values
+ * @example
+ * createMockDeck(5) // Returns 5 cards with values cycling through VALUES enum
+ */
 const createMockDeck = (numCards = 24) => {
-  return Array(numCards).fill(null).map((_, i) => ({
-    id: `C${i}`,
-    suit: SUITS.HEARTS, // Default suit
-    value: Object.values(VALUES)[i % Object.values(VALUES).length], // Cycle through values
-  }));
+  const deck = [];
+  const suits = Object.values(SUITS);
+  const values = Object.values(VALUES);
+  
+  for (let i = 0; i < numCards; i++) {
+    deck.push({
+      id: `card_${i}`,
+      suit: suits[i % suits.length],
+      value: values[i % values.length]
+    });
+  }
+  return deck;
 };
 
 describe('StartNewHandPhase Logic', () => {

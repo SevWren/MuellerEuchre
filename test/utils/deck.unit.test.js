@@ -29,9 +29,9 @@ describe('Deck Utility Functions', () => {
     });
   });
 
-  // After each test, unload the mocked module
-  afterEach(async () => {
-    await esmock.unload('../../src/utils/deck.js');
+  // After each test, restore sinon mocks. esmock handles its own unloading.
+  afterEach(() => {
+    sinon.restore();
   });
 
   describe('createDeck', () => {
@@ -54,12 +54,14 @@ describe('Deck Utility Functions', () => {
       expect(sampleCard.suit).to.equal(SUITS.HEARTS);
       expect(sampleCard.value).to.equal(VALUES.ACE);
       expect(sampleCard.name).to.equal('Ace of Hearts');
+      expect(sampleCard.id).to.equal('AH');
 
       const anotherCard = deck.find(c => c.id === 'JC'); // Jack of Clubs
       expect(anotherCard).to.exist;
       expect(anotherCard.suit).to.equal(SUITS.CLUBS);
       expect(anotherCard.value).to.equal(VALUES.JACK);
       expect(anotherCard.name).to.equal('Jack of Clubs');
+      expect(anotherCard.id).to.equal('JC');
     });
   });
 
@@ -99,14 +101,14 @@ describe('Deck Utility Functions', () => {
 
   describe('cardToId', () => {
     it('should return the correct ID for a valid card', () => {
-      const card = { suit: SUITS.HEARTS, value: VALUES.ACE };
+      const card = { suit: SUITS.HEARTS, value: VALUES.ACE, id: 'AH', name: 'Ace of Hearts' };
       expect(deckUtils.cardToId(card)).to.equal('AH');
     });
 
     it('should return correct ID for other suits', () => {
-      expect(deckUtils.cardToId({ suit: SUITS.CLUBS, value: VALUES.KING })).to.equal('KC');
-      expect(deckUtils.cardToId({ suit: SUITS.DIAMONDS, value: VALUES.TEN })).to.equal('TD');
-      expect(deckUtils.cardToId({ suit: SUITS.SPADES, value: VALUES.JACK })).to.equal('JS');
+      expect(deckUtils.cardToId({ suit: SUITS.CLUBS, value: VALUES.KING, id: 'KC', name: 'King of Clubs' })).to.equal('KC');
+      expect(deckUtils.cardToId({ suit: SUITS.DIAMONDS, value: VALUES.TEN, id: 'TD', name: 'Ten of Diamonds' })).to.equal('TD');
+      expect(deckUtils.cardToId({ suit: SUITS.SPADES, value: VALUES.JACK, id: 'JS', name: 'Jack of Spades' })).to.equal('JS');
     });
 
     it('should log a warning and return "?? " for invalid card objects', () => {
@@ -129,7 +131,7 @@ describe('Deck Utility Functions', () => {
 
   describe('isRightBower', () => {
     it('should return true for the Jack of the trump suit', () => {
-      const card = { suit: SUITS.HEARTS, value: VALUES.JACK };
+      const card = { suit: SUITS.HEARTS, value: VALUES.JACK, id: 'JH', name: 'Jack of Hearts' };
       expect(deckUtils.isRightBower(card, SUITS.HEARTS)).to.be.true;
     });
 
@@ -139,7 +141,7 @@ describe('Deck Utility Functions', () => {
     });
 
     it('should return false for the Jack of a different suit', () => {
-      const card = { suit: SUITS.CLUBS, value: VALUES.JACK };
+      const card = { suit: SUITS.CLUBS, value: VALUES.JACK, id: 'JC', name: 'Jack of Clubs' };
       expect(deckUtils.isRightBower(card, SUITS.HEARTS)).to.be.false;
     });
 
@@ -151,27 +153,27 @@ describe('Deck Utility Functions', () => {
 
   describe('isLeftBower', () => {
     it('should return true for the Jack of the same color as trump (different suit)', () => {
-      const card = { suit: SUITS.DIAMONDS, value: VALUES.JACK }; // Red
+      const card = { suit: SUITS.DIAMONDS, value: VALUES.JACK, id: 'JD', name: 'Jack of Diamonds' }; // Red
       expect(deckUtils.isLeftBower(card, SUITS.HEARTS)).to.be.true; // Red trump
     });
 
     it('should return true for the Jack of the same color as trump (different suit, black)', () => {
-      const card = { suit: SUITS.SPADES, value: VALUES.JACK }; // Black
+      const card = { suit: SUITS.SPADES, value: VALUES.JACK, id: 'JS', name: 'Jack of Spades' }; // Black
       expect(deckUtils.isLeftBower(card, SUITS.CLUBS)).to.be.true; // Black trump
     });
 
     it('should return false if it is the Right Bower', () => {
-      const card = { suit: SUITS.HEARTS, value: VALUES.JACK };
+      const card = { suit: SUITS.HEARTS, value: VALUES.JACK, id: 'JH', name: 'Jack of Hearts' };
       expect(deckUtils.isLeftBower(card, SUITS.HEARTS)).to.be.false;
     });
 
     it('should return false for a non-Jack of the same color', () => {
-      const card = { suit: SUITS.DIAMONDS, value: VALUES.ACE };
+      const card = { suit: SUITS.DIAMONDS, value: VALUES.ACE, id: 'AD', name: 'Ace of Diamonds' };
       expect(deckUtils.isLeftBower(card, SUITS.HEARTS)).to.be.false;
     });
 
     it('should return false for a Jack of a different color', () => {
-      const card = { suit: SUITS.CLUBS, value: VALUES.JACK }; // Black
+      const card = { suit: SUITS.CLUBS, value: VALUES.JACK, id: 'JC', name: 'Jack of Clubs' }; // Black
       expect(deckUtils.isLeftBower(card, SUITS.HEARTS)).to.be.false; // Red trump
     });
 
@@ -180,6 +182,21 @@ describe('Deck Utility Functions', () => {
       expect(deckUtils.isLeftBower({ suit: SUITS.HEARTS, value: VALUES.JACK }, null)).to.be.false;
       expect(deckUtils.isLeftBower({}, SUITS.HEARTS)).to.be.false;
     });
+
+    // The private getSuitColor function (lines 16-21 in deck.js) is called by isLeftBower.
+    // The following tests, along with existing isLeftBower tests, ensure all branches
+    // of getSuitColor are exercised (red suits, black suits).
+    it('should correctly identify Left Bower when trump is red and card is red (different suit)', () => {
+      const card = { suit: SUITS.DIAMONDS, value: VALUES.JACK, id: 'JD', name: 'Jack of Diamonds' }; // Red suit
+      const trumpSuit = SUITS.HEARTS; // Red trump
+      expect(deckUtils.isLeftBower(card, trumpSuit)).to.be.true;
+    });
+
+    it('should correctly identify Left Bower when trump is black and card is black (different suit)', () => {
+      const card = { suit: SUITS.SPADES, value: VALUES.JACK, id: 'JS', name: 'Jack of Spades' }; // Black suit
+      const trumpSuit = SUITS.CLUBS; // Black trump
+      expect(deckUtils.isLeftBower(card, trumpSuit)).to.be.true;
+    });
   });
 
   describe('getCardRank', () => {
@@ -187,36 +204,36 @@ describe('Deck Utility Functions', () => {
     const ledSuit = SUITS.DIAMONDS; // Different from trump
 
     it('should return highest rank for Right Bower', () => {
-      const rightBower = { suit: SUITS.HEARTS, value: VALUES.JACK };
+      const rightBower = { suit: SUITS.HEARTS, value: VALUES.JACK, id: 'JH', name: 'Jack of Hearts' };
       expect(deckUtils.getCardRank(rightBower, trumpSuit, ledSuit)).to.be.above(200);
     });
 
     it('should return second highest rank for Left Bower', () => {
-      const leftBower = { suit: SUITS.DIAMONDS, value: VALUES.JACK }; // Same color as Hearts
+      const leftBower = { suit: SUITS.DIAMONDS, value: VALUES.JACK, id: 'JD', name: 'Jack of Diamonds' }; // Same color as Hearts
       expect(deckUtils.getCardRank(leftBower, trumpSuit, ledSuit)).to.be.above(190).and.below(200);
     });
 
     it('should rank other trump cards higher than non-trump cards', () => {
-      const trumpAce = { suit: SUITS.HEARTS, value: VALUES.ACE };
-      const nonTrumpAce = { suit: SUITS.SPADES, value: VALUES.ACE };
+      const trumpAce = { suit: SUITS.HEARTS, value: VALUES.ACE, id: 'AH', name: 'Ace of Hearts' };
+      const nonTrumpAce = { suit: SUITS.SPADES, value: VALUES.ACE, id: 'AS', name: 'Ace of Spades' };
       expect(deckUtils.getCardRank(trumpAce, trumpSuit, ledSuit)).to.be.above(100);
       expect(deckUtils.getCardRank(trumpAce, trumpSuit, ledSuit)).to.be.above(deckUtils.getCardRank(nonTrumpAce, trumpSuit, ledSuit));
     });
 
     it('should rank led suit cards higher than off-suit cards (non-trump)', () => {
-      const ledAce = { suit: SUITS.DIAMONDS, value: VALUES.ACE };
-      const offSuitAce = { suit: SUITS.CLUBS, value: VALUES.ACE };
+      const ledAce = { suit: SUITS.DIAMONDS, value: VALUES.ACE, id: 'AD', name: 'Ace of Diamonds' };
+      const offSuitAce = { suit: SUITS.CLUBS, value: VALUES.ACE, id: 'AC', name: 'Ace of Clubs' };
       expect(deckUtils.getCardRank(ledAce, trumpSuit, ledSuit)).to.be.above(50);
       expect(deckUtils.getCardRank(ledAce, trumpSuit, ledSuit)).to.be.above(deckUtils.getCardRank(offSuitAce, trumpSuit, ledSuit));
     });
 
     it('should use base rank for off-suit, non-trump, non-led cards', () => {
-      const offSuitCard = { suit: SUITS.CLUBS, value: VALUES.TEN };
+      const offSuitCard = { suit: SUITS.CLUBS, value: VALUES.TEN, id: 'TC', name: 'Ten of Clubs' };
       expect(deckUtils.getCardRank(offSuitCard, trumpSuit, ledSuit)).to.equal(CARD_RANKS.TEN);
     });
 
     it('should handle null/undefined ledSuit correctly (no led suit bonus)', () => {
-      const card = { suit: SUITS.CLUBS, value: VALUES.ACE };
+      const card = { suit: SUITS.CLUBS, value: VALUES.ACE, id: 'AC', name: 'Ace of Clubs' };
       expect(deckUtils.getCardRank(card, trumpSuit, null)).to.equal(CARD_RANKS.ACE);
       expect(deckUtils.getCardRank(card, trumpSuit, undefined)).to.equal(CARD_RANKS.ACE);
     });
@@ -299,9 +316,10 @@ describe('Deck Utility Functions', () => {
         { id: 'KC', suit: SUITS.CLUBS, value: VALUES.KING, value_rank: 13 },
       ];
       const sortedHand = deckUtils.sortHand(noTrumpHand, null);
-      expect(sortedHand[0].id).to.equal('AD');
-      expect(sortedHand[1].id).to.equal('KC');
-      expect(sortedHand[2].id).to.equal('9H');
+      // When no trump, sort by base rank (highest first)
+      expect(sortedHand[0].id).to.equal('AD'); // Ace (rank 14)
+      expect(sortedHand[1].id).to.equal('KC'); // King (rank 13)
+      expect(sortedHand[2].id).to.equal('9H'); // Nine (rank 9)
     });
   });
 });

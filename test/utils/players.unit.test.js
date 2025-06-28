@@ -114,22 +114,24 @@ describe('Player Utilities', () => {
       expect(playersUtils.isTeammate(PLAYER_ROLES[0], PLAYER_ROLES[0])).to.be.false;
     });
 
-    it('should return false for invalid player roles', () => {
+    it('should return false for invalid playerRole1 and log a warning', () => {
       expect(playersUtils.isTeammate('invalidRole1', PLAYER_ROLES[0])).to.be.false;
-      expect(loggerMock.warn.calledWithMatch(/Invalid role\(s\) passed to isTeammate/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid role\(s\) passed to isTeammate/);
+    });
 
+    it('should return false for invalid playerRole2 and log a warning', () => {
       expect(playersUtils.isTeammate(PLAYER_ROLES[0], 'invalidRole2')).to.be.false;
-      expect(loggerMock.warn.calledWithMatch(/Invalid role\(s\) passed to isTeammate/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid role\(s\) passed to isTeammate/);
+    });
 
+    it('should return false for null playerRole1 and log a warning', () => {
       expect(playersUtils.isTeammate(null, PLAYER_ROLES[0])).to.be.false;
-      expect(loggerMock.warn.calledWithMatch(/Invalid role\(s\) passed to isTeammate/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid role\(s\) passed to isTeammate/);
+    });
 
+    it('should return false for undefined playerRole2 and log a warning', () => {
       expect(playersUtils.isTeammate(PLAYER_ROLES[0], undefined)).to.be.false;
-      expect(loggerMock.warn.calledWithMatch(/Invalid role\(s\) passed to isTeammate/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid role\(s\) passed to isTeammate/);
     });
 
     it('should log a warning if getTeamForPlayer returns empty string', () => {
@@ -157,18 +159,19 @@ describe('Player Utilities', () => {
       expect(playersUtils.getPartner(PLAYER_ROLES[3])).to.equal(PLAYER_ROLES[1]); // West
     });
 
-    it('should return undefined for an invalid player role and log a warning', () => {
+    it('should return undefined for an invalid player role string and log a warning', () => {
       expect(playersUtils.getPartner('invalidRole')).to.be.undefined;
-      expect(loggerMock.warn.calledWithMatch(/Invalid playerRole passed to getPartner/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid playerRole passed to getPartner/);
+    });
 
+    it('should return undefined for null player role and log a warning', () => {
       expect(playersUtils.getPartner(null)).to.be.undefined;
-      expect(loggerMock.warn.calledWithMatch(/Invalid playerRole passed to getPartner/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid playerRole passed to getPartner/);
+    });
 
+    it('should return undefined for undefined player role and log a warning', () => {
       expect(playersUtils.getPartner(undefined)).to.be.undefined;
-      expect(loggerMock.warn.calledWithMatch(/Invalid playerRole passed to getPartner/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid playerRole passed to getPartner/);
     });
   });
 
@@ -192,22 +195,24 @@ describe('Player Utilities', () => {
       expect(player).to.be.null;
     });
 
-    it('should return null for invalid gameState or socketId and log a warning', () => {
+    it('should return null for null gameState and log a warning', () => {
       expect(playersUtils.getPlayerBySocketId(null, 'socket-s')).to.be.null;
-      expect(loggerMock.warn.calledWithMatch(/Invalid arguments for getPlayerBySocketId/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid arguments for getPlayerBySocketId\./);
+    });
 
+    it('should return null for null socketId and log a warning', () => {
       expect(playersUtils.getPlayerBySocketId(mockGameState, null)).to.be.null;
-      expect(loggerMock.warn.calledWithMatch(/Invalid arguments for getPlayerBySocketId/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid arguments for getPlayerBySocketId\./);
+    });
 
+    it('should return null for empty players object in gameState and log a warning', () => {
       expect(playersUtils.getPlayerBySocketId({}, 'socket-s')).to.be.null; // Empty players object
-      expect(loggerMock.warn.calledWithMatch(/Invalid arguments for getPlayerBySocketId/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid arguments for getPlayerBySocketId\./);
+    });
 
+    it('should return null for null players object in gameState and log a warning', () => {
       expect(playersUtils.getPlayerBySocketId({ players: null }, 'socket-s')).to.be.null; // Null players object
-      expect(loggerMock.warn.calledWithMatch(/Invalid arguments for getPlayerBySocketId/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid arguments for getPlayerBySocketId\./);
     });
   });
 
@@ -231,22 +236,24 @@ describe('Player Utilities', () => {
       expect(role).to.be.null;
     });
 
-    it('should return null for invalid gameState or socketId and log a warning', () => {
+    it('should return null for null gameState and log a warning', () => {
       expect(playersUtils.getRoleBySocketId(null, 'socket-s')).to.be.null;
-      expect(loggerMock.warn.calledWithMatch(/Invalid arguments for getRoleBySocketId/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid arguments for getRoleBySocketId\./);
+    });
 
+    it('should return null for null socketId and log a warning', () => {
       expect(playersUtils.getRoleBySocketId(mockGameState, null)).to.be.null;
-      expect(loggerMock.warn.calledWithMatch(/Invalid arguments for getRoleBySocketId/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid arguments for getRoleBySocketId\./);
+    });
 
+    it('should return null for empty players object in gameState and log a warning', () => {
       expect(playersUtils.getRoleBySocketId({}, 'socket-s')).to.be.null; // Empty players object
-      expect(loggerMock.warn.calledWithMatch(/Invalid arguments for getRoleBySocketId/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid arguments for getRoleBySocketId\./);
+    });
 
+    it('should return null for null players object in gameState and log a warning', () => {
       expect(playersUtils.getRoleBySocketId({ players: null }, 'socket-s')).to.be.null; // Null players object
-      expect(loggerMock.warn.calledWithMatch(/Invalid arguments for getRoleBySocketId/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid arguments for getRoleBySocketId\./);
     });
   });
 
@@ -284,39 +291,40 @@ describe('Player Utilities', () => {
       expect(playersUtils.getNextPlayer(PLAYER_ROLES[3], playerSlots, true, PLAYER_ROLES[1])).to.equal(PLAYER_ROLES[0]);
     });
 
-    it('should return undefined for invalid currentPlayerRole and log a warning', () => {
+    it('should return undefined for invalid currentPlayerRole string and log a warning', () => {
       expect(playersUtils.getNextPlayer('invalidRole', playerSlots)).to.be.undefined;
-      expect(loggerMock.warn.calledWithMatch(/Invalid parameters for getNextPlayer/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Current player role invalidRole not found in provided player slots\./);
+    });
 
+    it('should return undefined for null currentPlayerRole and log a warning', () => {
       expect(playersUtils.getNextPlayer(null, playerSlots)).to.be.undefined;
-      expect(loggerMock.warn.calledWithMatch(/Invalid parameters for getNextPlayer/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid parameters for getNextPlayer:/);
+    });
 
+    it('should return undefined for undefined currentPlayerRole and log a warning', () => {
       expect(playersUtils.getNextPlayer(undefined, playerSlots)).to.be.undefined;
-      expect(loggerMock.warn.calledWithMatch(/Invalid parameters for getNextPlayer/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid parameters for getNextPlayer:/);
     });
 
     it('should return undefined if currentPlayerRole is not found in playerSlots and log a warning', () => {
       const customPlayerSlots = ['playerA', 'playerB', 'playerC', 'playerD'];
       expect(playersUtils.getNextPlayer(PLAYER_ROLES[0], customPlayerSlots)).to.be.undefined;
-      expect(loggerMock.warn.calledWithMatch(/Current player role .* not found in provided player slots/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Current player role .* not found in provided player slots/);
     });
 
-    it('should return undefined for invalid playerSlots and log a warning', () => {
+    it('should return undefined for null playerSlots and log a warning', () => {
       expect(playersUtils.getNextPlayer(PLAYER_ROLES[0], null)).to.be.undefined;
-      expect(loggerMock.warn.calledWithMatch(/Invalid parameters for getNextPlayer/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid parameters for getNextPlayer:/);
+    });
 
+    it('should return undefined for empty playerSlots array and log a warning', () => {
       expect(playersUtils.getNextPlayer(PLAYER_ROLES[0], [])).to.be.undefined;
-      expect(loggerMock.warn.calledWithMatch(/Invalid parameters for getNextPlayer/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid parameters for getNextPlayer:/);
+    });
 
+    it('should return undefined for playerSlots array with incorrect length and log a warning', () => {
       expect(playersUtils.getNextPlayer(PLAYER_ROLES[0], ['south', 'west'])).to.be.undefined; // Not 4 players
-      expect(loggerMock.warn.calledWithMatch(/Invalid parameters for getNextPlayer/)).to.be.true;
-      loggerMock.warn.resetHistory();
+      expect(loggerMock.warn.args[0][1]).to.match(/Invalid parameters for getNextPlayer:/);
     });
 
     it('should not skip if not going alone, even if partnerSittingOut is provided', () => {

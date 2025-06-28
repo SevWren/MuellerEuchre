@@ -20,12 +20,12 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import esmock from 'esmock';
-import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } from '../../src/config/constants.js';
+import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } from '../../../src/config/constants.js';
 import {
   ValidationError,
   InvalidPhaseError,
   PhaseLogicError,
-} from '../../src/game/logic/errors.js';
+} from '../../../src/game/logic/errors.js';
 
 // Default logger mock
 const defaultLoggerMock = {

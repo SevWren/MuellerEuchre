@@ -20,7 +20,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import esmock from 'esmock';
-import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } from '../../src/config/constants.js';
+import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } from '../../../src/config/constants.js';
 import {
   PhaseLogicError,
   NotPlayersTurnError,
@@ -28,9 +28,9 @@ import {
   CardNotInHandError,
   MustFollowSuitError,
   ValidationError, // Though validatePlay throws this, direct import might be useful
-} from '../../src/game/logic/errors.js';
-import { createDeck, shuffleDeck } from '../../src/utils/deck.js'; // For test data setup
-import { initializePlayers, getNextPlayer as originalGetNextPlayer } from '../../src/utils/players.js'; // For test data setup
+} from '../../../src/game/logic/errors.js';
+import { createDeck, shuffleDeck } from '../../../src/utils/deck.js'; // For test data setup
+import { initializePlayers, getNextPlayer as originalGetNextPlayer } from '../../../src/utils/players.js'; // For test data setup
 
 // Mock logger
 const loggerMock = {

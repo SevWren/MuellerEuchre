@@ -3,7 +3,6 @@
  * @module game/phases/biddingPhase
  */
 import logger from '../../utils/logger.js';
-import { updateGameState } from '../state.js';
 import { GAME_PHASES, PLAYER_ROLES } from '../../config/constants.js';
 import { getNextPlayer } from '../../utils/players.js'; // Removed getPartner, isTeammate as they are not used here
 import { cardToId } from '../../utils/deck.js';

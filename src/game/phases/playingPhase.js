@@ -1,4 +1,3 @@
-import { updateGameState } from '../state.js';
 import { validatePlay } from '../logic/validation.js'; // Changed from isValidPlay
 import { getCardRank } from '../../utils/deck.js';
 import { getNextPlayer } from '../../utils/players.js';
@@ -31,68 +30,56 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
   // Validate the play (this will throw on invalid phase, turn, or play)
   validatePlay(gameState, player.hand, cardPlayed, playerRole);
 
-  let newGameState = { ...gameState }; // Start with a shallow copy
+  // Start with a deep clone of the input gameState
+  let newGameState = JSON.parse(JSON.stringify(gameState));
 
   // Remove card from player's hand
   const newHand = player.hand.filter(card => card.id !== cardPlayed.id);
-  const updatedPlayers = {
+  newGameState.players = {
     ...newGameState.players,
     [playerRole]: {
       ...newGameState.players[playerRole],
       hand: newHand,
     },
   };
-  newGameState = updateGameState(gs => ({ ...gs, players: updatedPlayers }));
 
   // Add card to current trick
-  const newCurrentTrick = [...newGameState.currentTrick, { ...cardPlayed, playedBy: playerRole }];
-  newGameState = updateGameState(gs => ({ ...gs, currentTrick: newCurrentTrick }));
+  newGameState.currentTrick = [...newGameState.currentTrick, { ...cardPlayed, playedBy: playerRole }];
 
   // Determine next player or end trick/hand
-  if (newCurrentTrick.length === 4) {
+  if (newGameState.currentTrick.length === 4) {
     // Determine trick winner
-    const trickWinnerRole = determineTrickWinner(newCurrentTrick, newGameState.trumpSuit, newGameState.currentTrick[0]?.playedBy);
-    // gameState.players is an object keyed by role, not an array.
+    const trickWinnerRole = determineTrickWinner(newGameState.currentTrick, newGameState.trumpSuit, newGameState.currentTrick[0]?.playedBy);
     const winningPlayer = newGameState.players[trickWinnerRole];
 
-  // Use winningPlayer.teamId
     if (!winningPlayer || winningPlayer.teamId === undefined) {
-    throw new PhaseLogicError(`Could not determine teamId for trick winner: ${trickWinnerRole}`);
+      throw new PhaseLogicError(`Could not determine teamId for trick winner: ${trickWinnerRole}`);
     }
     const winnerTeam = winningPlayer.teamId;
 
     const updatedTricksTaken = { ...newGameState.tricksTaken };
     updatedTricksTaken[winnerTeam]++;
 
-    newGameState = updateGameState(gs => ({
-      ...gs,
-      tricksTaken: updatedTricksTaken,
-      currentTrick: [],
-      currentPlayer: trickWinnerRole,
-      lastTrickWinner: trickWinnerRole,
-      message: `${trickWinnerRole} wins the trick.`,
-    }));
+    newGameState.tricksTaken = updatedTricksTaken;
+    newGameState.currentTrick = [];
+    newGameState.currentPlayer = trickWinnerRole;
+    newGameState.lastTrickWinner = trickWinnerRole;
+    newGameState.message = `${trickWinnerRole} wins the trick.`;
 
     const totalTricksPlayedThisHand = Object.values(newGameState.tricksTaken).reduce((sum, count) => sum + count, 0);
 
     if (totalTricksPlayedThisHand === 5) {
       const finalTricksMessageSegment = `Scores for this hand: ${JSON.stringify(newGameState.tricksTaken)}.`;
-      newGameState = updateGameState(gs => ({
-        ...gs,
-        gamePhase: GAME_PHASES.SCORING,
-        currentPlayer: null,
-        message: `Hand over. ${finalTricksMessageSegment} Moving to scoring.`,
-      }));
+      newGameState.gamePhase = GAME_PHASES.SCORING;
+      newGameState.currentPlayer = null;
+      newGameState.message = `Hand over. ${finalTricksMessageSegment} Moving to scoring.`;
     }
   } else {
     // Advance to next player if trick is not over
     const playerRoles = Object.keys(newGameState.players);
     const nextPlayerForTrick = getNextPlayer(playerRole, playerRoles, newGameState.goingAlone, newGameState.partnerSittingOut);
-    newGameState = updateGameState(gs => ({
-      ...gs,
-      currentPlayer: nextPlayerForTrick,
-      message: `${playerRole} played ${cardPlayed.rank} of ${cardPlayed.suit}. Next player: ${nextPlayerForTrick}.`,
-    }));
+    newGameState.currentPlayer = nextPlayerForTrick;
+    newGameState.message = `${playerRole} played ${cardPlayed.rank} of ${cardPlayed.suit}. Next player: ${nextPlayerForTrick}.`;
   }
   return newGameState;
 }

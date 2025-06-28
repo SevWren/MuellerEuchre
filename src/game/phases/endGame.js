@@ -1,31 +1,27 @@
 import { GAME_PHASES, WINNING_SCORE } from '../../config/constants.js';
 import { log } from '../../utils/logger.js';
+import { TEAMS } from '../../config/constants.js';
 
 /**
  * Checks if the game has been won and updates the game state accordingly
  * @param {Object} gameState - Current game state
  * @returns {Object} Updated game state with game over status if applicable
  */
-export function checkGameOver(gameState) { // gameState is already a deep copy from handleEndOfHand's perspective or should be treated as mutable
+export function checkGameOver(gameState) {
     log(1, '[checkGameOver] Checking for game over condition');
     
-    // No need to clone again if gameState is already a mutable copy or its modification is intended.
-    // const updatedState = JSON.parse(JSON.stringify(gameState)); // Removed redundant clone
+    const updatedState = JSON.parse(JSON.stringify(gameState)); // Ensure it works on a clone
     
-    // Check if either team has reached the winning score
-    // Ensure calculateTeamScores uses the passed gameState directly
-    const currentTeamScores = calculateTeamScores(gameState); // Renamed to avoid conflict
+    const currentTeamScores = calculateTeamScores(updatedState);
     const winningTeam = Object.entries(currentTeamScores).find(
         ([teamId, score]) => score >= WINNING_SCORE
-    )?.[0]; // teamId will be TEAMS.TEAM_NS or TEAMS.TEAM_EW
+    )?.[0];
     
     if (winningTeam) {
-        // endGame will modify the gameState object directly (or its clone if passed)
-        return endGame(gameState, winningTeam, currentTeamScores); // Pass scores to avoid recalculation
+        return endGame(updatedState, winningTeam, currentTeamScores);
     }
     
-    // No winner yet
-    return gameState; // Return the passed gameState, possibly modified by endGame or unchanged
+    return updatedState;
 }
 
 /**
@@ -229,5 +225,3 @@ function getOpponentTeam(team) {
     return null; // Or throw an error
 }
 
-// Import TEAMS from constants to be used in this module
-import { TEAMS } from '../../config/constants.js';

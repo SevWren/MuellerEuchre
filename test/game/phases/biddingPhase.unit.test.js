@@ -26,9 +26,9 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 // We will import functions under test via esmock for relevant describe blocks
-import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } from '../../src/config/constants.js';
-import { createDeck, shuffleDeck, cardToId } from '../../src/utils/deck.js';
-import { initializePlayers, getNextPlayer as testGetNextPlayer } from '../../src/utils/players.js';
+import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } from '../../../src/config/constants.js';
+import { createDeck, shuffleDeck, cardToId } from '../../../src/utils/deck.js';
+import { initializePlayers, getNextPlayer as testGetNextPlayer } from '../../../src/utils/players.js';
 import esmock from 'esmock';
 import {
   PhaseLogicError,
@@ -38,7 +38,7 @@ import {
   InvalidPhaseError,
   CardNotInHandError,
   InvalidDiscardError,
-} from '../../src/game/logic/errors.js';
+} from '../../../src/game/logic/errors.js';
 
 const baseLoggerMock = {
   info: sinon.stub(),
@@ -122,10 +122,10 @@ describe('BiddingPhase Logic', () => {
 
     beforeEach(async () => {
       validateBidMock = sinon.stub();
-      const biddingPhaseModule = await esmock('../../src/game/phases/biddingPhase.js', {
-        '../../src/game/logic/validation.js': { validateBid: validateBidMock },
-        '../../src/utils/logger.js': baseLoggerMock,
-        '../../src/game/logic/errors.js': { PhaseLogicError }
+      const biddingPhaseModule = await esmock('../../../src/game/phases/biddingPhase.js', {
+        '../../../src/game/logic/validation.js': { validateBid: validateBidMock },
+        '../../../src/utils/logger.js': baseLoggerMock,
+
       });
       handleOrderUpDecision = biddingPhaseModule.handleOrderUpDecision;
       gameStateInOrderUpRound1 = setupBiddingState(PLAYER_ROLES[0], 1, SUITS.DIAMONDS);

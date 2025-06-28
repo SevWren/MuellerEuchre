@@ -107,7 +107,6 @@ npm_test_powershell_output.txt
 test_results.txt
 docs\File Review
 docs/File Reviews/errors.js-validation.js.review.md
-
 docs/File Reviews/CodeReview-errorUtils.unit.test-lobbyUtils.unit.test-logger.unit.test.md
 docs/File Reviews/gemini_review_deck.unit.test.js.md
 docs/File Reviews/gemini_review-endGame.js-goAlonePhase.js-biddingPhase.js.md

@@ -1,3 +1,4 @@
+// filepath: src/game/logic/errors.js
 /**
  * Custom error classes for game logic validation.
  * @module ValidationErrors
@@ -9,7 +10,7 @@
 export class ValidationError extends Error {
   constructor(message) {
     super(message);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
   }
 }
 
@@ -19,7 +20,7 @@ export class ValidationError extends Error {
 export class NotPlayersTurnError extends ValidationError {
   constructor(playerRole, currentPlayer) {
     super(`Not ${playerRole}'s turn. It is ${currentPlayer}'s turn.`);
-    this.name = 'NotPlayersTurnError';
+    this.name = "NotPlayersTurnError";
     this.playerRole = playerRole;
     this.currentPlayer = currentPlayer;
   }
@@ -31,7 +32,7 @@ export class NotPlayersTurnError extends ValidationError {
 export class InvalidPhaseError extends ValidationError {
   constructor(message) {
     super(message);
-    this.name = 'InvalidPhaseError';
+    this.name = "InvalidPhaseError";
   }
 }
 
@@ -41,7 +42,7 @@ export class InvalidPhaseError extends ValidationError {
 export class CardNotInHandError extends ValidationError {
   constructor(message) {
     super(message);
-    this.name = 'CardNotInHandError';
+    this.name = "CardNotInHandError";
   }
 }
 
@@ -51,7 +52,7 @@ export class CardNotInHandError extends ValidationError {
 export class MustFollowSuitError extends ValidationError {
   constructor(message) {
     super(message);
-    this.name = 'MustFollowSuitError';
+    this.name = "MustFollowSuitError";
   }
 }
 
@@ -61,7 +62,7 @@ export class MustFollowSuitError extends ValidationError {
 export class InvalidBidError extends ValidationError {
   constructor(message) {
     super(message);
-    this.name = 'InvalidBidError';
+    this.name = "InvalidBidError";
   }
 }
 
@@ -71,16 +72,27 @@ export class InvalidBidError extends ValidationError {
 export class InvalidDiscardError extends ValidationError {
   constructor(message) {
     super(message);
-    this.name = 'InvalidDiscardError';
+    this.name = "InvalidDiscardError";
   }
 }
 
 /**
  * Error for issues arising from internal phase logic operations.
  */
-export class PhaseLogicError extends ValidationError { // Or extends Error directly
+export class PhaseLogicError extends ValidationError {
+  // Or extends Error directly
   constructor(message) {
     super(message);
-    this.name = 'PhaseLogicError';
+    this.name = "PhaseLogicError";
+  }
+}
+
+/**
+ * Error for when an invalid card object or property is encountered.
+ */
+export class InvalidCardError extends ValidationError {
+  constructor(message) {
+    super(message);
+    this.name = "InvalidCardError";
   }
 }

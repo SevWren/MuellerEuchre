@@ -13,7 +13,7 @@ setlocal
 :: Set the full path to your local repository clone.
 set "REPO_PATH=C:\github\MuellerEuchre"
 :: Set the name for the test results file.
-set "OUTPUT_FILE=test_results.txt"
+set "TEST_OUTPUT_FILE=test_results.txt"
 
 
 :: --- Script Execution ---
@@ -32,12 +32,12 @@ if errorlevel 1 (
     goto :end
 )
 
-echo [+] Running tests and redirecting output to: %OUTPUT_FILE%
+echo [+] Running tests and redirecting output to: %TEST_OUTPUT_FILE%
 echo     This may take a moment...
 
 :: Run npm test and redirect both standard output (>) and standard error (2>&1)
 :: to the output file. This overwrites the file if it exists.
-npm test > "%OUTPUT_FILE%" 2>&1
+npm test > "%TEST_OUTPUT_FILE%" 2>&1
 
 :: Check if the npm test command failed.
 if errorlevel 1 (
@@ -51,7 +51,7 @@ if errorlevel 1 (
 
 echo.
 echo [i] Test results have been saved to:
-echo     %REPO_PATH%\%OUTPUT_FILE%
+echo     %REPO_PATH%\%TEST_OUTPUT_FILE%
 
 :end
 echo.

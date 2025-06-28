@@ -21,6 +21,17 @@ function getSuitColor(suit) {
 }
 
 /**
+ * Returns true if two suits are the same color.
+ * @param {string} suitA
+ * @param {string} suitB
+ * @returns {boolean}
+ */
+export function areSameColor(suitA, suitB) {
+  if (!suitA || !suitB) return false;
+  return getSuitColor(suitA) === getSuitColor(suitB);
+}
+
+/**
  * Creates a standard 24-card Euchre deck.
  * Each card is an object: { suit: string, value: string, id: string, name: string }
  * id is like 'KH' (King of Hearts), name is like 'King of Hearts'.

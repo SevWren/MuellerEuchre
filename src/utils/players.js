@@ -13,20 +13,14 @@ import logger from './logger.js'; // Use the new Pino logger
  * @private // This function is only used internally by isTeammate
  */
 function getTeamForPlayer(playerRole) {
-  if (PLAYER_ROLES.slice(0, 2).includes(playerRole)) { // e.g., 'south', 'north' if PLAYER_ROLES[0]='south', PLAYER_ROLES[2]='north'
-    // This assumes specific ordering in PLAYER_ROLES for teams.
-    // A more robust way would be to have team definitions in constants.
-    // For now, assuming PLAYER_ROLES = ['south', 'west', 'north', 'east']
-    // Team 1: south, north
-    // Team 2: west, east
-    if (playerRole === PLAYER_ROLES[0] || playerRole === PLAYER_ROLES[2]) { // south or north
-        return `${PLAYER_ROLES[0]}_${PLAYER_ROLES[2]}`; // e.g. "south_north"
-    } else if (playerRole === PLAYER_ROLES[1] || playerRole === PLAYER_ROLES[3]) { // west or east
-        return `${PLAYER_ROLES[1]}_${PLAYER_ROLES[3]}`; // e.g. "west_east"
-    }
+  // Assuming PLAYER_ROLES = ['south', 'west', 'north', 'east']
+  // Team NS: south, north
+  // Team EW: west, east
+  if (playerRole === PLAYER_ROLES[0] || playerRole === PLAYER_ROLES[2]) {
+    return `${PLAYER_ROLES[0]}_${PLAYER_ROLES[2]}`; // e.g. "south_north"
   }
-  logger.warn({ playerRole }, 'Invalid playerRole provided to getTeamForPlayer');
-  return '';
+  // west or east. No need for an else-if, as isTeammate validates roles.
+  return `${PLAYER_ROLES[1]}_${PLAYER_ROLES[3]}`; // e.g. "west_east"
 }
 
 /**

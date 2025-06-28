@@ -1176,7 +1176,7 @@ class SocketHandler {
      * Starts a new game by resetting the UI and notifying the server.
      * 
      * @returns {void}
-     * @public
+     * @public 
      * 
      * @example
      * // Start a new game

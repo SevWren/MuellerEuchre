@@ -1,3 +1,5 @@
+//TODO:  REWORK FILE to use ESMOCK and DO NOT USE PROXYQUIRE
+
 /**
  * Utility functions for Euchre deck and card manipulations.
  * @module deck

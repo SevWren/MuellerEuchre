@@ -18,38 +18,54 @@ import logger from './logger.js';
 export function assignRoleToPlayer(gameState, role, userId, playerName, socketId) {
   if (!gameState || !gameState.players) {
     logger.error({ gameState, role, userId }, 'assignRoleToPlayer: Invalid gameState or players object.');
-    // Potentially throw or return gameState unmodified if critical error
     return gameState;
   }
   if (!PLAYER_ROLES.includes(role)) {
     logger.warn({ role }, `assignRoleToPlayer: Invalid role specified: ${role}`);
-    return gameState; // Or throw
+    return gameState;
   }
 
-  // const newGameState = JSON.parse(JSON.stringify(gameState)); // Avoid if gameState is modified directly by ref
   const playerTeamId = (PLAYER_ROLES.indexOf(role) % 2 === 0) ? TEAMS.TEAM_NS : TEAMS.TEAM_EW;
 
-  gameState.players[role] = {
-    ...(gameState.players[role] || {}), // Preserve any existing data for the role if any
-    id: userId, // User's persistent ID
-    name: playerName,
-    socketId: socketId,
-    isConnected: true,
-    isActive: true, // Mark as active in the current game
-    role: role,     // Explicitly store role if not just relying on key
-    teamId: playerTeamId,
-    tricksWonThisHand: 0, // Initialize for new hand/game
-    // score: gameState.players[role]?.score || 0, // Preserve score if rejoining/role was occupied
-                                                 // For a fresh assignment, score should be from teamScores or 0.
-                                                 // initializePlayers already sets score to 0 for new player structures.
+  const newPlayerState = {
+    // Preserve some existing data if rejoining, but reset game-specific stats
+    ...(gameState.players[role] ? {
+      id: userId,
+      name: playerName,
+      socketId: socketId,
+      isConnected: true,
+      isActive: true,
+      role: role,
+      teamId: playerTeamId,
+      // Explicitly reset game-specific stats for a new assignment/hand
+      tricksWonThisHand: 0,
+      score: 0,
+    } : {
+      // For a completely new player, initialize all properties
+      id: userId,
+      name: playerName,
+      socketId: socketId,
+      isConnected: true,
+      isActive: true,
+      role: role,
+      teamId: playerTeamId,
+      tricksWonThisHand: 0,
+      score: 0,
+    }),
   };
-   if (gameState.players[role].score === undefined) { // Ensure score is initialized
-       gameState.players[role].score = 0;
-   }
 
+  const updatedPlayers = {
+    ...gameState.players,
+    [role]: newPlayerState,
+  };
+
+  const updatedState = {
+    ...gameState,
+    players: updatedPlayers,
+  };
 
   logger.info({ gameId: gameState.gameId, role, userId, playerName }, `Assigned role ${role} to player ${playerName} (${userId}).`);
-  return gameState;
+  return updatedState;
 }
 
 /**

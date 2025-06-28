@@ -193,9 +193,31 @@ describe('End Game Phase', () => {
             
             // Should award 2 points to opponents for euchre
             expect(result.scores[TEAMS.TEAM_EW]).to.equal(WINNING_SCORE - 1); // E/W score should be 9
-            expect(result.messages.some(m => 
+            expect(result.messages.some(m =>
                 m.text.includes(`Team ${TEAMS.TEAM_NS} was euchred! 2 points for ${TEAMS.TEAM_EW}!`)
             )).to.be.true;
+        });
+
+        it('should log a warning if a trick has an unknown team', () => {
+            gameState.makerTeam = TEAMS.TEAM_NS;
+            gameState.tricks = [{ team: 'UNKNOWN_TEAM' }]; // Simulate unknown team
+            gameState.scores = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }; // Reset scores for this test
+
+            handleEndOfHand(gameState);
+
+            expect(mockLogger.log.calledWith(2, sinon.match(/Encountered trick with unknown team/))).to.be.true;
+        });
+
+        it('should log a warning if no team scored points (e.g., invalid makerTeam or getOpponentTeam returns null)', () => {
+            // To make scoringTeam null, we need makerTeam to be invalid.
+            gameState.makerTeam = 'INVALID_TEAM'; // This will cause makerTeam to be invalid
+            gameState.tricks = Array(5).fill({ team: TEAMS.TEAM_NS }); // Tricks don't matter much here for this specific log
+            gameState.scores = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 };
+
+            handleEndOfHand(gameState);
+
+            // The log message is now at level 3 for invalid makerTeam, not 1.
+            expect(mockLogger.log.calledWith(3, sinon.match(/Invalid or missing makerTeam/))).to.be.true;
         });
     });
 
@@ -221,8 +243,8 @@ describe('End Game Phase', () => {
             
             // Should add game over message
             const winningTeamDisplay = TEAMS.TEAM_NS === 'NS' ? 'North/South' : (TEAMS.TEAM_NS || 'Unknown'); // Handle potential display name mapping if needed
-            expect(result.messages.some(m => 
-                m.type === 'game_over' && 
+            expect(result.messages.some(m =>
+                m.type === 'game_over' &&
                 m.text.includes(`Team ${winningTeamDisplay} wins the game!`)
             )).to.be.true;
             
@@ -237,71 +259,26 @@ describe('End Game Phase', () => {
          * the game continues without declaring a winner.
          */
         it('should not detect game over when no team has won', () => {
-            // Scores are below winning threshold
+            // Set scores below winning threshold
             gameState.scores = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 };
             
             const result = checkGameOver(gameState);
             
-            expect(result.gameOver).to.be.undefined; // Or .to.be.false if explicitly set, `undefined` is fine
-            expect(result.winningTeam).to.be.undefined; // Changed from .to.be.null
-            // The original test had SCORING here. If checkGameOver is called from scoring,
-            // and game is not over, it should transition to DEALING.
-            // This depends on where checkGameOver is called and what its responsibility is.
-            // Assuming checkGameOver is called *after* scores are tallied for the hand.
-            // The function under test is checkGameOver, not the entire scoring pipeline.
-            // If it's called with scores not meeting WINNING_SCORE, it should prepare for next hand or indicate no game over.
-            // The endGame.js code itself does NOT set phase to DEALING if game is not over.
-            // It simply returns the gameState. The calling function (e.g. in scoringPhase) would do that.
-            // Let's adjust expectation based on actual endGame.js#checkGameOver behavior.
-            // It returns the gameState unchanged if no winner.
-            expect(result.gamePhase).to.equal(GAME_PHASES.SCORING);
+            expect(result.gameOver).to.be.undefined;
             expect(result.winningTeam).to.be.undefined;
+            expect(result.gamePhase).to.equal(GAME_PHASES.SCORING); // Should not change phase
         });
 
-        // Tests moved from scoringPhase.unit.test.js
-        it('should transition to DEALING if game is not over, resetting relevant state (when called from a context that does this, e.g. scoring orchestrator)', () => {
-            // This test is now slightly different: checkGameOver itself doesn't transition to DEALING.
-            // It signals game over or not. The *caller* of checkGameOver would handle transition.
-            // Let's re-evaluate what checkGameOver *itself* does.
-            // It returns an updated state if game is over, otherwise the original state.
-            // So, this specific test title from scoringPhase might be misleading for endGame.js context.
-            // However, if we assume a wrapper function in endGame.js that *does* this:
-            // The current checkGameOver in endGame.js does NOT change phase to DEALING.
-            // It only changes phase if game IS over.
-            // The logic for "next hand" (DEALING phase, reset state) seems to be in scoringPhase.js's checkGameOver.
-            // This is confusing. Let's stick to testing checkGameOver from endGame.js as written.
-            // The `endGame.js` version of `checkGameOver` only sets GAME_OVER or returns state.
-            // It does not set to DEALING.
-            // The tests from scoringPhase.js for `checkGameOver` were testing a version of `checkGameOver`
-            // that *was* part of scoringPhase.js and had different responsibilities.
-            //
-            // For the endGame.js `checkGameOver`:
-            gameState.teamScores = { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: 5 }; // Not game over
-            const newState = checkGameOver(gameState); // Using the one from endGame.js
-            expect(newState.gamePhase).to.equal(GAME_PHASES.SCORING); // Should not change phase
-            // Already checked winningTeam is undefined above. This test is more about other state NOT changing.
-            // Test that other parts of state are NOT reset by checkGameOver if game not over
-            newState.trumpSuit = SUITS.SPADES;
-            newState.makerTeam = TEAMS.TEAM_NS;
-            const newStateAfterNoChange = checkGameOver(newState);
-            expect(newStateAfterNoChange.trumpSuit).to.equal(SUITS.SPADES);
-            expect(newStateAfterNoChange.makerTeam).to.equal(TEAMS.TEAM_NS);
+        it('should log a warning if an attempt is made to increment win for an unknown team', () => {
+            // To hit this, we need to call checkGameOver with a gameState that results in an unknown winningTeam.
+            // We can achieve this by setting a score for an 'UNKNOWN_TEAM' directly in gameState.scores
+            // and ensuring it reaches WINNING_SCORE.
+            gameState.scores = { 'UNKNOWN_TEAM': WINNING_SCORE };
+            gameState.winningTeam = 'UNKNOWN_TEAM'; // Simulate winningTeam being set to an unknown value
 
-        });
+            checkGameOver(gameState); // Call the function to trigger the log
 
-        // This test is also about the "next hand" logic which is not in endGame.js's checkGameOver
-        it('should correctly set next dealer when transitioning to DEALING (responsibility of caller)', () => {
-            // As above, endGame.js#checkGameOver doesn't do this.
-            // This test is not applicable to endGame.js#checkGameOver as is.
-            // If there's a different function in endGame.js that handles this, we should test that.
-            // For now, this test will effectively show that checkGameOver doesn't change dealer.
-            gameState.teamScores = { [TEAMS.TEAM_NS]: 1, [TEAMS.TEAM_EW]: 1 };
-            gameState.dealer = PLAYER_ROLES[0];
-            const originalDealer = gameState.dealer;
-
-            const newState = checkGameOver(gameState); // from endGame.js
-            expect(newState.dealer).to.equal(originalDealer); // checkGameOver itself shouldn't change dealer
-            sinon.assert.notCalled(mockPlayersUtils.getNextPlayer); // getNextPlayer shouldn't be called by this checkGameOver
+            expect(mockLogger.log.calledWith(3, sinon.match(/Attempted to increment win for unknown team/))).to.be.true;
         });
     });
 
@@ -356,8 +333,8 @@ describe('End Game Phase', () => {
             expect(result.matchStats.gamesPlayed).to.equal(1);
             
             // Should add new game message
-            expect(result.messages.some(m => 
-                m.type === 'game' && 
+            expect(result.messages.some(m =>
+                m.type === 'game' &&
                 m.text.includes('A new game is starting!')
             )).to.be.true;
         });

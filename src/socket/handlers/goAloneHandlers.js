@@ -6,7 +6,7 @@ import logger from '../../utils/logger.js';
 // import { getGameState } from '../../game/state.js'; // No longer using global state
 import { handleGoAloneDecision } from '../../game/phases/goAlonePhase.js';
 import { getRoleBySocketId } from '../../utils/players.js';
-import { getGame, updateGame } from '../../db/gameRepository.js';
+import { gameRepository } from '../../../src/db/gameRepository.js'; // CORRECTED IMPORT
 import { GAME_EVENTS } from '../../config/constants.js';
 
 /**
@@ -30,7 +30,7 @@ export function registerGoAloneHandlers(socket, io) {
     const { gameId, decision } = data;
 
     try {
-      const currentGameState = await getGame(gameId);
+      const currentGameState = await gameRepository.getGame(gameId);
       if (!currentGameState) {
         logger.warn({ socketId: socket.id, gameId }, `${eventName}: Game not found.`);
         socket.emit(GAME_EVENTS.ACTION_ERROR, { message: 'Game not found.', event: eventName });
@@ -51,7 +51,7 @@ export function registerGoAloneHandlers(socket, io) {
       const result = handleGoAloneDecision(currentGameState, playerRole, decision);
 
       if (result.success && result.updatedGameState) {
-        await updateGame(gameId, result.updatedGameState);
+        await gameRepository.updateGame(gameId, result.updatedGameState);
         logger.info({ gameId, playerRole, decision, newPhase: result.updatedGameState.gamePhase },
                     `'Go alone' decision processed, state saved. Broadcasting updated state. Message: ${result.message}`);
         io.to(gameId).emit(GAME_EVENTS.GAME_STATE_UPDATE, result.updatedGameState); // Broadcast to game room

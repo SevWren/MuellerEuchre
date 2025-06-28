@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import sinon from 'sinon'; // Import sinon
 import esmock from 'esmock';
 import { GAME_PHASES, SUITS, PLAYER_ROLES, VALUES } from '../../../src/config/constants.js';
 import {
@@ -11,19 +12,12 @@ import {
   InvalidDiscardError,
 } from '../../../src/game/logic/errors.js';
 
-// Mock logger to prevent console output during tests
-const loggerMock = {
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  debug: () => {},
-};
-
 describe('Validation Logic - validatePlay', () => {
-  // General variables for tests that don't need specific mock behavior per describe block
+  let sandbox; // Declare sandbox
+  let loggerMock; // Declare loggerMock
   let generalValidatePlay;
   let generalIsLeftBowerMock;
-
+  
   const baseGameState = {
     gamePhase: GAME_PHASES.PLAYING,
     currentPlayer: PLAYER_ROLES[0], // PLAYER_1
@@ -43,6 +37,16 @@ describe('Validation Logic - validatePlay', () => {
   const player1Role = PLAYER_ROLES[0];
 
   beforeEach(async () => {
+    sandbox = sinon.createSandbox(); // Initialize sandbox
+
+    // Mock logger to prevent console output during tests and allow spying
+    loggerMock = {
+      info: sandbox.stub(),
+      warn: sandbox.stub(),
+      error: sandbox.stub(),
+      debug: sandbox.stub(),
+    };
+
     // This mock is for general tests outside of 'Following Suit Logic' or other specific blocks
     generalIsLeftBowerMock = (card, trumpSuit) => {
       if (trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS && card.value === VALUES.JACK) return true;
@@ -52,13 +56,17 @@ describe('Validation Logic - validatePlay', () => {
       return false;
     };
 
-    const validationModule = await esmock('../../../src/game/logic/validation.js', { // Reverted path
-      '../../../src/utils/logger.js': loggerMock, // Reverted path
-      '../../../src/utils/deck.js': { // Reverted path
+    const validationModule = await esmock('../../../src/game/logic/validation.js', {
+      '../../../src/utils/logger.js': loggerMock,
+      '../../../src/utils/deck.js': {
         isLeftBower: (card, trumpSuit) => generalIsLeftBowerMock(card, trumpSuit),
       },
     });
     generalValidatePlay = validationModule.validatePlay;
+  });
+
+  afterEach(() => {
+    sandbox.restore(); // Restore sandbox after each test
   });
 
   // Test cases for basic argument validation (uses generalValidatePlay)
@@ -111,9 +119,9 @@ describe('Validation Logic - validatePlay', () => {
         return false;
       };
 
-      const validationModule = await esmock('../../../src/game/logic/validation.js', { // Reverted path
-        '../../../src/utils/logger.js': loggerMock, // Reverted path
-        '../../../src/utils/deck.js': { // Reverted path
+      const validationModule = await esmock('../../../src/game/logic/validation.js', {
+        '../../../src/utils/logger.js': loggerMock,
+        '../../../src/utils/deck.js': {
           isLeftBower: (card, trumpSuit) => isLeftBowerMock(card, trumpSuit),
         },
       });
@@ -137,20 +145,8 @@ describe('Validation Logic - validatePlay', () => {
       expect(validatePlay(gameState, player1Hand, cardToPlay, player1Role)).to.equal(true);
     });
 
-    // Skipping due to persistent esmock/environment issues making the test fail,
-    // though validatePlay logic for this scenario is believed correct and similar tests pass.
-    // TODO: Revisit this test with a different mocking strategy or esmock update.
-    it.skip('should throw MustFollowSuitError if player has led suit but plays off-suit', () => {
-      // This test would use the `validatePlay` and `isLeftBowerMock` from the `Following Suit Logic` describe's `beforeEach`.
+    it('should throw MustFollowSuitError if player has led suit but plays off-suit', () => {
       const ledCard = { card: { id: 'QC', suit: SUITS.CLUBS, value: VALUES.QUEEN }, player: PLAYER_ROLES[1] };
-      // Ensure gameState uses a trump suit consistent with how isLeftBowerMock is set up in the beforeEach for this describe block.
-      // The default isLeftBowerMock in 'Following Suit Logic' beforeEach is:
-      // isLeftBowerMock = (card, trumpSuit) => {
-      //   if (trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS && card.value === VALUES.JACK) return true;
-      //   ...
-      //   return false;
-      // };
-      // So, for trump: Spades, led: Clubs (QC), card played: Spades (AS), hand has Clubs (AC, KC) -> error
       const gameState = { ...baseGameState, currentTrick: [ledCard], trumpSuit: SUITS.SPADES };
       const cardToPlay = player1Hand[2]; // AS (Spades)
       expect(() => validatePlay(gameState, player1Hand, cardToPlay, player1Role)).to.throw(MustFollowSuitError, `Must follow suit. Led suit is ${SUITS.CLUBS}, attempted to play ${SUITS.SPADES}.`);
@@ -246,18 +242,17 @@ describe('Validation Logic - validatePlay', () => {
     });
 
 
-    it('should allow playing any card if the led card suit cannot be determined (e.g. null/undefined card)', () => {
-        // This scenario should be rare and indicates other issues, but validation should be permissive.
+    it('should allow playing any card if the led card suit cannot be determined (e.g. null/undefined card) and log a warning', () => {
         const ledCard = { card: null, player: PLAYER_ROLES[1] };
         const gameState = { ...baseGameState, currentTrick: [ledCard] };
         const cardToPlay = player1Hand[0]; // AC
         expect(() => validatePlay(gameState, player1Hand, cardToPlay, player1Role)).to.not.throw();
-        // Logger should have been warned
+        expect(loggerMock.warn.calledOnceWithMatch({ ledCard: null }, "Led card's effective suit could not be determined.")).to.be.true;
     });
 
   });
 
-  // Valid play scenarios
+  // Valid play scenarios (using generalValidatePlay)
   it('should return true for a straightforward valid play (following non-trump suit)', () => {
     const ledCard = { card: { id: 'QC', suit: SUITS.CLUBS, value: VALUES.QUEEN }, player: PLAYER_ROLES[1] };
     const gameState = { ...baseGameState, currentTrick: [ledCard] };
@@ -280,14 +275,26 @@ describe('Validation Logic - validatePlay', () => {
 });
 
 describe('Validation Logic - validateBid', () => {
+  let sandbox; // Declare sandbox
+  let loggerMock; // Declare loggerMock
   let validateBid; // Will hold the function from the module
   let baseBidGameState;
 
   beforeEach(async () => {
+    sandbox = sinon.createSandbox(); // Initialize sandbox
+
+    // Mock logger to prevent console output during tests and allow spying
+    loggerMock = {
+      info: sandbox.stub(),
+      warn: sandbox.stub(),
+      error: sandbox.stub(),
+      debug: sandbox.stub(),
+    };
+
     // For validateBid, we don't have deck.js dependencies currently, so esmock is simpler
     // If validateBid started using something from deck.js, we'd need to mock it here.
-    const validationModule = await esmock('../../../src/game/logic/validation.js', { // Reverted path
-      '../../../src/utils/logger.js': loggerMock, // Reverted path
+    const validationModule = await esmock('../../../src/game/logic/validation.js', {
+      '../../../src/utils/logger.js': loggerMock,
       // No need to mock deck.js for validateBid unless it's used by validateBid
     });
     validateBid = validationModule.validateBid;
@@ -300,6 +307,10 @@ describe('Validation Logic - validateBid', () => {
       bids: [],
       gameId: 'test-bid-game',
     };
+  });
+
+  afterEach(() => {
+    sandbox.restore(); // Restore sandbox after each test
   });
 
   // Argument validation
@@ -417,6 +428,8 @@ describe('Validation Logic - validateBid', () => {
 });
 
 describe('Validation Logic - validateDealerDiscard', () => {
+  let sandbox; // Declare sandbox
+  let loggerMock; // Declare loggerMock
   let validateDealerDiscard;
   let baseDiscardGameState;
   let dealerHand; // Should contain 6 cards for valid scenarios
@@ -424,8 +437,18 @@ describe('Validation Logic - validateDealerDiscard', () => {
   const cardToDiscard = { id: 'TC', suit: SUITS.CLUBS, value: VALUES.TEN }; // A card presumed to be in hand
 
   beforeEach(async () => {
-    const validationModule = await esmock('../../../src/game/logic/validation.js', { // Reverted path
-      '../../../src/utils/logger.js': loggerMock, // Reverted path
+    sandbox = sinon.createSandbox(); // Initialize sandbox
+
+    // Mock logger to prevent console output during tests and allow spying
+    loggerMock = {
+      info: sandbox.stub(),
+      warn: sandbox.stub(),
+      error: sandbox.stub(),
+      debug: sandbox.stub(),
+    };
+
+    const validationModule = await esmock('../../../src/game/logic/validation.js', {
+      '../../../src/utils/logger.js': loggerMock,
       // No deck.js dependency for validateDealerDiscard
     });
     validateDealerDiscard = validationModule.validateDealerDiscard;
@@ -447,6 +470,10 @@ describe('Validation Logic - validateDealerDiscard', () => {
       // Other properties like turnCard, bids might not be directly relevant for these validations
       // but can be added if specific scenarios need them.
     };
+  });
+
+  afterEach(() => {
+    sandbox.restore(); // Restore sandbox after each test
   });
 
   // Argument validation

@@ -1,10 +1,10 @@
-import { getGame, updateGame } from '../../db/gameRepository.js';
+import { gameRepository } from '../../../src/db/gameRepository.js'; // CORRECTED IMPORT
 import { handleNewGameRequest } from '../../game/phases/scoringPhase.js'; // Re-using from scoringPhase.js as it contains new game logic
 import { GAME_EVENTS, GAME_PHASES } from '../../config/constants.js';
 import logger from '../../utils/logger.js';
 
 /**
- * Registers handlers for game over actions.
+ * Registers handlers for game over actions
  * @param {object} socket The socket instance for the client.
  * @param {object} io The Socket.IO server instance.
  */

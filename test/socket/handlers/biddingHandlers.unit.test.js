@@ -1,3 +1,4 @@
+// filepath: test/socket/handlers/biddingHandlers.unit.test.js
 import * as chai from 'chai';
 import sinon from 'sinon';
 import sinonChai from 'sinon-chai';
@@ -7,12 +8,13 @@ import { GAME_EVENTS, PLAYER_ROLES, SUITS, GAME_PHASES } from '../../../src/conf
 chai.use(sinonChai);
 const expect = chai.expect;
 
-const biddingHandlersModulePath = new URL('../../../src/socket/handlers/biddingHandlers.js', import.meta.url).pathname;
-const loggerModulePath = new URL('../../../src/utils/logger.js', import.meta.url).pathname;
-const gameRepositoryModulePath = new URL('../../../src/db/gameRepository.js', import.meta.url).pathname;
-const biddingPhaseModulePath = new URL('../../../src/game/phases/biddingPhase.js', import.meta.url).pathname;
-const validationModulePath = new URL('../../../src/game/logic/validation.js', import.meta.url).pathname;
-const playersModulePath = new URL('../../../src/utils/players.js', import.meta.url).pathname;
+// Use relative paths for esmock
+const biddingHandlersModulePath = '../../../src/socket/handlers/biddingHandlers.js';
+const loggerModulePath = '../../../src/utils/logger.js';
+const gameRepositoryModulePath = '../../../src/db/gameRepository.js';
+const biddingPhaseModulePath = '../../../src/game/phases/biddingPhase.js';
+const validationModulePath = '../../../src/game/logic/validation.js';
+const playersModulePath = '../../../src/utils/players.js';
 
 describe('Bidding Socket Handlers', () => {
   let mockIo;

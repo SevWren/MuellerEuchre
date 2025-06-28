@@ -7,7 +7,7 @@ import { attemptToStartGame } from '../../game/phases/lobbyPhase.js';
 import { getRoleBySocketId } from '../../utils/players.js';
 import { gameRepository } from '../../db/gameRepository.js';
 import { GAME_EVENTS, PLAYER_ROLES, GAME_PHASES, TEAMS as APP_TEAMS } from '../../config/constants.js';
-import { createInitialGameState } from '../../game/state.js';
+import { createInitialGameState, getGameState, updateGameState } from '../../game/state.js'; // Import state management functions
 import { startNewHand } from '../../game/phases/startNewHandPhase.js'; // Now a pure function
 
 // Temporary minimal utility functions
@@ -53,11 +53,19 @@ export function registerLobbyHandlers(socket, io) {
     }
     const { gameId } = data;
     try {
-      const currentGameState = await gameRepository.getGame(gameId);
-      if (!currentGameState) {
-        logger.warn({ socketId: socket.id, gameId }, 'request_start_game: Game not found.');
-        socket.emit(GAME_EVENTS.ACTION_ERROR, { message: 'Game not found. Cannot start.', event: 'request_start_game' });
-        return ack({ status: 'error', message: 'Game not found. Cannot start.'});
+      // Get current game state from in-memory store (Layer 2)
+      let currentGameState = getGameState();
+      // If the in-memory state doesn't match the requested gameId, load it from persistence (Layer 5)
+      if (!currentGameState || currentGameState.gameId !== gameId) {
+        currentGameState = await gameRepository.getGame(gameId);
+        if (currentGameState) {
+          // If loaded from DB, update the in-memory state (Layer 2)
+          updateGameState(() => currentGameState);
+        } else {
+          logger.warn({ socketId: socket.id, gameId }, 'request_start_game: Game not found in memory or DB.');
+          socket.emit(GAME_EVENTS.ACTION_ERROR, { message: 'Game not found. Cannot start.', event: 'request_start_game' });
+          return ack({ status: 'error', message: 'Game not found. Cannot start.'});
+        }
       }
       const requestingPlayerRole = getRoleBySocketId(currentGameState, socket.id);
       if (!requestingPlayerRole) {
@@ -71,8 +79,7 @@ export function registerLobbyHandlers(socket, io) {
       // For now, assuming it might be pure or its side-effects are intended for this handler path.
       // If attemptToStartGame also uses global state.js, it needs same refactor as startNewHand.
       // For this fix, we focus on startNewHand being pure.
-      let resultGameState = attemptToStartGame(currentGameState, requestingPlayerRole);
-      let resultMessage = "Attempted to start game."; // Default message
+      const attemptResult = attemptToStartGame(currentGameState, requestingPlayerRole);
 
       // Assuming attemptToStartGame now returns the new state directly if successful,
       // or throws/returns an error indicator.
@@ -80,46 +87,38 @@ export function registerLobbyHandlers(socket, io) {
       // so this adapts to a common pattern.
       // attemptToStartGame from lobbyPhase.js transitions the state to GAME_PHASES.DEALING
       // but does not deal cards itself.
-      let stateAfterAttemptStart = attemptToStartGame(currentGameState, requestingPlayerRole);
-
-      if (stateAfterAttemptStart.success === false) { // attemptToStartGame signals failure
-        logger.warn({ socketId: socket.id, role: requestingPlayerRole, gameId, reason: stateAfterAttemptStart.message }, 'Request to start game failed.');
-        socket.emit(GAME_EVENTS.ACTION_ERROR, { message: stateAfterAttemptStart.message, event: 'request_start_game'});
-        return ack({ status: 'error', message: stateAfterAttemptStart.message});
+      if (attemptResult.success === false) { // attemptToStartGame signals failure
+        logger.warn({ socketId: socket.id, role: requestingPlayerRole, gameId, reason: attemptResult.message }, 'Request to start game failed.');
+        socket.emit(GAME_EVENTS.ACTION_ERROR, { message: attemptResult.message, event: 'request_start_game'});
+        return ack({ status: 'error', message: attemptResult.message});
       }
 
-      // If attemptToStartGame was successful, the phase should be DEALING (or similar, based on its internal logic)
-      // For the fix, we specifically check if it's now DEALING phase, then proceed to deal.
-      if (stateAfterAttemptStart.updatedGameState.gamePhase === GAME_PHASES.DEALING) {
-        logger.info({ gameId, currentPhase: stateAfterAttemptStart.updatedGameState.gamePhase }, 'Game phase is DEALING, proceeding to deal hands.');
+      // If attemptToStartGame was successful, the phase should be DEALING
+      if (attemptResult.updatedGameState.gamePhase === GAME_PHASES.DEALING) {
+        logger.info({ gameId, currentPhase: attemptResult.updatedGameState.gamePhase }, 'Game phase is DEALING, proceeding to deal hands.');
         try {
-          const stateAfterDealing = startNewHand(stateAfterAttemptStart.updatedGameState); // startNewHand is pure
-          await gameRepository.updateGame(gameId, stateAfterDealing);
+          const stateAfterDealing = startNewHand(attemptResult.updatedGameState); // startNewHand is pure
+          updateGameState(() => stateAfterDealing); // Update in-memory state (Layer 2)
+          await gameRepository.updateGame(gameId, stateAfterDealing); // Persist to DB (Layer 5)
           logger.info({ gameId, newPhase: stateAfterDealing.gamePhase }, `Game started and hands dealt. Broadcasting updated state.`);
           io.to(gameId).emit(GAME_EVENTS.STATE_UPDATE, stateAfterDealing); // Broadcast the state with hands
           return ack(null, { status: 'ok', message: 'Game started and hands dealt.', gameState: stateAfterDealing });
         } catch (snhError) {
           logger.error({ err: snhError, gameId }, `Error during startNewHand after request_start_game.`);
-          // Revert to lobby or an error state? For now, emit error and don't change DB from DEALING phase.
-          // The game state in DB is still at DEALING phase but without hands. This is not ideal.
-          // A more robust solution might try to save a "broken" state or revert to LOBBY.
-          // For this fix, we prioritize getting hands saved if startNewHand succeeds.
-          // If startNewHand fails, the state in DB (DEALING phase) is problematic.
-          // Let's ensure we save the pre-startNewHand state if startNewHand fails, to keep it in DEALING.
-          await gameRepository.updateGame(gameId, stateAfterAttemptStart.updatedGameState); // Save the DEALING phase state
+          // If startNewHand fails, save the state *before* dealing (which is DEALING phase)
+          // The in-memory state is already at the pre-dealing state (attemptResult.updatedGameState)
+          await gameRepository.updateGame(gameId, attemptResult.updatedGameState); // Persist to DB (Layer 5)
           socket.emit(GAME_EVENTS.ACTION_ERROR, { message: `Failed to deal cards: ${snhError.message}`, event: 'request_start_game'});
-          io.to(gameId).emit(GAME_EVENTS.STATE_UPDATE, stateAfterAttemptStart.updatedGameState); // Inform others
+          io.to(gameId).emit(GAME_EVENTS.STATE_UPDATE, attemptResult.updatedGameState); // Inform others of the state before dealing
           return ack({ status: 'error', message: `Failed to deal cards: ${snhError.message}`});
         }
       } else {
-        // This case implies attemptToStartGame succeeded but didn't set phase to DEALING,
-        // or its success/failure reporting changed. Based on current lobbyPhase.js, this path shouldn't be hit if successful.
-        logger.warn({ socketId: socket.id, gameId, resultingPhase: stateAfterAttemptStart.updatedGameState.gamePhase }, 'Game start requested, but phase not set to DEALING. Conditions possibly not fully met or phase logic changed.');
-        // We might still want to save and broadcast this state if it's a valid intermediate state.
-        await gameRepository.updateGame(gameId, stateAfterAttemptStart.updatedGameState);
-        io.to(gameId).emit(GAME_EVENTS.STATE_UPDATE, stateAfterAttemptStart.updatedGameState);
-        socket.emit(GAME_EVENTS.ACTION_ERROR, { message: stateAfterAttemptStart.message || 'Could not start the game (conditions not met).', event: 'request_start_game'});
-        return ack({ status: 'error', message: stateAfterAttemptStart.message || 'Could not start the game (conditions not met).'});
+        logger.warn({ socketId: socket.id, gameId, resultingPhase: attemptResult.updatedGameState.gamePhase }, 'Game start requested, but phase not set to DEALING. Conditions possibly not fully met or phase logic changed.');
+        updateGameState(() => attemptResult.updatedGameState); // Update in-memory state (Layer 2)
+        await gameRepository.updateGame(gameId, attemptResult.updatedGameState); // Persist to DB (Layer 5)
+        io.to(gameId).emit(GAME_EVENTS.STATE_UPDATE, attemptResult.updatedGameState);
+        socket.emit(GAME_EVENTS.ACTION_ERROR, { message: attemptResult.message || 'Could not start the game (conditions not met).', event: 'request_start_game'});
+        return ack({ status: 'error', message: attemptResult.message || 'Could not start the game (conditions not met).'});
       }
     } catch (error) {
       logger.error({ err: error, socketId: socket.id, gameId }, `Error processing request_start_game for game ${gameId}.`);
@@ -131,19 +130,21 @@ export function registerLobbyHandlers(socket, io) {
   socket.on(GAME_EVENTS.JOIN_GAME, async (data, ack) => {
     ack = typeof ack === 'function' ? ack : () => {};
     if (!data || typeof data.playerName !== 'string') {
-      logger.warn({ socketId: socket.id, dataReceived: data }, 'JOIN_GAME: playerName string required.'); // Updated log message
-      return ack({ status: 'error', message: 'Invalid request: playerName is required.' });
-    }
+logger.debug({ socketId: socket.id, dataReceived: data }, 'JOIN_GAME: Invalid data - playerName string required.');
+return ack({ status: 'error', message: 'Invalid request: playerName is required.' });
+}
 
     const { playerName } = data;
     let { gameIdToJoin } = data;
     const user = socket.request.user || { id: socket.id };
+    logger.debug({ socketId: socket.id, dataReceived: data, userId: user.id }, 'JOIN_GAME event received.');
 
     try {
       let gameState;
       let assignedRole;
       let isNewGame = false;
 
+      logger.debug({ gameIdToJoin, isNewGame }, 'Determining game join path.');
       if (!gameIdToJoin) {
         isNewGame = true;
         gameIdToJoin = `game_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -152,7 +153,8 @@ export function registerLobbyHandlers(socket, io) {
         assignedRole = PLAYER_ROLES[0];
         gameState = assignRoleToPlayer(gameState, assignedRole, user.id, playerName, socket.id);
 
-        await gameRepository.createGame(gameIdToJoin, gameState);
+        updateGameState(() => gameState); // Set the initial game state in memory (Layer 2)
+        await gameRepository.createGame(gameIdToJoin, gameState); // Persist to DB (Layer 5)
         logger.info(`New game created by ${playerName} (${user.id}) with ID: ${gameIdToJoin}. Player assigned role ${assignedRole}.`);
 
         socket.join(gameIdToJoin);
@@ -164,19 +166,24 @@ export function registerLobbyHandlers(socket, io) {
             isHost: true, playerId: user.id
         });
 
-        await gameRepository.updateGame(gameIdToJoin, gameState);
+        await gameRepository.updateGame(gameIdToJoin, gameState); // Persist to DB (Layer 5)
         io.to(gameIdToJoin).emit(GAME_EVENTS.STATE_UPDATE, gameState);
         logger.info(`Player ${playerName} (${user.id}) created game ${gameIdToJoin} as ${assignedRole}. State broadcasted.`);
-        return ack(null, { status: 'ok', message: 'New game created and joined.', gameId: gameIdToJoin, role: assignedRole, players: gameState.players, gameState });
+        return ack(null, { status: 'ok', message: 'New game created and joined.', gameId: gameIdToJoin, role: assignedRole, players: gameState.players, gameState: getGameState() });
 
       } else {
-        gameState = await gameRepository.getGame(gameIdToJoin);
-        if (!gameState) {
-          logger.warn(`Player ${playerName} (${user.id}) tried to join non-existent game: ${gameIdToJoin}`);
-          return ack({ status: 'error', message: `Game ${gameIdToJoin} not found.` });
+        logger.debug({ gameIdToJoin }, 'Attempting to join existing game.');
+        let currentGameStateFromRepo = await gameRepository.getGame(gameIdToJoin);
+        if (!currentGameStateFromRepo) {
+          logger.warn({ gameIdToJoin }, 'JOIN_GAME: Game not found in repository for joining.');
+          logger.debug({ gameIdToJoin }, 'JOIN_GAME: Sending ack with error - Game not found.');
+          return ack({ status: 'error', message: 'Game not found.' });
         }
+        gameState = currentGameStateFromRepo; // Assign to gameState
+
         if (gameState.gamePhase !== GAME_PHASES.LOBBY) {
-      logger.warn(`Player ${playerName} (${user.id}) tried to join active/ended game: ${gameIdToJoin}, Phase: ${gameState.gamePhase}`); // Corrected log context if needed
+          logger.warn(`Player ${playerName} (${user.id}) tried to join active/ended game: ${gameIdToJoin}, Phase: ${gameState.gamePhase}`);
+          logger.debug({ gameIdToJoin, gamePhase: gameState.gamePhase }, 'JOIN_GAME: Sending ack with error - Game not in lobby phase.');
           return ack({ status: 'error', message: `Game ${gameIdToJoin} is not in lobby phase.` });
         }
 
@@ -188,6 +195,7 @@ export function registerLobbyHandlers(socket, io) {
             }
              if(gameState.players[role] && gameState.players[role].id === user.id && gameState.players[role].isConnected) {
                 logger.warn(`Player ${playerName} (${user.id}) attempted to join game ${gameIdToJoin} but is already connected as ${role}.`);
+                logger.debug({ gameIdToJoin, userId: user.id, role }, 'JOIN_GAME: Sending ack with error - Already in game.');
                 return ack({ status: 'error', message: 'You are already in this game.' });
             }
         }
@@ -201,11 +209,13 @@ export function registerLobbyHandlers(socket, io) {
         } else {
             if (isLobbyFull(gameState)) {
               logger.warn(`Player ${playerName} (${user.id}) tried to join full game (lobby full check): ${gameIdToJoin}`);
+              logger.debug({ gameIdToJoin, userId: user.id }, 'JOIN_GAME: Sending ack with error - Game is full.');
               return ack({ status: 'error', message: 'Game is full.' });
             }
             assignedRole = getNextAvailableRole(gameState);
             if (!assignedRole) {
                  logger.error(`Lobby join error: No role available in game ${gameIdToJoin} despite not being full.`);
+                 logger.debug({ gameIdToJoin, userId: user.id }, 'JOIN_GAME: Sending ack with error - No role available.');
                 return ack({ status: 'error', message: 'Failed to assign role, lobby might be in an inconsistent state.' });
             }
             gameState = assignRoleToPlayer(gameState, assignedRole, user.id, playerName, socket.id);
@@ -221,32 +231,34 @@ export function registerLobbyHandlers(socket, io) {
         });
 
         let finalAckMessage = 'Joined existing game.';
-        let finalGameStateToSaveAndBroadcast = gameState;
+        let finalGameStateToSaveAndBroadcast = getGameState(); // Get the latest in-memory state
 
         if (isLobbyFull(finalGameStateToSaveAndBroadcast) && finalGameStateToSaveAndBroadcast.gamePhase === GAME_PHASES.LOBBY) {
             logger.info(`Lobby for game ${gameIdToJoin} is now full. Starting game automatically.`);
             try {
-                finalGameStateToSaveAndBroadcast = startNewHand(finalGameStateToSaveAndBroadcast); // Pure function returns new state
+                const stateAfterAutoStart = startNewHand(finalGameStateToSaveAndBroadcast); // Pure function returns new state
+                updateGameState(() => stateAfterAutoStart); // Update in-memory state (Layer 2)
+                finalGameStateToSaveAndBroadcast = getGameState(); // Get the updated in-memory state
                 logger.info(`Game ${gameIdToJoin} auto-started by lobby full. Phase: ${finalGameStateToSaveAndBroadcast.gamePhase}`);
                 finalAckMessage = 'Joined game, and game is now starting.';
             } catch (snhError) {
-                logger.error(`Failed to auto-start new hand for game ${gameIdToJoin} after lobby full: ${snhError.message}`, snhError);
+                logger.error({ err: snhError, gameId: gameIdToJoin }, `Failed to auto-start new hand for game ${gameIdToJoin} after lobby full.`);
                 io.to(gameIdToJoin).emit(GAME_EVENTS.ACTION_ERROR, { message: `Failed to auto-start game: ${snhError.message}` });
-                // Player still joined, but game didn't start. Save current lobby state.
-                // gameState here is before startNewHand was called or failed.
-                await gameRepository.updateGame(gameIdToJoin, gameState);
-                io.to(gameIdToJoin).emit(GAME_EVENTS.STATE_UPDATE, gameState);
-                return ack(null, { status: 'ok', message: 'Joined lobby, but failed to auto-start game.', gameId: gameIdToJoin, role: assignedRole, players: gameState.players, gameState: gameState });
+                // Player still joined, but game didn't start. The in-memory state is still the lobby state.
+                await gameRepository.updateGame(gameIdToJoin, getGameState()); // Save current lobby state to DB
+                io.to(gameIdToJoin).emit(GAME_EVENTS.STATE_UPDATE, getGameState());
+                return ack(null, { status: 'ok', message: 'Joined lobby, but failed to auto-start game.', gameId: gameIdToJoin, role: assignedRole, players: getGameState().players, gameState: getGameState() });
             }
         }
 
-        await gameRepository.updateGame(gameIdToJoin, finalGameStateToSaveAndBroadcast);
+        await gameRepository.updateGame(gameIdToJoin, finalGameStateToSaveAndBroadcast); // Persist to DB (Layer 5)
         io.to(gameIdToJoin).emit(GAME_EVENTS.STATE_UPDATE, finalGameStateToSaveAndBroadcast);
         logger.info(`Player ${playerName} (${user.id}) processed for game ${gameIdToJoin} as ${assignedRole}. State broadcasted with phase: ${finalGameStateToSaveAndBroadcast.gamePhase}`);
         return ack(null, { status: 'ok', message: finalAckMessage, gameId: gameIdToJoin, role: assignedRole, players: finalGameStateToSaveAndBroadcast.players, gameState: finalGameStateToSaveAndBroadcast });
       }
     } catch (error) {
-      logger.error({ err: error, socketId: socket.id, gameIdToJoin, playerName }, `Error processing JOIN_GAME catch block:`); // Updated log message
+      logger.error({ err: error, socketId: socket.id, gameIdToJoin, playerName }, `Error processing JOIN_GAME catch block:`);
+      logger.debug({ err: error, socketId: socket.id, gameIdToJoin, playerName }, 'JOIN_GAME: Sending ack with error from catch block.');
       return ack({ status: 'error', message: error.message || 'An error occurred while joining the lobby.' });
     }
   });

@@ -63,7 +63,7 @@ This approach is designed to build a stable and maintainable codebase from the g
             *   Implement and test `getPlayerBySocketId(playersObject, socketId)` and `getRoleBySocketId(playersObject, socketId)` (these will take the relevant part of the state, not the whole gameState). ✅ COMPLETE
             *   Update to use the new `logger.js`. ✅ COMPLETE
 
-    5.  **Task 1.5: Rewrite Game Rule Validation (e.g., new `src/game/logic/validation.js`)**
+    5.  **Task 1.5: Rewrite Game Rule Validation (e.g., new `src/game/logic/validation.js`)** ✅ COMPLETE
         *   **Why:** To ensure only legal game moves are processed. The archived validation logic had critical flaws (test bypass, duplication).
         *   **Action (TDD):**
             *   Implement and test `isValidPlay(playerHand, cardToPlay, currentTrick, trumpSuit)`: This function must correctly enforce all Euchre rules for playing a card (e.g., must follow suit if possible, correct Bower behavior).   **Crucially, no test-mode bypasses.** ✅ COMPLETE
@@ -72,7 +72,7 @@ This approach is designed to build a stable and maintainable codebase from the g
     6.  **Task 1.6: Begin rewriting Core Logic for Individual Game Phases (as Pure Functions)**
         *   **Why:** These functions will encapsulate the rules for what happens during each part of the game. The archived phase modules were complex, interdependent, and had issues.
         *   **Action (TDD, one phase at a time):**
-            *   For each game phase (e.g., starting a new hand & dealing, ordering up, calling trump, dealer discard, going alone decision, playing a trick, scoring a hand), identify the core decisions and state changes. ✅ COMPLETE for: start new hand, bidding, dealer discard, playing phase
+            *   For each game phase (e.g., starting a new hand & dealing, ordering up, calling trump, dealer discard, going alone decision, playing a trick, scoring a hand), identify the core decisions and state changes. 50% COMPLETE for: start new hand, bidding, dealer discard, playing phase.
             *   Implement these as pure functions. For example:
                 *   `determineOrderUpOutcome(relevantGameStateParts, playerMakingDecision, decisionParameters)`: returns an object describing the outcome (e.g., `{ trumpSet: 'hearts', nextPhase: 'DEALER_DISCARD', playerToAct: 'dealer' }`). ✅ COMPLETE (as handleOrderUpDecision)
                 *   `determineTrickOutcome(trickPlays, trumpSuit, ledSuit)`: returns `{ trickWinner: 'playerX', cardsInTrick: [...] }`. ✅ COMPLETE (as determineTrickWinner)

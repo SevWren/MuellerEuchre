@@ -7,6 +7,7 @@ import { getGameState, updateGameState } from '../../game/state.js'; // Removed 
 import { PLAYER_ROLES, GAME_PHASES, GAME_EVENTS } from '../../config/constants.js'; // Added GAME_EVENTS
 import { getRoleBySocketId } from '../../utils/players.js';
 import { gameRepository } from '../../db/gameRepository.js'; // Corrected import
+logger.info('[PlayerConnectionHandlers] handlePlayerDisconnect called');
 
 /**
  * Handles a new client connection, attempts to assign them a player role,
@@ -220,9 +221,11 @@ export async function handlePlayerDisconnect(socket, io, gameId_param = null) {
 
   if (playerRoleDisconnected && gameStateToUpdate) {
     logger.info({ socketId: socket.id, role: playerRoleDisconnected, gameId: gameIdToUpdate }, 'Player disconnected.');
+    logger.debug({ gameId: gameIdToUpdate, role: playerRoleDisconnected, isConnectedBefore: gameStateToUpdate.players[playerRoleDisconnected].isConnected }, 'Before setting isConnected to false.');
 
     gameStateToUpdate.players[playerRoleDisconnected].isConnected = false;
     gameStateToUpdate.players[playerRoleDisconnected].socketId = null;
+    logger.debug({ gameId: gameIdToUpdate, role: playerRoleDisconnected, isConnectedAfter: gameStateToUpdate.players[playerRoleDisconnected].isConnected }, 'After setting isConnected to false.');
 
     // TODO: Add more robust logic for game state changes on disconnect (e.g., pause game, notify players)
     // For now, just marking as disconnected. If game was in LOBBY, this slot becomes available.
@@ -238,6 +241,7 @@ export async function handlePlayerDisconnect(socket, io, gameId_param = null) {
         role: playerRoleDisconnected,
         message: `Player ${gameStateToUpdate.players[playerRoleDisconnected].name || playerRoleDisconnected} disconnected.`
       });
+      logger.debug({ gameId: gameIdToUpdate, broadcastedGameState: gameStateToUpdate.players[playerRoleDisconnected].isConnected }, 'Broadcasting GAME_STATE_UPDATE after disconnect.');
       io.to(gameIdToUpdate).emit(GAME_EVENTS.GAME_STATE_UPDATE, gameStateToUpdate);
     } catch (error) {
       logger.error({ err: error, gameId: gameIdToUpdate }, "Failed to save game state after player disconnect.");

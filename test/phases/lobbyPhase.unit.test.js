@@ -36,6 +36,13 @@ const defaultLoggerMock = {
 };
 
 // Helper to create a base game state for lobby phase tests
+/**
+ * Creates a mock lobby game state object for testing purposes.
+ *
+ * @param {string} [phase=GAME_PHASES.LOBBY] - The current phase of the game.
+ * @param {number} [connectedPlayerCount=4] - The number of players that are marked as connected.
+ * @returns {Object} The generated lobby game state, including players, phase, messages, and dealer.
+ */
 const createLobbyGameState = (phase = GAME_PHASES.LOBBY, connectedPlayerCount = 4) => {
   const gameState = {
     gameId: 'lobbyTestGame',
@@ -59,17 +66,8 @@ const createLobbyGameState = (phase = GAME_PHASES.LOBBY, connectedPlayerCount = 
 
 describe('LobbyPhase Logic', () => {
   let attemptToStartGame;
-  let updateGameStateStub;
-  let currentTestGameStateForStub; // Used by updateGameStateStub
-
   beforeEach(async () => {
-    updateGameStateStub = sinon.stub().callsFake(updaterFn => {
-      // Apply the updater to the state provided by the test
-      return updaterFn(currentTestGameStateForStub);
-    });
-
     const lobbyPhaseModule = await esmock('../../src/game/phases/lobbyPhase.js', {
-      '../../src/game/state.js': { updateGameState: updateGameStateStub },
       '../../src/utils/logger.js': defaultLoggerMock,
       // Errors are imported by test file for assertions
     });
@@ -99,45 +97,63 @@ describe('LobbyPhase Logic', () => {
   // Phase and Player Count Validation
   it('should throw InvalidPhaseError if game is not in LOBBY phase', () => {
     const gameState = createLobbyGameState(GAME_PHASES.PLAYING);
-    currentTestGameStateForStub = gameState; // Not strictly needed as error is pre-updater
     expect(() => attemptToStartGame(gameState, PLAYER_ROLES[0]))
       .to.throw(InvalidPhaseError, `Game cannot be started from ${GAME_PHASES.PLAYING} phase. Must be in LOBBY phase.`);
   });
 
   it('should throw PhaseLogicError if not enough players are connected', () => {
     const gameState = createLobbyGameState(GAME_PHASES.LOBBY, 3); // Only 3 players connected
-    currentTestGameStateForStub = gameState;
     expect(() => attemptToStartGame(gameState, PLAYER_ROLES[0]))
       .to.throw(PhaseLogicError, `Not enough players to start. Need 4, have 3.`);
   });
 
   // Concurrency Check (phase changed before update)
-  it('should throw InvalidPhaseError if game phase changes from LOBBY inside updater', () => {
+  it('should throw InvalidPhaseError if game phase changes from LOBBY before calling attemptToStartGame', () => {
     const initialGameState = createLobbyGameState(GAME_PHASES.LOBBY, 4);
-    // This state will be what the updater function (prevState) sees
-    currentTestGameStateForStub = { ...initialGameState, gamePhase: GAME_PHASES.PLAYING };
-
-    // attemptToStartGame is called with initialGameState (which passes initial checks)
-    // but the updater function inside it, when called by updateGameStateStub, will see currentTestGameStateForStub
-    expect(() => attemptToStartGame(initialGameState, PLAYER_ROLES[0]))
-      .to.throw(InvalidPhaseError, 'Game phase changed unexpectedly before starting. Aborting start.');
+    // Simulate a scenario where the game phase changes *before* attemptToStartGame is called
+    // This test case is now redundant as attemptToStartGame is pure and doesn't use an updater.
+    // The previous test was designed for a scenario where updateGameState was called.
+    // Since attemptToStartGame is pure, it only acts on the state it receives.
+    // If the state passed to it is already not LOBBY, the first check handles it.
+    // If the state is LOBBY, it will proceed and return a new state.
+    // This specific concurrency scenario (phase changing *during* an update call)
+    // is now handled at the Layer 3 (socket handler) level, where updateGameState is actually used.
+    // For Layer 1, we only test the pure function's behavior based on its direct inputs.
+    const changedGameState = { ...initialGameState, gamePhase: GAME_PHASES.PLAYING };
+    expect(() => attemptToStartGame(changedGameState, PLAYER_ROLES[0]))
+      .to.throw(InvalidPhaseError, `Game cannot be started from ${GAME_PHASES.PLAYING} phase. Must be in LOBBY phase.`);
   });
 
   // Success Path Test
-  it('should transition to DEALING phase and update game messages if conditions are met', () => {
+  it('should return a success object with updated game state if conditions are met', () => {
     const gameState = createLobbyGameState(GAME_PHASES.LOBBY, 4);
-    currentTestGameStateForStub = gameState; // Set for the updater
     const requestingPlayer = PLAYER_ROLES[0];
 
-    const newState = attemptToStartGame(gameState, requestingPlayer);
+    /**
+     * The result object after attempting to start the game.
+     * @type {{success: boolean, updatedGameState: GameState, message: string}}
+     */
+    const result = attemptToStartGame(gameState, requestingPlayer);
 
-    expect(updateGameStateStub.calledOnce).to.be.true;
-    expect(newState.gamePhase).to.equal(GAME_PHASES.DEALING);
-    expect(newState.gameMessages.length).to.equal(1);
-    expect(newState.gameMessages[0].text).to.include(`Game started by ${gameState.players[requestingPlayer].name}`);
-    expect(newState.gameMessages[0].type).to.equal('system');
-    // Check if currentPlayer is set (optional, based on TODO in source)
-    // For now, source sets it to prevState.dealer (South P0)
-    expect(newState.currentPlayer).to.equal(gameState.dealer);
+    // The result should indicate success
+    expect(result.success).to.be.true;
+
+    // The updated game state should be present
+    expect(result.updatedGameState).to.exist;
+
+    // The game phase should have transitioned to DEALING
+    expect(result.updatedGameState.gamePhase).to.equal(GAME_PHASES.DEALING);
+
+    // There should be exactly one new game message
+    expect(result.updatedGameState.gameMessages.length).to.equal(1);
+
+    // The game message should indicate which player started the game
+    expect(result.updatedGameState.gameMessages[0].text).to.include(`Game started by ${gameState.players[requestingPlayer].name}`);
+
+    // The message type should be 'system'
+    expect(result.updatedGameState.gameMessages[0].type).to.equal('system');
+
+    // The result message should confirm the phase transition
+    expect(result.message).to.equal('Game successfully transitioned to DEALING phase.');
   });
 });

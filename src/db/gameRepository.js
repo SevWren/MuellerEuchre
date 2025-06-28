@@ -1,3 +1,4 @@
+// filepath: src/db/gameRepository.js
 /**
  * @file src/db/gameRepository.js
  * @module db/gameRepository
@@ -17,7 +18,7 @@
  *     - Logging is performed via the async logger (see src/utils/logger.js).
  *
  *   Limitations / TODOs for Full Production Readiness:
- *     - No support for multi-game concurrency or sharding (single collection).
+ *     - No support for multi-game concurrency or sharding (single collection). 
  *     - No transactional guarantees for multi-step updates (atomic per game only).
  *     - No schema validation at the DB layer (relies on application-level validation).
  *     - No support for player/user persistence (only game state).
@@ -32,10 +33,10 @@
  */
 
 import { MongoClient, ObjectId } from 'mongodb';
-import { log } from '../utils/logger.js';
+import logger from '../utils/logger.js'; // Import the default logger instance
 import databaseConfig from '../config/database.js';
 
-class GameRepository {
+export class GameRepository { // Added export to the class
     constructor() {
         this.client = null;
         this.db = null;
@@ -61,13 +62,13 @@ class GameRepository {
             this.collection = this.db.collection('games');
             this.connected = true;
             
-            log(1, 'Successfully connected to MongoDB');
+            logger.info('Successfully connected to MongoDB');
             
             // Create indexes
             await this.createIndexes();
             
         } catch (error) {
-            log(3, `Failed to connect to MongoDB: ${error.message}`);
+            logger.error({ err: error }, `Failed to connect to MongoDB: ${error.message}`);
             throw error;
         }
     }
@@ -96,10 +97,10 @@ class GameRepository {
                 }
             );
             
-            log(1, 'Database indexes created successfully');
+            logger.info('Database indexes created successfully');
             
         } catch (error) {
-            log(2, `Error creating database indexes: ${error.message}`);
+            logger.error({ err: error }, `Error creating database indexes: ${error.message}`);
             throw error;
         }
     }
@@ -122,7 +123,7 @@ class GameRepository {
             throw new Error('Not connected to database. Call connect() first.');
         }
         if (!gameId) {
-            log(3, 'updateGame called without gameId.');
+            logger.error('updateGame called without gameId.'); // This is a validation error, not a DB error, keep as string
             throw new Error('gameId must be provided to updateGame.');
         }
         
@@ -150,16 +151,16 @@ class GameRepository {
             );
             
             if (result.upsertedCount > 0) {
-                log(1, `Game ${gameId} created successfully.`);
+                logger.info(`Game ${gameId} created successfully.`);
             } else if (result.matchedCount > 0) {
-                log(1, `Game ${gameId} updated successfully.`);
+                logger.info(`Game ${gameId} updated successfully.`);
             } else {
-                log(2, `Game ${gameId} was neither updated nor inserted. This might indicate an issue.`);
+                logger.warn(`Game ${gameId} was neither updated nor inserted. This might indicate an issue.`);
             }
             return gameId;
             
         } catch (error) {
-            log(3, `Error updating game ${gameId}: ${error.message}`);
+            logger.error({ err: error, gameId }, `Error updating game ${gameId}: ${error.message}`);
             throw error;
         }
     }
@@ -175,7 +176,7 @@ class GameRepository {
             throw new Error('Not connected to database. Call connect() first.');
         }
         if (!gameId) {
-            log(2, 'getGame called without gameId.');
+            logger.warn('getGame called without gameId.');
             return null;
         }
         
@@ -183,19 +184,19 @@ class GameRepository {
             const gameDoc = await this.collection.findOne({ gameId });
             
             if (!gameDoc) {
-                log(1, `Game ${gameId} not found in database.`);
+                logger.info(`Game ${gameId} not found in database.`);
                 return null; // Return null if not found, as per typical repository pattern
             }
             
             // Remove MongoDB _id field and return the rest
             const { _id, ...gameState } = gameDoc;
             
-            log(1, `Game ${gameId} loaded successfully.`);
+            logger.info(`Game ${gameId} loaded successfully.`);
             return gameState;
             
         } catch (error) {
             // Log error but still return null or rethrow based on desired error handling
-            log(3, `Error loading game ${gameId}: ${error.message}`);
+            logger.error({ err: error, gameId }, `Error loading game ${gameId}: ${error.message}`);
             // Depending on policy, you might rethrow or return null to indicate failure
             // For robustness, returning null on error (like not found) might be better for callers.
             return null;
@@ -223,7 +224,7 @@ class GameRepository {
                 .toArray();
                 
         } catch (error) {
-            log(3, `Error finding games for player ${playerId}: ${error.message}`);
+            logger.error({ err: error, playerId }, `Error finding games for player ${playerId}: ${error.message}`);
             throw error;
         }
     }
@@ -236,7 +237,7 @@ class GameRepository {
         if (this.client) {
             await this.client.close();
             this.connected = false;
-            log(1, 'Disconnected from MongoDB');
+            logger.info('Disconnected from MongoDB');
         }
     }
 }
@@ -250,91 +251,10 @@ const cleanup = async () => {
         await gameRepository.disconnect();
         process.exit(0);
     } catch (error) {
-        log(3, `Error during cleanup: ${error.message}`);
+        logger.error({ err: error }, `Error during cleanup: ${error.message}`);
         process.exit(1);
     }
 };
 
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
-
-// Conceptual Unit Tests for gameRepository.js
-
-// describe('GameRepository', () => {
-//   let repository;
-//   let mockCollection;
-
-//   beforeEach(async () => {
-//     // repository = new GameRepository(); // Create a new instance for each test
-//     // For testing, we'd likely inject a mock MongoDB client/collection
-//     // This is a simplified setup assuming we could mock `this.collection`
-//     mockCollection = {
-//       updateOne: sinon.spy(async () => ({ matchedCount: 1, upsertedCount: 0 })),
-//       findOne: sinon.spy(async (query) => {
-//         if (query.gameId === 'existingGame') {
-//           return { _id: 'mongoObjectId', gameId: 'existingGame', phase: 'PLAYING', players: [] };
-//         }
-//         return null;
-//       }),
-//       createIndex: sinon.spy(async () => true), // Mock createIndex
-//     };
-
-//     // Mock the connect method to avoid actual DB connection during unit tests
-//     // and directly set up the mock collection.
-//     repository = new GameRepository();
-//     repository.client = { connect: sinon.spy(), db: () => ({ collection: () => mockCollection }) };
-//     await repository.connect(); // This would set up the mockCollection via the mocked client
-//     repository.collection = mockCollection; // Ensure mockCollection is used
-//     repository.connected = true; // Simulate connected state
-//   });
-
-//   afterEach(() => {
-//     sinon.restore(); // Restores all sinon spies and stubs
-//   });
-
-//   describe('updateGame', () => {
-//     it('should call collection.updateOne with correct parameters for an existing game', async () => {
-//       const gameId = 'testGame123';
-//       const gameState = { gameId, phase: 'BIDDING', players: ['p1', 'p2'] };
-//       await repository.updateGame(gameId, gameState);
-
-//       expect(mockCollection.updateOne).to.have.been.calledOnce;
-//       const callArgs = mockCollection.updateOne.getCall(0).args;
-//       expect(callArgs[0]).to.deep.equal({ gameId }); // Filter
-//       expect(callArgs[1].$set.gameId).to.equal(gameId);
-//       expect(callArgs[1].$set.phase).to.equal('BIDDING');
-//       expect(callArgs[1].$setOnInsert.createdAt).to.exist;
-//       expect(callArgs[2]).to.deep.equal({ upsert: true }); // Options
-//     });
-
-//     it('should throw an error if gameId is not provided to updateGame', async () => {
-//       try {
-//         await repository.updateGame(null, { phase: 'LOBBY' });
-//         expect.fail('Should have thrown an error for missing gameId');
-//       } catch (e) {
-//         expect(e.message).to.equal('gameId must be provided to updateGame.');
-//       }
-//     });
-//   });
-
-//   describe('getGame', () => {
-//     it('should call collection.findOne with the gameId and return the game state', async () => {
-//       const gameState = await repository.getGame('existingGame');
-//       expect(mockCollection.findOne).to.have.been.calledOnceWith({ gameId: 'existingGame' });
-//       expect(gameState).to.deep.equal({ gameId: 'existingGame', phase: 'PLAYING', players: [] });
-//       expect(gameState._id).to.be.undefined; // Ensure MongoDB _id is stripped
-//     });
-
-//     it('should return null if game is not found', async () => {
-//       const gameState = await repository.getGame('nonExistentGame');
-//       expect(mockCollection.findOne).to.have.been.calledOnceWith({ gameId: 'nonExistentGame' });
-//       expect(gameState).to.be.null;
-//     });
-
-//     it('should return null if gameId is not provided to getGame', async () => {
-//       const gameState = await repository.getGame(null);
-//       expect(mockCollection.findOne).to.not.have.been.called;
-//       expect(gameState).to.be.null;
-//     });
-//   });
-// });

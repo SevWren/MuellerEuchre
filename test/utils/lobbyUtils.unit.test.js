@@ -1,7 +1,18 @@
-// filepath: test/utils/lobbyUtils.unit.test.js
+/**
+ * Unit tests for lobby utility functions in the Euchre Multiplayer game.
+ * @module test/utils/lobbyUtils.unit.test
+ * @description
+ *   Comprehensive test suite for lobby management utilities including:
+ *   - Player role assignment (assignRoleToPlayer)
+ *   - Lobby status checks (isLobbyFull)
+ *   - Available role detection (getNextAvailableRole)
+ *
+ * @see {@link module:src/utils/lobbyUtils} for the implementation being tested
+ * @since 1.0.0
+ */
 import { expect } from 'chai';
 import sinon from 'sinon';
-import esmock from 'esmock'; // Still using esmock for lobbyUtils, as proxyquire is for deck.js
+import esmock from 'esmock';
 import { PLAYER_ROLES, TEAMS } from '../../src/config/constants.js';
 
 // Mock logger to prevent console output during tests

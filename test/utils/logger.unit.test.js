@@ -1,4 +1,16 @@
-// filepath: test/utils/logger.unit.test.js
+/**
+ * Unit tests for the logger utility in the Euchre Multiplayer game.
+ * @module test/utils/logger.unit.test
+ * @description
+ *   Comprehensive test suite for the logging system including:
+ *   - Logger initialization and configuration
+ *   - Log level setting from environment variables
+ *   - Log message formatting and routing
+ *   - Debug level mapping functionality
+ *
+ * @see {@link module:src/utils/logger} for the implementation being tested
+ * @since 1.0.0
+ */
 import { expect } from 'chai';
 import sinon from 'sinon';
 import esmock from 'esmock';

@@ -1,6 +1,3 @@
-
----
-
 # Euchre Multiplayer Codebase Development Rules
 
 ## 1. Your Role and Mission
@@ -63,7 +60,7 @@
 
 - **Start code blocks with verified relative file paths.**
 - **Include JSDoc for new/modified functions/classes.**
-- **Use high-detailed level comments for large files (>200 lines).**
+- **Use high-detailed level comments for large files (>400 lines).**, otherwise low-level comments.
 - **Low-Level Comments for Untested Code:** Whenever generating code that has not been tested yet via `npm test`, include low-level comments explaining the purpose and expected behavior of the code.
 
 **Example:**
@@ -83,7 +80,7 @@ export function determineTrickWinner(trickPlays, trumpSuit) {
   let highestCard = null;
   let winningPlayer = null;
 
-  for (const play of trickPlays) {
+  for (const play of trickPlays) { // explain how this works in this specific project
     const { card, playerRole } = play;
     if (!highestCard || isHigherCard(card, highestCard, trumpSuit)) {
       highestCard = card;
@@ -122,7 +119,7 @@ function isHigherCard(card1, card2, trumpSuit) {
 
 ### Layered Development with Manual Integration Testing
 
-- **Core Principle:** Rebuild in distinct layers, ensuring stability before integration. Use manual testing early, automate later.
+- **Core Principle:** Build in distinct layers, working within a specific layer ensuring stability before integration. Use manual testing early, automate later.
 - **Benefits:**
   - Reduces complexity
   - Minimizes context switching

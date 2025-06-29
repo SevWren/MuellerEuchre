@@ -1,4 +1,4 @@
-## Euchre Multiplayer Rewrite - Project Implementation Plan & Architectural Mandate
+## Euchre Multiplayer Development - Project Implementation Plan & Architectural Mandate
 
 ### Core Architectural Mandate: The Layered Methodology
 

@@ -117,3 +117,6 @@ memory-bank/rules_improvement_plan.md
 test/game/phases/lobbyPhase.unit.test.js.aistudio.js
 test/game/logic/validation.js.aistudio.js
 test/utils/deck.unit.test.js.aistudio.js
+missing_layer_1.1.png
+missing_layer_1.2.png
+docs/Supplemental_Layer1_Plan_Improvements.md

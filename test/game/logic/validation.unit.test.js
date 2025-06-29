@@ -152,12 +152,10 @@ describe("Validation Logic - validatePlay", () => {
       ...baseGameState,
       gamePhase: GAME_PHASES.DEALER_DISCARD,
     };
-    expect(() =>
-      generalValidatePlay(gameState, player1Hand, player1Hand[0, player1Role)
-    ).to.throw(
-      InvalidPhaseError,
-      /Cannot play card during .* phase/
-    );
+    expect(
+      () =>
+        generalValidatePlay(gameState, player1Hand, player1Hand[0], player1Role) // <-- CORRECTED LINE
+    ).to.throw(InvalidPhaseError, /Cannot play card during .* phase/);
   });
 
   // Test case for not player's turn (uses generalValidatePlay)
@@ -165,10 +163,7 @@ describe("Validation Logic - validatePlay", () => {
     const gameState = { ...baseGameState, currentPlayer: PLAYER_ROLES[1] }; // PLAYER_2's turn
     expect(() =>
       generalValidatePlay(gameState, player1Hand, player1Hand[0], player1Role)
-    ).to.throw(
-      NotPlayersTurnError,
-      /Not .*'s turn\. It is .*'s turn\./
-    );
+    ).to.throw(NotPlayersTurnError, /Not .*'s turn\. It is .*'s turn\./);
   });
 
   // Test case for card not in hand (uses generalValidatePlay)

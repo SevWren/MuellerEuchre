@@ -1,4 +1,3 @@
-// filepath: src/game/logic/aiLogic.js
 /**
  * Module containing AI logic for disconnected players in Euchre.
  * Provides pure, stateless functions for AI decision making.
@@ -6,16 +5,17 @@
  */
 
 // AI Strategy Configuration
-const BID_THRESHOLD = 180;
-const TRUMP_VALUES = {
-  J: 100, // Right Bower
-  J_sameColor: 90, // Left Bower
-  A: 80,
-  K: 70,
-  Q: 60,
-  10: 40,
-  9: 30,
+// Point values based on aiLogic.js implementation plan
+const POINTS = {
+  RIGHT_BOWER: 15,
+  LEFT_BOWER: 10,
+  TRUMP_ACE: 7,
+  TRUMP_KING: 5,
+  TRUMP_QUEEN: 3,
+  TRUMP_TEN: 1,
+  TRUMP_NINE: 1,
 };
+const BID_THRESHOLD = 20;
 
 /**
  * Counts number of trump cards in hand
@@ -23,7 +23,7 @@ const TRUMP_VALUES = {
  * @param {string} trumpSuit - Current trump suit
  * @returns {number} Count of trump cards
  */
-function countTrumpInHand(hand, trumpSuit) {
+export function countTrumpInHand(hand, trumpSuit) {
   if (!Array.isArray(hand)) return 0;
   return hand.filter(
     (card) =>
@@ -38,7 +38,7 @@ function countTrumpInHand(hand, trumpSuit) {
  * @param {string} trumpSuit - Current trump suit
  * @returns {object} Object with rightBower and leftBower booleans
  */
-function findBowers(hand, trumpSuit) {
+export function findBowers(hand, trumpSuit) {
   if (!Array.isArray(hand)) return { rightBower: false, leftBower: false };
 
   const rightBower = hand.some(
@@ -61,13 +61,32 @@ function findBowers(hand, trumpSuit) {
  * @param {string} suit - Suit to evaluate
  * @returns {number} Total point value
  */
-function calculatePointsForSuit(hand, suit) {
+export function calculatePointsForSuit(hand, suit) {
   if (!Array.isArray(hand)) return 0;
 
+  const TRUMP_POINTS_MAP = {
+    A: POINTS.TRUMP_ACE,
+    K: POINTS.TRUMP_KING,
+    Q: POINTS.TRUMP_QUEEN,
+    10: POINTS.TRUMP_TEN,
+    9: POINTS.TRUMP_NINE,
+  };
+
+  // console.log(`[aiLogic.calculatePointsForSuit] Evaluating hand for suit: ${suit}`); // Log added for debugging
   return hand.reduce((total, card) => {
-    if (card.suit === suit) {
-      return total + (TRUMP_VALUES[card.rank] || 0);
+    // console.log(`[aiLogic.calculatePointsForSuit] Processing card: ${card.rank} of ${card.suit}`); // Log added for debugging
+    // Only evaluate non-bower trump cards
+    const isBower = card.rank === "J";
+    if (card.suit === suit && !isBower) {
+      const pointsToAdd = TRUMP_POINTS_MAP[card.rank] || 0;
+      console.log(
+        `[aiLogic.calculatePointsForSuit] Card: ${card.rank} of ${card.suit}, isBower: ${isBower}, Suit matches: ${card.suit === suit}, Adding: ${pointsToAdd}`
+      ); // Log added for debugging
+      return total + pointsToAdd;
     }
+    console.log(
+      `[aiLogic.calculatePointsForSuit] Card: ${card.rank} of ${card.suit}, isBower: ${isBower}, Suit matches: ${card.suit === suit}, Skipping.`
+    ); // Log added for debugging
     return total;
   }, 0);
 }
@@ -78,17 +97,19 @@ function calculatePointsForSuit(hand, suit) {
  * @param {string} potentialTrump - Potential trump suit to evaluate against
  * @returns {number} Numerical score representing hand strength
  */
-function _evaluateHand(hand, potentialTrump) {
+export function _evaluateHand(hand, potentialTrump) {
   if (!Array.isArray(hand) || hand.length === 0) return 0;
   if (typeof potentialTrump !== "string") return 0;
 
-  const trumpCards = countTrumpInHand(hand, potentialTrump);
+  let score = calculatePointsForSuit(hand, potentialTrump);
   const { rightBower, leftBower } = findBowers(hand, potentialTrump);
-  const suitPoints = calculatePointsForSuit(hand, potentialTrump);
 
-  let score = suitPoints;
-  if (rightBower) score += TRUMP_VALUES.J;
-  if (leftBower) score += TRUMP_VALUES.J_sameColor;
+  if (rightBower) {
+    score += POINTS.RIGHT_BOWER;
+  }
+  if (leftBower) {
+    score += POINTS.LEFT_BOWER;
+  }
 
   return score;
 }

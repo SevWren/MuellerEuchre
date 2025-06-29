@@ -2,14 +2,79 @@
 /**
  * Module containing AI logic for disconnected players in Euchre.
  * Provides pure, stateless functions for AI decision making.
+ * @module aiLogic
  */
 
-const BID_THRESHOLD = 180; // Adjusted for new card ranking values
+// AI Strategy Configuration
+const BID_THRESHOLD = 180;
+const TRUMP_VALUES = {
+  J: 100, // Right Bower
+  J_sameColor: 90, // Left Bower
+  A: 80,
+  K: 70,
+  Q: 60,
+  10: 40,
+  9: 30,
+};
+
+/**
+ * Counts number of trump cards in hand
+ * @param {Array<object>} hand - Array of card objects
+ * @param {string} trumpSuit - Current trump suit
+ * @returns {number} Count of trump cards
+ */
+function countTrumpInHand(hand, trumpSuit) {
+  if (!Array.isArray(hand)) return 0;
+  return hand.filter(
+    (card) =>
+      card.suit === trumpSuit ||
+      (card.rank === "J" && getSuitColor(card.suit) === getSuitColor(trumpSuit))
+  ).length;
+}
+
+/**
+ * Finds bowers (right and left) in hand for given trump suit
+ * @param {Array<object>} hand - Array of card objects
+ * @param {string} trumpSuit - Current trump suit
+ * @returns {object} Object with rightBower and leftBower booleans
+ */
+function findBowers(hand, trumpSuit) {
+  if (!Array.isArray(hand)) return { rightBower: false, leftBower: false };
+
+  const rightBower = hand.some(
+    (card) => card.rank === "J" && card.suit === trumpSuit
+  );
+
+  const leftBower = hand.some(
+    (card) =>
+      card.rank === "J" &&
+      card.suit !== trumpSuit &&
+      getSuitColor(card.suit) === getSuitColor(trumpSuit)
+  );
+
+  return { rightBower, leftBower };
+}
+
+/**
+ * Calculates point value for cards in hand matching given suit
+ * @param {Array<object>} hand - Array of card objects
+ * @param {string} suit - Suit to evaluate
+ * @returns {number} Total point value
+ */
+function calculatePointsForSuit(hand, suit) {
+  if (!Array.isArray(hand)) return 0;
+
+  return hand.reduce((total, card) => {
+    if (card.suit === suit) {
+      return total + (TRUMP_VALUES[card.rank] || 0);
+    }
+    return total;
+  }, 0);
+}
 
 /**
  * Evaluates the strength of a hand for a potential trump suit.
- * @private
- * @param {Array} hand - Array of card objects
+ * @param {Array<object>} hand - Array of card objects
  * @param {string} potentialTrump - Potential trump suit to evaluate against
  * @returns {number} Numerical score representing hand strength
  */
@@ -17,43 +82,21 @@ function _evaluateHand(hand, potentialTrump) {
   if (!Array.isArray(hand) || hand.length === 0) return 0;
   if (typeof potentialTrump !== "string") return 0;
 
-  const TRUMP_VALUES = {
-    J: 100, // Right Bower
-    J_sameColor: 90, // Left Bower
-    A: 80,
-    K: 70,
-    Q: 60,
-    10: 40,
-    9: 30,
-  };
+  const trumpCards = countTrumpInHand(hand, potentialTrump);
+  const { rightBower, leftBower } = findBowers(hand, potentialTrump);
+  const suitPoints = calculatePointsForSuit(hand, potentialTrump);
 
-  let score = 0;
-
-  hand.forEach((card) => {
-    if (card.suit === potentialTrump) {
-      // Trump suit cards
-      if (card.rank === "J") {
-        score += TRUMP_VALUES.J; // Right Bower
-      } else {
-        score += TRUMP_VALUES[card.rank] || 0;
-      }
-    } else if (
-      card.rank === "J" &&
-      getSuitColor(card.suit) === getSuitColor(potentialTrump)
-    ) {
-      // Left Bower (Jack of same color as trump)
-      score += TRUMP_VALUES.J_sameColor;
-    }
-  });
+  let score = suitPoints;
+  if (rightBower) score += TRUMP_VALUES.J;
+  if (leftBower) score += TRUMP_VALUES.J_sameColor;
 
   return score;
 }
 
 /**
  * Helper to get color of a suit (red or black)
- * @private
  * @param {string} suit
- * @returns {string} 'red' or 'black'
+ * @returns {'red'|'black'} Color of the suit
  */
 function getSuitColor(suit) {
   const redSuits = ["hearts", "diamonds"];
@@ -62,10 +105,10 @@ function getSuitColor(suit) {
 
 /**
  * Determines AI's bidding decision based on hand strength.
- * @param {Array} hand - Array of card objects
+ * @param {Array<object>} hand - Array of card objects
  * @param {object} turnCard - Current turn card object
  * @param {boolean} isDealer - Whether AI is the dealer
- * @param {Array} bids - Array of previous bids in current round
+ * @param {Array<object>} [bids=[]] - Array of previous bids in current round
  * @returns {object} Decision object {decision: string, suit?: string}
  */
 export function chooseBid(hand, turnCard, isDealer, bids = []) {
@@ -104,9 +147,90 @@ export function chooseBid(hand, turnCard, isDealer, bids = []) {
 }
 
 /**
+ * Gets the numeric value of a card based on trump suit
+ * @param {object} card - Card object
+ * @param {string} trumpSuit - Current trump suit
+ * @returns {number} Numeric value of card
+ */
+function getCardValue(card, trumpSuit) {
+  if (card.suit === trumpSuit) {
+    if (card.rank === "J") return 100; // Right bower
+    if (card.rank === "A") return 80;
+    if (card.rank === "K") return 70;
+    if (card.rank === "Q") return 60;
+    if (card.rank === "10") return 40;
+    if (card.rank === "9") return 30;
+  }
+
+  if (
+    card.rank === "J" &&
+    getSuitColor(card.suit) === getSuitColor(trumpSuit)
+  ) {
+    return 90; // Left bower
+  }
+
+  // Non-trump cards
+  if (card.rank === "A") return 80;
+  if (card.rank === "K") return 70;
+  if (card.rank === "Q") return 60;
+  if (card.rank === "J") return 50;
+  if (card.rank === "10") return 40;
+  if (card.rank === "9") return 30;
+
+  return 0;
+}
+
+/**
+ * Gets the current winning card in the trick
+ * @param {Array<object>} trick - Array of cards in current trick
+ * @param {string} trumpSuit - Current trump suit
+ * @param {string} leadSuit - Lead suit of current trick
+ * @returns {object|null} Winning card or null if empty trick
+ */
+function getWinningCard(trick, trumpSuit, leadSuit) {
+  if (trick.length === 0) return null;
+
+  let winningCard = trick[0];
+  let winningValue = getCardValue(winningCard, trumpSuit);
+
+  for (let i = 1; i < trick.length; i++) {
+    const currentValue = getCardValue(trick[i], trumpSuit);
+    if (currentValue > winningValue) {
+      winningCard = trick[i];
+      winningValue = currentValue;
+    }
+  }
+
+  return winningCard;
+}
+
+/**
+ * Gets the lowest value card from a hand
+ * @param {Array<object>} cards - Array of card objects
+ * @param {string} trumpSuit - Current trump suit
+ * @returns {object|null} Lowest value card or null if empty
+ */
+function getLowestCard(cards, trumpSuit) {
+  if (!Array.isArray(cards) || cards.length === 0) return null;
+
+  let lowestCard = cards[0];
+  let lowestValue = getCardValue(lowestCard, trumpSuit);
+
+  for (let i = 1; i < cards.length; i++) {
+    const currentValue = getCardValue(cards[i], trumpSuit);
+    if (currentValue < lowestValue) {
+      lowestCard = cards[i];
+      lowestValue = currentValue;
+    }
+  }
+
+  return lowestCard;
+}
+
+/**
  * Chooses a card for AI to play based on current trick state.
- * @param {Array} hand - Array of card objects
- * @param {Array} currentTrick - Array of cards played in current trick
+ * @param {Array<object>} hand - Array of card objects
+ * @param {Array<object>} [currentTrick=[]] - Array of cards played in current trick
  * @param {string} trumpSuit - Current trump suit
  * @param {string} leadSuit - Lead suit of current trick
  * @returns {object|null} Selected card object or null if invalid input
@@ -164,88 +288,4 @@ export function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
 
   // Can't follow suit - slough lowest card
   return getLowestCard(hand, trumpSuit);
-}
-
-/**
- * Gets the numeric value of a card based on trump suit
- * @private
- * @param {object} card - Card object
- * @param {string} trumpSuit - Current trump suit
- * @returns {number} Numeric value of card
- */
-function getCardValue(card, trumpSuit) {
-  if (card.suit === trumpSuit) {
-    if (card.rank === "J") return 100; // Right bower
-    if (card.rank === "A") return 80;
-    if (card.rank === "K") return 70;
-    if (card.rank === "Q") return 60;
-    if (card.rank === "10") return 40;
-    if (card.rank === "9") return 30;
-  }
-
-  if (
-    card.rank === "J" &&
-    getSuitColor(card.suit) === getSuitColor(trumpSuit)
-  ) {
-    return 90; // Left bower
-  }
-
-  // Non-trump cards
-  if (card.rank === "A") return 80;
-  if (card.rank === "K") return 70;
-  if (card.rank === "Q") return 60;
-  if (card.rank === "J") return 50;
-  if (card.rank === "10") return 40;
-  if (card.rank === "9") return 30;
-
-  return 0;
-}
-
-/**
- * Gets the current winning card in the trick
- * @private
- * @param {Array} trick - Array of cards in current trick
- * @param {string} trumpSuit - Current trump suit
- * @param {string} leadSuit - Lead suit of current trick
- * @returns {object|null} Winning card or null if empty trick
- */
-function getWinningCard(trick, trumpSuit, leadSuit) {
-  if (trick.length === 0) return null;
-
-  let winningCard = trick[0];
-  let winningValue = getCardValue(winningCard, trumpSuit);
-
-  for (let i = 1; i < trick.length; i++) {
-    const currentValue = getCardValue(trick[i], trumpSuit);
-    if (currentValue > winningValue) {
-      winningCard = trick[i];
-      winningValue = currentValue;
-    }
-  }
-
-  return winningCard;
-}
-
-/**
- * Gets the lowest value card from a hand
- * @private
- * @param {Array} cards - Array of card objects
- * @param {string} trumpSuit - Current trump suit
- * @returns {object} Lowest value card
- */
-function getLowestCard(cards, trumpSuit) {
-  if (cards.length === 0) return null;
-
-  let lowestCard = cards[0];
-  let lowestValue = getCardValue(lowestCard, trumpSuit);
-
-  for (let i = 1; i < cards.length; i++) {
-    const currentValue = getCardValue(cards[i], trumpSuit);
-    if (currentValue < lowestValue) {
-      lowestCard = cards[i];
-      lowestValue = currentValue;
-    }
-  }
-
-  return lowestCard;
 }

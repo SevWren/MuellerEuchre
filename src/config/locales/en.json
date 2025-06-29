@@ -1,0 +1,22 @@
+{
+  "game": {
+    "actions": {
+      "playCard": "{playerRole} played {card}",
+      "winTrick": "{playerRole} wins the trick",
+      "orderUp": "{playerRole} ordered up {suit}",
+      "callTrump": "{playerRole} called {suit} as trump",
+      "pass": "{playerRole} passed"
+    },
+    "phases": {
+      "bidding": "Bidding phase",
+      "playing": "Playing phase",
+      "scoring": "Scoring phase",
+      "gameOver": "Game over"
+    },
+    "messages": {
+      "yourTurn": "Your turn to play",
+      "waitingFor": "Waiting for {playerRole} to play",
+      "gameWon": "{team} team wins the game!"
+    }
+  }
+}

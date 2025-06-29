@@ -100,13 +100,19 @@ export function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
     const trueLedCard = currentTrick[0].card;
     const currentLedEffectiveSuit = getEffectiveSuit(trueLedCard, trumpSuit);
 
-    // Check if player has any card of the led suit (including trump if led suit is trump)
-    const playerHasLedSuitCard = playerHand.some(
-      (handCard) =>
-        getEffectiveSuit(handCard, trumpSuit) === currentLedEffectiveSuit
-    );
+    // Check if player has any card of the led suit (including left bower if applicable)
+    console.log("Checking must follow suit rules");
+    console.log("Led suit:", currentLedEffectiveSuit);
+
+    const playerHasLedSuitCard = playerHand.some((handCard) => {
+      const effectiveSuit = getEffectiveSuit(handCard, trumpSuit);
+      console.log(`Card ${handCard.id} effective suit:`, effectiveSuit);
+      return effectiveSuit === currentLedEffectiveSuit;
+    });
+    console.log("Player has led suit card:", playerHasLedSuitCard);
 
     const cardToPlayEffectiveSuit = getEffectiveSuit(cardToPlay, trumpSuit);
+    console.log("Card to play effective suit:", cardToPlayEffectiveSuit);
 
     // If player has a card of the led suit, they must play one
     if (

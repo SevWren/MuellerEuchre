@@ -48,27 +48,49 @@ export function startNewHand(currentGameState) {
     let freshDeck = createDeck();
     freshDeck = shuffleDeck(freshDeck);
 
-    const newPlayerHands = {
-      [PLAYER_ROLES[0]]: [], [PLAYER_ROLES[1]]: [],
-      [PLAYER_ROLES[2]]: [], [PLAYER_ROLES[3]]: [],
+    // Initialize empty hands for all players
+    const newPlayerHands = {};
+    
+    // Ensure all players have an empty hand array, even if they're not connected/active
+    PLAYER_ROLES.forEach(role => {
+      newPlayerHands[role] = [];
+    });
+
+    // Get the player to the left of the dealer to start dealing
+    let currentPlayerIndex = PLAYER_ROLES.indexOf(getNextPlayer(newDealer, PLAYER_ROLES));
+    
+    // Function to check if we should deal to a player
+    const shouldDealToPlayer = (playerRole) => {
+      const player = newState.players[playerRole];
+      if (!player) return false;
+      // Only don't deal if explicitly set to inactive or disconnected
+      if (player.isActive === false) return false;
+      if (player.isConnected === false && player.isActive !== true) return false;
+      return true;
     };
 
-    let dealingToPlayerIndex = PLAYER_ROLES.indexOf(getNextPlayer(newDealer, PLAYER_ROLES));
-
-    for (let i = 0; i < 2; i++) {
-      for (let j = 0; j < PLAYER_ROLES.length; j++) {
-        const playerRoleToDeal = PLAYER_ROLES[dealingToPlayerIndex % PLAYER_ROLES.length];
-        const cardsToDealCount = (i === 0) ? 3 : 2;
-
-        if (newState.players[playerRoleToDeal]?.isConnected || newState.players[playerRoleToDeal]?.isActive) {
-          for (let k = 0; k < cardsToDealCount; k++) {
-            if (freshDeck.length > 0) {
-              newPlayerHands[playerRoleToDeal].push(freshDeck.pop());
-            }
-          }
+    // First pass: Deal 3 cards to each active/connected player
+    for (let i = 0; i < PLAYER_ROLES.length; i++) {
+      const playerRole = PLAYER_ROLES[currentPlayerIndex];
+      if (shouldDealToPlayer(playerRole)) {
+        // Deal 3 cards to this player
+        for (let j = 0; j < 3 && freshDeck.length > 0; j++) {
+          newPlayerHands[playerRole].push(freshDeck.pop());
         }
-        dealingToPlayerIndex++;
       }
+      currentPlayerIndex = (currentPlayerIndex + 1) % PLAYER_ROLES.length;
+    }
+    
+    // Second pass: Deal 2 more cards to each active/connected player
+    for (let i = 0; i < PLAYER_ROLES.length; i++) {
+      const playerRole = PLAYER_ROLES[currentPlayerIndex];
+      if (shouldDealToPlayer(playerRole)) {
+        // Deal 2 more cards to this player
+        for (let j = 0; j < 2 && freshDeck.length > 0; j++) {
+          newPlayerHands[playerRole].push(freshDeck.pop());
+        }
+      }
+      currentPlayerIndex = (currentPlayerIndex + 1) % PLAYER_ROLES.length;
     }
 
     newState.kitty = freshDeck;

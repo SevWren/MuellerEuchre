@@ -20,7 +20,45 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import esmock from 'esmock';
-import { GAME_PHASES, PLAYER_ROLES, TEAMS } from '../../../src/config/constants.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// =============================================
+// PATH CONSTANTS (Pattern from esmock_fix_and_prevention_plan.md)
+// =============================================
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/**
+ * Converts a relative path to an absolute path with POSIX separators
+ * @param {string} relativePath - Path relative to the test file
+ * @returns {string} Absolute path with POSIX separators
+ */
+const toPosixPath = (relativePath) => {
+  return path.resolve(__dirname, relativePath).replace(/\\/g, '/');
+};
+
+// Define all module paths as constants at the top of the file
+const PATHS = {
+  // Source files - use relative paths from the test file
+  GO_ALONE_PHASE: toPosixPath('../../../src/game/phases/goAlonePhase.js'),
+  CONSTANTS: toPosixPath('../../../src/config/constants.js'),
+  ERRORS: toPosixPath('../../../src/game/logic/errors.js'),
+  LOGGER: toPosixPath('../../../src/utils/logger.js'),
+  PLAYERS: toPosixPath('../../../src/utils/players.js'),
+  VALIDATION: toPosixPath('../../../src/game/logic/validation.js'),
+  
+  // Test utilities
+  TEST_UTILS: toPosixPath('../../testUtils.js')
+};
+
+// Import using path constants to ensure consistency
+import { 
+  GAME_PHASES, 
+  PLAYER_ROLES, 
+  TEAMS
+} from '../../../src/config/constants.js';
+
 import {
   ValidationError,
   InvalidPhaseError,
@@ -34,6 +72,7 @@ const defaultLoggerMock = {
   warn: sinon.stub(),
   error: sinon.stub(),
   debug: sinon.stub(),
+  log: sinon.stub() // Add log method to match the logger interface
 };
 
 // Helper to create a base game state for go_alone phase tests
@@ -71,10 +110,9 @@ describe('GoAlonePhase Logic', () => {
     getNextPlayerMock = sinon.stub();
     getPartnerMock = sinon.stub();
 
-    const goAlonePhaseModule = await esmock('../../src/game/phases/goAlonePhase.js', {
-      '../../src/game/state.js': { updateGameState: updateGameStateStub },
-      '../../src/utils/logger.js': defaultLoggerMock,
-      '../../src/utils/players.js': {
+    const goAlonePhaseModule = await esmock(PATHS.GO_ALONE_PHASE, {
+      [PATHS.LOGGER]: defaultLoggerMock,
+      [PATHS.PLAYERS]: {
         getNextPlayer: getNextPlayerMock,
         getPartner: getPartnerMock,
       },

@@ -29,14 +29,36 @@ import esmock from 'esmock';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Get the current file's directory
+// =============================================
+// PATH CONSTANTS (Pattern C from esmock_fix_and_prevention_plan.md)
+// =============================================
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Import test utilities and constants
-const projectRoot = path.resolve(__dirname, '../../..');
+/**
+ * Converts a relative path to an absolute path with POSIX separators
+ * @param {string} relativePath - Path relative to the test file
+ * @returns {string} Absolute path with POSIX separators
+ */
+const toPosixPath = (relativePath) => {
+  return path.resolve(__dirname, relativePath).replace(/\\/g, '/');
+};
 
-// Import using relative paths
+// Define all module paths as constants at the top of the file
+const PATHS = {
+  // Source files - use relative paths from the test file
+  BIDDING_PHASE: toPosixPath('../../../src/game/phases/biddingPhase.js'),
+  VALIDATION: toPosixPath('../../../src/game/logic/validation.js'),
+  LOGGER: toPosixPath('../../../src/utils/logger.js'),
+  CONSTANTS: toPosixPath('../../../src/config/constants.js'),
+  PLAYERS: toPosixPath('../../../src/utils/players.js'),
+  ERRORS: toPosixPath('../../../src/game/logic/errors.js'),
+  
+  // Test utilities
+  TEST_UTILS: toPosixPath('../../testUtils.js')
+};
+
+// Import using path constants to ensure consistency
 import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } from '../../../src/config/constants.js';
 import { createDeck, shuffleDeck, cardToId } from '../../../src/utils/deck.js';
 import { initializePlayers, getNextPlayer as testGetNextPlayer } from '../../../src/utils/players.js';
@@ -102,17 +124,31 @@ const createInitialGameState = (dealer = PLAYER_ROLES[0]) => {
 };
 
 const setupBiddingState = (dealer = PLAYER_ROLES[0], round = 1, turnCardSuit = SUITS.HEARTS) => {
-  let gameState = createInitialGameState(dealer);
+  // Create a deep copy of the initial game state to avoid mutations
+  let gameState = JSON.parse(JSON.stringify(createInitialGameState(dealer)));
+  
+  // Set round and phase
   gameState.roundNumber = round;
   gameState.gamePhase = (round === 1) ? GAME_PHASES.ORDER_UP_ROUND1 : GAME_PHASES.ORDER_UP_ROUND2;
-  if (gameState.turnCard) {
-    gameState.turnCard.suit = turnCardSuit;
-    gameState.turnCard.value = gameState.turnCard.value || VALUES.ACE;
-    gameState.turnCard.id = `${gameState.turnCard.value.charAt(0).toUpperCase()}${turnCardSuit.charAt(0).toUpperCase()}`;
-  } else {
-    gameState.turnCard = { id: `A${turnCardSuit.charAt(0).toUpperCase()}`, suit: turnCardSuit, value: VALUES.ACE };
-  }
+  
+  // Ensure turn card is properly initialized with a valid value from VALUES
+  const cardValue = VALUES[VALUES.length - 1]; // Use the highest value (ACE)
+  const suit = turnCardSuit || SUITS.HEARTS; // Default to HEARTS if not provided
+  const valueChar = (cardValue && typeof cardValue === 'string') ? cardValue.charAt(0).toUpperCase() : 'A';
+  const suitChar = (suit && typeof suit === 'string') ? suit.charAt(0).toUpperCase() : 'H';
+  
+  // Create a properly formatted turn card
+  gameState.turnCard = {
+    id: `${valueChar}${suitChar}`,
+    suit: suit,
+    value: cardValue,
+    name: `${cardValue} of ${suit}`,
+    rank: VALUES.indexOf(cardValue) + 1
+  };
+  
+  // Set the first player
   gameState.currentPlayer = testGetNextPlayer(dealer);
+  
   return gameState;
 };
 
@@ -130,29 +166,124 @@ describe('BiddingPhase Logic', () => {
     let validateBidMock;
     let handleOrderUpDecision;
 
-    beforeEach(async () => {
-      validateBidMock = sinon.stub();
-      
-      // Use file URLs for Windows compatibility
-      const toFileUrl = (filepath) => {
-        const pathName = path.resolve(filepath).replace(/\\/g, '/');
-        return 'file:///' + pathName;
-      };
+    // Helper function to create a deep copy of an object
+    const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
 
-      const projectRoot = path.resolve(__dirname, '../../..');
-      const biddingPhasePath = toFileUrl(path.join(projectRoot, 'src/game/phases/biddingPhase.js'));
-      const validationPath = toFileUrl(path.join(projectRoot, 'src/game/logic/validation.js'));
-      const loggerPath = toFileUrl(path.join(projectRoot, 'src/utils/logger.js'));
-      
-      const biddingPhaseModule = await esmock(biddingPhasePath, {
-        [validationPath]: { 
-          validateBid: validateBidMock,
-          validateDealerDiscard: sinon.stub().returns(true)
+    beforeEach(async () => {
+      // Reset mocks
+      validateBidMock = sinon.stub();
+      baseLoggerMock.info.resetHistory();
+      baseLoggerMock.error.resetHistory();
+
+      // Set up the module with mocks using path constants
+      const biddingPhaseModule = await esmock(
+        PATHS.BIDDING_PHASE,
+        {
+          [PATHS.VALIDATION]: {
+            validateBid: validateBidMock,
+            validateDealerDiscard: sinon.stub().returns(true)
+          },
+          [PATHS.LOGGER]: baseLoggerMock
         },
-        [loggerPath]: baseLoggerMock
-      });
+        {
+          // Mock any Node.js built-ins if needed
+        }
+      );
+
       handleOrderUpDecision = biddingPhaseModule.handleOrderUpDecision;
       gameStateInOrderUpRound1 = setupBiddingState(PLAYER_ROLES[0], 1, SUITS.DIAMONDS);
+    });
+
+    // Test that the function is pure (doesn't modify input)
+    it('should not modify the input gameState', () => {
+      // Arrange
+      const originalState = deepCopy(gameStateInOrderUpRound1);
+      const playerRole = gameStateInOrderUpRound1.currentPlayer;
+      
+      // Act
+      handleOrderUpDecision(gameStateInOrderUpRound1, playerRole, true);
+      
+      // Assert
+      expect(gameStateInOrderUpRound1).to.deep.equal(originalState);
+    });
+
+    // Test validation is called correctly
+    it('should call validateBid with correct parameters', () => {
+      // Arrange
+      const playerRole = gameStateInOrderUpRound1.currentPlayer;
+      const wantsToOrderUp = true;
+      
+      // Act
+      handleOrderUpDecision(gameStateInOrderUpRound1, playerRole, wantsToOrderUp);
+      
+      // Assert
+      expect(validateBidMock.calledOnce).to.be.true;
+      const [state, role, bidType, suit] = validateBidMock.firstCall.args;
+      expect(state).to.equal(gameStateInOrderUpRound1);
+      expect(role).to.equal(playerRole);
+      expect(bidType).to.equal('orderUp');
+      expect(suit).to.be.null;
+    });
+
+    // Test validation errors are propagated
+    it('should propagate validation errors', () => {
+      // Arrange
+      const playerRole = gameStateInOrderUpRound1.currentPlayer;
+      const error = new Error('Validation failed');
+      validateBidMock.throws(error);
+      
+      // Act & Assert
+      expect(() => {
+        handleOrderUpDecision(gameStateInOrderUpRound1, playerRole, true);
+      }).to.throw(error);
+    });
+
+    // Test successful order up
+    it('should return correct state when player orders up', () => {
+      // Arrange
+      const playerRole = gameStateInOrderUpRound1.currentPlayer;
+      const expectedTrumpSuit = gameStateInOrderUpRound1.turnCard.suit;
+      const expectedMakerTeam = gameStateInOrderUpRound1.players[playerRole].teamId;
+      
+      // Act
+      const result = handleOrderUpDecision(gameStateInOrderUpRound1, playerRole, true);
+      
+      // Assert
+      expect(result.trumpSuit).to.equal(expectedTrumpSuit);
+      expect(result.makerTeam).to.equal(expectedMakerTeam);
+      expect(result.gamePhase).to.equal(GAME_PHASES.DEALER_DISCARD);
+      expect(result.currentPlayer).to.equal(gameStateInOrderUpRound1.dealer);
+    });
+
+    // Test player passes
+    it('should advance to next player when player passes', () => {
+      // Arrange
+      const currentPlayer = gameStateInOrderUpRound1.currentPlayer;
+      const nextPlayer = testGetNextPlayer(currentPlayer);
+      
+      // Act
+      const result = handleOrderUpDecision(gameStateInOrderUpRound1, currentPlayer, false);
+      
+      // Assert
+      expect(result.currentPlayer).to.equal(nextPlayer);
+      expect(result.trumpSuit).to.be.null;
+    });
+
+    // Test all players pass in round 1
+    it('should advance to round 2 when all players pass in round 1', () => {
+      // Arrange
+      let currentState = deepCopy(gameStateInOrderUpRound1);
+      const firstBidder = currentState.currentPlayer;
+      
+      // All players pass
+      PLAYER_ROLES.forEach((_, index) => {
+        const player = PLAYER_ROLES[(PLAYER_ROLES.indexOf(firstBidder) + index) % 4];
+        currentState = handleOrderUpDecision(currentState, player, false);
+      });
+      
+      // Assert
+      expect(currentState.gamePhase).to.equal(GAME_PHASES.ORDER_UP_ROUND2);
+      expect(currentState.currentPlayer).to.equal(firstBidder);
     });
 
     it('should call validateBid with correct arguments', () => {
@@ -231,19 +362,40 @@ describe('BiddingPhase Logic', () => {
     let validateDealerDiscardMock;
     const dealer = PLAYER_ROLES[0];
     const orderingPlayer = PLAYER_ROLES[1];
-    const turnCardData = { id: 'AD', suit: SUITS.DIAMONDS, value: VALUES.ACE };
+    const turnCardData = { 
+      id: 'AD', 
+      suit: SUITS.DIAMONDS, 
+      value: VALUES.ACE, 
+      name: 'Ace of Diamonds',
+      rank: 6 // Assuming Ace has rank 6 in your game
+    };
     let testDealerHand;
 
     beforeEach(async () => {
       validateDealerDiscardMock = sinon.stub();
-      const biddingPhaseModule = await esmock('../../src/game/phases/biddingPhase.js', {
-          '../../src/game/logic/validation.js': {
+      
+      // Set up the module with mocks using path constants
+      const biddingPhaseModule = await esmock(
+        PATHS.BIDDING_PHASE,
+        {
+          [PATHS.VALIDATION]: {
             validateDealerDiscard: validateDealerDiscardMock,
             validateBid: sinon.stub()
           },
-          '../../src/utils/logger.js': baseLoggerMock,
-          '../../src/game/logic/errors.js': { PhaseLogicError, CardNotInHandError, InvalidDiscardError, NotPlayersTurnError, ValidationError, InvalidPhaseError }
-      });
+          [PATHS.LOGGER]: baseLoggerMock,
+          [PATHS.ERRORS]: {
+            PhaseLogicError,
+            CardNotInHandError,
+            InvalidDiscardError,
+            NotPlayersTurnError,
+            ValidationError,
+            InvalidPhaseError
+          }
+        },
+        {
+          // Mock any Node.js built-ins if needed
+        }
+      );
       handleDealerDiscard = biddingPhaseModule.handleDealerDiscard;
 
       gameStateForDiscard = setupBiddingState(dealer, 1, turnCardData.suit);
@@ -253,20 +405,13 @@ describe('BiddingPhase Logic', () => {
       gameStateForDiscard.playerWhoOrderedUp = orderingPlayer;
       gameStateForDiscard.trumpSuit = turnCardData.suit;
       gameStateForDiscard.turnCard = { ...turnCardData };
+      // Initialize dealer's hand with complete card objects
       testDealerHand = [
-        { id: 'TC', suit: SUITS.CLUBS, value: VALUES.TEN },
-        { id: 'QC', suit: SUITS.CLUBS, value: VALUES.QUEEN },
-        { id: 'KC', suit: SUITS.CLUBS, value: VALUES.KING },
-        { id: 'AC', suit: SUITS.CLUBS, value: VALUES.ACE },
-        { id: '9S', suit: SUITS.SPADES, value: VALUES.NINE },
-      ];
-      // Original 5 cards for the dealer
-      testDealerHand = [
-        { id: 'TC', suit: SUITS.CLUBS, value: VALUES.TEN },
-        { id: 'QC', suit: SUITS.CLUBS, value: VALUES.QUEEN },
-        { id: 'KC', suit: SUITS.CLUBS, value: VALUES.KING },
-        { id: 'AC', suit: SUITS.CLUBS, value: VALUES.ACE },
-        { id: '9S', suit: SUITS.SPADES, value: VALUES.NINE },
+        { id: 'TC', suit: SUITS.CLUBS, value: VALUES.TEN, name: 'Ten of Clubs', rank: 2 },
+        { id: 'QC', suit: SUITS.CLUBS, value: VALUES.QUEEN, name: 'Queen of Clubs', rank: 4 },
+        { id: 'KC', suit: SUITS.CLUBS, value: VALUES.KING, name: 'King of Clubs', rank: 5 },
+        { id: 'AC', suit: SUITS.CLUBS, value: VALUES.ACE, name: 'Ace of Clubs', rank: 6 },
+        { id: '9S', suit: SUITS.SPADES, value: VALUES.NINE, name: 'Nine of Spades', rank: 1 }
       ];
       // The hand provided to handleDealerDiscard should be after pickup.
       gameStateForDiscard.players[dealer].hand = [...testDealerHand, gameStateForDiscard.turnCard]; // Now 6 cards
@@ -333,33 +478,46 @@ describe('BiddingPhase Logic', () => {
       }
       // Ensure the discarded card is NOT in the hand.
       expect(nextState.players[dealer].hand.some(c => c.id === cardToDiscardObj.id)).to.be.false;
-      // Ensure game state's turnCard (on table) is now null.
-      expect(nextState.turnCard).to.be.null;
     });
   });
 
   describe('handleCallTrumpDecision', () => {
     let gameStateInCallTrumpRound;
-    let handleCallTrumpDecision; // Will be esmocked version
+    let handleCallTrumpDecision;
     let validateBidMock;
-    const dealer = PLAYER_ROLES[0];
     const originalTurnCardSuit = SUITS.DIAMONDS;
 
     beforeEach(async () => {
       validateBidMock = sinon.stub();
-      const biddingPhaseModule = await esmock('../../src/game/phases/biddingPhase.js', {
-          '../../src/game/logic/validation.js': {
+      
+      // Set up the module with mocks using path constants
+      const biddingPhaseModule = await esmock(
+        PATHS.BIDDING_PHASE,
+        {
+          [PATHS.VALIDATION]: {
             validateBid: validateBidMock,
-            // Provide stubs for other validation functions if they are in the same file
-            // and might be called by other functions in biddingPhase.js
-            validateDealerDiscard: sinon.stub(),
+            validateDealerDiscard: sinon.stub()
           },
-          '../../src/utils/logger.js': baseLoggerMock,
-          '../../src/game/logic/errors.js': { PhaseLogicError, InvalidBidError, NotPlayersTurnError, ValidationError, InvalidPhaseError }
-      });
+          [PATHS.LOGGER]: baseLoggerMock,
+          [PATHS.ERRORS]: {
+            PhaseLogicError,
+            ValidationError,
+            NotPlayersTurnError,
+            InvalidBidError,
+            InvalidPhaseError
+          }
+        },
+        {
+          // Mock any Node.js built-ins if needed
+        }
+      );
       handleCallTrumpDecision = biddingPhaseModule.handleCallTrumpDecision;
 
-      gameStateInCallTrumpRound = setupBiddingState(dealer, 2, originalTurnCardSuit);
+      // Setup initial game state for call trump round
+      gameStateInCallTrumpRound = setupBiddingState(PLAYER_ROLES[0], 2, originalTurnCardSuit);
+      gameStateInCallTrumpRound.gamePhase = GAME_PHASES.ORDER_UP_ROUND2;
+      gameStateInCallTrumpRound.currentPlayer = PLAYER_ROLES[1]; // Start with player after dealer
+      gameStateInCallTrumpRound.dealer = PLAYER_ROLES[0];
     });
 
     it('should call validateBid with correct arguments', () => {

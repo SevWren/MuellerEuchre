@@ -3,7 +3,6 @@
  * @module game/phases/goAlonePhase
  */
 import logger from '../../utils/logger.js';
-import { updateGameState } from '../state.js';
 import { GAME_PHASES, PLAYER_ROLES } from '../../config/constants.js';
 import { getNextPlayer, getPartner } from '../../utils/players.js';
 import { ValidationError, InvalidPhaseError, NotPlayersTurnError, PhaseLogicError } from '../logic/errors.js';
@@ -39,41 +38,47 @@ export function handleGoAloneDecision(currentGameState, decidingPlayerRole, want
       throw new PhaseLogicError(`Only the player who made trump (${trumpMaker}) can decide to go alone. Player ${decidingPlayerRole} attempted.`);
   }
 
-  // The main logic of updating the state based on the decision.
-  // No try-catch here as errors from updateGameState (if any) or its updater function should propagate.
-  const newGameState = updateGameState(prevState => {
-    const playerGoingAloneActual = wantsToGoAlone ? trumpMaker : null;
-    const partnerSittingOutActual = wantsToGoAlone ? getPartner(playerGoingAloneActual, prevState.players) : null; // Pass players if getPartner needs it
+  // Create a deep copy of the current game state to avoid mutating the input
+  const newGameState = JSON.parse(JSON.stringify(currentGameState));
+  
+  // Determine the player going alone and their partner (if any)
+  const playerGoingAloneActual = wantsToGoAlone ? trumpMaker : null;
+  const partnerSittingOutActual = wantsToGoAlone ? getPartner(playerGoingAloneActual, newGameState.players) : null;
 
-    let messageText = '';
-    if (wantsToGoAlone) {
-      messageText = `${prevState.players[playerGoingAloneActual]?.name || playerGoingAloneActual} is going alone! ${prevState.players[partnerSittingOutActual]?.name || partnerSittingOutActual} sits out.`;
-      logger.info({ gameId: prevState.gameId, playerGoingAloneActual, partnerSittingOutActual }, "Player is going alone.");
-    } else {
-      messageText = `Team ${prevState.makerTeam || 'Unknown'} will play with a partner.`;
-      logger.info({ gameId: prevState.gameId, makerTeam: prevState.makerTeam }, "Team playing with partner.");
+  // Log the decision
+  let messageText = '';
+  if (wantsToGoAlone) {
+    messageText = `${newGameState.players[playerGoingAloneActual]?.name || playerGoingAloneActual} is going alone! ${newGameState.players[partnerSittingOutActual]?.name || partnerSittingOutActual} sits out.`;
+    logger.info({ gameId: newGameState.gameId, playerGoingAloneActual, partnerSittingOutActual }, "Player is going alone.");
+  } else {
+    messageText = `Team ${newGameState.makerTeam || 'Unknown'} will play with a partner.`;
+    logger.info({ gameId: newGameState.gameId, makerTeam: newGameState.makerTeam }, "Team playing with partner.");
+  }
+
+  // Determine the first player for the PLAYING phase
+  let firstPlayerOfPlayPhase = getNextPlayer(newGameState.dealer, PLAYER_ROLES);
+
+  // If that player is the one sitting out, the player to their left starts
+  if (wantsToGoAlone && partnerSittingOutActual === firstPlayerOfPlayPhase) {
+    firstPlayerOfPlayPhase = getNextPlayer(firstPlayerOfPlayPhase, PLAYER_ROLES);
+  }
+
+  // Update the new game state
+  newGameState.goingAlone = wantsToGoAlone;
+  newGameState.playerGoingAlone = playerGoingAloneActual;
+  newGameState.partnerSittingOut = partnerSittingOutActual;
+  newGameState.gamePhase = GAME_PHASES.PLAYING;
+  newGameState.currentPlayer = firstPlayerOfPlayPhase;
+  newGameState.gameMessages = [
+    ...(newGameState.gameMessages || []), 
+    { 
+      type: 'game_flow', 
+      text: messageText, 
+      timestamp: new Date().toISOString() 
     }
-
-    // Determine the first player for the PLAYING phase.
-    let firstPlayerOfPlayPhase = getNextPlayer(prevState.dealer, PLAYER_ROLES);
-
-    // If that player is the one sitting out, the player to their left starts.
-    if (wantsToGoAlone && partnerSittingOutActual === firstPlayerOfPlayPhase) {
-      firstPlayerOfPlayPhase = getNextPlayer(firstPlayerOfPlayPhase, PLAYER_ROLES);
-    }
-
-    return {
-      ...prevState,
-      goingAlone: wantsToGoAlone,
-      playerGoingAlone: playerGoingAloneActual,
-      partnerSittingOut: partnerSittingOutActual,
-      gamePhase: GAME_PHASES.PLAYING,
-      currentPlayer: firstPlayerOfPlayPhase,
-      gameMessages: [...(prevState.gameMessages || []), { type: 'game_flow', text: messageText, timestamp: new Date().toISOString() }],
-      currentTrick: [],
-      leadSuit: null,
-    };
-  });
+  ];
+  newGameState.currentTrick = [];
+  newGameState.leadSuit = null;
 
   return newGameState;
 }

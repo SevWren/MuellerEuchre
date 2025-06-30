@@ -78,13 +78,9 @@ export function startNewHand(currentGameState) {
         throw new PhaseLogicError(criticalErrorMsg);
     }
 
+    // Pop the turn card from the kitty - we've already verified kitty is not empty
+    // so we don't need to check for undefined here
     newState.turnCard = newState.kitty.pop();
-
-    if (!newState.turnCard) {
-      const criticalErrorMsg = "Critical error: No turn card could be set from kitty.";
-      // logger.error({gameId: newState.gameId}, criticalErrorMsg);
-      throw new PhaseLogicError(criticalErrorMsg);
-    }
 
     const firstBidder = getNextPlayer(newDealer, PLAYER_ROLES);
 

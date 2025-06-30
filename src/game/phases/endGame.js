@@ -26,12 +26,12 @@ export function checkGameOver(gameState) {
 
 /**
  * Handles the end of a game
- * @private
  * @param {Object} gameState - Current game state
  * @param {string} winningTeam - The team that won the game
+ * @param {Object} finalScores - The final scores for each team
  * @returns {Object} Updated game state with game over status
  */
-function endGame(gameState, winningTeam, finalScores) { // Added finalScores parameter
+function endGame(gameState, winningTeam, finalScores) {
     const winningTeamDisplay = winningTeam === TEAMS.TEAM_NS ? 'North/South' : 'East/West';
     log(1, `[endGame] Game over! ${winningTeamDisplay} wins!`);
     

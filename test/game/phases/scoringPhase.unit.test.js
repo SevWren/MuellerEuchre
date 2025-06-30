@@ -23,16 +23,50 @@ import { expect } from "chai";
 import sinon from "sinon";
 import esmock from "esmock";
 import chaiAsPromised from "chai-as-promised";
-import {
+import path from "path";
+import { fileURLToPath } from "url";
+
+// =============================================
+// PATH CONSTANTS (Pattern from esmock_fix_and_prevention_plan.md)
+// =============================================
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/**
+ * Converts a relative path to an absolute path with POSIX separators
+ * @param {string} relativePath - Path relative to the test file
+ * @returns {string} Absolute path with POSIX separators
+ */
+const toPosixPath = (relativePath) => {
+  return path.resolve(__dirname, relativePath).replace(/\\/g, "/");
+};
+
+// Define all module paths as constants at the top of the file
+const PATHS = {
+  // Source files - use relative paths from the test file
+  SCORING_PHASE: toPosixPath("../../../src/game/phases/scoringPhase.js"),
+  CONSTANTS: toPosixPath("../../../src/config/constants.js"),
+  ERRORS: toPosixPath("../../../src/game/logic/errors.js"),
+  LOGGER: toPosixPath("../../../src/utils/logger.js"),
+};
+
+// Import other dependencies using the path constants with file:// protocol
+const importWithFileProtocol = async (path) => {
+  const fileUrl = `file://${path}`.replace(/\\/g, '/');
+  return import(fileUrl);
+};
+
+const constantsModule = await importWithFileProtocol(PATHS.CONSTANTS);
+const errorsModule = await importWithFileProtocol(PATHS.ERRORS);
+
+const {
   GAME_PHASES,
   TEAMS,
   PLAYER_ROLES,
   WINNING_SCORE,
-} from "../../../src/config/constants.js";
-import {
-  InvalidPhaseError,
-  PhaseLogicError,
-} from "../../../src/game/logic/errors.js";
+} = constantsModule;
+
+const { InvalidPhaseError, PhaseLogicError } = errorsModule;
 
 // Apply chai-as-promised
 import * as chaiModule from "chai";
@@ -106,9 +140,12 @@ describe("ScoringPhase Logic", () => {
     beforeEach(async () => {
       updateGameMock = sinon.stub().resolves();
       const scoringPhaseModule = await esmock(
-        "../../../src/game/phases/scoringPhase.js",
+        PATHS.SCORING_PHASE,
         {
-          "../../utils/logger.js": defaultLoggerMock,
+          [PATHS.LOGGER]: defaultLoggerMock,
+        },
+        {
+          // Additional options for esmock if needed
         }
       );
       calculateAndApplyScore = scoringPhaseModule.calculateAndApplyScore;

@@ -19,6 +19,9 @@ Upon completion of Layer 2, the application will have a central nervous system f
 
 Based on the 300-line constraint, the `gameService.js` file, which acts as the main API for all game actions, is a candidate for being split. While its total line count might not exceed 300, its responsibility is broad. Splitting it by game phase aligns with the existing project structure and improves modularity and maintainability.
 
+**Important Note on Testing with ESMock:**
+When unit testing Layer 2 modules, especially `gameManager.js` and the `services` files, remember to use the `esmockWithPaths` utility for mocking their dependencies. This is crucial for correctly mocking Layer 1 pure functions (e.g., from `state.js`, `lobbyPhase.js`) and the `gameRepository.js` for database interactions, ensuring tests are isolated and cross-platform compatible.
+
 ---
 
 #### 1. `src/game/gameManager.js` (New File)

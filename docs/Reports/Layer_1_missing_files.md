@@ -2,6 +2,11 @@
 
 The following files do not currently exist but are essential for a complete and robust Layer 1.
 
+**Important Note on Testing with ESMock:**
+When implementing and testing these new Layer 1 modules, remember to leverage the `esmockWithPaths` utility from `test/utils/esmockWrapper.js`. This ensures that any internal dependencies (e.g., `aiLogic.js` importing `deck.js`) can be accurately mocked, and that all test setups are robust and cross-platform compatible. Mock keys should always reflect the exact import strings used in the source file.
+
+---
+
 #### 1. Core Game Logic
 
 *   **File Path:** `src/game/logic/aiLogic.js`
@@ -11,6 +16,7 @@ The following files do not currently exist but are essential for a complete and 
     *   `chooseDiscard(hand)`: A function that determines the least valuable card in a 6-card hand to discard.
     *   `chooseCardToPlay(hand, trick, trumpSuit, ledSuit)`: The most critical AI function. It would analyze the current trick and the player's hand to select the optimal card to play, following all game rules.
 *   **Layer 1 Justification:** The AI's decision-making is part of the game's core "business logic." By keeping it in a pure, stateless utility, it can be easily tested and separated from the higher-level logic that decides *when* to use the AI (which would be in Layer 3 or 4).
+*   **Testing Considerations:** When creating `test/game/logic/aiLogic.unit.test.js`, use `esmockWithPaths` to mock any internal dependencies like `deck.js` or `constants.js` to isolate the AI logic for testing specific scenarios.
 
 ---
 
@@ -23,6 +29,7 @@ The following files do not currently exist but are essential for a complete and 
     *   `validateSettings(customSettings)`: Takes a settings object from a user and validates it. For example, it would ensure `winningScore` is a number between 5 and 20. It should return a boolean or throw an error on invalid settings.
     *   `mergeWithDefaults(customSettings)`: Merges a user's partial settings with the defaults to create a complete, valid settings object for a new game.
 *   **Layer 1 Justification:** Game settings directly influence the rules and win conditions. The logic to validate and manage these settings is pure and foundational.
+*   **Testing Considerations:** For `test/utils/settingsUtils.unit.test.js`, `esmockWithPaths` might be used if `settingsUtils.js` were to import constants or error classes from other Layer 1 modules, ensuring those dependencies are correctly isolated for testing.
 
 *   **File Path:** `src/utils/statsUtils.js`
 *   **Purpose:** To calculate and process player and game statistics. While storing stats is a database concern (Layer 2/3), the pure calculation logic belongs in Layer 1.
@@ -30,6 +37,7 @@ The following files do not currently exist but are essential for a complete and 
     *   `calculateHandStats(gameState)`: Takes a completed hand's `gameState` and returns an object detailing what happened (e.g., `{ makerTeam: 'NS', pointsScored: 2, wasEuchre: true, wentAlone: false }`).
     *   `updatePlayerStats(playerStats, handStats)`: Takes a player's current stats object and the results from `calculateHandStats` to return a new, updated stats object (e.g., incrementing wins, losses, euchres, etc.).
 *   **Layer 1 Justification:** The logic for deriving statistics from game data is a pure data transformation, making it a perfect fit for a Layer 1 utility.
+*   **Testing Considerations:** `test/utils/statsUtils.unit.test.js` would use `esmockWithPaths` if `statsUtils.js` imports other Layer 1 utilities (e.g., `players.js` for team lookups) or constants.
 
 *   **File Path:** `src/utils/historyUtils.js`
 *   **Purpose:** To create structured, human-readable log entries for the game flow. The `gameMessages` array is a simple implementation; a more robust system would use a dedicated utility to generate these entries.
@@ -37,13 +45,15 @@ The following files do not currently exist but are essential for a complete and 
     *   `createHistoryEntry(action, details)`: A factory function that takes a game action (e.g., `'PLAY_CARD'`, `'CALL_TRUMP'`) and a details object (`{ player, card, suit }`) and returns a standardized history object: `{ timestamp, message, action, details }`.
     *   `formatHistory(historyArray)`: A function that could take an array of history objects and format it into a human-readable game log.
 *   **Layer 1 Justification:** Generating consistent, structured log data from game events is a pure utility function. It standardizes how game events are described.
+*   **Testing Considerations:** In `test/utils/historyUtils.unit.test.js`, if `createHistoryEntry` uses `new Date()`, `esmockWithPaths` can be used to mock the global `Date` object or specific imports that provide timestamping, ensuring deterministic tests.
 
 *   **File Path:** `src/utils/idGenerator.js`
 *   **Purpose:** To create more robust and potentially human-readable unique IDs for games and players, rather than relying on `Date.now()` and `Math.random()`.
 *   **Key Functions / Contents:**
-    *   `generateGameId()`: Could generate a short, memorable ID like "blue-dog-7" or a standard UUID.
+    *   `generateGameId()`: Could generate a short, memorable ID like "blue-dog-7" or a standard UUID (using a library like `nanoid`).
     *   `generatePlayerId()`: Could generate a UUID for a persistent player identity.
 *   **Layer 1 Justification:** ID generation is a fundamental, stateless utility. Centralizing it makes the ID strategy consistent and easy to change.
+*   **Testing Considerations:** For `test/utils/idGenerator.unit.test.js`, `esmockWithPaths` is critical to mock external ID generation libraries (e.g., `nanoid`) to ensure that `generateGameId()` returns predictable values for testing.
 
 ---
 
@@ -60,3 +70,4 @@ The following files do not currently exist but are essential for a complete and 
 *   **Key Functions / Contents:**
     *   `t(key, replacements)`: A function that takes a key (e.g., `'error_not_your_turn'`) and an optional object of replacements (e.g., `{ winner: 'Team NS' }`) to return the final, formatted string in the currently selected language.
 *   **Layer 1 Justification:** This is a pure utility for string manipulation and data retrieval, essential for making the game's output maintainable and translatable.
+*   **Testing Considerations:** `test/utils/i18n.unit.test.js` will heavily rely on `esmockWithPaths` to mock the `import ... with { type: 'json' }` statement that loads the locale data. This allows tests to simulate different locale files and test edge cases like missing keys or incorrect placeholders.

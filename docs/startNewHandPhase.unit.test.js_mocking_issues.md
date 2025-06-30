@@ -7,6 +7,28 @@
 - Utility tests (deck, settingsUtils, historyUtils) are all passing after targeted fixes to logic and test expectations.
 - All other phase test files (biddingPhase, endGame, goAlonePhase, lobbyPhase, playingPhase, scoringPhase) have been fixed and are passing.
 
+## Possible Fix Method Example
+/**
+ * Converts a relative path to an absolute path with POSIX separators
+ * @param {string} relativePath - Path relative to the test file
+ * @returns {string} Absolute path with POSIX separators
+ */
+const toPosixPath = (relativePath) => {
+  return path.resolve(__dirname, relativePath).replace(/\\/g, '/');
+};
+
+// Define all module paths as constants at the top of the file
+const PATHS = {
+  // Source files - use relative paths from the test file
+  START_NEW_HAND: toPosixPath('../../../src/game/phases/startNewHandPhase.js'),
+  DECK_UTILS: toPosixPath('../../../src/utils/deck.js'),
+  PLAYER_UTILS: toPosixPath('../../../src/utils/players.js'),
+  LOGGER: toPosixPath('../../../src/utils/logger.js'),
+  CONSTANTS: toPosixPath('../../../src/config/constants.js'),
+  ERRORS: toPosixPath('../../../src/game/logic/errors.js'),
+};
+
+
 ## Attempted Fixes (Not Working for
 )
 1. Direct Relative Imports

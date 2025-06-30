@@ -43,6 +43,30 @@
   - The above approaches do not work due to Mocha/Node ESM path resolution quirks, especially on Windows with spaces in directory names
 - All other phase logic test files (e.g., scoringPhase.unit.test.js, playingPhase.unit.test.js) are passing, confirming the import/module resolution issue is isolated to startNewHandPhase.unit.test.js and not a global test runner or environment problem.
 - Actively updating startNewHandPhase.unit.test.js to replace all old stub usage with the new mock objects (mockDeckUtils, mockPlayerUtils, mockLogger) throughout all test cases to ensure consistency and resolve test failures due to outdated stub patterns.
+
+## Possible Module ID Pathing Fixes
+
+/**
+ * Converts a relative path to an absolute path with POSIX separators
+ * @param {string} relativePath - Path relative to the test file
+ * @returns {string} Absolute path with POSIX separators
+ */
+const toPosixPath = (relativePath) => {
+  return path.resolve(__dirname, relativePath).replace(/\\/g, '/');
+};
+
+// Define all module paths as constants at the top of the file
+const PATHS = {
+  // Source files - use relative paths from the test file
+  START_NEW_HAND: toPosixPath('../../../src/game/phases/startNewHandPhase.js'),
+  DECK_UTILS: toPosixPath('../../../src/utils/deck.js'),
+  PLAYER_UTILS: toPosixPath('../../../src/utils/players.js'),
+  LOGGER: toPosixPath('../../../src/utils/logger.js'),
+  CONSTANTS: toPosixPath('../../../src/config/constants.js'),
+  ERRORS: toPosixPath('../../../src/game/logic/errors.js'),
+};
+
+
 ## Task List
 - [ ] Fix esmock import/module path issues in Layer 1 phase logic test files
   - [x] biddingPhase.unit.test.js: fix all import paths and mocks (verified passing)

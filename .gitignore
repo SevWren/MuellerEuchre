@@ -21,11 +21,11 @@ pids
 *.pid.lock
 
 # VS Code
-# .vscode/
-# .vscode/settings.json
-# .vscode/tasks.json
-# .vscode/launch.json
-# .vscode/extensions.json
+.vscode/
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
 .idea/
 
 #backup files
@@ -90,6 +90,7 @@ index - Copy.html
 #Misc code editor files
 *.windsurfrules
 ENVIRONMENT_INSTABILITY.MD
+.windsurf/*
 
 #Archive
 archived/
@@ -105,7 +106,7 @@ mueller_euchre_repo_llm.txt
 npm_test_dos_output.txt
 npm_test_powershell_output.txt
 test_results.txt
-docs\File Review
+docs\File Review*
 docs/File Reviews/errors.js-validation.js.review.md
 docs/File Reviews/CodeReview-errorUtils.unit.test-lobbyUtils.unit.test-logger.unit.test.md
 docs/File Reviews/gemini_review_deck.unit.test.js.md
@@ -113,7 +114,8 @@ docs/File Reviews/gemini_review-endGame.js-goAlonePhase.js-biddingPhase.js.md
 docs/File Reviews/gemini_review-scoringPhase.js-startNewHandPhase.js-lobbyPhase.js-playingPhase.js.md
 docs/File Reviews/validation.unit.test.js.review.md
 memory-bank/rules_improvement_plan.md
-.kilocodemodes
+.kilocodemodes*
+.kilocodemodes/*
 test/game/phases/lobbyPhase.unit.test.js.aistudio.js
 test/game/logic/validation.js.aistudio.js
 test/utils/deck.unit.test.js.aistudio.js
@@ -121,14 +123,4 @@ missing_layer_1.1.png
 missing_layer_1.2.png
 docs/Supplemental_Layer1_Plan_Improvements.md
 changes_since_last_commit.txt
-.vscode/tasks.json.original
-.vscode/settings.json.working
-.vscode/settings.json
-.vscode/settings.json.original
-.vscode/launch.json.working
-.vscode/launch.json.original
-.vscode/launch.json
-.vscode/extensions.json
-.vscode/mcp.json
-.vscode/tasks.json
-.windsurf/rules/layer-1.md
+test\game\phases\lobbyPhase.unit.test.js.aistudio.js

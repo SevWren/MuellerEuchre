@@ -1,4 +1,16 @@
 // filepath: src/utils/settingsUtils.js
+import { ValidationError } from "../game/logic/errors.js";
+
+// Schema definition for settings validation
+const SETTINGS_SCHEMA = {
+  winningScore: {
+    type: "number",
+    integer: true,
+    min: 5,
+    max: 21,
+    required: false,
+  },
+};
 
 /**
  * Returns the default game settings.
@@ -9,29 +21,74 @@ export function getDefaultSettings() {
 }
 
 /**
- * Validates custom game settings against a defined schema.
+ * Validates custom game settings against the schema.
  * @param {object} customSettings - The custom settings object to validate.
- * @returns {{isValid: boolean, errors: string[]}} An object indicating validity and a list of errors.
+ * @returns {{isValid: boolean, errors: string[]}} Validation result object.
  */
 export function validateSettings(customSettings) {
-  const errors = [];
+  const result = {
+    isValid: true,
+    errors: []
+  };
 
   if (typeof customSettings !== "object" || customSettings === null) {
-    errors.push("Custom settings must be an object.");
-    return { isValid: false, errors };
+    result.isValid = false;
+    result.errors.push("Custom settings must be an object.");
+    return result;
   }
 
-  const { winningScore } = customSettings;
+  for (const [key, rule] of Object.entries(SETTINGS_SCHEMA)) {
+    // Skip validation if the setting is not provided and not required
+    if (customSettings[key] === undefined) {
+      continue;
+    }
 
-  if (winningScore !== undefined) {
-    if (typeof winningScore !== "number" || !Number.isInteger(winningScore)) {
-      errors.push("Winning score must be an integer.");
-    } else if (winningScore < 5 || winningScore > 21) {
-      errors.push("Winning score must be between 5 and 21.");
+    // Type validation
+    if (rule.type && typeof customSettings[key] !== rule.type) {
+      result.isValid = false;
+      if (key === 'winningScore') {
+        result.errors.push("Winning score must be an integer.");
+      } else {
+        result.errors.push(`Setting '${key}' must be of type ${rule.type}`);
+      }
+      continue;
+    }
+
+    // Integer validation
+    if (rule.integer && !Number.isInteger(customSettings[key])) {
+      result.isValid = false;
+      if (key === 'winningScore') {
+        result.errors.push("Winning score must be an integer.");
+      } else {
+        result.errors.push(`Setting '${key}' must be an integer`);
+      }
+      continue;
+    }
+
+    // Min value validation
+    if (rule.min !== undefined && customSettings[key] < rule.min) {
+      result.isValid = false;
+      if (key === 'winningScore') {
+        result.errors.push("Winning score must be between 5 and 21.");
+      } else {
+        result.errors.push(`Setting '${key}' must be at least ${rule.min}`);
+      }
+      continue;
+    }
+
+    // Max value validation
+    if (rule.max !== undefined && customSettings[key] > rule.max) {
+      result.isValid = false;
+      if (key === 'winningScore') {
+        result.errors.push("Winning score must be between 5 and 21.");
+      } else {
+        result.errors.push(`Setting '${key}' must be at most ${rule.max}`);
+      }
+      continue;
     }
   }
 
-  return { isValid: errors.length === 0, errors };
+  return result;
 }
 
 /**

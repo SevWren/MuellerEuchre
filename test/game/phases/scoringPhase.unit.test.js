@@ -19,15 +19,23 @@
  *   - No test will require integration with state, persistence, or network code.
  */
 
-import { expect } from 'chai';
-import sinon from 'sinon';
-import esmock from 'esmock';
-import chaiAsPromised from 'chai-as-promised';
-import { GAME_PHASES, TEAMS, PLAYER_ROLES, WINNING_SCORE } from '../../../src/config/constants.js';
-import { InvalidPhaseError, PhaseLogicError } from '../../../src/game/logic/errors.js';
+import { expect } from "chai";
+import sinon from "sinon";
+import esmock from "esmock";
+import chaiAsPromised from "chai-as-promised";
+import {
+  GAME_PHASES,
+  TEAMS,
+  PLAYER_ROLES,
+  WINNING_SCORE,
+} from "../../../src/config/constants.js";
+import {
+  InvalidPhaseError,
+  PhaseLogicError,
+} from "../../../src/game/logic/errors.js";
 
 // Apply chai-as-promised
-import * as chaiModule from 'chai';
+import * as chaiModule from "chai";
 chaiModule.use(chaiAsPromised);
 
 const defaultLoggerMock = {
@@ -38,7 +46,7 @@ const defaultLoggerMock = {
 };
 
 const createScoringGameState = () => ({
-  gameId: 'scoringTestGame',
+  gameId: "scoringTestGame",
   gamePhase: GAME_PHASES.SCORING,
   makerTeam: TEAMS.TEAM_NS,
   tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
@@ -46,10 +54,26 @@ const createScoringGameState = () => ({
   goingAlone: false,
   dealer: PLAYER_ROLES[0],
   players: {
-    [PLAYER_ROLES[0]]: { id: PLAYER_ROLES[0], name: 'South', teamId: TEAMS.TEAM_NS },
-    [PLAYER_ROLES[1]]: { id: PLAYER_ROLES[1], name: 'West', teamId: TEAMS.TEAM_EW },
-    [PLAYER_ROLES[2]]: { id: PLAYER_ROLES[2], name: 'North', teamId: TEAMS.TEAM_NS },
-    [PLAYER_ROLES[3]]: { id: PLAYER_ROLES[3], name: 'East', teamId: TEAMS.TEAM_EW },
+    [PLAYER_ROLES[0]]: {
+      id: PLAYER_ROLES[0],
+      name: "South",
+      teamId: TEAMS.TEAM_NS,
+    },
+    [PLAYER_ROLES[1]]: {
+      id: PLAYER_ROLES[1],
+      name: "West",
+      teamId: TEAMS.TEAM_EW,
+    },
+    [PLAYER_ROLES[2]]: {
+      id: PLAYER_ROLES[2],
+      name: "North",
+      teamId: TEAMS.TEAM_NS,
+    },
+    [PLAYER_ROLES[3]]: {
+      id: PLAYER_ROLES[3],
+      name: "East",
+      teamId: TEAMS.TEAM_EW,
+    },
   },
   gameMessages: [],
   trumpSuit: null,
@@ -66,7 +90,7 @@ const createScoringGameState = () => ({
   settings: { winningScore: WINNING_SCORE }, // Default winning score for tests
 });
 
-describe('ScoringPhase Logic', () => {
+describe("ScoringPhase Logic", () => {
   afterEach(() => {
     sinon.restore();
     defaultLoggerMock.info.resetHistory();
@@ -75,42 +99,121 @@ describe('ScoringPhase Logic', () => {
     defaultLoggerMock.debug.resetHistory();
   });
 
-  describe('calculateAndApplyScore', () => {
+  describe("calculateAndApplyScore", () => {
     let calculateAndApplyScore;
     let updateGameMock;
 
     beforeEach(async () => {
       updateGameMock = sinon.stub().resolves();
-      const scoringPhaseModule = await esmock('../../src/game/phases/scoringPhase.js', {
-        '../../src/db/gameRepository.js': {
-          gameRepository: { updateGame: updateGameMock }
-        },
-        '../../src/utils/logger.js': defaultLoggerMock,
-      });
+      const scoringPhaseModule = await esmock(
+        "../../../src/game/phases/scoringPhase.js",
+        {
+          "../../utils/logger.js": defaultLoggerMock,
+        }
+      );
       calculateAndApplyScore = scoringPhaseModule.calculateAndApplyScore;
     });
 
-    it('should throw InvalidPhaseError if not in SCORING phase', async () => {
-      const gameState = { ...createScoringGameState(), gamePhase: GAME_PHASES.PLAYING };
-      await expect(calculateAndApplyScore(gameState))
-        .to.be.rejectedWith(InvalidPhaseError, /calculateAndApplyScore called inappropriately during PLAYING/i);
+    it("should throw InvalidPhaseError if not in SCORING phase", async () => {
+      const gameState = {
+        ...createScoringGameState(),
+        gamePhase: GAME_PHASES.PLAYING,
+      };
+      await expect(calculateAndApplyScore(gameState)).to.be.rejectedWith(
+        InvalidPhaseError,
+        /calculateAndApplyScore called inappropriately during PLAYING/i
+      );
     });
 
-    it('should throw PhaseLogicError if makerTeam is not defined', async () => {
+    it("should throw PhaseLogicError if makerTeam is not defined", async () => {
       const gameState = { ...createScoringGameState(), makerTeam: null };
-      await expect(calculateAndApplyScore(gameState))
-        .to.be.rejectedWith(PhaseLogicError, /Cannot calculate score: makerTeam is not defined/i);
+      await expect(calculateAndApplyScore(gameState)).to.be.rejectedWith(
+        PhaseLogicError,
+        /Cannot calculate score: makerTeam is not defined/i
+      );
     });
 
     const scenarios = [
-      { name: 'Makers get 3 tricks', tricksNS: 3, tricksEW: 2, maker: TEAMS.TEAM_NS, alone: false, expectedScoreNS: 1, expectedScoreEW: 0, expectedMsg: /Team NS made their bid. 1 point./ },
-      { name: 'Makers get 4 tricks', tricksNS: 4, tricksEW: 1, maker: TEAMS.TEAM_NS, alone: false, expectedScoreNS: 1, expectedScoreEW: 0, expectedMsg: /Team NS made their bid. 1 point./ },
-      { name: 'Makers get 5 tricks (march)', tricksNS: 5, tricksEW: 0, maker: TEAMS.TEAM_NS, alone: false, expectedScoreNS: 2, expectedScoreEW: 0, expectedMsg: /Team NS achieved a march! 2 points./ },
-      { name: 'Makers euchred (NS maker, EW wins)', tricksNS: 2, tricksEW: 3, maker: TEAMS.TEAM_NS, alone: false, expectedScoreNS: 0, expectedScoreEW: 2, expectedMsg: /Team NS was euchred! Team EW gets 2 points./ },
-      { name: 'Makers get 3 tricks alone', tricksNS: 3, tricksEW: 2, maker: TEAMS.TEAM_NS, alone: true, expectedScoreNS: 1, expectedScoreEW: 0, expectedMsg: /Team NS made their bid \(alone\). 1 point./ },
-      { name: 'Makers get 5 tricks alone (march)', tricksNS: 5, tricksEW: 0, maker: TEAMS.TEAM_NS, alone: true, expectedScoreNS: 4, expectedScoreEW: 0, expectedMsg: /Team NS achieved a march \(alone\)! 4 points./ },
-      { name: 'EW Makers get 3 tricks', tricksNS: 2, tricksEW: 3, maker: TEAMS.TEAM_EW, alone: false, expectedScoreNS: 0, expectedScoreEW: 1, expectedMsg: /Team EW made their bid. 1 point./ },
-      { name: 'EW Makers euchred (EW maker, NS wins)', tricksNS: 3, tricksEW: 2, maker: TEAMS.TEAM_EW, alone: false, expectedScoreNS: 2, expectedScoreEW: 0, expectedMsg: /Team EW was euchred! Team NS gets 2 points./ },
+      {
+        name: "Makers get 3 tricks",
+        tricksNS: 3,
+        tricksEW: 2,
+        maker: TEAMS.TEAM_NS,
+        alone: false,
+        expectedScoreNS: 1,
+        expectedScoreEW: 0,
+        expectedMsg: /Team NS made their bid. 1 point./,
+      },
+      {
+        name: "Makers get 4 tricks",
+        tricksNS: 4,
+        tricksEW: 1,
+        maker: TEAMS.TEAM_NS,
+        alone: false,
+        expectedScoreNS: 1,
+        expectedScoreEW: 0,
+        expectedMsg: /Team NS made their bid. 1 point./,
+      },
+      {
+        name: "Makers get 5 tricks (march)",
+        tricksNS: 5,
+        tricksEW: 0,
+        maker: TEAMS.TEAM_NS,
+        alone: false,
+        expectedScoreNS: 2,
+        expectedScoreEW: 0,
+        expectedMsg: /Team NS achieved a march! 2 points./,
+      },
+      {
+        name: "Makers euchred (NS maker, EW wins)",
+        tricksNS: 2,
+        tricksEW: 3,
+        maker: TEAMS.TEAM_NS,
+        alone: false,
+        expectedScoreNS: 0,
+        expectedScoreEW: 2,
+        expectedMsg: /Team NS was euchred! Team EW gets 2 points./,
+      },
+      {
+        name: "Makers get 3 tricks alone",
+        tricksNS: 3,
+        tricksEW: 2,
+        maker: TEAMS.TEAM_NS,
+        alone: true,
+        expectedScoreNS: 1,
+        expectedScoreEW: 0,
+        expectedMsg: /Team NS made their bid \(alone\). 1 point./,
+      },
+      {
+        name: "Makers get 5 tricks alone (march)",
+        tricksNS: 5,
+        tricksEW: 0,
+        maker: TEAMS.TEAM_NS,
+        alone: true,
+        expectedScoreNS: 4,
+        expectedScoreEW: 0,
+        expectedMsg: /Team NS achieved a march \(alone\)! 4 points./,
+      },
+      {
+        name: "EW Makers get 3 tricks",
+        tricksNS: 2,
+        tricksEW: 3,
+        maker: TEAMS.TEAM_EW,
+        alone: false,
+        expectedScoreNS: 0,
+        expectedScoreEW: 1,
+        expectedMsg: /Team EW made their bid. 1 point./,
+      },
+      {
+        name: "EW Makers euchred (EW maker, NS wins)",
+        tricksNS: 3,
+        tricksEW: 2,
+        maker: TEAMS.TEAM_EW,
+        alone: false,
+        expectedScoreNS: 2,
+        expectedScoreEW: 0,
+        expectedMsg: /Team EW was euchred! Team NS gets 2 points./,
+      },
     ];
 
     for (const scenario of scenarios) {
@@ -128,22 +231,33 @@ describe('ScoringPhase Logic', () => {
         // The function now returns the state instead of calling updateGameMock
         expect(updateGameMock.called).to.be.false; // Ensure updateGame is NOT called
 
-        expect(finalState.teamScores[TEAMS.TEAM_NS]).to.equal(scenario.expectedScoreNS);
-        expect(finalState.teamScores[TEAMS.TEAM_EW]).to.equal(scenario.expectedScoreEW);
+        expect(finalState.teamScores[TEAMS.TEAM_NS]).to.equal(
+          scenario.expectedScoreNS
+        );
+        expect(finalState.teamScores[TEAMS.TEAM_EW]).to.equal(
+          scenario.expectedScoreEW
+        );
         expect(finalState.message).to.match(scenario.expectedMsg);
-        expect(finalState.message).to.include(`Current scores: Team NS ${scenario.expectedScoreNS}, Team EW ${scenario.expectedScoreEW}.`);
+        expect(finalState.message).to.include(
+          `Current scores: Team NS ${scenario.expectedScoreNS}, Team EW ${scenario.expectedScoreEW}.`
+        );
         expect(finalState.tricksTaken[TEAMS.TEAM_NS]).to.equal(0);
         expect(finalState.tricksTaken[TEAMS.TEAM_EW]).to.equal(0);
-        expect(finalState.previousTricksTaken[TEAMS.TEAM_NS]).to.equal(scenario.tricksNS);
+        expect(finalState.previousTricksTaken[TEAMS.TEAM_NS]).to.equal(
+          scenario.tricksNS
+        );
 
         const WINNING_SCORE_VALUE = 10; // Assuming WINNING_SCORE is 10 for this check
-        if(scenario.expectedScoreNS < WINNING_SCORE_VALUE && scenario.expectedScoreEW < WINNING_SCORE_VALUE) {
-             expect(finalState.gamePhase).to.equal(GAME_PHASES.DEALING);
+        if (
+          scenario.expectedScoreNS < WINNING_SCORE_VALUE &&
+          scenario.expectedScoreEW < WINNING_SCORE_VALUE
+        ) {
+          expect(finalState.gamePhase).to.equal(GAME_PHASES.DEALING);
         }
       });
     }
 
-    it('should correctly update scores and transition phase via checkGameOver (which calls mocked updateGame)', async () => {
+    it("should correctly update scores and transition phase via checkGameOver (which calls mocked updateGame)", async () => {
       let gameState = createScoringGameState();
       gameState.makerTeam = TEAMS.TEAM_NS;
       gameState.tricksTaken[TEAMS.TEAM_NS] = 3;
@@ -159,11 +273,13 @@ describe('ScoringPhase Logic', () => {
       expect(finalState.teamScores[TEAMS.TEAM_EW]).to.equal(5);
       expect(finalState.gamePhase).to.equal(GAME_PHASES.DEALING);
       expect(finalState.message).to.include("Team NS made their bid. 1 point.");
-      expect(finalState.message).to.include("Current scores: Team NS 9, Team EW 5.");
+      expect(finalState.message).to.include(
+        "Current scores: Team NS 9, Team EW 5."
+      );
       expect(finalState.message).to.include("New dealer:");
     });
 
-    it('should correctly handle game over via checkGameOver (which calls mocked updateGame)', async () => {
+    it("should correctly handle game over via checkGameOver (which calls mocked updateGame)", async () => {
       let gameState = createScoringGameState();
       gameState.makerTeam = TEAMS.TEAM_NS;
       gameState.tricksTaken[TEAMS.TEAM_NS] = 5;
@@ -179,9 +295,12 @@ describe('ScoringPhase Logic', () => {
       expect(finalState.teamScores[TEAMS.TEAM_EW]).to.equal(5);
       expect(finalState.gamePhase).to.equal(GAME_PHASES.GAME_OVER);
       expect(finalState.winningTeam).to.equal(TEAMS.TEAM_NS);
-      expect(finalState.message).to.include("Team NS achieved a march! 2 points.");
-      expect(finalState.message).to.include("Game Over! Team NS wins with 11 points!");
+      expect(finalState.message).to.include(
+        "Team NS achieved a march! 2 points."
+      );
+      expect(finalState.message).to.include(
+        "Game Over! Team NS wins with 11 points!"
+      );
     });
   });
-
 });

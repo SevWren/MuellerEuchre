@@ -25,11 +25,21 @@
 
 import { expect } from 'chai';
 import sinon from 'sinon';
-// We will import functions under test via esmock for relevant describe blocks
+import esmock from 'esmock';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get the current file's directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Import test utilities and constants
+const projectRoot = path.resolve(__dirname, '../../..');
+
+// Import using relative paths
 import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } from '../../../src/config/constants.js';
 import { createDeck, shuffleDeck, cardToId } from '../../../src/utils/deck.js';
 import { initializePlayers, getNextPlayer as testGetNextPlayer } from '../../../src/utils/players.js';
-import esmock from 'esmock';
 import {
   PhaseLogicError,
   ValidationError,
@@ -122,10 +132,24 @@ describe('BiddingPhase Logic', () => {
 
     beforeEach(async () => {
       validateBidMock = sinon.stub();
-      const biddingPhaseModule = await esmock('../../../src/game/phases/biddingPhase.js', {
-        '../../../src/game/logic/validation.js': { validateBid: validateBidMock },
-        '../../../src/utils/logger.js': baseLoggerMock,
+      
+      // Use file URLs for Windows compatibility
+      const toFileUrl = (filepath) => {
+        const pathName = path.resolve(filepath).replace(/\\/g, '/');
+        return 'file:///' + pathName;
+      };
 
+      const projectRoot = path.resolve(__dirname, '../../..');
+      const biddingPhasePath = toFileUrl(path.join(projectRoot, 'src/game/phases/biddingPhase.js'));
+      const validationPath = toFileUrl(path.join(projectRoot, 'src/game/logic/validation.js'));
+      const loggerPath = toFileUrl(path.join(projectRoot, 'src/utils/logger.js'));
+      
+      const biddingPhaseModule = await esmock(biddingPhasePath, {
+        [validationPath]: { 
+          validateBid: validateBidMock,
+          validateDealerDiscard: sinon.stub().returns(true)
+        },
+        [loggerPath]: baseLoggerMock
       });
       handleOrderUpDecision = biddingPhaseModule.handleOrderUpDecision;
       gameStateInOrderUpRound1 = setupBiddingState(PLAYER_ROLES[0], 1, SUITS.DIAMONDS);

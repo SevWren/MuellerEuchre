@@ -85,8 +85,8 @@ describe("Validation Logic - validatePlay", () => {
     const validationModule = await esmock(
       "../../../src/game/logic/validation.js",
       {
-        "../../../src/utils/logger.js": loggerMock,
-        "../../../src/utils/deck.js": {
+        "../../utils/logger.js": loggerMock,
+        "../../utils/deck.js": {
           isLeftBower: (card, trumpSuit) =>
             generalIsLeftBowerMock(card, trumpSuit),
         },
@@ -207,8 +207,9 @@ describe("Validation Logic - validatePlay", () => {
       const validationModule = await esmock(
         "../../../src/game/logic/validation.js",
         {
-          "../../../src/utils/logger.js": loggerMock,
-          "../../../src/utils/deck.js": {
+          // The key must match the import string inside the target module ('validation.js')
+          "../../utils/logger.js": loggerMock,
+          "../../utils/deck.js": {
             isLeftBower: (card, trumpSuit) => isLeftBowerMock(card, trumpSuit),
           },
         }
@@ -246,34 +247,35 @@ describe("Validation Logic - validatePlay", () => {
       ).to.equal(true);
     });
 
-    it("should throw MustFollowSuitError if player has led suit but plays off-suit", () => {
-      const ledCard = {
+    it("should throw MustFollowSuitError if player has the led suit but plays an off-suit card", () => {
+      // Arrange
+      const ledCardDetails = {
         card: { id: "QC", suit: SUITS.CLUBS, value: VALUES.QUEEN },
         player: PLAYER_ROLES[1],
       };
       const gameState = {
         ...baseGameState,
-        currentTrick: [ledCard],
+        currentTrick: [ledCardDetails], // Clubs was led.
         trumpSuit: SUITS.SPADES,
       };
-      const cardToPlay = player1Hand[2]; // AS (Spades)
 
-      // Ensure mock is properly applied
-      isLeftBowerMock = (card, trumpSuit) => {
-        if (!card || card.value !== VALUES.JACK) return false;
-        return (
-          (trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS) ||
-          (trumpSuit === SUITS.CLUBS && card.suit === SUITS.SPADES) ||
-          (trumpSuit === SUITS.HEARTS && card.suit === SUITS.DIAMONDS) ||
-          (trumpSuit === SUITS.DIAMONDS && card.suit === SUITS.HEARTS)
-        );
+      // From the `player1Hand` defined in the parent scope, we know the player has Clubs.
+      // This card is an off-suit (and trump) card.
+      const cardToAttempt = {
+        id: "AS",
+        suit: SUITS.SPADES,
+        value: VALUES.ACE,
       };
 
-      expect(() =>
-        validatePlay(gameState, player1Hand, cardToPlay, player1Role)
-      ).to.throw(
+      // Act
+      // The player must follow suit by playing a Club. Attempting to play a Spade is illegal.
+      const action = () =>
+        validatePlay(gameState, player1Hand, cardToAttempt, player1Role);
+
+      // Assert
+      expect(action).to.throw(
         MustFollowSuitError,
-        "Must follow suit. Led suit is Clubs, attempted to play Spades."
+        `Must follow suit. Led suit is ${SUITS.CLUBS}, attempted to play ${SUITS.SPADES}.`
       );
     });
 
@@ -335,22 +337,16 @@ describe("Validation Logic - validatePlay", () => {
     let validatePlay; // Specific to this describe block
     let isLeftBowerMock; // Specific to this describe block
 
-    // This beforeEach will be overridden by specific tests if needed,
-    // but provides a default for this block if a test doesn't redefine it.
     beforeEach(async () => {
-      // Default mock for Left Bower scenarios
-      isLeftBowerMock = (card, trumpSuit) => {
-        // Default behavior: JC is Left Bower if trump is Spades
-        if (trumpSuit === SUITS.SPADES && card.id === "JC") return true;
-        // Add other default Left Bower rules if necessary for tests in this block
-        return false;
-      };
+      // isLeftBowerMock will be a mutable function reference that tests can redefine
+      isLeftBowerMock = () => false;
 
       const validationModule = await esmock(
         "../../../src/game/logic/validation.js",
         {
-          "../../../src/utils/logger.js": loggerMock,
-          "../../../src/utils/deck.js": {
+          // The key must match the import string inside the target module ('validation.js')
+          "../../utils/logger.js": loggerMock,
+          "../../utils/deck.js": {
             isLeftBower: (card, trumpSuit) => isLeftBowerMock(card, trumpSuit),
           },
         }
@@ -358,22 +354,10 @@ describe("Validation Logic - validatePlay", () => {
       validatePlay = validationModule.validatePlay;
     });
 
-    it('should correctly use trump suit for Left Bower when checking "must follow suit" (player has Left Bower of led suit)', async () => {
-      // Redefine isLeftBowerMock specifically for this test's esmock call
-      const specificIsLeftBowerMock = (card, trumpSuit) =>
+    it('should correctly use trump suit for Left Bower when checking "must follow suit" (player has Left Bower of led suit)', () => {
+      // Arrange: Define the specific mock behavior for this test
+      isLeftBowerMock = (card, trumpSuit) =>
         card.id === "JC" && trumpSuit === SUITS.SPADES; // JC is SPADES for this test
-
-      const validationModule = await esmock(
-        "../../../src/game/logic/validation.js",
-        {
-          "../../../src/utils/logger.js": loggerMock,
-          "../../../src/utils/deck.js": {
-            isLeftBower: (card, trumpSuit) =>
-              specificIsLeftBowerMock(card, trumpSuit),
-          },
-        }
-      );
-      const validatePlaySpecific = validationModule.validatePlay;
 
       const localPlayerHand = [
         { id: "JC", suit: SUITS.CLUBS, value: VALUES.JACK }, // Effective SPADE
@@ -391,26 +375,20 @@ describe("Validation Logic - validatePlay", () => {
       };
       const cardToPlay = localPlayerHand[0]; // Playing JC (effective SPADE)
 
-      // specificIsLeftBowerMock(QC, Spades) -> false. Led suit CLUBS.
-      // specificIsLeftBowerMock(JC, Spades) -> true. JC is SPADES.
-      // specificIsLeftBowerMock(TC, Spades) -> false. TC is CLUBS.
-      // Player has TC (true Club), card played JC (Spade). Should throw.
+      // Act & Assert
+      // Player has a true Club (TC), but tries to play the Left Bower (JC, effective Spade).
+      // This is not following suit.
       expect(() =>
-        validatePlaySpecific(
-          gameState,
-          localPlayerHand,
-          cardToPlay,
-          player1Role
-        )
+        validatePlay(gameState, localPlayerHand, cardToPlay, player1Role)
       ).to.throw(
         MustFollowSuitError,
         `Must follow suit. Led suit is ${SUITS.CLUBS}, attempted to play ${SUITS.SPADES}.`
       );
 
-      // Playing the TC (true Club) should be valid
+      // Playing the correct card (TC) should not throw.
       const cardToPlayCorrectly = localPlayerHand[1]; // TC
       expect(() =>
-        validatePlaySpecific(
+        validatePlay(
           gameState,
           localPlayerHand,
           cardToPlayCorrectly,
@@ -419,21 +397,10 @@ describe("Validation Logic - validatePlay", () => {
       ).to.not.throw();
     });
 
-    it("should correctly use trump suit for Left Bower when determining led suit (Left Bower was led)", async () => {
-      const specificIsLeftBowerMock = (card, trumpSuit) =>
-        card.id === "JC" && trumpSuit === SUITS.SPADES; // JC is SPADES for this test
-
-      const validationModule = await esmock(
-        "../../../src/game/logic/validation.js",
-        {
-          "../../../src/utils/logger.js": loggerMock,
-          "../../../src/utils/deck.js": {
-            isLeftBower: (card, trumpSuit) =>
-              specificIsLeftBowerMock(card, trumpSuit),
-          },
-        }
-      );
-      const validatePlaySpecific = validationModule.validatePlay;
+    it("should correctly use trump suit for Left Bower when determining led suit (Left Bower was led)", () => {
+      // Arrange
+      isLeftBowerMock = (card, trumpSuit) =>
+        card.id === "JC" && trumpSuit === SUITS.SPADES; // JC is SPADES
 
       const ledCard = {
         card: { id: "JC", suit: SUITS.CLUBS, value: VALUES.JACK },
@@ -444,52 +411,34 @@ describe("Validation Logic - validatePlay", () => {
         trumpSuit: SUITS.SPADES,
         currentTrick: [ledCard],
       };
-      const cardToPlay = player1Hand[2]; // AS (Spade) - follows effective suit (Spades)
-      // specificIsLeftBowerMock(JC, Spades) -> true. Led suit SPADES.
-      // Player hand (player1Hand) has AS, KS (Spades). Card played AS (Spade). Valid.
+
+      // Act & Assert: Playing a Spade should be valid as it follows the effective led suit
+      const cardToPlay = player1Hand[2]; // AS (Spade)
       expect(() =>
-        validatePlaySpecific(gameState, player1Hand, cardToPlay, player1Role)
+        validatePlay(gameState, player1Hand, cardToPlay, player1Role)
       ).to.not.throw();
       expect(
-        validatePlaySpecific(gameState, player1Hand, cardToPlay, player1Role)
+        validatePlay(gameState, player1Hand, cardToPlay, player1Role)
       ).to.equal(true);
 
-      // Player plays a Club (AC) when Left Bower (Spade) was led. Player has other spades (AS, KS).
+      // Act & Assert: Playing a Club should be invalid as it does not follow the effective led suit (Spades)
       const cardToPlayWrong = player1Hand[0]; // AC (Club)
-      // specificIsLeftBowerMock(AC, Spades) -> false. AC is CLUBS.
-      // Player has Spades (AS, KS). Led suit SPADES. Card played CLUBS. Should throw.
       expect(() =>
-        validatePlaySpecific(
-          gameState,
-          player1Hand,
-          cardToPlayWrong,
-          player1Role
-        )
+        validatePlay(gameState, player1Hand, cardToPlayWrong, player1Role)
       ).to.throw(
         MustFollowSuitError,
         `Must follow suit. Led suit is ${SUITS.SPADES}, attempted to play ${SUITS.CLUBS}.`
       );
     });
 
-    it("should allow playing Left Bower if it matches the led suit (which is trump)", async () => {
-      const specificIsLeftBowerMock = (card, trumpSuit) =>
-        card.id === "JS" && trumpSuit === SUITS.CLUBS; // JS is CLUBS for this test
-
-      const validationModule = await esmock(
-        "../../../src/game/logic/validation.js",
-        {
-          "../../../src/utils/logger.js": loggerMock,
-          "../../../src/utils/deck.js": {
-            isLeftBower: (card, trumpSuit) =>
-              specificIsLeftBowerMock(card, trumpSuit),
-          },
-        }
-      );
-      const validatePlaySpecific = validationModule.validatePlay;
+    it("should allow playing Left Bower if it matches the led suit (which is trump)", () => {
+      // Arrange
+      isLeftBowerMock = (card, trumpSuit) =>
+        card.id === "JS" && trumpSuit === SUITS.CLUBS; // JS is CLUBS
 
       const localHand = [
         { id: "JS", suit: SUITS.SPADES, value: VALUES.JACK }, // Effective Club
-        { id: "AH", suit: SUITS.HEARTS, value: VALUES.ACE }, //
+        { id: "AH", suit: SUITS.HEARTS, value: VALUES.ACE },
       ];
       const ledCard = {
         card: { id: "AC", suit: SUITS.CLUBS, value: VALUES.ACE },
@@ -501,32 +450,20 @@ describe("Validation Logic - validatePlay", () => {
         currentTrick: [ledCard],
       };
       const cardToPlay = localHand[0]; // JS (effective Club)
-      // specificIsLeftBowerMock(AC, Clubs) -> false. Led suit CLUBS.
-      // specificIsLeftBowerMock(JS, Clubs) -> true. JS is CLUBS.
-      // Player has JS (effective Club). Card played JS (effective Club). Valid.
+
+      // Act & Assert: Since the effective suit of JS is Clubs, this is a valid play.
       expect(() =>
-        validatePlaySpecific(gameState, localHand, cardToPlay, player1Role)
+        validatePlay(gameState, localHand, cardToPlay, player1Role)
       ).to.not.throw();
       expect(
-        validatePlaySpecific(gameState, localHand, cardToPlay, player1Role)
+        validatePlay(gameState, localHand, cardToPlay, player1Role)
       ).to.equal(true);
     });
 
-    it("should throw MustFollowSuitError if player has a card of the led suit but plays another non-trump card", async () => {
-      const specificIsLeftBowerMock = (card, trumpSuit) =>
-        card.id === "JS" && trumpSuit === SUITS.CLUBS; // JS is CLUBS for this test
-
-      const validationModule = await esmock(
-        "../../../src/game/logic/validation.js",
-        {
-          "../../../src/utils/logger.js": loggerMock, // Mocked logger
-          "../../../src/utils/deck.js": {
-            isLeftBower: (card, trumpSuit) =>
-              specificIsLeftBowerMock(card, trumpSuit),
-          },
-        }
-      );
-      const validatePlaySpecific = validationModule.validatePlay;
+    it("should throw MustFollowSuitError if player has a card of the led suit but plays another non-trump card", () => {
+      // Arrange
+      isLeftBowerMock = (card, trumpSuit) =>
+        card.id === "JS" && trumpSuit === SUITS.CLUBS; // JS is CLUBS (Trump)
 
       const hand = [
         { id: "JS", suit: SUITS.SPADES, value: VALUES.JACK }, // Effective Club (Trump)
@@ -544,9 +481,9 @@ describe("Validation Logic - validatePlay", () => {
       }; // Led suit is Hearts, Trump is Clubs
       const cardToAttempt = hand[2]; // AS (Spade)
 
-      // Player has KH (Heart), must play it.
+      // Act & Assert: Player has a Heart (KH), so they must play it. Playing a spade is an error.
       expect(() =>
-        validatePlaySpecific(currentGameState, hand, cardToAttempt, player1Role)
+        validatePlay(currentGameState, hand, cardToAttempt, player1Role)
       ).to.throw(
         MustFollowSuitError,
         `Must follow suit. Led suit is ${SUITS.HEARTS}, attempted to play ${SUITS.SPADES}.`
@@ -619,7 +556,8 @@ describe("Validation Logic - validateBid", () => {
       "../../../src/game/logic/validation.js",
       {
         // Import the validation module
-        "../../../src/utils/logger.js": loggerMock, // Use mocked logger
+        // The key must match the import string inside the target module ('validation.js')
+        "../../utils/logger.js": loggerMock, // Use mocked logger
         // No need to mock deck.js for validateBid unless it's used by validateBid
       }
     );
@@ -884,8 +822,8 @@ describe("Validation Logic - validateDealerDiscard", () => {
     const validationModule = await esmock(
       "../../../src/game/logic/validation.js",
       {
-        "../../../src/utils/logger.js": loggerMock,
-        // No deck.js dependency for validateDealerDiscard
+        // The key must match the import string inside the target module ('validation.js')
+        "../../utils/logger.js": loggerMock,
       }
     );
     validateDealerDiscard = validationModule.validateDealerDiscard;

@@ -1,20 +1,13 @@
 /**
- * @file test/phases/lobbyPhase.unit.test.js
- * @module test/phases/lobbyPhase.unit
+ * Unit tests for the lobby phase logic of the Euchre Multiplayer game.
+ * @module test/game/phases/lobbyPhase.unit
  * @description
- *   Unit tests for the lobby phase logic of the Euchre Multiplayer game.
- *   These tests validate the logic for starting a game from the lobby,
+ *   Tests validate the logic for starting a game from the lobby,
  *   including player count checks, phase validation, and concurrency handling.
  *
- *   CURRENT STATE:
- *     - Tests use esmock to mock state management and logger dependencies.
- *     - All validation and error scenarios for starting a game are covered.
- *     - The file is focused on pure logic, not on network or persistence.
- *
- *   WHEN THE PROJECT IS COMPLETE:
- *     - This file will be the canonical test suite for Layer 1 lobby logic.
- *     - All rules for transitioning from lobby to game start will be validated here.
- *     - No test will require integration with state, persistence, or network code.
+ *   Tests use esmock to mock state management and logger dependencies.
+ *   All validation and error scenarios for starting a game are covered.
+ *   The file is focused on pure logic, not on network or persistence.
  */
 
 import { expect } from 'chai';
@@ -26,6 +19,8 @@ import {
   InvalidPhaseError,
   PhaseLogicError,
 } from '../../../src/game/logic/errors.js';
+
+import { registerLobbyHandlers } from '../../../src/socket/handlers/lobbyHandlers.js';
 
 // Default logger mock
 const defaultLoggerMock = {
@@ -63,12 +58,12 @@ const createLobbyGameState = (phase = GAME_PHASES.LOBBY, connectedPlayerCount = 
   }
   return gameState;
 };
-
+  
 describe('LobbyPhase Logic', () => {
   let attemptToStartGame;
   beforeEach(async () => {
-    const lobbyPhaseModule = await esmock('../../src/game/phases/lobbyPhase.js', {
-      '../../src/utils/logger.js': defaultLoggerMock,
+    const lobbyPhaseModule = await esmock('../../../src/game/phases/lobbyPhase.js', {
+      '../../utils/logger.js': defaultLoggerMock,
       // Errors are imported by test file for assertions
     });
     attemptToStartGame = lobbyPhaseModule.attemptToStartGame;

@@ -26,7 +26,7 @@ echo.
 cd /d "%REPO_PATH%"
 
 :: The command is now much simpler. gitingest will find .gitingest automatically.
-gitingest "%REPO_PATH%" --output "%OUTPUT_FILE%" -e "unit_test_results.txt" -e "mueller_euchre_repo_llm.txt" -e "package-lock.json" -e ".nvmrc" -e "CODE_OF_CONDUCT.md" -e "coverage/" -e ".git/" -e "Repo_To_LLM/" -e "archived/" -e "node_modules/" -e ".kilocode/" -e ".vscode/" -e "assets/" -e ".husky/" -e ".github/"
+gitingest "%REPO_PATH%" --output "%OUTPUT_FILE%" -e "unit_test_results.txt" -e "mueller_euchre_repo_llm.txt" -e "package-lock.json" -e "CODE_OF_CONDUCT.md" -e "coverage/" -e ".git/" -e "Repo_To_LLM/" -e "archived/" -e "node_modules/" -e ".kilocode/" -e ".vscode/" -e "assets/" -e ".husky/" -e ".github/" -e ".nyc_output" -e "archived_for_later_development" -e "memory-bank" -e "Prompts" -e "public" -e "tools"
 
 :: Check if the command was successful
 if errorlevel 1 (

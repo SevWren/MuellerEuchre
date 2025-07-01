@@ -13,17 +13,16 @@ const config = {
   'delay': false,
   'diff': true,
   'exit': false, // Important for watch mode
-  'extension': ['js', 'cjs', 'mjs', 'jsx'],
+  'extension': ['js', 'jsx'],
   'fail-zero': true,
   'forbid-only': false,
   'forbid-pending': false,
-  'full-trace': false,
+  'full-trace': true,
   'jobs': 1,
   'package': './package.json',
   'parallel': false,
   'recursive': true,
   'reporter': 'spec',
-  'require': [],
   'retries': 0,
   'slow': '75',
   'sort': false,
@@ -34,4 +33,4 @@ const config = {
   'watch-files': ['src/**/*.js', 'test/**/*.js'],
 };
 
-export default config;
+module.exports = config;

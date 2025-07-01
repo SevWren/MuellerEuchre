@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "mocha --recursive --timeout 10000",
+    "test": "mocha --recursive --timeout 10000 --loader=esmock",
     "test:file": "mocha --recursive --timeout 10000",
     "testALL": "mocha --recursive --timeout 10000",
     "test:watch": "mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --watch --timeout 10000",

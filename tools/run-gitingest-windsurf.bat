@@ -38,6 +38,10 @@ if errorlevel 1 (
     echo     %OUTPUT_FILE%
 )
 
+echo Copying GitIngest file to clipboard:
+
+powershell -ExecutionPolicy Bypass -Command "Set-Clipboard -Path '%OUTPUT_FILE%'"
+
 echo.
 pause
 endlocal

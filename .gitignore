@@ -119,3 +119,6 @@ missing_layer_1.2.png
 docs/Supplemental_Layer1_Plan_Improvements.md
 changes_since_last_commit.txt
 test\game\phases\lobbyPhase.unit.test.js.aistudio.js
+findfiles.bat
+find_files_report.txt
+mocha

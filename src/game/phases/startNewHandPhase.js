@@ -38,78 +38,124 @@ export function startNewHand(currentGameState) {
   let newState = JSON.parse(JSON.stringify(currentGameState));
 
   try {
+    // Determine the new dealer
     const newDealer = (newState.gamePhase === GAME_PHASES.LOBBY && newState.dealer) // If LOBBY and dealer already set (e.g. by createInitialGameState)
-      ? newState.dealer
-      : getNextPlayer(newState.dealer, PLAYER_ROLES);
+      ? newState.dealer  // Keep existing dealer in LOBBY phase
+      : getNextPlayer(newState.dealer || PLAYER_ROLES[0], PLAYER_ROLES);  // Rotate dealer otherwise, default to first player if no dealer
 
     logger.info({ oldDealer: currentGameState.dealer, newDealer, gameId: newState.gameId }, "Determining new dealer for the hand.");
     newState.dealer = newDealer;
 
-    let freshDeck = createDeck();
-    freshDeck = shuffleDeck(freshDeck);
-
-    // Initialize empty hands for all players
-    const newPlayerHands = {};
+    // Create and shuffle a new deck
+    const freshDeck = shuffleDeck(createDeck());
     
-    // Ensure all players have an empty hand array, even if they're not connected/active
+    // Initialize all players with empty hands and ensure they have required properties
+    const activePlayers = [];
     PLAYER_ROLES.forEach(role => {
-      newPlayerHands[role] = [];
+      if (!newState.players[role]) {
+        newState.players[role] = { hand: [], isConnected: true, isActive: true };
+      } else {
+        newState.players[role].hand = [];
+        // Ensure required properties exist
+        newState.players[role].isConnected = newState.players[role].isConnected !== false;
+        newState.players[role].isActive = newState.players[role].isActive !== false;
+      }
+      
+      // Track active players for dealing order
+      if (newState.players[role].isActive && newState.players[role].isConnected !== false) {
+        activePlayers.push(role);
+      }
     });
-
-    // Get the player to the left of the dealer to start dealing
-    let currentPlayerIndex = PLAYER_ROLES.indexOf(getNextPlayer(newDealer, PLAYER_ROLES));
     
     // Function to check if we should deal to a player
     const shouldDealToPlayer = (playerRole) => {
       const player = newState.players[playerRole];
       if (!player) return false;
-      // Only don't deal if explicitly set to inactive or disconnected
-      if (player.isActive === false) return false;
-      if (player.isConnected === false && player.isActive !== true) return false;
-      return true;
+      
+      // Only deal to active and connected players
+      return player.isActive !== false && player.isConnected !== false;
     };
 
-    // First pass: Deal 3 cards to each active/connected player
-    for (let i = 0; i < PLAYER_ROLES.length; i++) {
-      const playerRole = PLAYER_ROLES[currentPlayerIndex];
-      if (shouldDealToPlayer(playerRole)) {
-        // Deal 3 cards to this player
-        for (let j = 0; j < 3 && freshDeck.length > 0; j++) {
-          newPlayerHands[playerRole].push(freshDeck.pop());
+    // Helper function to deal cards to players
+    const dealCards = (numCards) => {
+      let currentPlayerIndex = PLAYER_ROLES.indexOf(getNextPlayer(newDealer, PLAYER_ROLES));
+      let cardsDealt = 0;
+      
+      // Keep dealing until all active players have the required number of cards
+      while (cardsDealt < activePlayers.length * numCards) {
+        const playerRole = PLAYER_ROLES[currentPlayerIndex];
+        
+        if (shouldDealToPlayer(playerRole)) {
+          // Check if player needs more cards
+          if (newState.players[playerRole].hand.length < 5) {
+            if (freshDeck.length === 0) {
+              throw new PhaseLogicError('Kitty became empty during dealing');
+            }
+            const card = freshDeck.pop();
+            newState.players[playerRole].hand.push(card);
+            cardsDealt++;
+          }
         }
+        
+        currentPlayerIndex = (currentPlayerIndex + 1) % PLAYER_ROLES.length;
       }
-      currentPlayerIndex = (currentPlayerIndex + 1) % PLAYER_ROLES.length;
-    }
+    };
+    
+    // First pass: Deal 3 cards to each active/connected player
+    dealCards(3);
     
     // Second pass: Deal 2 more cards to each active/connected player
-    for (let i = 0; i < PLAYER_ROLES.length; i++) {
-      const playerRole = PLAYER_ROLES[currentPlayerIndex];
-      if (shouldDealToPlayer(playerRole)) {
-        // Deal 2 more cards to this player
-        for (let j = 0; j < 2 && freshDeck.length > 0; j++) {
-          newPlayerHands[playerRole].push(freshDeck.pop());
-        }
-      }
-      currentPlayerIndex = (currentPlayerIndex + 1) % PLAYER_ROLES.length;
-    }
+    dealCards(2);
 
-    newState.kitty = freshDeck;
+    // Set the kitty (remaining cards)
+    newState.kitty = [...freshDeck];
+    
+    // Set the turn card (top card of the kitty)
     if (newState.kitty.length === 0) {
-        const criticalErrorMsg = "Error in dealing: Kitty is empty before setting turn card!";
-        // logger.error({ kittyLength: newState.kitty.length, gameId: newState.gameId }, criticalErrorMsg);
-        throw new PhaseLogicError(criticalErrorMsg);
+      throw new PhaseLogicError('Kitty is empty before setting turn card');
     }
-
-    // Pop the turn card from the kitty - we've already verified kitty is not empty
-    // so we don't need to check for undefined here
+    
+    // The turn card is the top card of the kitty
     newState.turnCard = newState.kitty.pop();
-
-    const firstBidder = getNextPlayer(newDealer, PLAYER_ROLES);
+    
+    // First bidder is the player to the left of the dealer
+    let firstBidder = getNextPlayer(newDealer, PLAYER_ROLES);
+    
+    // Make sure first bidder is an active player
+    while (!shouldDealToPlayer(firstBidder)) {
+      firstBidder = getNextPlayer(firstBidder, PLAYER_ROLES);
+      
+      // Safety check to prevent infinite loop
+      if (firstBidder === newDealer) {
+        throw new PhaseLogicError('No active players available to be first bidder');
+      }
+    }
+    
+    // Set the first bidder as the current player and order up turn
+    newState.currentPlayer = firstBidder;
+    newState.orderUpTurn = firstBidder;
+    
+    // Log the final state for debugging
+    logger.debug({
+      gameId: newState.gameId,
+      dealer: newState.dealer,
+      firstBidder,
+      kittySize: newState.kitty.length,
+      playerHandSizes: Object.fromEntries(
+        Object.entries(newState.players).map(([role, player]) => [
+          role, 
+          { 
+            handSize: player.hand.length, 
+            isActive: player.isActive, 
+            isConnected: player.isConnected 
+          }
+        ])
+      )
+    }, 'New hand dealt');
 
     PLAYER_ROLES.forEach(role => {
       newState.players[role] = {
         ...newState.players[role],
-        hand: newPlayerHands[role] || [],
         tricksWonThisHand: 0,
       };
     });

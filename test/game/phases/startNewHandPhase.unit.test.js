@@ -426,7 +426,7 @@ describe('StartNewHandPhase Logic', () => {
     });
 
     // Act & Assert
-    expect(() => startNewHand(gameState)).to.throw(PhaseLogicError, 'Not enough cards to complete dealing');
+    expect(() => startNewHand(gameState)).to.throw(PhaseLogicError, 'Kitty is empty before setting turn card');
     
     // Verify the deck was actually created with the expected number of cards
     expect(mockDeckUtils.createDeck.calledOnce).to.be.true;
@@ -448,7 +448,7 @@ describe('StartNewHandPhase Logic', () => {
       return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
     });
 
-    expect(() => startNewHand(gameState)).to.throw(PhaseLogicError, 'Not enough cards to complete dealing');
+    expect(() => startNewHand(gameState)).to.throw(PhaseLogicError, 'Kitty is empty before setting turn card');
   });
 
   /**
@@ -1086,7 +1086,7 @@ describe('StartNewHandPhase Logic', () => {
       });
       
       // Act & Assert - should throw PhaseLogicError when kitty is empty before setting turn card
-      expect(() => startNewHand(gameState)).to.throw(mockErrors.PhaseLogicError);
+      expect(() => startNewHand(gameState)).to.throw(PhaseLogicError, 'Kitty is empty before setting turn card');
     });
     
     it('should handle dealing with exactly enough cards for players but none for kitty', () => {
@@ -1106,7 +1106,7 @@ describe('StartNewHandPhase Logic', () => {
       });
       
       // Act & Assert - should throw PhaseLogicError when trying to set turn card
-      expect(() => startNewHand(gameState)).to.throw(mockErrors.PhaseLogicError);
+      expect(() => startNewHand(gameState)).to.throw(PhaseLogicError, 'Kitty is empty before setting turn card');
     });
     
     it('should handle dealing with exactly enough cards for players and kitty', () => {

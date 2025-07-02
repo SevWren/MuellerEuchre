@@ -36,12 +36,17 @@ const getPathAliases = (() => {
       if (fs.existsSync(jsconfigPath)) {
         // Read and parse jsconfig.json with better error handling
         const jsconfigRaw = fs.readFileSync(jsconfigPath, 'utf-8');
-        // Strip comments more reliably
-        const jsonStr = jsconfigRaw
-          .replace(/\/\*[\s\S]*?\*\/|([^\\:]\/\/).*$/gm, '')
-          .replace(/,\s*}/g, '}')
-          .replace(/,\s*]/g, ']');
         
+        // Remove all comments from the JSON string
+        let jsonStr = jsconfigRaw;
+        // Remove single-line comments (//...)
+        jsonStr = jsonStr.replace(/\/\/[^\n]*\n/g, '\n');
+        // Remove multi-line comments (/* ... */)
+        jsonStr = jsonStr.replace(/\/\*[\s\S]*?\*\//g, '');
+        // Remove trailing commas before closing brackets and braces
+        jsonStr = jsonStr.replace(/,(\s*[}\]])/g, '$1');
+        
+        // Parse the cleaned JSON
         const jsconfig = JSON.parse(jsonStr);
         const paths = jsconfig?.compilerOptions?.paths || {};
         

@@ -62,7 +62,8 @@ export function startNewHand(currentGameState) {
       }
       
       // Track active players for dealing order
-      if (newState.players[role].isActive && newState.players[role].isConnected !== false) {
+      // Only check isActive - disconnected but active players should still be in the dealing order
+      if (newState.players[role].isActive !== false) {
         activePlayers.push(role);
       }
     });

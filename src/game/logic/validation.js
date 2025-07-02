@@ -1,5 +1,3 @@
-// src/game/logic/validation.js
-
 /**
  * Core validation logic for Euchre game actions (Layer 1).
  * @module validation
@@ -98,23 +96,25 @@ export function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
   const ledCard =
     currentTrick && currentTrick.length > 0 ? currentTrick[0].card : null;
 
-  // If a card was led, we must check if the player needs to follow suit.
   if (ledCard) {
-    // The suit to follow is ALWAYS the effective suit of the led card.
-    const effectiveLedSuit = getEffectiveSuit(ledCard, trumpSuit);
+    const trueLedCard = currentTrick[0].card;
+    const currentLedEffectiveSuit = getEffectiveSuit(trueLedCard, trumpSuit);
 
-    // Check if the player has any card of the effective led suit in their hand.
-    const playerHasLedSuit = playerHand.some(
-      (card) => getEffectiveSuit(card, trumpSuit) === effectiveLedSuit
+    // Check if player has any card of the led suit (including left bower if applicable)
+    const playerHasLedSuitCard = playerHand.some(
+      (handCard) =>
+        getEffectiveSuit(handCard, trumpSuit) === currentLedEffectiveSuit
     );
 
-    // Get the effective suit of the card the player is trying to play.
-    const playedCardEffectiveSuit = getEffectiveSuit(cardToPlay, trumpSuit);
+    const cardToPlayEffectiveSuit = getEffectiveSuit(cardToPlay, trumpSuit);
 
-    // If the player has a card of the led suit, but plays a card of a different suit, it's an error.
-    if (playerHasLedSuit && playedCardEffectiveSuit !== effectiveLedSuit) {
+    // If player has a card of the led suit, they must play one
+    if (
+      playerHasLedSuitCard &&
+      cardToPlayEffectiveSuit !== currentLedEffectiveSuit
+    ) {
       throw new MustFollowSuitError(
-        `Must follow suit. Led suit is ${effectiveLedSuit}, attempted to play ${playedCardEffectiveSuit}.`
+        `Must follow suit. Led suit is ${currentLedEffectiveSuit}, attempted to play ${cardToPlayEffectiveSuit}.`
       );
     }
   }

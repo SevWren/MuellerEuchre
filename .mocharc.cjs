@@ -1,9 +1,10 @@
-// filepath: .mocharc.js
+// filepath: .mocharc.cjs
 'use strict';
 
 // This configuration file tells Mocha where to find tests and how to run them.
 // It's essential for VS Code's Test Explorer to discover and run your ESM tests correctly.
-// We use `export default` because the project uses ES modules.
+
+// Default configuration that can be overridden by command line
 const config = {
   'allow-uncaught': false,
   'async-only': false,
@@ -21,16 +22,20 @@ const config = {
   'jobs': 1,
   'package': './package.json',
   'parallel': false,
-  'recursive': true,
+  'recursive': false, // Set to false by default for better control
   'reporter': 'spec',
   'retries': 0,
   'slow': '75',
   'sort': false,
-  'spec': ['test/**/*.unit.test.js'], // This glob pattern correctly finds all your unit tests.
-  'timeout': '10000', // Reverted to 10s to match your npm script, can be lowered later.
+  'timeout': '10000',
   'ui': 'bdd',
   'watch': false,
   'watch-files': ['src/**/*.js', 'test/**/*.js'],
 };
+
+// Only set default spec pattern if not specified in command line
+if (!process.argv.some(arg => arg.endsWith('.js') || arg.endsWith('.jsx'))) {
+  config.spec = ['test/**/*.unit.test.js'];
+}
 
 module.exports = config;

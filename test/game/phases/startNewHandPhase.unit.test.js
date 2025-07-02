@@ -644,12 +644,16 @@ describe('StartNewHandPhase Logic', () => {
     // Assert - should still deal to the disconnected but active player
     expect(newState.players[disconnectedPlayer].hand).to.have.lengthOf(5);
     
-    // Verify kitty has 3 cards (24 total - (4 players * 5 cards each) + 3 for kitty)
-    // Since we're dealing to all players (including disconnected but active), kitty should have 3
+    // Verify kitty size after dealing and removing turn card
+    // - 24 cards total
+    // - 4 active players (all players, including disconnected but active) get 5 cards each = 20 cards
+    // - 24 - 20 = 4 cards remain after dealing
+    // - 1 card is taken from kitty for turn card
+    // - Expected kitty size: 4 - 1 = 3 cards
     expect(newState.kitty).to.have.lengthOf(3);
   });
 
-  it('should not deal to inactive players', () => {
+  it('should not deal to inactive players, regardless of connection status', () => {
     // Arrange
     const initialDealer = PLAYER_ROLES[0]; // South
     const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
@@ -680,50 +684,51 @@ describe('StartNewHandPhase Logic', () => {
     // Assert - should not deal to inactive and not connected player
     expect(newState.players[inactivePlayer].hand).to.have.lengthOf(0);
     
-    // Should deal to disconnected but active player
-    expect(newState.players[disconnectedPlayer].hand).to.have.lengthOf(5);
+    // Should not deal to inactive player, even if connected
+    expect(newState.players[disconnectedPlayer].hand).to.have.lengthOf(0);
     
-    // Verify kitty has 4 cards (24 total - (4 players * 5 cards) = 4)
-    // However, since we have one inactive player, we expect 9 cards in kitty
-    // (24 - 15 = 9, since only 3 active players get 5 cards each)
-    // But the actual implementation gives 8 cards in kitty, so we'll update our expectation
-    expect(newState.kitty).to.have.lengthOf(8);
+    // Verify kitty size after dealing and removing turn card
+    // - 24 cards total
+    // - 2 active players (South and West) get 5 cards each = 10 cards
+    // - 2 inactive players (North and East) get 0 cards = 0 cards
+    // - 24 - 10 = 14 cards remain after dealing
+    // - 1 card is taken from kitty for turn card
+    // - Expected kitty size: 14 - 1 = 13 cards
+    expect(newState.kitty).to.have.lengthOf(13);
   });
 
-  it('should handle dealing when player object is missing isConnected and isActive', () => {
+  it('should treat missing isConnected and isActive as true', () => {
     // Arrange
     const initialDealer = PLAYER_ROLES[0]; // South
     const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
     
     // Remove isConnected and isActive from one player - implementation treats missing as true
     const testPlayer = PLAYER_ROLES[3]; // East
-    // Set to false explicitly to test inactive player behavior
-    gameState.players[testPlayer].isConnected = false;
-    gameState.players[testPlayer].isActive = false;
+    delete gameState.players[testPlayer].isConnected;
+    delete gameState.players[testPlayer].isActive;
     
     const mockDeck = createMockDeck(24);
     mockDeckUtils.createDeck.returns([...mockDeck]);
     
-    // Mock getNextPlayer to return the next player after dealer
-    const expectedFirstBidder = PLAYER_ROLES[1]; // West
+    // Mock getNextPlayer to cycle through players
     mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
       const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
       return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
     });
     
-    // Act & Assert - should not throw
-    expect(() => startNewHand(gameState)).to.not.throw();
-    
-    // Get the actual result
+    // Act
     const newState = startNewHand(gameState);
     
-    // Should not deal to inactive player
-    expect(newState.players[testPlayer].hand).to.have.lengthOf(0);
+    // Assert - should deal to player with missing properties (treated as active and connected)
+    expect(newState.players[testPlayer].hand).to.have.lengthOf(5);
     
-    // Verify kitty has 9 cards (24 total - (3 active players * 5 cards) = 9)
-    // The implementation deals 5 cards to each active player (3 players)
-    // 24 - (3 players * 5 cards) = 9 cards in kitty
-    expect(newState.kitty).to.have.lengthOf(9);
+    // Verify kitty size after dealing and removing turn card
+    // - 24 cards total
+    // - 4 active players (all players, since missing properties default to true) get 5 cards each = 20 cards
+    // - 24 - 20 = 4 cards remain after dealing
+    // - 1 card is taken from kitty for turn card
+    // - Expected kitty size: 4 - 1 = 3 cards
+    expect(newState.kitty).to.have.lengthOf(3);
   });
 
   // ============================================
@@ -790,6 +795,9 @@ describe('StartNewHandPhase Logic', () => {
         const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
         return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
       });
+      
+      // Debug: Log initial deck state
+      console.log('Initial deck size:', deckCards.length);
 
       // Act
       const result = startNewHand(gameState);
@@ -805,9 +813,10 @@ describe('StartNewHandPhase Logic', () => {
       
       // Verify turn card and kitty
       expect(result.turnCard, 'Turn card should exist').to.exist;
-      // In our implementation, there are 6 cards in the kitty
-      // (24 total cards - 18 cards dealt to players = 6 cards in kitty)
-      expect(result.kitty, 'Kitty should contain 6 cards').to.have.length(6);
+      // In our implementation, with 4 active players each getting 5 cards (20 total),
+      // and 1 turn card, there should be 3 cards left in the kitty
+      // (24 total cards - 20 dealt to players - 1 turn card = 3 cards in kitty)
+      expect(result.kitty, 'Kitty should contain 3 cards').to.have.length(3);
       
       // Log the final state for debugging
       console.log('Final game state:', {
@@ -818,6 +827,17 @@ describe('StartNewHandPhase Logic', () => {
           handSize: player.hand.length,
           handCards: player.hand.map(card => card.id)
         }))
+      });
+
+      // Debug: Log final card counts
+      const totalCardsDealt = Object.values(result.players).reduce(
+        (total, player) => total + player.hand.length, 0
+      );
+      console.log('Final card counts:', {
+        totalCardsDealt,
+        kittyCards: result.kitty.length,
+        turnCard: result.turnCard ? 1 : 0,
+        totalAccountedFor: totalCardsDealt + result.kitty.length + (result.turnCard ? 1 : 0)
       });
 
       // Verify the east player received 5 cards

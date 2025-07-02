@@ -72,14 +72,17 @@ export function startNewHand(currentGameState) {
       const player = newState.players[playerRole];
       if (!player) return false;
       
-      // Only deal to active and connected players
-      return player.isActive !== false && player.isConnected !== false;
+      // Only check isActive for dealing cards
+      // Disconnected but active players should still receive cards
+      return player.isActive !== false;
     };
 
     // Helper function to deal cards to players
     const dealCards = (numCards) => {
       let currentPlayerIndex = PLAYER_ROLES.indexOf(getNextPlayer(newDealer, PLAYER_ROLES));
       let cardsDealt = 0;
+      const dealStartDeckSize = freshDeck.length;
+      console.log(`Starting deal: ${numCards} cards per player, ${freshDeck.length} cards remaining in deck`);
       
       // Keep dealing until all active players have the required number of cards
       while (cardsDealt < activePlayers.length * numCards) {
@@ -98,17 +101,44 @@ export function startNewHand(currentGameState) {
         }
         
         currentPlayerIndex = (currentPlayerIndex + 1) % PLAYER_ROLES.length;
+        // Log progress every full round
+        if (currentPlayerIndex === 0) {
+          console.log(`Dealing progress: ${cardsDealt} cards dealt, ${freshDeck.length} remaining`);
+        }
       }
     };
     
     // First pass: Deal 3 cards to each active/connected player
+    console.log('Starting first deal (3 cards per player)');
     dealCards(3);
     
+    // Log hands after first deal
+    console.log('After first deal (3 cards):', 
+      Object.fromEntries(
+        Object.entries(newState.players).map(([role, player]) => [
+          role, 
+          { handSize: player.hand.length, isActive: player.isActive, isConnected: player.isConnected }
+        ])
+      )
+    );
+    
     // Second pass: Deal 2 more cards to each active/connected player
+    console.log('Starting second deal (2 more cards)');
     dealCards(2);
+    
+    // Log hands after second deal
+    console.log('After second deal (total 5 cards):', 
+      Object.fromEntries(
+        Object.entries(newState.players).map(([role, player]) => [
+          role, 
+          { handSize: player.hand.length, isActive: player.isActive, isConnected: player.isConnected }
+        ])
+      )
+    );
 
     // Set the kitty (remaining cards)
     newState.kitty = [...freshDeck];
+    console.log('Kitty before turn card:', newState.kitty.length, 'cards');
     
     // Set the turn card (top card of the kitty)
     if (newState.kitty.length === 0) {
@@ -117,6 +147,7 @@ export function startNewHand(currentGameState) {
     
     // The turn card is the top card of the kitty
     newState.turnCard = newState.kitty.pop();
+    console.log('After taking turn card - Kitty size:', newState.kitty.length, 'cards');
     
     // First bidder is the player to the left of the dealer
     let firstBidder = getNextPlayer(newDealer, PLAYER_ROLES);

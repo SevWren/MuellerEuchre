@@ -824,32 +824,7 @@ describe("Validation Logic - validateDealerDiscard", () => {
       {
         // The key must match the import string inside the target module ('validation.js')
         "../../utils/logger.js": loggerMock,
-      }
-    );
-    validateDealerDiscard = validationModule.validateDealerDiscard;
-
-    dealerHand = [
-      // Dealer's hand with 6 cards
-      { id: "AC", suit: SUITS.CLUBS, value: VALUES.ACE },
-      { id: "KC", suit: SUITS.CLUBS, value: VALUES.KING },
-      cardToDiscard, // TC
-      { id: "AS", suit: SUITS.SPADES, value: VALUES.ACE },
-      { id: "KS", suit: SUITS.SPADES, value: VALUES.KING },
-      { id: "JD", suit: SUITS.DIAMONDS, value: VALUES.JACK },
-    ];
-
-    baseDiscardGameState = {
-      gamePhase: GAME_PHASES.DEALER_DISCARD,
-      dealer: dealerRole,
-      currentPlayer: dealerRole, // Dealer's turn to discard
-      gameId: "test-discard-game",
-      // Other properties like turnCard, bids might not be directly relevant for these validations
-      // but can be added if specific scenarios need them.
-    };
-  });
-
-  afterEach(() => {
-    sandbox.restore(); // Restore sandbox after each test
+ // Restore sandbox after each test
   });
 
   // Argument validation

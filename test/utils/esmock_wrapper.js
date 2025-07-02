@@ -1,7 +1,7 @@
 // filepath: test/utils/esmockWrapper.js
 import esmock from 'esmock';
 import path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
+import { fileURLToPath } from 'url';
 import fs from 'fs';
 import sinon from 'sinon';
 
@@ -34,19 +34,29 @@ const getPathAliases = (() => {
     aliases = new Map();
     try {
       if (fs.existsSync(jsconfigPath)) {
+        // Read and parse jsconfig.json with better error handling
         const jsconfigRaw = fs.readFileSync(jsconfigPath, 'utf-8');
-        const jsconfig = JSON.parse(jsconfigRaw.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, ''));
-        const paths = jsconfig?.compilerOptions?.paths;
-        if (paths) {
-          for (const [alias, [targetPath]] of Object.entries(paths)) {
-            const cleanAlias = alias.replace('/*', '');
-            const cleanTargetPath = targetPath.replace('/*', '');
+        // Strip comments more reliably
+        const jsonStr = jsconfigRaw
+          .replace(/\/\*[\s\S]*?\*\/|([^\\:]\/\/).*$/gm, '')
+          .replace(/,\s*}/g, '}')
+          .replace(/,\s*]/g, ']');
+        
+        const jsconfig = JSON.parse(jsonStr);
+        const paths = jsconfig?.compilerOptions?.paths || {};
+        
+        for (const [alias, pathArray] of Object.entries(paths)) {
+          if (!Array.isArray(pathArray) || pathArray.length === 0) continue;
+          const cleanAlias = alias.replace(/[\/*]+$/, '');
+          const cleanTargetPath = pathArray[0].replace(/[\/*]+$/, '');
+          if (cleanAlias && cleanTargetPath) {
             aliases.set(cleanAlias, path.join(projectRoot, cleanTargetPath));
           }
         }
       }
     } catch (error) {
       console.error('[esmockWrapper] Error parsing jsconfig.json:', error);
+      console.error('Make sure jsconfig.json contains valid JSON without trailing commas in objects/arrays');
     }
     logDebug('Resolved Path Aliases:', aliases);
     return aliases;
@@ -106,7 +116,8 @@ export async function esmockWithPaths(
 
   const testFileDir = path.dirname(fileURLToPath(testFileUrl));
   const absoluteModulePath = path.resolve(testFileDir, modulePathRelativeToTestFile);
-  const moduleUrl = pathToFileURL(absoluteModulePath).href;
+  // Use forward slashes for consistent module resolution across platforms
+  const moduleUrl = absoluteModulePath.replace(/\\/g, '/');
   logDebug(`Module under test resolved to URL: ${moduleUrl}`);
 
   const sourceModuleDir = path.dirname(absoluteModulePath);
@@ -114,17 +125,33 @@ export async function esmockWithPaths(
 
   for (const [importStringKey, mockValue] of Object.entries(userMocks)) {
     const aliasedPath = resolveAlias(importStringKey);
+    let mockKey;
+  
     if (path.isAbsolute(aliasedPath)) {
-      resolvedMocks[pathToFileURL(aliasedPath).href] = mockValue;
+      // Convert to forward slashes for Windows compatibility
+      mockKey = aliasedPath.replace(/\\/g, '/');
     } else if (aliasedPath.startsWith('./') || aliasedPath.startsWith('../')) {
       const absoluteMockPath = path.resolve(sourceModuleDir, aliasedPath);
-      resolvedMocks[pathToFileURL(absoluteMockPath).href] = mockValue;
+      mockKey = absoluteMockPath.replace(/\\/g, '/');
     } else {
-      resolvedMocks[aliasedPath] = mockValue;
+      // For node_modules or built-in modules
+      mockKey = aliasedPath;
     }
+  
+    // Ensure the key is in a consistent format
+    resolvedMocks[mockKey] = mockValue;
   }
 
-  return await esmock(moduleUrl, resolvedMocks, globalMocks);
+  try {
+    logDebug(`Loading module: ${moduleUrl}`);
+    logDebug('With mocks:', Object.keys(resolvedMocks));
+    return await esmock(moduleUrl, resolvedMocks, globalMocks);
+  } catch (error) {
+    console.error('[esmockWrapper] Error loading module:', error);
+    console.error('Module URL:', moduleUrl);
+    console.error('Resolved mocks:', Object.keys(resolvedMocks));
+    throw error;
+  }
 }
 
 /**
@@ -176,5 +203,12 @@ export async function createMockedModule(testFileUrl, modulePathRelativeToTestFi
  */
 export const purgeAllEsmock = () => {
   logDebug('Purging all modules from esmock cache.');
-  esmock.purgeAll();
+  // Use the correct method to clear esmock cache
+  if (typeof esmock.purge === 'function') {
+    esmock.purge();
+  } else if (typeof esmock.clearCache === 'function') {
+    esmock.clearCache();
+  } else {
+    console.warn('[esmockWrapper] No purge method found on esmock');
+  }
 };

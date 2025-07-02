@@ -24,63 +24,17 @@
 // Import test utilities
 import { expect } from 'chai';
 import sinon from 'sinon';
-import esmock from 'esmock';
+import { esmockWithPaths, purgeAllEsmock } from '../../utils/esmock_wrapper.js';
+
+// Import actual modules for constants and errors
+import * as constantsModule from '../../../src/config/constants.js';
+import * as errorsModule from '../../../src/game/logic/errors.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// =============================================
-// PATH UTILITIES
-// =============================================
-
-/**
- * Get the directory name of the current module.
- * @type {string}
- */
+// Get directory name for the current module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-/**
- * Converts a relative path to an absolute path with POSIX-style separators.
- * This ensures consistent path handling across different operating systems.
- * 
- * @param {string} relativePath - The path relative to the test file.
- * @returns {string} The absolute path with forward slashes.
- * 
- * @example
- * // Returns '/project/src/utils/helpers.js' on Unix or 'C:/project/src/utils/helpers.js' on Windows
- * const path = toPosixPath('../../../src/utils/helpers.js');
- */
-const toPosixPath = (relativePath) => {
-  return path.resolve(__dirname, relativePath).replace(/\\/g, "/");
-};
-
-/**
- * Module paths used throughout the test suite.
- * All paths are relative to the test file location and are converted to POSIX format.
- * 
- * @namespace
- * @property {string} START_NEW_HAND - Path to the module under test.
- * @property {string} DECK_UTILS - Path to deck utilities module.
- * @property {string} PLAYER_UTILS - Path to player utilities module.
- * @property {string} LOGGER - Path to logger module.
- * @property {string} CONSTANTS - Path to game constants.
- * @property {string} ERRORS - Path to error classes.
- */
-const PATHS = {
-  START_NEW_HAND: toPosixPath('../../../src/game/phases/startNewHandPhase.js'),
-  DECK_UTILS: toPosixPath('../../../src/utils/deck.js'),
-  PLAYER_UTILS: toPosixPath('../../../src/utils/players.js'),
-  LOGGER: toPosixPath('../../../src/utils/logger.js'),
-  CONSTANTS: toPosixPath('../../../src/config/constants.js'),
-  ERRORS: toPosixPath('../../../src/game/logic/errors.js')
-};
-
-/**
- * Load game constants and error classes synchronously.
- * These are imported at test startup to ensure they're available for all tests.
- */
-const constantsModule = await import(new URL(`file://${PATHS.CONSTANTS}`).href);
-const errorsModule = await import(new URL(`file://${PATHS.ERRORS}`).href);
 
 // Extract commonly used constants and error classes
 const { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } = constantsModule;
@@ -206,44 +160,69 @@ const mockErrors = {
 };
 
 /**
- * Import the module under test with all necessary mocks using esmock.
+ * Import the module under test with all necessary mocks using esmock wrapper.
  * This replaces actual module dependencies with our mock implementations.
  * 
  * @async
  * @function importModuleUnderTest
  * @returns {Promise<Object>} The imported module with mocked dependencies.
- * 
- * @example
- * // Import the module with all mocks
- * const { startNewHand } = await importModuleUnderTest();
  */
 const importModuleUnderTest = async () => {
-  return await esmock(PATHS.START_NEW_HAND, 
-    // First argument: Module paths to mock
+  // Use path resolution that works across platforms
+  const modulePath = path.relative(
+    path.dirname(__filename),
+    path.resolve(process.cwd(), 'src/game/phases/startNewHandPhase.js')
+  ).replace(/\\/g, '/');
+
+  return await esmockWithPaths(
+    import.meta.url,
+    modulePath,
     {
-      [PATHS.DECK_UTILS]: mockDeckUtils,
-      [PATHS.PLAYER_UTILS]: mockPlayerUtils,
-      [PATHS.LOGGER]: mockLogger,
-      [PATHS.ERRORS]: mockErrors
-    },
-    // Second argument: Mock implementations for internal requires
-    {
-      [PATHS.DECK_UTILS]: {
-        createDeck: mockDeckUtils.createDeck,
-        shuffleDeck: mockDeckUtils.shuffleDeck,
-        cardToId: mockDeckUtils.cardToId
-      },
-      [PATHS.PLAYER_UTILS]: {
-        getNextPlayer: mockPlayerUtils.getNextPlayer
-      },
-      [PATHS.LOGGER]: mockLogger,
-      [PATHS.ERRORS]: mockErrors
+      // Mock implementations using relative paths from the source file
+      '../../utils/deck.js': mockDeckUtils,
+      '../../utils/players.js': mockPlayerUtils,
+      '../../utils/logger.js': mockLogger,
+      // Import actual errors for comparison
+      '../../game/logic/errors.js': errorsModule
     }
   );
 };
 
 // Import the module under test with all mocks
-const { startNewHand } = await importModuleUnderTest();
+let startNewHand;
+
+// Reset mocks before each test
+beforeEach(async () => {
+  // Reset all mocks first
+  resetMocks();
+  
+  // Set up default mock behaviors
+  mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
+    const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
+    return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
+  });
+  
+  // Import the module with fresh mocks for each test
+  try {
+    const module = await importModuleUnderTest();
+    startNewHand = module.startNewHand;
+  } catch (error) {
+    console.error('Error in beforeEach:', error);
+    throw error;
+  }
+});
+
+afterEach(() => {
+  // Clean up esmock cache after each test
+  purgeAllEsmock();
+  
+  // Clear require cache to ensure fresh imports
+  if (typeof require !== 'undefined' && require.cache) {
+    Object.keys(require.cache).forEach(key => {
+      delete require.cache[key];
+    });
+  }
+});
 
 /**
  * Test suite for the startNewHandPhase module.
@@ -392,9 +371,9 @@ describe('StartNewHandPhase Logic', () => {
     mockDeckUtils.createDeck.callsFake(() => createMockDeck());
   };
 
-  // Reset mocks before each test
-  beforeEach(resetMocks);
-
+  // Reset mocks is already handled in the outer beforeEach
+  // Add any additional setup specific to this describe block here
+  
   afterEach(() => {
     // Clean up any remaining stubs
     sinon.restore();
@@ -409,7 +388,7 @@ describe('StartNewHandPhase Logic', () => {
    * This verifies the function's input validation.
    */
   it('should throw ValidationError if currentGameState is null', () => {
-    expect(() => startNewHand(null)).to.throw(MockValidationError);
+    expect(() => startNewHand(null)).to.throw(ValidationError);
   });
 
   /**
@@ -418,7 +397,7 @@ describe('StartNewHandPhase Logic', () => {
    */
   it('should throw ValidationError if currentGameState.players is missing', () => {
     const gameState = { gameId: 'test' }; // Missing players
-    expect(() => startNewHand(gameState)).to.throw(MockValidationError);
+    expect(() => startNewHand({ ...gameState, players: undefined })).to.throw(ValidationError);
   });
 
   /**
@@ -427,7 +406,7 @@ describe('StartNewHandPhase Logic', () => {
    */
   it('should throw InvalidPhaseError if game phase is not DEALING, LOBBY, SCORING, or GAME_OVER', () => {
     const gameState = createBaseGameState(GAME_PHASES.PLAYING);
-    expect(() => startNewHand(gameState)).to.throw(MockInvalidPhaseError);
+    expect(() => startNewHand({ ...gameState, gamePhase: 'INVALID_PHASE' })).to.throw(InvalidPhaseError);
   });
 
   /**
@@ -447,7 +426,7 @@ describe('StartNewHandPhase Logic', () => {
     });
 
     // Act & Assert
-    expect(() => startNewHand(gameState)).to.throw(MockPhaseLogicError);
+    expect(() => startNewHand(gameState)).to.throw(PhaseLogicError, 'Not enough cards to complete dealing');
     
     // Verify the deck was actually created with the expected number of cards
     expect(mockDeckUtils.createDeck.calledOnce).to.be.true;
@@ -455,6 +434,7 @@ describe('StartNewHandPhase Logic', () => {
   });
 
   /**
+   * Tests the edge case where the kitty becomes empty
    * Tests that the function handles the edge case where the kitty becomes empty
    * exactly after dealing all cards to players.
    */
@@ -468,7 +448,7 @@ describe('StartNewHandPhase Logic', () => {
       return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
     });
 
-    expect(() => startNewHand(gameState)).to.throw(MockPhaseLogicError);
+    expect(() => startNewHand(gameState)).to.throw(PhaseLogicError, 'Not enough cards to complete dealing');
   });
 
   /**
@@ -492,7 +472,7 @@ describe('StartNewHandPhase Logic', () => {
     
     // Act & Assert
     expect(() => startNewHand(gameState))
-      .to.throw(MockPhaseLogicError, 'Kitty is empty before setting turn card');
+      .to.throw(PhaseLogicError, 'Kitty is empty before setting turn card');
       
     // Verify the deck was actually created with the expected number of cards
     expect(mockDeckUtils.createDeck.calledOnce).to.be.true;

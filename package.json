@@ -11,7 +11,7 @@
     "test": "mocha --recursive --timeout 10000 --loader=esmock",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test:file": "mocha --recursive --timeout 10000",
+    "test:file": "mocha --timeout 10000 --loader=esmock --spec",
     "testALL": "mocha --recursive --timeout 10000",
     "test:watch": "mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --watch --timeout 10000",
     "test:debug": "node --inspect node_modules/mocha/bin/mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --timeout 10000",

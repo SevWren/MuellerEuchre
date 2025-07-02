@@ -1,14 +1,18 @@
 // filepath: test/game/logic/validation.unit.test.js
 import { expect } from "chai";
-import sinon from "sinon"; // Import sinon
+import sinon from "sinon";
 import esmock from "esmock";
-import {
+import { PATHS, createBaseGameState } from "./test-utils.js";
+
+// Import constants and errors using dynamic imports with file URLs for Windows compatibility
+const {
   GAME_PHASES,
   SUITS,
   PLAYER_ROLES,
   VALUES,
-} from "../../../src/config/constants.js";
-import {
+} = await import(PATHS.FILE_URLS.CONSTANTS);
+
+const {
   ValidationError,
   InvalidPhaseError,
   NotPlayersTurnError,
@@ -16,7 +20,7 @@ import {
   MustFollowSuitError,
   InvalidBidError,
   InvalidDiscardError,
-} from "../../../src/game/logic/errors.js";
+} = await import(PATHS.FILE_URLS.ERRORS);
 
 describe("Validation Logic - validatePlay", () => {
   let sandbox; // Declare sandbox
@@ -43,9 +47,9 @@ describe("Validation Logic - validatePlay", () => {
   const player1Role = PLAYER_ROLES[0];
 
   beforeEach(async () => {
-    sandbox = sinon.createSandbox(); // Initialize sandbox
+    sandbox = sinon.createSandbox();
 
-    // Mock logger to prevent console output during tests and allow spying
+    // Initialize logger mock with all required methods
     loggerMock = {
       info: sandbox.stub(),
       warn: sandbox.stub(),
@@ -53,45 +57,39 @@ describe("Validation Logic - validatePlay", () => {
       debug: sandbox.stub(),
     };
 
-    // This mock is for general tests outside of 'Following Suit Logic' or other specific blocks
+    // Define the general mock for isLeftBower
     generalIsLeftBowerMock = (card, trumpSuit) => {
-      if (
-        trumpSuit === SUITS.SPADES &&
-        card.suit === SUITS.CLUBS &&
-        card.value === VALUES.JACK
-      )
-        return true;
-      if (
-        trumpSuit === SUITS.CLUBS &&
-        card.suit === SUITS.SPADES &&
-        card.value === VALUES.JACK
-      )
-        return true;
-      if (
-        trumpSuit === SUITS.HEARTS &&
-        card.suit === SUITS.DIAMONDS &&
-        card.value === VALUES.JACK
-      )
-        return true;
-      if (
-        trumpSuit === SUITS.DIAMONDS &&
-        card.suit === SUITS.HEARTS &&
-        card.value === VALUES.JACK
-      )
-        return true;
+      if (!card || !trumpSuit) return false;
+      
+      // Check for left bower (jack of same color as trump)
+      if (card.value === VALUES.JACK) {
+        if (trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS) return true;
+        if (trumpSuit === SUITS.CLUBS && card.suit === SUITS.SPADES) return true;
+        if (trumpSuit === SUITS.HEARTS && card.suit === SUITS.DIAMONDS) return true;
+        if (trumpSuit === SUITS.DIAMONDS && card.suit === SUITS.HEARTS) return true;
+      }
       return false;
     };
 
-    const validationModule = await esmock(
-      "../../../src/game/logic/validation.js",
-      {
-        "../../utils/logger.js": loggerMock,
-        "../../utils/deck.js": {
-          isLeftBower: (card, trumpSuit) =>
-            generalIsLeftBowerMock(card, trumpSuit),
-        },
+    // Import the validation module with proper path resolution
+    const validationModule = await esmock(PATHS.VALIDATION_MODULE, {
+      // Match the exact import paths used in the source file
+      [PATHS.LOGGER]: loggerMock,
+      [PATHS.DECK_UTILS]: {
+        isLeftBower: generalIsLeftBowerMock,
+        areSameColor: (suit1, suit2) => {
+          // Simple color check for testing
+          const colors = {
+            [SUITS.SPADES]: 'black',
+            [SUITS.CLUBS]: 'black',
+            [SUITS.HEARTS]: 'red',
+            [SUITS.DIAMONDS]: 'red'
+          };
+          return colors[suit1] === colors[suit2];
+        }
       }
-    );
+    });
+    
     generalValidatePlay = validationModule.validatePlay;
   });
 
@@ -181,19 +179,25 @@ describe("Validation Logic - validatePlay", () => {
 
   // Test cases for following suit - This block will manage its own validatePlay and isLeftBowerMock
   describe("Following Suit Logic (General)", () => {
-    //
-    let validatePlay; // Specific to this describe block
-    let isLeftBowerMock; // Specific to this describe block
+    let validatePlay;
+    let isLeftBowerMock;
+    let loggerMock;
 
     beforeEach(async () => {
-      //
-      // Define the default mock behavior for isLeftBower for tests in this block
+      // Reset mocks
+      loggerMock = {
+        info: sandbox.stub(),
+        warn: sandbox.stub(),
+        error: sandbox.stub(),
+        debug: sandbox.stub(),
+      };
+
+      // Define the mock behavior for isLeftBower for this test block
       isLeftBowerMock = (card, trumpSuit) => {
         // Only Jack of same color but different suit is Left Bower
-        if (card.value !== VALUES.JACK) return false;
+        if (!card || card.value !== VALUES.JACK) return false;
 
-        if (trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS)
-          return true;
+        if (trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS) return true;
         if (trumpSuit === SUITS.CLUBS && card.suit === SUITS.SPADES)
           return true;
         if (trumpSuit === SUITS.HEARTS && card.suit === SUITS.DIAMONDS)
@@ -204,16 +208,26 @@ describe("Validation Logic - validatePlay", () => {
         return false;
       };
 
-      const validationModule = await esmock(
-        "../../../src/game/logic/validation.js",
-        {
-          // The key must match the import string inside the target module ('validation.js')
-          "../../utils/logger.js": loggerMock,
-          "../../utils/deck.js": {
-            isLeftBower: (card, trumpSuit) => isLeftBowerMock(card, trumpSuit),
-          },
+      const validationModule = await esmock(PATHS.VALIDATION_MODULE, {
+        // Match the exact import paths used in the source file
+        [PATHS.LOGGER]: loggerMock,
+        [PATHS.DECK_UTILS]: {
+          isLeftBower: (card, trumpSuit) => isLeftBowerMock(card, trumpSuit),
+          areSameColor: (suit1, suit2) => {
+            // Mock areSameColor for testing
+            if (suit1 === suit2) return true;
+            if (
+              (suit1 === SUITS.SPADES && suit2 === SUITS.CLUBS) ||
+              (suit1 === SUITS.CLUBS && suit2 === SUITS.SPADES) ||
+              (suit1 === SUITS.HEARTS && suit2 === SUITS.DIAMONDS) ||
+              (suit1 === SUITS.DIAMONDS && suit2 === SUITS.HEARTS)
+            ) {
+              return true;
+            }
+            return false;
+          }
         }
-      );
+      });
       validatePlay = validationModule.validatePlay;
     });
 
@@ -247,20 +261,49 @@ describe("Validation Logic - validatePlay", () => {
       ).to.equal(true);
     });
 
-    it("should throw MustFollowSuitError if player has the led suit but plays an off-suit card", () => {
+    it("should throw MustFollowSuitError if player has the led suit but plays an off-suit card", async () => {
       // Arrange
+      // Create a dedicated mock for this test
+      const isLeftBowerStub = sinon.stub().returns(false);
+      
+      // Import the validation module with our dedicated mock
+      const validationModule = await esmock(PATHS.VALIDATION_MODULE, {
+        [PATHS.LOGGER]: loggerMock,
+        [PATHS.DECK_UTILS]: {
+          isLeftBower: isLeftBowerStub,
+          areSameColor: (suit1, suit2) => {
+            const colors = {
+              [SUITS.SPADES]: 'black',
+              [SUITS.CLUBS]: 'black',
+              [SUITS.HEARTS]: 'red',
+              [SUITS.DIAMONDS]: 'red'
+            };
+            return colors[suit1] === colors[suit2];
+          }
+        }
+      });
+      
+      const validatePlay = validationModule.validatePlay;
+      
+      // Define test-specific hand with explicit cards
+      const testHand = [
+        { id: "AC", suit: SUITS.CLUBS, value: VALUES.ACE },  // Club that matches led suit
+        { id: "KC", suit: SUITS.CLUBS, value: VALUES.KING }, // Another Club that matches led suit
+        { id: "AS", suit: SUITS.SPADES, value: VALUES.ACE }  // Off-suit (trump) card we'll try to play
+      ];
+      
       const ledCardDetails = {
         card: { id: "QC", suit: SUITS.CLUBS, value: VALUES.QUEEN },
         player: PLAYER_ROLES[1],
       };
+      
       const gameState = {
         ...baseGameState,
-        currentTrick: [ledCardDetails], // Clubs was led.
+        currentTrick: [ledCardDetails], // Clubs was led
         trumpSuit: SUITS.SPADES,
       };
 
-      // From the `player1Hand` defined in the parent scope, we know the player has Clubs.
-      // This card is an off-suit (and trump) card.
+      // This card is an off-suit (trump) card
       const cardToAttempt = {
         id: "AS",
         suit: SUITS.SPADES,
@@ -270,13 +313,16 @@ describe("Validation Logic - validatePlay", () => {
       // Act
       // The player must follow suit by playing a Club. Attempting to play a Spade is illegal.
       const action = () =>
-        validatePlay(gameState, player1Hand, cardToAttempt, player1Role);
+        validatePlay(gameState, testHand, cardToAttempt, player1Role);
 
       // Assert
       expect(action).to.throw(
         MustFollowSuitError,
         `Must follow suit. Led suit is ${SUITS.CLUBS}, attempted to play ${SUITS.SPADES}.`
       );
+      
+      // Verify the mock was called (at least once for the played card and once for each card in hand)
+      expect(isLeftBowerStub.callCount).to.be.at.least(1);
     });
 
     it("should allow playing an off-suit card if player does not have the led suit", () => {
@@ -341,16 +387,26 @@ describe("Validation Logic - validatePlay", () => {
       // isLeftBowerMock will be a mutable function reference that tests can redefine
       isLeftBowerMock = () => false;
 
-      const validationModule = await esmock(
-        "../../../src/game/logic/validation.js",
-        {
-          // The key must match the import string inside the target module ('validation.js')
-          "../../utils/logger.js": loggerMock,
-          "../../utils/deck.js": {
-            isLeftBower: (card, trumpSuit) => isLeftBowerMock(card, trumpSuit),
-          },
+      const validationModule = await esmock(PATHS.VALIDATION_MODULE, {
+        // Match the exact import paths used in the source file
+        [PATHS.LOGGER]: loggerMock,
+        [PATHS.DECK_UTILS]: {
+          isLeftBower: (card, trumpSuit) => isLeftBowerMock(card, trumpSuit),
+          areSameColor: (suit1, suit2) => {
+            // Mock areSameColor for testing
+            if (suit1 === suit2) return true;
+            if (
+              (suit1 === SUITS.SPADES && suit2 === SUITS.CLUBS) ||
+              (suit1 === SUITS.CLUBS && suit2 === SUITS.SPADES) ||
+              (suit1 === SUITS.HEARTS && suit2 === SUITS.DIAMONDS) ||
+              (suit1 === SUITS.DIAMONDS && suit2 === SUITS.HEARTS)
+            ) {
+              return true;
+            }
+            return false;
+          }
         }
-      );
+      });
       validatePlay = validationModule.validatePlay;
     });
 
@@ -557,7 +613,7 @@ describe("Validation Logic - validateBid", () => {
       {
         // Import the validation module
         // The key must match the import string inside the target module ('validation.js')
-        "../../utils/logger.js": loggerMock, // Use mocked logger
+        "../../../src/utils/logger.js": loggerMock, // Use mocked logger
         // No need to mock deck.js for validateBid unless it's used by validateBid
       }
     );
@@ -823,8 +879,33 @@ describe("Validation Logic - validateDealerDiscard", () => {
       "../../../src/game/logic/validation.js",
       {
         // The key must match the import string inside the target module ('validation.js')
-        "../../utils/logger.js": loggerMock,
- // Restore sandbox after each test
+        "../../../src/utils/logger.js": loggerMock,
+      }
+    );
+    validateDealerDiscard = validationModule.validateDealerDiscard;
+
+    dealerHand = [
+      // Dealer's hand with 6 cards
+      { id: "AC", suit: SUITS.CLUBS, value: VALUES.ACE },
+      { id: "KC", suit: SUITS.CLUBS, value: VALUES.KING },
+      cardToDiscard, // TC
+      { id: "AS", suit: SUITS.SPADES, value: VALUES.ACE },
+      { id: "KS", suit: SUITS.SPADES, value: VALUES.KING },
+      { id: "JD", suit: SUITS.DIAMONDS, value: VALUES.JACK },
+    ];
+
+    baseDiscardGameState = {
+      gamePhase: GAME_PHASES.DEALER_DISCARD,
+      dealer: dealerRole,
+      currentPlayer: dealerRole, // Dealer's turn to discard
+      gameId: "test-discard-game",
+      // Other properties like turnCard, bids might not be directly relevant for these validations
+      // but can be added if specific scenarios need them.
+    };
+  });
+
+  afterEach(() => {
+    sandbox.restore(); // Restore sandbox after each test
   });
 
   // Argument validation
@@ -999,4 +1080,5 @@ describe("Sanity check", () => {
     console.log("Sanity check: test is running");
   });
 });
-});
+
+// Add other validation function tests here as needed

@@ -1,99 +1,68 @@
 {
-    "compilerOptions": {
-        "module": "ESNext",
-        "moduleResolution": "Bundler",
-        "target": "ES2022",
-        "jsx": "react-jsx",
-        "allowImportingTsExtensions": true,
-        "strictNullChecks": true,
-        "strictFunctionTypes": true,
-        "baseUrl": ".",
-        "paths": {
-            "@/*": ["src/*"], //SRC alias
-            "@public/*": ["public/*"], //Public alias (unused mostly for now)
-            "@test/*": ["test/*"] //unit tests
-        }
-    },
-    "exclude": [
-        // Dependencies
-        "node_modules",
-        "**/node_modules/*",
-        "**/bower_components/*",
-
-        // Build outputs
-        "dist",
-        "build",
-        "out",
-
-        // Cache and temp files
-        ".cache",
-        ".temp",
-        "temp",
-        "tmp",
-        "**/*.tmp",
-
-        // Logs and debug files (now recursive)
-        "logs", // This correctly excludes the top-level 'logs' directory and its contents
-        "**/*.log", // Excludes any .log file in any subdirectory
-        
-        // Environment and IDE
-        ".env*",
-        ".vscode/*", // THIS SHOULD NEVER be checked. This is why this is in exclude & not include
-        ".idea",
-        ".DS_Store",
-        "Thumbs.db",
-
-        // Coverage and reports
-        "coverage",
-        ".nyc_output",
-        "*.lcov",
-
-        // Package manager specific (these are not source code)
-        "package-lock.json", // Not typically included for JS parsing
-        // "yarn.lock",
-        // "pnpm-lock.yaml",
-        // "shrinkwrap.json",
-
-        // Production dependencies (if not part of the source JS to be parsed)
-        "**/public/vendor/*",
-        "**/public/libs/*",
-
-        // Minified files
-        "**/*.min.js",
-        "**/*.min.css",
-
-        // Config overrides (unless they contain JS that needs intellisense)
-        "**/webpack.config.override.js",
-        "**/babel.config.override.js",
-
-        // Development and editor files
-        ".history/",
-
-        // misc text files
-        "**/*.txt",
-
-        // Specific files from root that are not source
-        "package-lock.json",
-        "Thursday-Jules.txt",
-        "server_log.txt",
-        "todo.md",
-        "todo_possible_amendment.md",
-        "readme.md",
-        "ENVIRONMENT_INSTABILITY.md.errors",
-
-        // LLM Specific Files
-        "Repo_To_LLM"
-    ],
-    "include": [
-        "src/**/*.js",
-        "src/**/*.jsx",
-        "public/js/**/*.js", // Specifically include JS files in public/js
-        "test/**/*.js",
-        "test/**/*.jsx", // If any tests use JSX
-        "**/*.ts", // Keep for future proofing or if TS files exist
-        "**/*.tsx", // Keep for future proofing or if TS files exist
-        "**/__mocks__", // If mock directories are outside /test
-        "**/cypress", // If cypress tests are not under /test
-        "**/e2e" // If e2e tests are not under /test
-    ]
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@public/*": ["public/*"],
+      "@test/*": ["test/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "**/node_modules/*",
+    "**/bower_components/*",
+    "dist",
+    "build",
+    "out",
+    ".cache",
+    ".temp",
+    "temp",
+    "tmp",
+    "**/*.tmp",
+    "logs",
+    "**/*.log",
+    ".env*",
+    ".vscode/*",
+    ".idea",
+    ".DS_Store",
+    "Thumbs.db",
+    "coverage",
+    ".nyc_output",
+    "*.lcov",
+    "package-lock.json",
+    "**/public/vendor/*",
+    "**/public/libs/*",
+    "**/*.min.js",
+    "**/*.min.css",
+    "**/webpack.config.override.js",
+    "**/babel.config.override.js",
+    ".history/",
+    "**/*.txt",
+    "Thursday-Jules.txt",
+    "server_log.txt",
+    "todo.md",
+    "todo_possible_amendment.md",
+    "readme.md",
+    "ENVIRONMENT_INSTABILITY.md.errors",
+    "Repo_To_LLM"
+  ],
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "public/js/**/*.js",
+    "test/**/*.js",
+    "test/**/*.jsx",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/__mocks__",
+    "**/cypress",
+    "**/e2e"
+  ]
 }

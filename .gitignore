@@ -122,3 +122,4 @@ test\game\phases\lobbyPhase.unit.test.js.aistudio.js
 findfiles.bat
 find_files_report.txt
 mocha
+package-lock.json

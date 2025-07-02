@@ -5,12 +5,12 @@
   "type": "module",
   "main": "src/server.js",
   "engines": {
-    "node": ">=vv20.1.0"
+    "node": ">=v20.1.0"
   },
   "scripts": {
+    "test": "mocha --recursive --timeout 10000 --loader=esmock",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "mocha --recursive --timeout 10000 --loader=esmock",
     "test:file": "mocha --recursive --timeout 10000",
     "testALL": "mocha --recursive --timeout 10000",
     "test:watch": "mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --watch --timeout 10000",

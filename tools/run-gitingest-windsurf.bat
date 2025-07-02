@@ -10,8 +10,8 @@ setlocal
 :: ============================================================================
 
 :: --- Configuration ---
-set "REPO_PATH=C:\github\MuellerEuchre - Windsurf"
-set "OUTPUT_FILE=C:\github\MuellerEuchre - Windsurf\mueller_euchre_repo_llm.txt"
+set "REPO_PATH=C:\github\MuellerEuchre-Windsurf"
+set "OUTPUT_FILE=C:\github\MuellerEuchre-Windsurf\mueller_euchre_repo_llm.txt"
 
 
 :: --- Script Execution ---

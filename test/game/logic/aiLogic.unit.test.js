@@ -1,11 +1,7 @@
 // filepath: test/game/logic/aiLogic.unit.test.js
-import { describe, it } from "mocha";
+import { describe, it, before, after } from "mocha";
 import { expect } from "chai";
-import esmock from "esmock";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { esmockWithPaths } from '../../utils/esmock_wrapper.js';
 
 // --- Constants for Readability ---
 const SUITS = {
@@ -51,18 +47,16 @@ describe("AI Logic Module", () => {
   ];
 
   before(async () => {
-    // Mock the aiLogic module
-    aiLogic = await esmock(
-      path.join(__dirname, "../../../src/game/logic/aiLogic.js"),
+    // Use the esmock wrapper to load the module under test
+    aiLogic = await esmockWithPaths(
+      import.meta.url,
+      '../../../src/game/logic/aiLogic.js',
       {}, // No dependencies to mock
-      {} // No globals to mock
+      {}  // No globals to mock
     );
   });
 
-  after(() => {
-    // Clean up esmock mocks
-    esmock.purge(aiLogic);
-  });
+  // The after hook for esmock.purge is removed as per esmock_wrapper.js documentation.
 
   describe("countTrumpInHand()", () => {
     it("should correctly count trump cards in a hand", () => {

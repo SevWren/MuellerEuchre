@@ -7,8 +7,6 @@ Files that need to be updated to use the new `esmock_wrapper.js` standard.
         -   [ ] Replace hardcoded relative paths with `esmockWithPaths` or `createMockedModule`.  Run individual file test to verify any changes made.
     -   [ ] `test/game/state.unit.test.js`
         -   [ ] Replace hardcoded relative paths with `esmockWithPaths` or `createMockedModule`. Run individual file test to verify any changes made.
-    -   [ ] `test/socket/handlers/biddingHandlers.unit.test.js`
-        -   [ ] Replace hardcoded relative paths with `esmockWithPaths` or `createMockedModule`. Run individual file test to verify any changes made.
     -   [ ] `test/utils/statsUtils.unit.test.js`
         -   [ ] Replace direct `esmock` call with `esmockWithPaths` or `createMockedModule`. Run individual file test to verify any changes made.
     -   [ ] `test/game/logic/aiLogic.unit.test.js`
@@ -33,6 +31,8 @@ Files that need to be updated to use the new `esmock_wrapper.js` standard.
         -   [ ] Replace direct `esmock` call with `esmockWithPaths` or `createMockedModule`. Run individual file test to verify any changes made.
     -   [ ] `test/socket/handlers/playingHandlers.unit.test.js`
         -   [ ] Replace direct `esmock` call with `esmockWithPaths` or `createMockedModule`. Run individual file test to verify any changes made.
-
+    -   [X] `test/socket/handlers/biddingHandlers.unit.test.js`
+        -   [X] Replace hardcoded relative paths with `esmockWithPaths` or `createMockedModule`. Run individual file test to verify any changes made.
 -   [ ] **Finalize Documentation**
     -   [ ] Create `docs/TESTING_CONVENTIONS.md` to mandate the use of `esmock_wrapper.js`.
+## Current Goal

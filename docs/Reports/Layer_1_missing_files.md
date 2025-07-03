@@ -1,73 +1,49 @@
-### Missing Files & Functionality for a Complete Layer 1
+### **Updated File: `docs/Reports/Layer_1_missing_files.md`**
 
-The following files do not currently exist but are essential for a complete and robust Layer 1.
+### **Layer 1 Core Functionality (Status: Implemented)**
+
+This document previously outlined a plan for creating essential files for a complete and robust Layer 1. As of the current project state, **all planned files have been implemented**. This list now serves as an archive of the completed work.
 
 **Important Note on Testing with ESMock:**
-When implementing and testing these new Layer 1 modules, remember to leverage the `esmockWithPaths` utility from `test/utils/esmockWrapper.js`. This ensures that any internal dependencies (e.g., `aiLogic.js` importing `deck.js`) can be accurately mocked, and that all test setups are robust and cross-platform compatible. Mock keys should always reflect the exact import strings used in the source file.
+When implementing and testing Layer 1 modules, remember to leverage the `esmockWithPaths` utility from `test/utils/esmock_wrapper.js`. This ensures that any internal dependencies (e.g., `aiLogic.js` importing `deck.js`) can be accurately mocked, and that all test setups are robust and cross-platform compatible. Mock keys should always reflect the exact import strings used in the source file.
 
 ---
+
+### **Completed Layer 1 Modules (Previously "Missing")**
 
 #### 1. Core Game Logic
 
 *   **File Path:** `src/game/logic/aiLogic.js`
-*   **Purpose:** To provide a stateless, predictable AI to take over for disconnected players. A game cannot function if a player disconnects mid-hand without a fallback. This AI logic must be pure (taking game state as input and returning a decision) to be testable and part of Layer 1.
-*   **Key Functions / Contents:**
-    *   `chooseBid(hand, turnCard, isDealer, bids)`: A function that analyzes a hand and the game situation to decide whether to order up, pass, or call a suit.
-    *   `chooseDiscard(hand)`: A function that determines the least valuable card in a 6-card hand to discard.
-    *   `chooseCardToPlay(hand, trick, trumpSuit, ledSuit)`: The most critical AI function. It would analyze the current trick and the player's hand to select the optimal card to play, following all game rules.
-*   **Layer 1 Justification:** The AI's decision-making is part of the game's core "business logic." By keeping it in a pure, stateless utility, it can be easily tested and separated from the higher-level logic that decides *when* to use the AI (which would be in Layer 3 or 4).
-*   **Testing Considerations:** When creating `test/game/logic/aiLogic.unit.test.js`, use `esmockWithPaths` to mock any internal dependencies like `deck.js` or `constants.js` to isolate the AI logic for testing specific scenarios.
+*   **Status:** **Implemented.** Provides pure, stateless functions for AI decision-making, fulfilling the Layer 1 requirement.
+*   **Testing:** `test/game/logic/aiLogic.unit.test.js` verifies the AI's pure logic.
 
 ---
 
 #### 2. Core Utilities
 
 *   **File Path:** `src/utils/settingsUtils.js`
-*   **Purpose:** To manage and validate game settings. A real-world game allows for host-configurable "house rules" (e.g., winning score, "stick the dealer"). This utility provides pure functions to handle these settings.
-*   **Key Functions / Contents:**
-    *   `getDefaultSettings()`: Returns a default game settings object (e.g., `{ winningScore: 10, stickTheDealer: true }`).
-    *   `validateSettings(customSettings)`: Takes a settings object from a user and validates it. For example, it would ensure `winningScore` is a number between 5 and 20. It should return a boolean or throw an error on invalid settings.
-    *   `mergeWithDefaults(customSettings)`: Merges a user's partial settings with the defaults to create a complete, valid settings object for a new game.
-*   **Layer 1 Justification:** Game settings directly influence the rules and win conditions. The logic to validate and manage these settings is pure and foundational.
-*   **Testing Considerations:** For `test/utils/settingsUtils.unit.test.js`, `esmockWithPaths` might be used if `settingsUtils.js` were to import constants or error classes from other Layer 1 modules, ensuring those dependencies are correctly isolated for testing.
+*   **Status:** **Implemented.** Provides pure functions for managing and validating game settings.
+*   **Testing:** `test/utils/settingsUtils.unit.test.js` ensures settings validation and merging logic is correct.
 
 *   **File Path:** `src/utils/statsUtils.js`
-*   **Purpose:** To calculate and process player and game statistics. While storing stats is a database concern (Layer 2/3), the pure calculation logic belongs in Layer 1.
-*   **Key Functions / Contents:**
-    *   `calculateHandStats(gameState)`: Takes a completed hand's `gameState` and returns an object detailing what happened (e.g., `{ makerTeam: 'NS', pointsScored: 2, wasEuchre: true, wentAlone: false }`).
-    *   `updatePlayerStats(playerStats, handStats)`: Takes a player's current stats object and the results from `calculateHandStats` to return a new, updated stats object (e.g., incrementing wins, losses, euchres, etc.).
-*   **Layer 1 Justification:** The logic for deriving statistics from game data is a pure data transformation, making it a perfect fit for a Layer 1 utility.
-*   **Testing Considerations:** `test/utils/statsUtils.unit.test.js` would use `esmockWithPaths` if `statsUtils.js` imports other Layer 1 utilities (e.g., `players.js` for team lookups) or constants.
+*   **Status:** **Implemented.** Provides pure functions for calculating player and game statistics from game state.
+*   **Testing:** `test/utils/statsUtils.unit.test.js` covers the statistics calculation logic.
 
 *   **File Path:** `src/utils/historyUtils.js`
-*   **Purpose:** To create structured, human-readable log entries for the game flow. The `gameMessages` array is a simple implementation; a more robust system would use a dedicated utility to generate these entries.
-*   **Key Functions / Contents:**
-    *   `createHistoryEntry(action, details)`: A factory function that takes a game action (e.g., `'PLAY_CARD'`, `'CALL_TRUMP'`) and a details object (`{ player, card, suit }`) and returns a standardized history object: `{ timestamp, message, action, details }`.
-    *   `formatHistory(historyArray)`: A function that could take an array of history objects and format it into a human-readable game log.
-*   **Layer 1 Justification:** Generating consistent, structured log data from game events is a pure utility function. It standardizes how game events are described.
-*   **Testing Considerations:** In `test/utils/historyUtils.unit.test.js`, if `createHistoryEntry` uses `new Date()`, `esmockWithPaths` can be used to mock the global `Date` object or specific imports that provide timestamping, ensuring deterministic tests.
+*   **Status:** **Implemented.** Provides a pure factory function for creating structured history log entries.
+*   **Testing:** `test/utils/historyUtils.unit.test.js` verifies the creation of standardized history objects.
 
 *   **File Path:** `src/utils/idGenerator.js`
-*   **Purpose:** To create more robust and potentially human-readable unique IDs for games and players, rather than relying on `Date.now()` and `Math.random()`.
-*   **Key Functions / Contents:**
-    *   `generateGameId()`: Could generate a short, memorable ID like "blue-dog-7" or a standard UUID (using a library like `nanoid`).
-    *   `generatePlayerId()`: Could generate a UUID for a persistent player identity.
-*   **Layer 1 Justification:** ID generation is a fundamental, stateless utility. Centralizing it makes the ID strategy consistent and easy to change.
-*   **Testing Considerations:** For `test/utils/idGenerator.unit.test.js`, `esmockWithPaths` is critical to mock external ID generation libraries (e.g., `nanoid`) to ensure that `generateGameId()` returns predictable values for testing.
+*   **Status:** **Implemented.** Uses `nanoid` to provide a robust, stateless utility for generating unique game IDs.
+*   **Testing:** `test/utils/idGenerator.unit.test.js` ensures unique ID generation.
 
 ---
 
 #### 3. Configuration & Data
 
-*   **File Path:** `src/config/locales/en.json` (and other language files like `es.json`)
-*   **Purpose:** To store all user-facing strings for internationalization (i18n). A robust application should not have hardcoded strings like "Not your turn" or "Game Over!" in the logic files.
-*   **Key Functions / Contents:** This would be a JSON file, not a `.js` file.
-    *   Example content: `{ "error_not_your_turn": "It is not your turn to play.", "game_over_message": "Game Over! {winner} wins!" }`
-*   **Layer 1 Justification:** This is configuration data that the core logic would depend on.
+*   **File Path:** `src/config/locales/en.json`
+*   **Status:** **Implemented.** Provides a central JSON file for user-facing strings, enabling internationalization.
 
 *   **File Path:** `src/utils/i18n.js`
-*   **Purpose:** A utility to retrieve and format localized strings from the locale files.
-*   **Key Functions / Contents:**
-    *   `t(key, replacements)`: A function that takes a key (e.g., `'error_not_your_turn'`) and an optional object of replacements (e.g., `{ winner: 'Team NS' }`) to return the final, formatted string in the currently selected language.
-*   **Layer 1 Justification:** This is a pure utility for string manipulation and data retrieval, essential for making the game's output maintainable and translatable.
-*   **Testing Considerations:** `test/utils/i18n.unit.test.js` will heavily rely on `esmockWithPaths` to mock the `import ... with { type: 'json' }` statement that loads the locale data. This allows tests to simulate different locale files and test edge cases like missing keys or incorrect placeholders.
+*   **Status:** **Implemented.** Provides a pure utility to retrieve and format localized strings from the locale file.
+*   **Testing:** Relies on integration with other tests; a dedicated unit test could be added to mock the JSON import for full coverage.

@@ -69,7 +69,6 @@ const PATHS = {
   - [x] playingPhase.unit.test.js: fix all import paths and mocks
   - [x] scoringPhase.unit.test.js: fix all import paths and mocks
   - [ ] startNewHandPhase.unit.test.js: fix all import paths and mocks
-    - [ ] Explore alternative mocking libraries (e.g., testdouble, proxyquire, rewire)
     - [ ] Investigate esmock configuration options for Windows paths
     - [ ] Consider restructuring test to reduce mocking requirements
     - [ ] Test with `import.meta.resolve()` if available

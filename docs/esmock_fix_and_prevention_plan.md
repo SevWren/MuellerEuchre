@@ -1,61 +1,66 @@
-# Enhanced Plan: Systemic `esmock` Path Correction and Prevention
+### **Updated Plan: Systemic `esmock` Path Correction and Standardization 7/3/25**
 
-## 1. Introduction & Revised Goal
+#### **1. Introduction & Goal (Status: Confirmed)**
 
-The goal of this plan is to **eradicate all `esmock` pathing errors across the entire test suite** and establish a clear, maintainable convention to prevent this class of error from recurring. This plan expands the scope from a single file to a project-wide audit, correction, and documentation effort.
+The goal of this plan remains to **eradicate all `esmock` pathing errors across the entire test suite** and establish a clear, maintainable convention to prevent this class of error from recurring. This plan has been updated to reflect significant progress and the adoption of a superior mocking strategy.
 
-## 2. Phase 1: Project-Wide `esmock` Audit
+#### **2. Project-Wide `esmock` Audit (Status: Updated)**
 
-A project-wide search (`search_files`) was conducted to identify all test files using `esmock`. The results revealed several different usage patterns, some of which are brittle and prone to breaking when files are moved.
+A project-wide analysis reveals that while progress has been made, several legacy patterns still exist and must be refactored. The new standard is the `esmock_wrapper.js` utility.
 
-- **Pattern A (High-Risk):** Hardcoded, deep relative paths (e.g., `../../../src/...`). Found in `test/game/logic/validation.unit.test.js`, `test/game/phases/*.js`. These are the primary source of the current issue.
-- **Pattern B (Medium-Risk):** Using `path.join(__dirname, ...)` as seen in `test/game/logic/aiLogic.unit.test.js`. This is slightly more robust but can still be confusing.
-- **Pattern C (Best Practice):** Defining module paths as constants at the top of the file. Found in `test/socket/handlers/*.js`. This is the most maintainable pattern and will be adopted as the standard.
+*   **The New Standard (Wrapper):** The utility at `test/utils/esmock_wrapper.js` provides `esmockWithPaths` and `createMockedModule`. This is the mandatory pattern for all new and refactored tests as it correctly handles path aliases (`@/`) and is cross-platform compatible.
+    *   **Exemplars:** `test/utils/players.unit.test.js`, `test/game/phases/startNewHandPhase.unit.test.js`
 
-## 3. Phase 2: Staged Correction Strategy
+*   **Pattern A (High-Risk - DEPRECATED):** Hardcoded, deep relative paths (e.g., `../../../src/...`). This brittle pattern is still present in some older test files and must be eliminated.
+    *   **Files to fix:** `test/db/gameRepository.unit.test.js`, `test/game/state.unit.test.js`, `test/socket/handlers/biddingHandlers.unit.test.js`, `test/utils/statsUtils.unit.test.js`.
 
-The fix will be implemented in stages to ensure a controlled and verifiable process.
+*   **Pattern B (Medium-Risk - DEPRECATED):** Using `path.join(__dirname, ...)`. This is slightly more robust but does not support path aliasing and is less readable than the wrapper.
+    *   **Files to fix:** `test/game/logic/aiLogic.unit.test.js`, `test/utils/historyUtils.unit.test.js`.
+
+*   **Pattern C (Intermediate - DEPRECATED):** Defining module paths as constants using `toPosixPath`. While an improvement over Pattern A, this pattern is now superseded by the wrapper.
+    *   **Files to fix:** Most phase tests (`biddingPhase.unit.test.js`, `endGame.unit.test.js`, etc.) and some socket handler tests currently use this pattern and should be refactored for consistency.
+
+#### **3. Phase 2: Staged Correction Strategy (Status: Updated Strategy)**
+
+The fix will continue in stages, with the goal of migrating all tests to the new standard.
 
 ```mermaid
 graph TD
-    A[Start: Pathing Errors] --> B(Phase 1: Audit);
-    B --> C{Categorize `esmock` usage across all tests};
-    C --> D[Identify High-Risk Files: `validation.unit.test.js`, etc.];
-
-    D --> E(Phase 2: Staged Correction);
-    subgraph E [Correction Workflow]
+    A[Start: Remaining Pathing Issues] --> B(Phase 1: Complete Refactoring);
+    subgraph B [Refactoring Workflow]
         direction LR
-        F(Stage 1: Fix `validation.unit.test.js` to unblock tests) --> G(Run Test & Verify);
-        G --> H(Stage 2: Systematically audit & fix all other High-Risk test files);
-        H --> I(Run Full Test Suite & Verify);
+        C(Identify all tests using Patterns A, B, and C) --> D(Systematically refactor each test file to use `esmock_wrapper.js`);
+        D --> E(Run individual test file to verify 100% pass);
+        E --> F(Run full test suite to ensure no regressions);
     end
 
-    I --> J(Phase 3: Prevention & Documentation);
-    subgraph J [Prevention Workflow]
+    F --> G(Phase 2: Finalization & Documentation);
+    subgraph G [Finalization Workflow]
       direction LR
-      K[Standardize all tests on 'Path Constants' pattern] --> L[Create `docs/TESTING_CONVENTIONS.md`];
-      L --> M[Update Existing Rules & Workflows];
+      H[Ensure all `esmock` usage is via the wrapper] --> I[Create `docs/TESTING_CONVENTIONS.md`];
+      I --> J[Update all relevant project documentation];
     end
 
-    M --> N[End: Resilient & Maintainable Testing Setup];
+    J --> K[End: Resilient & Standardized Testing Setup];
 ```
 
-- **Stage 1: Unblock Current Work**
+*   **Stage 1: Systemic Refactoring**
+    *   Systematically read and refactor every test file identified as using Patterns A, B, or C.
+    *   The sole objective is to replace their `esmock` implementation with calls to `esmockWithPaths` or `createMockedModule`.
+    *   Run tests for each file after refactoring to confirm it passes and functionality is preserved.
 
-  - First, apply a precise `apply_diff` to fix the known errors in `test/game/logic/validation.unit.test.js`. This will resolve the immediate problem and allow the focused test to run.
+*   **Stage 2: Full Suite Verification**
+    *   After all individual files are refactored, run the entire test suite (`npm test`) to guarantee no cross-module regressions were introduced.
 
-- **Stage 2: Systemic Cleanup**
-  - After the initial fix is verified, systematically read and correct all other test files identified in the audit that use high-risk pathing patterns.
+#### **4. Phase 3: Long-Term Prevention & Documentation (Status: Updated & Actionable)**
 
-## 4. Phase 3: Long-Term Prevention & Documentation
+To ensure these issues do not happen again and that the new standard is followed, these steps are required:
 
-To ensure these issues do not happen again, the following documentation and standardization steps will be taken:
+1.  **Mandate `esmock_wrapper.js`:** All tests involving `esmock` **must** use the functions provided by `test/utils/esmock_wrapper.js`. Direct calls to `esmock()` with manual pathing are now strictly forbidden. This leverages the project's existing `jsconfig.json` path aliases for a clean and maintainable approach.
 
-1.  **Standardize `esmock` Usage:** Refactor all tests that use `esmock` to adopt the **"path constants"** pattern (Pattern C). This makes paths easier to read, manage, and update in one central place within each test file.
-2.  **Create New Conventions Document:** A new document will be created at `docs/TESTING_CONVENTIONS.md`. This file will codify the `esmock` pathing rules and serve as the official guide for all future tests.
-3.  **Update Existing Rules & Workflows:** The new testing standard will be integrated into the existing project documentation to ensure it is visible and reinforced. The following files will be updated:
-    - `C:\github\MuellerEuchre\.kilocode\workflows\debugging_precautions_layer_1_workflow.md`
-    - `C:\github\MuellerEuchre\.kilocode\workflows\safe_debugging_analysis_workflow.md`
-    - `C:\Users\mmuel\.kilocode\rules\In-Depth Development Plan Completing Layer 1 Core Logic Utilities Final, Enhanced.md`
-    - `C:\github\MuellerEuchre\.kilocode\rules\Core Principles Development Rules for Layer 1.md`
-4.  **Future-Proofing (Recommendation):** The new conventions document will also include a strong recommendation to implement **path aliases** (e.g., `@src/`, `@test/`) in the project's build or runtime configuration as a future enhancement. This is the industry-standard, most robust solution for eliminating relative path (`../..`) maintenance entirely.
+2.  **Create New Conventions Document:** A new document **must** be created at `docs/TESTING_CONVENTIONS.md`. This file will serve as the official guide for all future tests and will contain:
+    *   A clear statement mandating the use of the `esmock_wrapper.js`.
+    *   Code examples demonstrating how to use `esmockWithPaths` and `createMockedModule`.
+    *   An explanation of *why* this wrapper is used (cross-platform compatibility, path alias support).
+
+3.  **Update Existing Documentation:** All other development plans and workflow documents that reference testing or mocking must be updated to refer to the new `TESTING_CONVENTIONS.md` and the `esmock_wrapper.js` standard. This ensures a single, consistent source of truth.

@@ -24,26 +24,6 @@ A project-wide analysis reveals that while progress has been made, several legac
 
 The fix will continue in stages, with the goal of migrating all tests to the new standard.
 
-```mermaid
-graph TD
-    A[Start: Remaining Pathing Issues] --> B(Phase 1: Complete Refactoring);
-    subgraph B [Refactoring Workflow]
-        direction LR
-        C(Identify all tests using Patterns A, B, and C) --> D(Systematically refactor each test file to use `esmock_wrapper.js`);
-        D --> E(Run individual test file to verify 100% pass);
-        E --> F(Run full test suite to ensure no regressions);
-    end
-
-    F --> G(Phase 2: Finalization & Documentation);
-    subgraph G [Finalization Workflow]
-      direction LR
-      H[Ensure all `esmock` usage is via the wrapper] --> I[Create `docs/TESTING_CONVENTIONS.md`];
-      I --> J[Update all relevant project documentation];
-    end
-
-    J --> K[End: Resilient & Standardized Testing Setup];
-```
-
 *   **Stage 1: Systemic Refactoring**
     *   Systematically read and refactor every test file identified as using Patterns A, B, or C.
     *   The sole objective is to replace their `esmock` implementation with calls to `esmockWithPaths` or `createMockedModule`.

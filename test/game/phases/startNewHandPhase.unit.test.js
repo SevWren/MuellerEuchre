@@ -24,7 +24,7 @@
 // Import test utilities
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { esmockWithPaths, purgeAllEsmock } from '../../utils/esmock_wrapper.js';
+import { esmockWithPaths } from '../../utils/esmock_wrapper.js';
 
 // Import actual modules for constants and errors
 import * as constantsModule from '../../../src/config/constants.js';
@@ -213,10 +213,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  // Clean up esmock cache after each test
-  purgeAllEsmock();
-  
-  // Clear require cache to ensure fresh imports
+  // Clear require cache to ensure fresh imports in the next test
   if (typeof require !== 'undefined' && require.cache) {
     Object.keys(require.cache).forEach(key => {
       delete require.cache[key];

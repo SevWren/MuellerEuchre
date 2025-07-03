@@ -197,18 +197,43 @@ export async function createMockedModule(testFileUrl, modulePathRelativeToTestFi
 }
 
 /**
- * Purges all modules from the esmock cache. Call this in an `afterEach` block
- * to ensure test isolation.
+ * IMPORTANT: Mock Cleanup
+ * 
+ * To ensure proper test isolation, follow these guidelines:
+ * 
+ * 1. For each test file, import the modules you need at the top:
+ *    ```javascript
+ *    import { esmockWithPaths, createMockedModule } from '../utils/esmock_wrapper.js';
+ *    ```
+ * 
+ * 2. In your test setup, use `beforeEach` to create fresh mocks:
+ *    ```javascript
+ *    let myModule, mocks;
+ *    
+ *    beforeEach(async () => {
+ *      // Create fresh mocks for each test
+ *      ({ module: myModule, mocks } = await createMockedModule(
+ *        import.meta.url,
+ *        '../../path/to/module.js',
+ *        {
+ *          // Your mock overrides here
+ *        }
+ *      ));
+ *    });
+ *    ```
+ * 
+ * 3. In your test teardown, use `afterEach` to clean up:
+ *    ```javascript
+ *    afterEach(() => {
+ *      // Clear any module caches if needed
+ *      if (typeof require !== 'undefined' && require.cache) {
+ *        Object.keys(require.cache).forEach(key => {
+ *          delete require.cache[key];
+ *        });
+ *      }
+ *    });
+ *    ```
+ * 
+ * Note: There is no need to call `purgeAllEsmock()` as it's not a valid operation.
+ * The `esmock` module handles cleanup automatically between tests.
  */
-export const purgeAllEsmock = () => {
-  logDebug('Purging all modules from esmock cache.');
-  // Use the correct method to clear esmock cache
-  if (typeof esmock.purge === 'function') {
-    // This is incorrect usage. esmock.purge requires a module ID.
-    // There is no global purge. This function should be removed or refactored.
-    // For now, logging a warning to indicate the issue.
-    console.warn('[esmockWrapper] purgeAllEsmock is not a valid operation. Mocks must be purged individually.');
-  } else {
-    console.warn('[esmockWrapper] No purge method found on esmock');
-  }
-};

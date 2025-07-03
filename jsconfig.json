@@ -64,5 +64,5 @@
     "**/__mocks__",
     "**/cypress",
     "**/e2e"
-  ]
+, "archived_for_later_development/test/db/gameRepository.unit.test.js"  ]
 }

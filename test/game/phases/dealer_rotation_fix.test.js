@@ -1,78 +1,48 @@
 /**
- * @file test/game/phases/startNewHandPhase.unit.test.js
- * @module test/game/phases/startNewHandPhase.unit
- * @description Unit tests for the start new hand phase logic in Euchre Multiplayer game.
- * Tests validate Layer 1 core logic for deck creation, card dealing, dealer rotation, and error handling.
+ * @file test/game/phases/dealer_rotation_fix.test.js
+ * @module test/game/phases/dealer_rotation_fix
+ * @description
+ *   Unit tests for the `startNewHand` function in the `startNewHandPhase.js` module.
+ *
+ *   This test suite specifically validates the Layer 1 core logic for dealer rotation.
+ *   It ensures that the `startNewHand` function, when called from a valid preceding phase,
+ *   correctly identifies the next dealer in sequence according to the rules of Euchre.
+ *
+ *   All dependencies are mocked using the project's standard `esmockWithPaths` wrapper
+ *   to ensure the function is tested as a pure, stateless unit.
+ *
+ * @see {@link module:src/game/phases/startNewHandPhase}
  */
 
 import { expect } from 'chai';
 import sinon from 'sinon';
-import esmock from 'esmock';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { esmockWithPaths } from '../../utils/esmock_wrapper.js';
 
-// =============================================
-// PATH CONSTANTS (Pattern C from esmock_fix_and_prevention_plan.md)
-// =============================================
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Import constants using the correct relative path
+import { GAME_PHASES, PLAYER_ROLES } from '../../../src/config/constants.js';
+
+// Define module path using the correct relative path
+const MODULE_PATH = '../../../src/game/phases/startNewHandPhase.js';
 
 /**
- * Converts a relative path to an absolute path with POSIX separators
- * @param {string} relativePath - Path relative to the test file
- * @returns {string} Absolute path with POSIX separators
+ * @description Creates a mock implementation of the deck utilities for testing.
+ * @returns {object} A mock object with stubbed deck utility functions.
  */
-const toPosixPath = (relativePath) => {
-  return path.resolve(__dirname, relativePath).replace(/\\/g, '/');
-};
-
-// Define all module paths as constants at the top of the file
-const PATHS = {
-  // Source files - use relative paths from the test file
-  START_NEW_HAND: toPosixPath('../../../src/game/phases/startNewHandPhase.js'),
-  DECK_UTILS: toPosixPath('../../../src/utils/deck.js'),
-  PLAYER_UTILS: toPosixPath('../../../src/utils/players.js'),
-  LOGGER: toPosixPath('../../../src/utils/logger.js'),
-  CONSTANTS: toPosixPath('../../../src/config/constants.js'),
-  ERRORS: toPosixPath('../../../src/game/logic/errors.js'),
-};
-
-// Import using path constants to ensure consistency
-import { GAME_PHASES, PLAYER_ROLES, TEAMS } from '../../../src/config/constants.js';
-
-// Mock dependencies
-const mockDeckUtils = {
+const createMockDeckUtils = () => ({
   createDeck: sinon.stub(),
-  shuffleDeck: sinon.stub().callsFake(deck => [...deck].sort(() => Math.random() - 0.5)),
-};
+  shuffleDeck: sinon.stub().callsFake(deck => [...deck]), // Return a copy to avoid mutation
+  cardToId: sinon.stub().returns('mock-card-id'),
+});
 
-const mockPlayerUtils = {
+/**
+ * @description Creates a mock implementation of the player utilities for testing.
+ * @returns {object} A mock object with stubbed player utility functions.
+ */
+const createMockPlayerUtils = () => ({
   getNextPlayer: sinon.stub(),
-};
+});
 
-// Mock errors
-class MockValidationError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
-
-class MockInvalidPhaseError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'InvalidPhaseError';
-  }
-}
-
-class MockPhaseLogicError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'PhaseLogicError';
-  }
-}
-
-// Mock logger
+// Create mock logger
 const mockLogger = {
   debug: sinon.stub(),
   info: sinon.stub(),
@@ -80,54 +50,35 @@ const mockLogger = {
   error: sinon.stub(),
 };
 
-// Import the module under test with mocks
-const { startNewHand } = await esmock(
-  PATHS.START_NEW_HAND,
-  {
-    [PATHS.DECK_UTILS]: mockDeckUtils,
-    [PATHS.PLAYER_UTILS]: mockPlayerUtils,
-    [PATHS.LOGGER]: mockLogger,
-  },
-  {
-    [PATHS.ERRORS]: {
-      ValidationError: MockValidationError,
-      InvalidPhaseError: MockInvalidPhaseError,
-      PhaseLogicError: MockPhaseLogicError,
-    },
-  }
-);
+// Import actual errors for instanceof checks
+import * as actualErrors from '../../../src/game/logic/errors.js';
 
-// Test setup
-const resetMocks = () => {
-  mockDeckUtils.createDeck.resetHistory();
-  mockDeckUtils.shuffleDeck.resetHistory();
-  mockPlayerUtils.getNextPlayer.reset();
-  mockLogger.debug.resetHistory();
-  mockLogger.info.resetHistory();
-  mockLogger.warn.resetHistory();
-  mockLogger.error.resetHistory();
-};
-
-// Helper function to create a base game state
+/**
+ * @description Creates a base game state object for use in tests.
+ * @param {string} [phase=GAME_PHASES.LOBBY] - The initial game phase.
+ * @param {string} [dealer=PLAYER_ROLES[0]] - The role of the dealer.
+ * @returns {object} A simplified but valid game state object.
+ */
 const createBaseGameState = (phase = GAME_PHASES.LOBBY, dealer = PLAYER_ROLES[0]) => ({
   gameId: 'test-game-123',
   gamePhase: phase,
   dealer,
-  scores: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
   players: {
-    [PLAYER_ROLES[0]]: { hand: [], team: TEAMS.TEAM_NS, isConnected: true, isActive: true },
-    [PLAYER_ROLES[1]]: { hand: [], team: TEAMS.TEAM_EW, isConnected: true, isActive: true },
-    [PLAYER_ROLES[2]]: { hand: [], team: TEAMS.TEAM_NS, isConnected: true, isActive: true },
-    [PLAYER_ROLES[3]]: { hand: [], team: TEAMS.TEAM_EW, isConnected: true, isActive: true },
+    [PLAYER_ROLES[0]]: { hand: [], isActive: true, isConnected: true },
+    [PLAYER_ROLES[1]]: { hand: [], isActive: true, isConnected: true },
+    [PLAYER_ROLES[2]]: { hand: [], isActive: true, isConnected: true },
+    [PLAYER_ROLES[3]]: { hand: [], isActive: true, isConnected: true },
   },
-  kitty: [],
-  turnCard: null,
-  currentPlayer: null,
-  orderUpTurn: null,
-  message: '',
+  settings: {
+    winningScore: 10,
+  },
 });
 
-// Helper function to create a mock deck
+/**
+ * @description Generates a mock deck of cards for testing purposes.
+ * @param {number} [numCards=24] - The number of cards to generate in the deck.
+ * @returns {Array<object>} An array of card objects.
+ */
 const createMockDeck = (numCards = 24) => {
   const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
   const values = ['9', '10', 'J', 'Q', 'K', 'A'];
@@ -136,11 +87,11 @@ const createMockDeck = (numCards = 24) => {
   for (let i = 0; i < numCards; i++) {
     const suit = suits[Math.floor(i / 6) % 4];
     const value = values[i % 6];
-    deck.push({
-      id: `${value}_of_${suit}_${i}`,
-      suit,
-      value,
-      rank: values.indexOf(value) + 1,
+    deck.push({ 
+      suit, 
+      value, 
+      id: `${value}_${suit}`,
+      rank: values.indexOf(value) + 1
     });
   }
   
@@ -148,13 +99,51 @@ const createMockDeck = (numCards = 24) => {
 };
 
 describe('Dealer Rotation', () => {
-  // Reset mocks before each test
-  beforeEach(resetMocks);
+  let startNewHand;
+  let mockDeckUtils;
+  let mockPlayerUtils;
 
+  /**
+   * @function beforeEach
+   * @description Resets mocks and re-imports the module under test before each test case
+   * to ensure a clean, isolated environment.
+   */
+  beforeEach(async () => {
+    // Create fresh mocks for each test
+    mockDeckUtils = createMockDeckUtils();
+    mockPlayerUtils = createMockPlayerUtils();
+
+    // Import the module with mocks using esmock_wrapper
+    const module = await esmockWithPaths(
+      import.meta.url,
+      MODULE_PATH,
+      {
+        // Use path aliases for mocks, as per project convention
+        '@/utils/deck.js': mockDeckUtils,
+        '@/utils/players.js': mockPlayerUtils,
+        '@/utils/logger.js': mockLogger,
+        '@/game/logic/errors.js': actualErrors, // Use actual error classes for instanceof checks
+      }
+    );
+    
+    startNewHand = module.startNewHand;
+  });
+
+  /**
+   * @function afterEach
+   * @description Restores all Sinon stubs and spies after each test.
+   */
   afterEach(() => {
     sinon.restore();
   });
 
+  /**
+   * @test {startNewHand}
+   * @covers {startNewHand}
+   * @description Verifies that the dealer role correctly rotates to the next player in sequence
+   * after a hand is completed. This test iterates through all four player positions to ensure
+   * the rotation wraps around correctly.
+   */
   it('should rotate dealer to next player after each hand', () => {
     // Test dealer rotation through all player positions
     for (let i = 0; i < PLAYER_ROLES.length; i++) {
@@ -169,36 +158,25 @@ describe('Dealer Rotation', () => {
       const fullDeck = createMockDeck();
       mockDeckUtils.createDeck.returns([...fullDeck]);
       
-      // Mock the next player (left of new dealer)
-      // First call - get next dealer
-      mockPlayerUtils.getNextPlayer
-        .withArgs(currentDealer, PLAYER_ROLES)
-        .onFirstCall()
-        .returns(expectedNextDealer);
-      
-      // Second call - get first bidder (left of new dealer)
-      mockPlayerUtils.getNextPlayer
-        .withArgs(expectedNextDealer, PLAYER_ROLES)
-        .onSecondCall()
-        .returns(expectedFirstBidder);
+      // Mock the next player with proper rotation logic
+      // This single fake covers all calls to getNextPlayer within startNewHand
+      mockPlayerUtils.getNextPlayer.callsFake((player) => {
+        const currentIndex = PLAYER_ROLES.indexOf(player);
+        return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
+      });
 
       // Act
       const result = startNewHand(gameState);
 
       // Assert - verify dealer rotation and game phase
-      expect(result.dealer).to.equal(
-        expectedNextDealer,
-        `Expected dealer to rotate from ${currentDealer} to ${expectedNextDealer}`
-      );
-      expect(result.currentPlayer).to.equal(
-        expectedFirstBidder,
-        `Expected first bidder to be ${expectedFirstBidder} (left of ${expectedNextDealer})`
-      );
+      expect(result.dealer, `Test iteration ${i}: Expected dealer to rotate from ${currentDealer} to ${expectedNextDealer}`)
+        .to.equal(expectedNextDealer);
+        
+      expect(result.currentPlayer, `Test iteration ${i}: Expected first bidder to be ${expectedFirstBidder}`)
+        .to.equal(expectedFirstBidder);
+        
       expect(result.orderUpTurn).to.equal(expectedFirstBidder);
       expect(result.gamePhase).to.equal('ORDER_UP_ROUND1');
-      
-      // Reset mocks for next iteration
-      resetMocks();
     }
   });
 });

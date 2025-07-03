@@ -8,7 +8,7 @@
     "node": ">=v20.1.0"
   },
   "scripts": {
-    "test": "mocha --recursive --timeout 10000 --loader=esmock",
+    "test": "mocha --recursive --timeout 10000",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test:file": "mocha --timeout 10000 --loader=esmock --spec",

@@ -29,7 +29,6 @@
     "logs",
     "**/*.log",
     ".env*",
-    ".vscode/*",
     ".idea",
     ".DS_Store",
     "Thumbs.db",
@@ -51,6 +50,7 @@
     "todo_possible_amendment.md",
     "readme.md",
     "ENVIRONMENT_INSTABILITY.md.errors",
+    ".vscode/*",
     "Repo_To_LLM"
   ],
   "include": [

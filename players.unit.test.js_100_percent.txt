@@ -1,0 +1,74 @@
+
+> euchre-multiplayer@1.0.0 test
+> mocha --recursive --timeout 10000 test\utils\players.unit.test.js
+
+
+[0m[0m
+[0m  Player Utilities[0m
+[0m    initializePlayers()[0m
+    [32m  √[0m[90m should initialize four players[0m
+    [32m  √[0m[90m should assign correct roles to players[0m
+    [32m  √[0m[90m should assign teamId to players correctly (TEAM_NS: south, north; TEAM_EW: west, east)[0m
+    [32m  √[0m[90m should initialize player hands as empty arrays[0m
+    [32m  √[0m[90m should initialize other player properties[0m
+[0m    getPlayerTeam()[0m
+[0m      with valid player objects[0m
+      [32m  √[0m[90m should return TEAM_NS for North/South players[0m
+      [32m  √[0m[90m should return TEAM_EW for East/West players[0m
+[0m      with invalid inputs[0m
+      [32m  √[0m[90m should log warning and return undefined for null[0m
+      [32m  √[0m[90m should log warning and return undefined for undefined[0m
+      [32m  √[0m[90m should log warning and return undefined for non-object inputs[0m
+[0m      with player missing teamId[0m
+      [32m  √[0m[90m should log warning and return undefined[0m
+      [32m  √[0m[90m should handle null/undefined id and name gracefully[0m
+[0m    isTeammate()[0m
+    [32m  √[0m[90m should return true for players on the same team (South and North)[0m
+    [32m  √[0m[90m should return true for players on the same team (West and East)[0m
+    [32m  √[0m[90m should return false for players on opposite teams (South and West)[0m
+    [32m  √[0m[90m should return false for players on opposite teams (North and East)[0m
+    [32m  √[0m[90m should return false if comparing a player to themselves[0m
+    [32m  √[0m[90m should return false for invalid playerRole1 and log a warning[0m
+    [32m  √[0m[90m should return false for invalid playerRole2 and log a warning[0m
+    [32m  √[0m[90m should return false for null playerRole1 and log a warning[0m
+    [32m  √[0m[90m should return false for undefined playerRole2 and log a warning[0m
+    [32m  √[0m[90m should log a warning if getTeamForPlayer returns empty string[0m
+[0m    getPartner()[0m
+    [32m  √[0m[90m should return the correct partner for South[0m
+    [32m  √[0m[90m should return the correct partner for West[0m
+    [32m  √[0m[90m should return the correct partner for North[0m
+    [32m  √[0m[90m should return the correct partner for East[0m
+    [32m  √[0m[90m should return undefined for an invalid player role string and log a warning[0m
+    [32m  √[0m[90m should return undefined for null player role and log a warning[0m
+    [32m  √[0m[90m should return undefined for undefined player role and log a warning[0m
+[0m    getPlayerBySocketId()[0m
+    [32m  √[0m[90m should return the player object for a valid socket ID[0m
+    [32m  √[0m[90m should return null for a socket ID that does not exist[0m
+    [32m  √[0m[90m should return null for null gameState and log a warning[0m
+    [32m  √[0m[90m should return null for null socketId and log a warning[0m
+    [32m  √[0m[90m should return null for empty gameState and log a warning[0m
+    [32m  √[0m[90m should return null for null players object in gameState and log a warning[0m
+[0m    getRoleBySocketId()[0m
+    [32m  √[0m[90m should return the correct role for a valid socket ID[0m
+    [32m  √[0m[90m should return null for a non-existent socket ID[0m
+    [32m  √[0m[90m should return null for null gameState and log a warning[0m
+    [32m  √[0m[90m should return null for null socketId and log a warning[0m
+    [32m  √[0m[90m should return null for empty players object in gameState without logging a warning[0m
+    [32m  √[0m[90m should return null for null players object in gameState and log a warning[0m
+[0m    getNextPlayer()[0m
+    [32m  √[0m[90m should return the next player in the standard order[0m
+    [32m  √[0m[90m should skip the partner if going alone[0m
+    [32m  √[0m[90m should handle wrapping around when skipping the partner[0m
+    [32m  √[0m[90m should return undefined for invalid currentPlayerRole string and log a warning[0m
+    [32m  √[0m[90m should return undefined for null currentPlayerRole and log a warning[0m
+    [32m  √[0m[90m should return undefined for undefined currentPlayerRole and log a warning[0m
+    [32m  √[0m[90m should return undefined if currentPlayerRole is not found in playerSlots and log a warning[0m
+    [32m  √[0m[90m should return undefined for null playerSlots and log a warning[0m
+    [32m  √[0m[90m should return undefined for empty playerSlots array and log a warning[0m
+    [32m  √[0m[90m should return undefined for playerSlots array with incorrect length and log a warning[0m
+    [32m  √[0m[90m should not skip if not going alone, even if partnerSittingOut is provided[0m
+    [32m  √[0m[90m should not skip if going alone is true but partnerSittingOut is null/undefined[0m
+
+
+[92m [0m[32m 53 passing[0m[90m (817ms)[0m
+

@@ -1,0 +1,13 @@
+ Lobby Utility Functions
+    assignRoleToPlayer
+      √ should assign a role to a new player with initial properties
+      √ should assign roles to players on different teams correctly
+[2025-07-03 16:12:16] WARN: Invalid detailsObject provided for actionType "SOME_ACTION": null
+[2025-07-03 16:12:16] WARN: Invalid detailsObject provided for actionType "ANOTHER_ACTION": invalid details
+[2025-07-03 16:12:16] WARN: Invalid actionType provided to createHistoryEntry: null
+[2025-07-03 16:12:16] WARN: Invalid actionType provided to createHistoryEntry:
+[2025-07-03 16:12:17] WARN: Malformed card object in details for actionType "PLAY_CARD": {"rank":"King","suit":"Clubs"}
+[2025-07-03 16:12:17] WARN: Missing cardId for PLAY_CARD action: {"playerRole":"West","card":null}
+[2025-07-03 16:12:17] WARN: Malformed card object in details for actionType "PLAY_CARD": "not a card"
+[2025-07-03 16:12:17] WARN: Missing playerRole for PLAY_CARD action: {"card":{"id":"QH","rank":"Queen","suit":"Hearts"}}
+[2025-07-03 16:12:17] WARN: Missing cardId for PLAY_CARD action: {"playerRole":"North"}

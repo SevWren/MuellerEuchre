@@ -2,12 +2,16 @@
  * Handles player connection and disconnection events for Socket.IO.
  * @module socket/handlers/playerConnectionHandlers
  */
-import logger from '../../utils/logger.js';
-import { getGameState, updateGameState } from '../../game/state.js'; // Removed initializePlayerSpecificState
-import { PLAYER_ROLES, GAME_PHASES, GAME_EVENTS } from '../../config/constants.js'; // Added GAME_EVENTS
-import { getRoleBySocketId } from '../../utils/players.js';
-import { gameRepository } from '../../db/gameRepository.js'; // Corrected import
-logger.info('[PlayerConnectionHandlers] handlePlayerDisconnect called');
+import logger from "../../utils/logger.js";
+import { getGameState, updateGameState } from "../../game/state.js"; // Removed initializePlayerSpecificState
+import {
+  PLAYER_ROLES,
+  GAME_PHASES,
+  GAME_EVENTS,
+} from "../../config/constants.js"; // Added GAME_EVENTS
+import { getRoleBySocketId } from "../../utils/players.js";
+import { gameRepository } from "../../db/gameRepository.js"; // Corrected import
+logger.info("[PlayerConnectionHandlers] handlePlayerDisconnect called");
 
 /**
  * Handles a new client connection, attempts to assign them a player role,
@@ -18,7 +22,10 @@ logger.info('[PlayerConnectionHandlers] handlePlayerDisconnect called');
 export function handlePlayerConnect(socket, io) {
   // This handler is for a new player joining a globally available game (e.g. the first game or a public lobby).
   // It does not yet handle rejoining specific games by gameId. That's covered by handleRejoinGame.
-  logger.info({ socketId: socket.id }, 'New client connection received. Attempting to assign to default game.');
+  logger.info(
+    { socketId: socket.id },
+    "New client connection received. Attempting to assign to default game.",
+  );
 
   // TODO: This handler currently assumes a single, global game state from state.js.
   // This will need significant refactoring if multiple distinct games are to be supported from the initial connection.
@@ -42,25 +49,36 @@ export function handlePlayerConnect(socket, io) {
   const currentGameState = null; // Placeholder to avoid breaking if called unexpectedly.
   if (!currentGameState || !currentGameState.gameId) {
     // logger.error({ socketId: socket.id }, 'Default game state (from state.js) is not available or has no gameId. Cannot assign player via handlePlayerConnect.');
-    socket.emit(GAME_EVENTS.ERROR, { message: 'Server error: No default game currently available for new connections.'});
+    socket.emit(GAME_EVENTS.ERROR, {
+      message:
+        "Server error: No default game currently available for new connections.",
+    });
     return;
   }
-  logger.debug({ socketId: socket.id, gameId: currentGameState.gameId }, 'Attempting to handle new player connection to default game.');
+  logger.debug(
+    { socketId: socket.id, gameId: currentGameState.gameId },
+    "Attempting to handle new player connection to default game.",
+  );
 
   let assignedRole = null;
 
   // Find an available slot in the default game
   for (const role of PLAYER_ROLES) {
-    if (currentGameState.players && currentGameState.players[role] && currentGameState.players[role].socketId === null) {
+    if (
+      currentGameState.players &&
+      currentGameState.players[role] &&
+      currentGameState.players[role].socketId === null
+    ) {
       assignedRole = role;
       break;
     }
   }
 
   if (assignedRole) {
-    const newName = assignedRole.charAt(0).toUpperCase() + assignedRole.slice(1); // Default name by role
+    const newName =
+      assignedRole.charAt(0).toUpperCase() + assignedRole.slice(1); // Default name by role
     let updatedPlayers; // To capture the state of players after update for logging/emit
-    const updatedGameState = updateGameState(currentState => {
+    const updatedGameState = updateGameState((currentState) => {
       const newPlayers = JSON.parse(JSON.stringify(currentState.players)); // Deep clone players
       newPlayers[assignedRole] = {
         ...newPlayers[assignedRole], // Keep existing player data like score, hand (if any from a previous game)
@@ -72,30 +90,45 @@ export function handlePlayerConnect(socket, io) {
       return { ...currentState, players: newPlayers };
     });
 
-  socket.emit(GAME_EVENTS.ASSIGN_ROLE, { // Use GAME_EVENTS constant
-    role: assignedRole,
-    name: updatedPlayers[assignedRole].name,
-    gameId: currentGameState.gameId // Include gameId
-  });
-  socket.currentGameId = currentGameState.gameId; // Store gameId on socket
-  socket.join(currentGameState.gameId); // Ensure socket joins the room for the default game
-  logger.info({ socketId: socket.id, assignedRole, name: updatedPlayers[assignedRole].name, gameId: currentGameState.gameId }, 'Player assigned to role in default game and joined room.');
+    socket.emit(GAME_EVENTS.ASSIGN_ROLE, {
+      // Use GAME_EVENTS constant
+      role: assignedRole,
+      name: updatedPlayers[assignedRole].name,
+      gameId: currentGameState.gameId, // Include gameId
+    });
+    socket.currentGameId = currentGameState.gameId; // Store gameId on socket
+    socket.join(currentGameState.gameId); // Ensure socket joins the room for the default game
+    logger.info(
+      {
+        socketId: socket.id,
+        assignedRole,
+        name: updatedPlayers[assignedRole].name,
+        gameId: currentGameState.gameId,
+      },
+      "Player assigned to role in default game and joined room.",
+    );
 
-  // Broadcast the updated game state to all clients in that game's room
-  io.to(currentGameState.gameId).emit(GAME_EVENTS.GAME_STATE_UPDATE, updatedGameState);
+    // Broadcast the updated game state to all clients in that game's room
+    io.to(currentGameState.gameId).emit(
+      GAME_EVENTS.GAME_STATE_UPDATE,
+      updatedGameState,
+    );
 
-  // Persist change to global game state (if this is indeed the desired behavior for default game)
-  // updateGame(currentGameState.gameId, updatedGameState).catch(err => {
-  //   logger.error({ err, gameId: currentGameState.gameId }, "Failed to save game state after player connect to default game.");
-  // });
-
+    // Persist change to global game state (if this is indeed the desired behavior for default game)
+    // updateGame(currentGameState.gameId, updatedGameState).catch(err => {
+    //   logger.error({ err, gameId: currentGameState.gameId }, "Failed to save game state after player connect to default game.");
+    // });
   } else {
-    logger.warn({ socketId: socket.id, gameId: currentGameState.gameId }, 'No available player slots in default game. Rejecting connection.');
-    socket.emit(GAME_EVENTS.GAME_FULL, { message: 'Sorry, the default game is currently full.' }); // Use GAME_EVENTS constant
+    logger.warn(
+      { socketId: socket.id, gameId: currentGameState.gameId },
+      "No available player slots in default game. Rejecting connection.",
+    );
+    socket.emit(GAME_EVENTS.GAME_FULL, {
+      message: "Sorry, the default game is currently full.",
+    }); // Use GAME_EVENTS constant
     // socket.disconnect(true);
   }
 }
-
 
 /**
  * Handles a player's attempt to rejoin an existing game.
@@ -106,9 +139,14 @@ export function handlePlayerConnect(socket, io) {
  * @param {string} playerId - The ID or role of the player attempting to rejoin.
  */
 export async function handleRejoinGame(socket, io, gameId, playerId) {
-  logger.info({ socketId: socket.id, gameId, playerId }, `Player attempting to rejoin game.`);
+  logger.info(
+    { socketId: socket.id, gameId, playerId },
+    `Player attempting to rejoin game.`,
+  );
   if (!gameId || !playerId) {
-    socket.emit(GAME_EVENTS.ERROR, { message: 'Game ID and Player ID are required to rejoin.' });
+    socket.emit(GAME_EVENTS.ERROR, {
+      message: "Game ID and Player ID are required to rejoin.",
+    });
     return;
   }
 
@@ -116,15 +154,26 @@ export async function handleRejoinGame(socket, io, gameId, playerId) {
     const existingGameState = await gameRepository.getGame(gameId); // Corrected usage
 
     if (existingGameState) {
-      logger.info({ socketId: socket.id, gameId }, `Found existing game state for rejoin attempt.`);
+      logger.info(
+        { socketId: socket.id, gameId },
+        `Found existing game state for rejoin attempt.`,
+      );
 
       // Check if player (role or ID) exists in the game and if the slot is "disconnected"
       let playerRoleToRejoin = null;
-      if (PLAYER_ROLES.includes(playerId) && existingGameState.players[playerId]) { // playerId might be a role
+      if (
+        PLAYER_ROLES.includes(playerId) &&
+        existingGameState.players[playerId]
+      ) {
+        // playerId might be a role
         playerRoleToRejoin = playerId;
-      } else { // playerId might be a unique ID, search for it
+      } else {
+        // playerId might be a unique ID, search for it
         for (const role of PLAYER_ROLES) {
-          if (existingGameState.players[role] && existingGameState.players[role].id === playerId) {
+          if (
+            existingGameState.players[role] &&
+            existingGameState.players[role].id === playerId
+          ) {
             playerRoleToRejoin = role;
             break;
           }
@@ -133,8 +182,13 @@ export async function handleRejoinGame(socket, io, gameId, playerId) {
 
       if (playerRoleToRejoin && existingGameState.players[playerRoleToRejoin]) {
         if (existingGameState.players[playerRoleToRejoin].isConnected) {
-          logger.warn({ socketId: socket.id, gameId, role: playerRoleToRejoin }, `Role ${playerRoleToRejoin} is already connected.`);
-          socket.emit(GAME_EVENTS.ERROR, { message: `Player ${playerRoleToRejoin} is already connected to this game.` });
+          logger.warn(
+            { socketId: socket.id, gameId, role: playerRoleToRejoin },
+            `Role ${playerRoleToRejoin} is already connected.`,
+          );
+          socket.emit(GAME_EVENTS.ERROR, {
+            message: `Player ${playerRoleToRejoin} is already connected to this game.`,
+          });
           return;
         }
 
@@ -144,7 +198,10 @@ export async function handleRejoinGame(socket, io, gameId, playerId) {
         // Player's hand and other game-specific attributes are preserved from existingGameState
 
         await gameRepository.updateGame(gameId, existingGameState); // Corrected usage
-        logger.info({ socketId: socket.id, gameId, role: playerRoleToRejoin }, `Player ${playerRoleToRejoin} reconnected.`);
+        logger.info(
+          { socketId: socket.id, gameId, role: playerRoleToRejoin },
+          `Player ${playerRoleToRejoin} reconnected.`,
+        );
 
         socket.join(gameId); // Add player to the game room
         socket.currentGameId = gameId; // Store gameId on socket for disconnect handling
@@ -154,30 +211,43 @@ export async function handleRejoinGame(socket, io, gameId, playerId) {
 
         // Notify other players in the game room that this player has reconnected.
         // Using a distinct event for player reconnection. This should be added to constants.
-        const playerReconnectedEvent = 'PLAYER_RECONNECTED_SUCCESS'; // Conceptual: Add to GAME_EVENTS
+        const playerReconnectedEvent = "PLAYER_RECONNECTED_SUCCESS"; // Conceptual: Add to GAME_EVENTS
         socket.to(gameId).emit(playerReconnectedEvent, {
-            gameId,
-            role: playerRoleToRejoin,
-            name: existingGameState.players[playerRoleToRejoin].name,
-            message: `Player ${existingGameState.players[playerRoleToRejoin].name || playerRoleToRejoin} has reconnected.`
+          gameId,
+          role: playerRoleToRejoin,
+          name: existingGameState.players[playerRoleToRejoin].name,
+          message: `Player ${existingGameState.players[playerRoleToRejoin].name || playerRoleToRejoin} has reconnected.`,
         });
         // Also send the full updated state to everyone in the room, as player's status changed.
         io.to(gameId).emit(GAME_EVENTS.GAME_STATE_UPDATE, existingGameState);
-
       } else {
-        logger.warn({ socketId: socket.id, gameId, playerId }, `Player ${playerId} not found or slot not available for rejoin.`);
-        socket.emit(GAME_EVENTS.ERROR, { message: 'Player not found in this game or slot unavailable.' });
+        logger.warn(
+          { socketId: socket.id, gameId, playerId },
+          `Player ${playerId} not found or slot not available for rejoin.`,
+        );
+        socket.emit(GAME_EVENTS.ERROR, {
+          message: "Player not found in this game or slot unavailable.",
+        });
       }
     } else {
-      logger.warn({ socketId: socket.id, gameId }, `No existing game found for rejoin attempt with gameId: ${gameId}.`);
-      socket.emit(GAME_EVENTS.ERROR, { message: 'Game not found. Cannot rejoin.' });
+      logger.warn(
+        { socketId: socket.id, gameId },
+        `No existing game found for rejoin attempt with gameId: ${gameId}.`,
+      );
+      socket.emit(GAME_EVENTS.ERROR, {
+        message: "Game not found. Cannot rejoin.",
+      });
     }
   } catch (error) {
-    logger.error({ err: error, socketId: socket.id, gameId }, 'Error during rejoin attempt.');
-    socket.emit(GAME_EVENTS.ERROR, { message: 'Server error while trying to rejoin game.' });
+    logger.error(
+      { err: error, socketId: socket.id, gameId },
+      "Error during rejoin attempt.",
+    );
+    socket.emit(GAME_EVENTS.ERROR, {
+      message: "Server error while trying to rejoin game.",
+    });
   }
 }
-
 
 /**
  * Handles a client disconnection, updates the player's status in the game state,
@@ -201,7 +271,10 @@ export async function handlePlayerDisconnect(socket, io, gameId_param = null) {
     if (gameStateToUpdate) {
       playerRoleDisconnected = getRoleBySocketId(gameStateToUpdate, socket.id);
     } else {
-      logger.warn({ socketId: socket.id, gameId: gameIdToUpdate }, `Disconnected socket from game ${gameIdToUpdate}, but game not found in DB.`);
+      logger.warn(
+        { socketId: socket.id, gameId: gameIdToUpdate },
+        `Disconnected socket from game ${gameIdToUpdate}, but game not found in DB.`,
+      );
       return; // No game state to update
     }
   } else {
@@ -211,21 +284,50 @@ export async function handlePlayerDisconnect(socket, io, gameId_param = null) {
     gameStateToUpdate = getGameState();
     gameIdToUpdate = gameStateToUpdate.gameId; // gameId from the global state
     playerRoleDisconnected = getRoleBySocketId(gameStateToUpdate, socket.id);
-    logger.warn({ socketId: socket.id }, `Player disconnected from default game state. Game ID: ${gameIdToUpdate}. This needs multi-game support refinement.`);
+    logger.warn(
+      { socketId: socket.id },
+      `Player disconnected from default game state. Game ID: ${gameIdToUpdate}. This needs multi-game support refinement.`,
+    );
   }
 
   if (!gameIdToUpdate) {
-      logger.warn({ socketId: socket.id }, 'Disconnected socket had no gameId associated. Cannot update specific game.');
-      return;
+    logger.warn(
+      { socketId: socket.id },
+      "Disconnected socket had no gameId associated. Cannot update specific game.",
+    );
+    return;
   }
 
   if (playerRoleDisconnected && gameStateToUpdate) {
-    logger.info({ socketId: socket.id, role: playerRoleDisconnected, gameId: gameIdToUpdate }, 'Player disconnected.');
-    logger.debug({ gameId: gameIdToUpdate, role: playerRoleDisconnected, isConnectedBefore: gameStateToUpdate.players[playerRoleDisconnected].isConnected }, 'Before setting isConnected to false.');
+    logger.info(
+      {
+        socketId: socket.id,
+        role: playerRoleDisconnected,
+        gameId: gameIdToUpdate,
+      },
+      "Player disconnected.",
+    );
+    logger.debug(
+      {
+        gameId: gameIdToUpdate,
+        role: playerRoleDisconnected,
+        isConnectedBefore:
+          gameStateToUpdate.players[playerRoleDisconnected].isConnected,
+      },
+      "Before setting isConnected to false.",
+    );
 
     gameStateToUpdate.players[playerRoleDisconnected].isConnected = false;
     gameStateToUpdate.players[playerRoleDisconnected].socketId = null;
-    logger.debug({ gameId: gameIdToUpdate, role: playerRoleDisconnected, isConnectedAfter: gameStateToUpdate.players[playerRoleDisconnected].isConnected }, 'After setting isConnected to false.');
+    logger.debug(
+      {
+        gameId: gameIdToUpdate,
+        role: playerRoleDisconnected,
+        isConnectedAfter:
+          gameStateToUpdate.players[playerRoleDisconnected].isConnected,
+      },
+      "After setting isConnected to false.",
+    );
 
     // TODO: Add more robust logic for game state changes on disconnect (e.g., pause game, notify players)
     // For now, just marking as disconnected. If game was in LOBBY, this slot becomes available.
@@ -233,22 +335,44 @@ export async function handlePlayerDisconnect(socket, io, gameId_param = null) {
 
     try {
       await gameRepository.updateGame(gameIdToUpdate, gameStateToUpdate); // Corrected usage
-      logger.info({ socketId: socket.id, role: playerRoleDisconnected, gameId: gameIdToUpdate }, 'Updated game state after disconnect.');
+      logger.info(
+        {
+          socketId: socket.id,
+          role: playerRoleDisconnected,
+          gameId: gameIdToUpdate,
+        },
+        "Updated game state after disconnect.",
+      );
 
       // Notify remaining clients in that specific game room
       io.to(gameIdToUpdate).emit(GAME_EVENTS.PLAYER_DISCONNECTED, {
         gameId: gameIdToUpdate,
         role: playerRoleDisconnected,
-        message: `Player ${gameStateToUpdate.players[playerRoleDisconnected].name || playerRoleDisconnected} disconnected.`
+        message: `Player ${gameStateToUpdate.players[playerRoleDisconnected].name || playerRoleDisconnected} disconnected.`,
       });
-      logger.debug({ gameId: gameIdToUpdate, broadcastedGameState: gameStateToUpdate.players[playerRoleDisconnected].isConnected }, 'Broadcasting GAME_STATE_UPDATE after disconnect.');
-      io.to(gameIdToUpdate).emit(GAME_EVENTS.GAME_STATE_UPDATE, gameStateToUpdate);
+      logger.debug(
+        {
+          gameId: gameIdToUpdate,
+          broadcastedGameState:
+            gameStateToUpdate.players[playerRoleDisconnected].isConnected,
+        },
+        "Broadcasting GAME_STATE_UPDATE after disconnect.",
+      );
+      io.to(gameIdToUpdate).emit(
+        GAME_EVENTS.GAME_STATE_UPDATE,
+        gameStateToUpdate,
+      );
     } catch (error) {
-      logger.error({ err: error, gameId: gameIdToUpdate }, "Failed to save game state after player disconnect.");
+      logger.error(
+        { err: error, gameId: gameIdToUpdate },
+        "Failed to save game state after player disconnect.",
+      );
     }
-
   } else {
-    logger.warn({ socketId: socket.id, gameId: gameIdToUpdate }, 'Disconnected socket had no assigned player role in the identified game.');
+    logger.warn(
+      { socketId: socket.id, gameId: gameIdToUpdate },
+      "Disconnected socket had no assigned player role in the identified game.",
+    );
   }
 }
 
@@ -264,7 +388,6 @@ export async function handlePlayerDisconnect(socket, io, gameId_param = null) {
 //   });
 // });
 
-
 // It's assumed that the main socket index.js would register 'reconnect' and 'disconnect' events
 // and call these handlers. E.g.:
 // import { handleRejoinGame, handlePlayerDisconnect } from './playerConnectionHandlers.js';
@@ -272,7 +395,6 @@ export async function handlePlayerDisconnect(socket, io, gameId_param = null) {
 //   socket.on(GAME_EVENTS.RECONNECT, (data) => handleRejoinGame(socket, io, data.gameId, data.playerId));
 //   socket.on('disconnect', () => handlePlayerDisconnect(socket, io, socket.currentGameId)); // Assuming gameId stored on socket
 // });
-
 
 // --- Conceptual Unit Tests for playerConnectionHandlers ---
 
@@ -354,7 +476,6 @@ export async function handlePlayerDisconnect(socket, io, gameId_param = null) {
 //     expect(mockSocket.emit).to.have.been.calledWith(GAME_EVENTS.ERROR, { message: 'Cannot rejoin: Game is already over.' });
 //   });
 // });
-
 
 // describe('handlePlayerDisconnect', () => {
 //   let mockSocket, mockIo, mockGetGame, mockUpdateGame;

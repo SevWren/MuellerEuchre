@@ -5,7 +5,7 @@
  * @requires sinon
  */
 
-import sinon from 'sinon';
+import sinon from "sinon";
 
 /**
  * Creates a mock implementation of a safe storage interface
@@ -15,9 +15,9 @@ import sinon from 'sinon';
  * @property {Function} removeItem - Stubbed remove method
  */
 export const createMockSafeStorage = () => ({
-    getItem: sinon.stub(),
-    setItem: sinon.stub(),
-    removeItem: sinon.stub()
+  getItem: sinon.stub(),
+  setItem: sinon.stub(),
+  removeItem: sinon.stub(),
 });
 
 /**
@@ -37,58 +37,62 @@ export const createMockSafeStorage = () => ({
  * @property {Function} isConnected - Getter for connection status
  */
 export const createMockSocketService = () => {
-    // Create Sinon stubs for all socket.io methods we want to mock
-    // Each stub can be spied on in tests to verify calls
-    const mockEmit = sinon.stub().resolves({}); // Stub for emit that always resolves
-    const mockOn = sinon.stub();                // Stub for event subscription
-    const mockOff = sinon.stub();               // Stub for event unsubscription
-    const mockDisconnect = sinon.stub();        // Stub for disconnect method
-    const mockConnect = sinon.stub();           // Stub for connect method
-    
-    // Internal state
-    let isConnected = true;                     // Tracks connection state
-    const eventHandlers = {};                   // Stores registered event handlers
+  // Create Sinon stubs for all socket.io methods we want to mock
+  // Each stub can be spied on in tests to verify calls
+  const mockEmit = sinon.stub().resolves({}); // Stub for emit that always resolves
+  const mockOn = sinon.stub(); // Stub for event subscription
+  const mockOff = sinon.stub(); // Stub for event unsubscription
+  const mockDisconnect = sinon.stub(); // Stub for disconnect method
+  const mockConnect = sinon.stub(); // Stub for connect method
 
-    return {
-        // Expose the stubs for test assertions
-        mockEmit,      // Access to verify emit calls in tests
-        mockOn,        // Access to verify event subscriptions
-        mockOff,       // Access to verify event unsubscriptions
-        mockDisconnect, // Access to verify disconnect calls
-        mockConnect,   // Access to verify connect calls
-        eventHandlers, // Direct access to registered handlers for verification
+  // Internal state
+  let isConnected = true; // Tracks connection state
+  const eventHandlers = {}; // Stores registered event handlers
 
-        // Getter/setter for connection state
-        get isConnected() { return isConnected; },
-        set isConnected(value) { isConnected = value; },
+  return {
+    // Expose the stubs for test assertions
+    mockEmit, // Access to verify emit calls in tests
+    mockOn, // Access to verify event subscriptions
+    mockOff, // Access to verify event unsubscriptions
+    mockDisconnect, // Access to verify disconnect calls
+    mockConnect, // Access to verify connect calls
+    eventHandlers, // Direct access to registered handlers for verification
 
-        // on: Registers an event handler and returns an object with an off method
-        // @param {string} event - The event name to listen for
-        // @param {Function} handler - The callback function to execute when event is emitted
-        // @returns {Object} Object with an off method to remove this handler
-        on: (event, handler) => {
-            eventHandlers[event] = handler;  // Store the handler
-            return {
-                off: () => delete eventHandlers[event]  // Return cleanup function
-            };
-        },
+    // Getter/setter for connection state
+    get isConnected() {
+      return isConnected;
+    },
+    set isConnected(value) {
+      isConnected = value;
+    },
 
-        // off: Removes all handlers for a specific event
-        // @param {string} event - The event name to remove handlers for
-        off: (event) => {
-            if (eventHandlers[event]) {
-                delete eventHandlers[event];
-            }
-        },
+    // on: Registers an event handler and returns an object with an off method
+    // @param {string} event - The event name to listen for
+    // @param {Function} handler - The callback function to execute when event is emitted
+    // @returns {Object} Object with an off method to remove this handler
+    on: (event, handler) => {
+      eventHandlers[event] = handler; // Store the handler
+      return {
+        off: () => delete eventHandlers[event], // Return cleanup function
+      };
+    },
 
-        // Alias mock methods to match socket.io client interface
-        emit: mockEmit,              // Forward emit calls to mockEmit stub
-        disconnect: mockDisconnect,   // Forward disconnect calls to mockDisconnect
-        connect: mockConnect,         // Forward connect calls to mockConnect
-        
-        // Method to check connection status (duplicate of getter for API compatibility)
-        isConnected: () => isConnected
-    };
+    // off: Removes all handlers for a specific event
+    // @param {string} event - The event name to remove handlers for
+    off: (event) => {
+      if (eventHandlers[event]) {
+        delete eventHandlers[event];
+      }
+    },
+
+    // Alias mock methods to match socket.io client interface
+    emit: mockEmit, // Forward emit calls to mockEmit stub
+    disconnect: mockDisconnect, // Forward disconnect calls to mockDisconnect
+    connect: mockConnect, // Forward connect calls to mockConnect
+
+    // Method to check connection status (duplicate of getter for API compatibility)
+    isConnected: () => isConnected,
+  };
 };
 
 /**
@@ -101,13 +105,13 @@ export const createMockSocketService = () => {
  * @property {Object} ...overrides - Any additional properties provided in the overrides parameter
  */
 export const createTestState = (overrides = {}) => ({
-    gameId: 'test-game',
-    gamePhase: 'LOBBY',
-    players: {
-        'player1': { id: 'player1', name: 'Player 1', ready: false },
-        'player2': { id: 'player2', name: 'Player 2', ready: false }
-    },
-    ...overrides
+  gameId: "test-game",
+  gamePhase: "LOBBY",
+  players: {
+    player1: { id: "player1", name: "Player 1", ready: false },
+    player2: { id: "player2", name: "Player 2", ready: false },
+  },
+  ...overrides,
 });
 
 /**
@@ -120,11 +124,11 @@ export const createTestState = (overrides = {}) => ({
  * Useful for cleaning up mocks between test cases.
  */
 export const resetAllMocks = (mocks) => {
-    Object.values(mocks).forEach(mock => {
-        if (mock && typeof mock.reset === 'function') {
-            mock.reset();
-        } else if (mock && typeof mock.resetHistory === 'function') {
-            mock.resetHistory();
-        }
-    });
+  Object.values(mocks).forEach((mock) => {
+    if (mock && typeof mock.reset === "function") {
+      mock.reset();
+    } else if (mock && typeof mock.resetHistory === "function") {
+      mock.resetHistory();
+    }
+  });
 };

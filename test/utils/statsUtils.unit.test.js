@@ -9,6 +9,11 @@ import { expect } from "chai";
 import sinon from "sinon";
 import { esmockWithPaths } from './esmock_wrapper.js';
 
+/**
+ * Test suite for statsUtils module
+ * @namespace statsUtils
+ * @description Contains unit tests for the statsUtils module
+ */
 describe("statsUtils", () => {
   let calculateHandStats;
   let updatePlayerStats;
@@ -16,15 +21,35 @@ describe("statsUtils", () => {
   let mockPhaseLogicError;
   let mockTEAMS;
 
+  /**
+   * Setup test doubles before running tests
+   * @async
+   */
   before(async () => {
     // Setup test doubles
     mockLogger = {
+      /**
+       * Mock logger info method
+       * @memberof mockLogger
+       */
       info: sinon.stub(),
+      /**
+       * Mock logger warn method
+       * @memberof mockLogger
+       */
       warn: sinon.stub(),
+      /**
+       * Mock logger error method
+       * @memberof mockLogger
+       */
       error: sinon.stub(),
     };
 
     mockPhaseLogicError = class MockPhaseLogicError extends Error {
+      /**
+       * Constructor for MockPhaseLogicError
+       * @param {string} message - Error message
+       */
       constructor(message) {
         super(message);
         this.name = "PhaseLogicError";
@@ -65,6 +90,10 @@ describe("statsUtils", () => {
     mockLogger.error.resetHistory();
   });
 
+  /**
+   * Test suite for calculateHandStats function
+   * @namespace statsUtils.calculateHandStats
+   */
   describe("calculateHandStats(completedGameState)", () => {
     it("should calculate stats correctly for a maker team winning 5 tricks (alone)", () => {
       const gameState = {
@@ -235,6 +264,10 @@ describe("statsUtils", () => {
     });
   });
 
+  /**
+   * Test suite for updatePlayerStats function
+   * @namespace statsUtils.updatePlayerStats
+   */
   describe("updatePlayerStats(currentStats, handResult, playerTeamId)", () => {
     const defaultStats = {
       handsPlayed: 0,
@@ -246,6 +279,10 @@ describe("statsUtils", () => {
       tricksTaken: 0,
     };
 
+    /**
+     * Test case: should initialize stats if currentStats is empty or undefined
+     * @test {updatePlayerStats}
+     */
     it("should initialize stats if currentStats is empty or undefined", () => {
       const handResult = {
         scoringTeam: mockTEAMS.TEAM_NS,
@@ -266,6 +303,10 @@ describe("statsUtils", () => {
       expect(updatedStats.aloneHandsWon).to.equal(0);
     });
 
+    /**
+     * Test case: should increment handsPlayed for any hand
+     * @test {updatePlayerStats}
+     */
     it("should increment handsPlayed for any hand", () => {
       const current = { ...defaultStats, handsPlayed: 5 };
       const handResult = {
@@ -282,6 +323,10 @@ describe("statsUtils", () => {
       expect(updatedStats.handsPlayed).to.equal(6);
     });
 
+    /**
+     * Test case: should update stats correctly when playerTeam wins a hand (not alone)
+     * @test {updatePlayerStats}
+     */
     it("should update stats correctly when playerTeam wins a hand (not alone)", () => {
       const current = { ...defaultStats };
       const handResult = {
@@ -303,6 +348,10 @@ describe("statsUtils", () => {
       expect(updatedStats.aloneHandsWon).to.equal(0);
     });
 
+    /**
+     * Test case: should update stats correctly when playerTeam wins a hand (went alone)
+     * @test {updatePlayerStats}
+     */
     it("should update stats correctly when playerTeam wins a hand (went alone)", () => {
       const current = { ...defaultStats };
       const handResult = {
@@ -324,6 +373,10 @@ describe("statsUtils", () => {
       expect(updatedStats.aloneHandsWon).to.equal(1);
     });
 
+    /**
+     * Test case: should update stats correctly when playerTeam is euchred
+     * @test {updatePlayerStats}
+     */
     it("should update stats correctly when playerTeam is euchred", () => {
       const current = { ...defaultStats };
       const handResult = {
@@ -345,6 +398,10 @@ describe("statsUtils", () => {
       expect(updatedStats.aloneHandsWon).to.equal(0);
     });
 
+    /**
+     * Test case: should not increment euchres if playerTeam is the one who euchred
+     * @test {updatePlayerStats}
+     */
     it("should not increment euchres if playerTeam is the one who euchred", () => {
       const current = { ...defaultStats };
       const handResult = {
@@ -364,6 +421,10 @@ describe("statsUtils", () => {
       expect(updatedStats.euchres).to.equal(0);
     });
 
+    /**
+     * Test case: should handle malformed handResult by logging a warning and returning current stats (with handsPlayed incremented)
+     * @test {updatePlayerStats}
+     */
     it("should handle malformed handResult by logging a warning and returning current stats (with handsPlayed incremented)", () => {
       const current = { ...defaultStats, handsPlayed: 5 };
       const updatedStats = updatePlayerStats(current, null, mockTEAMS.TEAM_NS);
@@ -375,6 +436,10 @@ describe("statsUtils", () => {
       );
     });
 
+    /**
+     * Test case: should return a new object, not mutate the input currentStats
+     * @test {updatePlayerStats}
+     */
     it("should return a new object, not mutate the input currentStats", () => {
       const current = { ...defaultStats, handsPlayed: 5 };
       const handResult = {
@@ -392,6 +457,10 @@ describe("statsUtils", () => {
       expect(current.handsPlayed).to.equal(5);
     });
 
+    /**
+     * Test case: should correctly merge existing stats with default schema
+     * @test {updatePlayerStats}
+     */
     it("should correctly merge existing stats with default schema", () => {
       const current = { handsPlayed: 10, customStat: "abc" };
       const handResult = {

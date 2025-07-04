@@ -22,7 +22,7 @@
     "test:integration": "mocha --loader=esm test/phases/startHand.integration.test.js --timeout 10000",
     "test:all": "npm test && npm run test:integration",
     "test:coverage:ci": "npm run clean:coverage && c8 --reporter=lcov --all mocha --loader=esm test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --timeout 10000",
-    "test:coverage_layer1": "npm run clean:coverage && c8 --include 'src/game/logic/**/*.js' --include 'src/game/phases/**/*.js' --include 'src/utils/**/*.js' --include 'src/config/**/*.js' mocha test/game/logic/**/*.test.js test/phases/**/*.test.js test/utils/**/*.test.js --recursive --timeout 10000",
+    "test:coverage_layer1": "npm run clean:coverage && c8 mocha test/game/logic/**/*.test.js test/game/phases/**/*.test.js test/utils/**/*.test.js --recursive --timeout 10000",
     "test:coverage_layer2": "npm run clean:coverage && c8 --include 'src/game/state.js' mocha test/game/state.unit.test.js --recursive --timeout 10000",
     "test:coverage_layer3": "npm run clean:coverage && c8 --include 'src/socket/**/*.js' mocha test/socket/**/*.test.js --recursive --timeout 10000",
     "test:coverage_layer4": "npm run clean:coverage && c8 --include 'src/client/**/*.js' --include 'public/js/**/*.js' mocha test/client/**/*.test.js --recursive --timeout 10000",

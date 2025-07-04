@@ -1,3 +1,6 @@
+//THIS IS NOW DEPRECIATED
+//USE test\utils\esmock_wrapper.js INSTEAD
+
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 

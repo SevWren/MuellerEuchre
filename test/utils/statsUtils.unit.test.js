@@ -1,8 +1,13 @@
 // filepath: test/utils/statsUtils.unit.test.js
+/**
+ * @file Test suite for statsUtils.js utility functions
+ * @module test/utils/statsUtils.unit.test
+ * @description Contains unit tests for statistics calculation and player stat updates
+ */
 
 import { expect } from "chai";
-import esmock from "esmock";
 import sinon from "sinon";
+import { esmockWithPaths } from './esmock_wrapper.js';
 
 describe("statsUtils", () => {
   let calculateHandStats;
@@ -12,6 +17,7 @@ describe("statsUtils", () => {
   let mockTEAMS;
 
   before(async () => {
+    // Setup test doubles
     mockLogger = {
       info: sinon.stub(),
       warn: sinon.stub(),
@@ -26,20 +32,31 @@ describe("statsUtils", () => {
     };
 
     mockTEAMS = {
-      TEAM_1: "NS",
-      TEAM_2: "EW",
+      TEAM_NS: "NS",
+      TEAM_EW: "EW",
     };
 
-    ({ calculateHandStats, updatePlayerStats } = await esmock(
-      "../../src/utils/statsUtils.js",
+    // Use esmockWithPaths to load the module with mocks
+    const moduleUnderTest = await esmockWithPaths(
+      import.meta.url,
+      '../../src/utils/statsUtils.js', // Use relative path
       {
-        "../../src/game/logic/errors.js": {
+        // Mock dependencies using path aliases
+        '@/game/logic/errors.js': {
           PhaseLogicError: mockPhaseLogicError,
         },
-        "../../src/utils/logger.js": { logger: mockLogger },
-        "../../src/config/constants.js": { TEAMS: mockTEAMS },
+        '@/utils/logger.js': { 
+          logger: mockLogger 
+        },
+        '@/config/constants.js': { 
+          TEAMS: mockTEAMS 
+        },
       }
-    ));
+    );
+    
+    // Destructure the imported functions
+    calculateHandStats = moduleUnderTest.calculateHandStats;
+    updatePlayerStats = moduleUnderTest.updatePlayerStats;
   });
 
   beforeEach(() => {
@@ -51,19 +68,19 @@ describe("statsUtils", () => {
   describe("calculateHandStats(completedGameState)", () => {
     it("should calculate stats correctly for a maker team winning 5 tricks (alone)", () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_1,
+        makerTeam: mockTEAMS.TEAM_NS,
         makerPlayerRole: "south",
-        tricksTaken: { [mockTEAMS.TEAM_1]: 5, [mockTEAMS.TEAM_2]: 0 },
+        tricksTaken: { [mockTEAMS.TEAM_NS]: 5, [mockTEAMS.TEAM_EW]: 0 },
         players: [
-          { role: "south", team: mockTEAMS.TEAM_1, hand: [] }, // Maker, went alone
-          { role: "west", team: mockTEAMS.TEAM_2, hand: ["card1"] },
-          { role: "north", team: mockTEAMS.TEAM_1, hand: [] }, // Partner, empty hand
-          { role: "east", team: mockTEAMS.TEAM_2, hand: ["card2"] },
+          { role: "south", team: mockTEAMS.TEAM_NS, hand: [] },
+          { role: "west", team: mockTEAMS.TEAM_EW, hand: ["card1"] },
+          { role: "north", team: mockTEAMS.TEAM_NS, hand: [] },
+          { role: "east", team: mockTEAMS.TEAM_EW, hand: ["card2"] },
         ],
       };
       const result = calculateHandStats(gameState);
       expect(result).to.deep.equal({
-        scoringTeam: mockTEAMS.TEAM_1,
+        scoringTeam: mockTEAMS.TEAM_NS,
         pointsScored: 4,
         wasEuchre: false,
         wentAlone: true,
@@ -72,19 +89,19 @@ describe("statsUtils", () => {
 
     it("should calculate stats correctly for a maker team winning 5 tricks (not alone)", () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_1,
+        makerTeam: mockTEAMS.TEAM_NS,
         makerPlayerRole: "south",
-        tricksTaken: { [mockTEAMS.TEAM_1]: 5, [mockTEAMS.TEAM_2]: 0 },
+        tricksTaken: { [mockTEAMS.TEAM_NS]: 5, [mockTEAMS.TEAM_EW]: 0 },
         players: [
-          { role: "south", team: mockTEAMS.TEAM_1, hand: ["cardA"] },
-          { role: "west", team: mockTEAMS.TEAM_2, hand: ["cardB"] },
-          { role: "north", team: mockTEAMS.TEAM_1, hand: ["cardC"] },
-          { role: "east", team: mockTEAMS.TEAM_2, hand: ["cardD"] },
+          { role: "south", team: mockTEAMS.TEAM_NS, hand: ["card1"] },
+          { role: "west", team: mockTEAMS.TEAM_EW, hand: ["card2"] },
+          { role: "north", team: mockTEAMS.TEAM_NS, hand: ["card3"] },
+          { role: "east", team: mockTEAMS.TEAM_EW, hand: ["card4"] },
         ],
       };
       const result = calculateHandStats(gameState);
       expect(result).to.deep.equal({
-        scoringTeam: mockTEAMS.TEAM_1,
+        scoringTeam: mockTEAMS.TEAM_NS,
         pointsScored: 2,
         wasEuchre: false,
         wentAlone: false,
@@ -93,19 +110,19 @@ describe("statsUtils", () => {
 
     it("should calculate stats correctly for a maker team winning 3 tricks", () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_1,
+        makerTeam: mockTEAMS.TEAM_NS,
         makerPlayerRole: "south",
-        tricksTaken: { [mockTEAMS.TEAM_1]: 3, [mockTEAMS.TEAM_2]: 2 },
+        tricksTaken: { [mockTEAMS.TEAM_NS]: 3, [mockTEAMS.TEAM_EW]: 2 },
         players: [
-          { role: "south", team: mockTEAMS.TEAM_1, hand: ["cardA"] },
-          { role: "west", team: mockTEAMS.TEAM_2, hand: ["cardB"] },
-          { role: "north", team: mockTEAMS.TEAM_1, hand: ["cardC"] },
-          { role: "east", team: mockTEAMS.TEAM_2, hand: ["cardD"] },
+          { role: "south", team: mockTEAMS.TEAM_NS, hand: ["card1"] },
+          { role: "west", team: mockTEAMS.TEAM_EW, hand: ["card2"] },
+          { role: "north", team: mockTEAMS.TEAM_NS, hand: ["card3"] },
+          { role: "east", team: mockTEAMS.TEAM_EW, hand: ["card4"] },
         ],
       };
       const result = calculateHandStats(gameState);
       expect(result).to.deep.equal({
-        scoringTeam: mockTEAMS.TEAM_1,
+        scoringTeam: mockTEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -114,19 +131,19 @@ describe("statsUtils", () => {
 
     it("should calculate stats correctly for a maker team winning 4 tricks", () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_1,
+        makerTeam: mockTEAMS.TEAM_NS,
         makerPlayerRole: "south",
-        tricksTaken: { [mockTEAMS.TEAM_1]: 4, [mockTEAMS.TEAM_2]: 1 },
+        tricksTaken: { [mockTEAMS.TEAM_NS]: 4, [mockTEAMS.TEAM_EW]: 1 },
         players: [
-          { role: "south", team: mockTEAMS.TEAM_1, hand: ["cardA"] },
-          { role: "west", team: mockTEAMS.TEAM_2, hand: ["cardB"] },
-          { role: "north", team: mockTEAMS.TEAM_1, hand: ["cardC"] },
-          { role: "east", team: mockTEAMS.TEAM_2, hand: ["cardD"] },
+          { role: "south", team: mockTEAMS.TEAM_NS, hand: ["card1"] },
+          { role: "west", team: mockTEAMS.TEAM_EW, hand: ["card2"] },
+          { role: "north", team: mockTEAMS.TEAM_NS, hand: ["card3"] },
+          { role: "east", team: mockTEAMS.TEAM_EW, hand: ["card4"] },
         ],
       };
       const result = calculateHandStats(gameState);
       expect(result).to.deep.equal({
-        scoringTeam: mockTEAMS.TEAM_1,
+        scoringTeam: mockTEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -135,19 +152,19 @@ describe("statsUtils", () => {
 
     it("should calculate stats correctly for a euchre (maker team wins less than 3 tricks)", () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_1,
+        makerTeam: mockTEAMS.TEAM_NS,
         makerPlayerRole: "south",
-        tricksTaken: { [mockTEAMS.TEAM_1]: 2, [mockTEAMS.TEAM_2]: 3 },
+        tricksTaken: { [mockTEAMS.TEAM_NS]: 2, [mockTEAMS.TEAM_EW]: 3 },
         players: [
-          { role: "south", team: mockTEAMS.TEAM_1, hand: ["cardA"] },
-          { role: "west", team: mockTEAMS.TEAM_2, hand: ["cardB"] },
-          { role: "north", team: mockTEAMS.TEAM_1, hand: ["cardC"] },
-          { role: "east", team: mockTEAMS.TEAM_2, hand: ["cardD"] },
+          { role: "south", team: mockTEAMS.TEAM_NS, hand: ["card1"] },
+          { role: "west", team: mockTEAMS.TEAM_EW, hand: ["card2"] },
+          { role: "north", team: mockTEAMS.TEAM_NS, hand: ["card3"] },
+          { role: "east", team: mockTEAMS.TEAM_EW, hand: ["card4"] },
         ],
       };
       const result = calculateHandStats(gameState);
       expect(result).to.deep.equal({
-        scoringTeam: mockTEAMS.TEAM_2,
+        scoringTeam: mockTEAMS.TEAM_EW,
         pointsScored: 2,
         wasEuchre: true,
         wentAlone: false,
@@ -170,8 +187,8 @@ describe("statsUtils", () => {
 
     it("should throw PhaseLogicError if makerTeam is missing", () => {
       const gameState = {
-        tricksTaken: { [mockTEAMS.TEAM_1]: 3, [mockTEAMS.TEAM_2]: 2 },
-        players: [],
+        tricksTaken: { [mockTEAMS.TEAM_NS]: 3, [mockTEAMS.TEAM_EW]: 2 },
+        players: {},
       };
       expect(() => calculateHandStats(gameState)).to.throw(
         mockPhaseLogicError,
@@ -181,8 +198,8 @@ describe("statsUtils", () => {
 
     it("should throw PhaseLogicError if tricksTaken is missing", () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_1,
-        players: [],
+        makerTeam: mockTEAMS.TEAM_NS,
+        players: {},
       };
       expect(() => calculateHandStats(gameState)).to.throw(
         mockPhaseLogicError,
@@ -192,8 +209,8 @@ describe("statsUtils", () => {
 
     it("should throw PhaseLogicError if players is missing", () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_1,
-        tricksTaken: { [mockTEAMS.TEAM_1]: 3, [mockTEAMS.TEAM_2]: 2 },
+        makerTeam: mockTEAMS.TEAM_NS,
+        tricksTaken: { [mockTEAMS.TEAM_NS]: 3, [mockTEAMS.TEAM_EW]: 2 },
       };
       expect(() => calculateHandStats(gameState)).to.throw(
         mockPhaseLogicError,
@@ -203,18 +220,18 @@ describe("statsUtils", () => {
 
     it("should handle cases where tricksTaken for a team is undefined (treat as 0)", () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_1,
+        makerTeam: mockTEAMS.TEAM_NS,
         makerPlayerRole: "south",
-        tricksTaken: { [mockTEAMS.TEAM_1]: 5 }, // TEAM_2 tricksTaken is undefined
+        tricksTaken: { [mockTEAMS.TEAM_NS]: 5 }, // TEAM_EW tricksTaken is undefined
         players: [
-          { role: "south", team: mockTEAMS.TEAM_1, hand: [] },
-          { role: "west", team: mockTEAMS.TEAM_2, hand: ["card1"] },
-          { role: "north", team: mockTEAMS.TEAM_1, hand: [] },
-          { role: "east", team: mockTEAMS.TEAM_2, hand: ["card2"] },
+          { role: "south", team: mockTEAMS.TEAM_NS, hand: [] },
+          { role: "west", team: mockTEAMS.TEAM_EW, hand: ["card1"] },
+          { role: "north", team: mockTEAMS.TEAM_NS, hand: [] },
+          { role: "east", team: mockTEAMS.TEAM_EW, hand: ["card2"] },
         ],
       };
       const result = calculateHandStats(gameState);
-      expect(result.pointsScored).to.equal(4); // Still 4 points for alone
+      expect(result.pointsScored).to.equal(4);
     });
   });
 
@@ -231,7 +248,7 @@ describe("statsUtils", () => {
 
     it("should initialize stats if currentStats is empty or undefined", () => {
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_1,
+        scoringTeam: mockTEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -239,7 +256,7 @@ describe("statsUtils", () => {
       const updatedStats = updatePlayerStats(
         undefined,
         handResult,
-        mockTEAMS.TEAM_1
+        mockTEAMS.TEAM_NS
       );
       expect(updatedStats.handsPlayed).to.equal(1);
       expect(updatedStats.handsWon).to.equal(1);
@@ -252,7 +269,7 @@ describe("statsUtils", () => {
     it("should increment handsPlayed for any hand", () => {
       const current = { ...defaultStats, handsPlayed: 5 };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_1,
+        scoringTeam: mockTEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -260,15 +277,15 @@ describe("statsUtils", () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_2
-      ); // Opponent team
+        mockTEAMS.TEAM_EW
+      );
       expect(updatedStats.handsPlayed).to.equal(6);
     });
 
     it("should update stats correctly when playerTeam wins a hand (not alone)", () => {
       const current = { ...defaultStats };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_1,
+        scoringTeam: mockTEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -276,7 +293,7 @@ describe("statsUtils", () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_1
+        mockTEAMS.TEAM_NS
       );
       expect(updatedStats.handsPlayed).to.equal(1);
       expect(updatedStats.handsWon).to.equal(1);
@@ -289,7 +306,7 @@ describe("statsUtils", () => {
     it("should update stats correctly when playerTeam wins a hand (went alone)", () => {
       const current = { ...defaultStats };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_1,
+        scoringTeam: mockTEAMS.TEAM_NS,
         pointsScored: 4,
         wasEuchre: false,
         wentAlone: true,
@@ -297,7 +314,7 @@ describe("statsUtils", () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_1
+        mockTEAMS.TEAM_NS
       );
       expect(updatedStats.handsPlayed).to.equal(1);
       expect(updatedStats.handsWon).to.equal(1);
@@ -310,7 +327,7 @@ describe("statsUtils", () => {
     it("should update stats correctly when playerTeam is euchred", () => {
       const current = { ...defaultStats };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_2,
+        scoringTeam: mockTEAMS.TEAM_EW,
         pointsScored: 2,
         wasEuchre: true,
         wentAlone: false,
@@ -318,7 +335,7 @@ describe("statsUtils", () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_1
+        mockTEAMS.TEAM_NS
       );
       expect(updatedStats.handsPlayed).to.equal(1);
       expect(updatedStats.handsWon).to.equal(0);
@@ -331,7 +348,7 @@ describe("statsUtils", () => {
     it("should not increment euchres if playerTeam is the one who euchred", () => {
       const current = { ...defaultStats };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_1,
+        scoringTeam: mockTEAMS.TEAM_NS,
         pointsScored: 2,
         wasEuchre: true,
         wentAlone: false,
@@ -339,18 +356,18 @@ describe("statsUtils", () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_1
+        mockTEAMS.TEAM_NS
       );
       expect(updatedStats.handsPlayed).to.equal(1);
       expect(updatedStats.handsWon).to.equal(1);
       expect(updatedStats.pointsScored).to.equal(2);
-      expect(updatedStats.euchres).to.equal(0); // Should not increment euchres for self
+      expect(updatedStats.euchres).to.equal(0);
     });
 
     it("should handle malformed handResult by logging a warning and returning current stats (with handsPlayed incremented)", () => {
       const current = { ...defaultStats, handsPlayed: 5 };
-      const updatedStats = updatePlayerStats(current, null, mockTEAMS.TEAM_1);
-      expect(updatedStats.handsPlayed).to.equal(6); // handsPlayed should still increment
+      const updatedStats = updatePlayerStats(current, null, mockTEAMS.TEAM_NS);
+      expect(updatedStats.handsPlayed).to.equal(6);
       expect(updatedStats.handsWon).to.equal(0);
       expect(mockLogger.warn.calledOnce).to.be.true;
       expect(mockLogger.warn.getCall(0).args[0]).to.include(
@@ -361,7 +378,7 @@ describe("statsUtils", () => {
     it("should return a new object, not mutate the input currentStats", () => {
       const current = { ...defaultStats, handsPlayed: 5 };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_1,
+        scoringTeam: mockTEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -369,16 +386,16 @@ describe("statsUtils", () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_1
+        mockTEAMS.TEAM_NS
       );
       expect(updatedStats).to.not.equal(current);
-      expect(current.handsPlayed).to.equal(5); // Original should be unchanged
+      expect(current.handsPlayed).to.equal(5);
     });
 
     it("should correctly merge existing stats with default schema", () => {
       const current = { handsPlayed: 10, customStat: "abc" };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_1,
+        scoringTeam: mockTEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -386,12 +403,12 @@ describe("statsUtils", () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_1
+        mockTEAMS.TEAM_NS
       );
       expect(updatedStats.handsPlayed).to.equal(11);
       expect(updatedStats.handsWon).to.equal(1);
       expect(updatedStats.pointsScored).to.equal(1);
-      expect(updatedStats.customStat).to.equal("abc"); // Custom stat should be preserved
+      expect(updatedStats.customStat).to.equal("abc");
     });
   });
 });

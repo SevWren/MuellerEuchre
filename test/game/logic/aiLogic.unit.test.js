@@ -15,7 +15,7 @@
 
 import { describe, it, before } from "mocha";
 import { expect } from "chai";
-import { esmockWithPaths } from '../../utils/esmock_wrapper.js';
+import { esmockWithPaths } from "../../utils/esmock_wrapper.js";
 
 // --- Test Constants ---
 
@@ -87,9 +87,9 @@ describe("AI Logic Module", () => {
     // The wrapper handles path resolution and is the standard for the project.
     aiLogic = await esmockWithPaths(
       import.meta.url,
-      '../../../src/game/logic/aiLogic.js',
+      "../../../src/game/logic/aiLogic.js",
       {}, // No module dependencies to mock for this pure logic file
-      {}  // No globals to mock
+      {}, // No globals to mock
     );
   });
 
@@ -253,7 +253,7 @@ describe("AI Logic Module", () => {
       const result = aiLogic._evaluateHand(mockHand, trumpSuit);
       // J of Hearts (RB) + J of Diamonds (LB) + A of Hearts
       expect(result).to.equal(
-        POINTS.RIGHT_BOWER + POINTS.LEFT_BOWER + POINTS.TRUMP_ACE
+        POINTS.RIGHT_BOWER + POINTS.LEFT_BOWER + POINTS.TRUMP_ACE,
       ); // 15 + 10 + 7 = 32
     });
 
@@ -406,7 +406,7 @@ describe("AI Logic Module", () => {
         allTrumpHand,
         [], // Empty trick, so AI is leading
         trumpSuit,
-        SUITS.HEARTS // leadSuit is null when leading
+        SUITS.HEARTS, // leadSuit is null when leading
       );
       expect(result).to.deep.equal(createCard(SUITS.HEARTS, RANKS.ACE));
     });
@@ -426,7 +426,7 @@ describe("AI Logic Module", () => {
         hand,
         currentTrick,
         trumpSuit,
-        SUITS.HEARTS // Lead suit is trump
+        SUITS.HEARTS, // Lead suit is trump
       );
       // AI has K and A of hearts, both beat the 10. It should play the lowest winning card.
       expect(result).to.deep.equal(createCard(SUITS.HEARTS, RANKS.KING));
@@ -447,7 +447,7 @@ describe("AI Logic Module", () => {
         hand,
         currentTrick,
         trumpSuit,
-        SUITS.SPADES // Lead suit is spades
+        SUITS.SPADES, // Lead suit is spades
       );
       // Can't follow suit. Slough lowest value card. 9 of Clubs is lowest.
       expect(result).to.deep.equal(createCard(SUITS.CLUBS, RANKS.NINE));
@@ -468,7 +468,7 @@ describe("AI Logic Module", () => {
         hand,
         currentTrick,
         SUITS.DIAMONDS, // Diamonds are trump, so hearts jack is not trump
-        SUITS.SPADES // Lead suit is spades
+        SUITS.SPADES, // Lead suit is spades
       );
       // Must follow suit. Has 9 and 10 of spades. Neither can win. Play lowest.
       expect(result).to.deep.equal(createCard(SUITS.SPADES, RANKS.NINE));
@@ -483,7 +483,7 @@ describe("AI Logic Module", () => {
         [],
         [],
         SUITS.HEARTS,
-        SUITS.HEARTS
+        SUITS.HEARTS,
       );
       expect(result).to.be.null;
     });
@@ -497,7 +497,7 @@ describe("AI Logic Module", () => {
         null,
         [],
         SUITS.HEARTS,
-        SUITS.HEARTS
+        SUITS.HEARTS,
       );
       expect(result).to.be.null;
     });

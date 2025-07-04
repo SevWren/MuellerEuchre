@@ -3,14 +3,14 @@
  * Initializes Express, HTTP server, and Socket.IO.
  * @module server
  */
-import http from 'http';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import express from 'express';
-import { Server as SocketIOServer } from 'socket.io'; // Renamed to avoid conflict if I import my own Server class later
+import http from "http";
+import path from "path";
+import { fileURLToPath } from "url";
+import express from "express";
+import { Server as SocketIOServer } from "socket.io"; // Renamed to avoid conflict if I import my own Server class later
 
-import logger from './utils/logger.js';
-import { initializeSocket } from './socket/index.js';
+import logger from "./utils/logger.js";
+import { initializeSocket } from "./socket/index.js";
 // import { getGameState, resetFullGame } from './game/state.js'; // Not strictly needed at server init if state.js self-initializes
 
 // ES Module equivalent of __dirname
@@ -25,21 +25,21 @@ const httpServer = http.createServer(app);
 app.use(express.json()); // For parsing application/json
 
 // Serve static files from the 'public' directory
-const publicDirectoryPath = path.join(__dirname, '..', 'public'); // Assumes server.js is in src/, public/ is at root
+const publicDirectoryPath = path.join(__dirname, "..", "public"); // Assumes server.js is in src/, public/ is at root
 logger.info(`Serving static files from: ${publicDirectoryPath}`);
 app.use(express.static(publicDirectoryPath));
 
 // Basic API route for health check / status
-app.get('/api/status', (req, res) => {
+app.get("/api/status", (req, res) => {
   res.json({
-    status: 'ok',
+    status: "ok",
     timestamp: new Date().toISOString(),
   });
 });
 
 // Initialize Socket.IO and pass the HTTP server
 const io = initializeSocket(httpServer);
-logger.info('Socket.IO initialized.');
+logger.info("Socket.IO initialized.");
 
 // Start the server
 httpServer.listen(PORT, () => {
@@ -48,13 +48,13 @@ httpServer.listen(PORT, () => {
 });
 
 // Graceful shutdown handler (basic)
-const signals = ['SIGINT', 'SIGTERM', 'SIGQUIT'];
-signals.forEach(signal => {
+const signals = ["SIGINT", "SIGTERM", "SIGQUIT"];
+signals.forEach((signal) => {
   process.on(signal, () => {
     logger.info(`
 ${signal} received. Shutting down gracefully...`);
     httpServer.close(() => {
-      logger.info('HTTP server closed.');
+      logger.info("HTTP server closed.");
       // io.close(); // Close Socket.IO connections if necessary (Socket.IO v3+ handles this with httpServer.close())
       // Add any other cleanup here (e.g., database connections)
       process.exit(0);

@@ -68,16 +68,16 @@ export function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
         cardToPlayProvided: !!cardToPlay,
         playerRole,
       },
-      "validatePlay: Missing or invalid arguments."
+      "validatePlay: Missing or invalid arguments.",
     );
     throw new ValidationError(
-      "Internal error: Missing data for play validation."
+      "Internal error: Missing data for play validation.",
     );
   }
 
   if (gameState.gamePhase !== GAME_PHASES.PLAYING) {
     throw new InvalidPhaseError(
-      `Cannot play card during ${gameState.gamePhase} phase.`
+      `Cannot play card during ${gameState.gamePhase} phase.`,
     );
   }
 
@@ -88,7 +88,7 @@ export function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
   const cardInHand = playerHand.find((c) => c.id === cardToPlay.id);
   if (!cardInHand) {
     throw new CardNotInHandError(
-      `Card ${cardToPlay.id} is not in ${playerRole}'s hand.`
+      `Card ${cardToPlay.id} is not in ${playerRole}'s hand.`,
     );
   }
 
@@ -103,7 +103,7 @@ export function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
     // Check if player has any card of the led suit (including left bower if applicable)
     const playerHasLedSuitCard = playerHand.some(
       (handCard) =>
-        getEffectiveSuit(handCard, trumpSuit) === currentLedEffectiveSuit
+        getEffectiveSuit(handCard, trumpSuit) === currentLedEffectiveSuit,
     );
 
     const cardToPlayEffectiveSuit = getEffectiveSuit(cardToPlay, trumpSuit);
@@ -114,7 +114,7 @@ export function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
       cardToPlayEffectiveSuit !== currentLedEffectiveSuit
     ) {
       throw new MustFollowSuitError(
-        `Must follow suit. Led suit is ${currentLedEffectiveSuit}, attempted to play ${cardToPlayEffectiveSuit}.`
+        `Must follow suit. Led suit is ${currentLedEffectiveSuit}, attempted to play ${cardToPlayEffectiveSuit}.`,
       );
     }
   }
@@ -144,10 +144,10 @@ export function validateBid(gameState, playerRole, decision, suit = null) {
   ) {
     logger.warn(
       { gameStateProvided: !!gameState, playerRole, decision, suit },
-      "validateBid: Missing or invalid arguments."
+      "validateBid: Missing or invalid arguments.",
     );
     throw new ValidationError(
-      "Internal error: Missing or invalid data for bid validation."
+      "Internal error: Missing or invalid data for bid validation.",
     );
   }
 
@@ -161,7 +161,7 @@ export function validateBid(gameState, playerRole, decision, suit = null) {
   if (gamePhase === GAME_PHASES.ORDER_UP_ROUND1) {
     if (decision !== "orderUp" && decision !== "pass") {
       throw new InvalidBidError(
-        `Invalid decision '${decision}' for ${GAME_PHASES.ORDER_UP_ROUND1}.`
+        `Invalid decision '${decision}' for ${GAME_PHASES.ORDER_UP_ROUND1}.`,
       );
     }
     // Note: The logic for dealer being "forced" to pick up is typically handled by game flow,
@@ -173,18 +173,18 @@ export function validateBid(gameState, playerRole, decision, suit = null) {
   else if (gamePhase === GAME_PHASES.ORDER_UP_ROUND2) {
     if (decision !== "callTrump" && decision !== "pass") {
       throw new InvalidBidError(
-        `Invalid decision '${decision}' for ${GAME_PHASES.ORDER_UP_ROUND2}.`
+        `Invalid decision '${decision}' for ${GAME_PHASES.ORDER_UP_ROUND2}.`,
       );
     }
     if (decision === "callTrump") {
       if (!suit || !Object.values(SUITS).includes(suit)) {
         throw new InvalidBidError(
-          "Invalid suit provided for callTrump decision."
+          "Invalid suit provided for callTrump decision.",
         );
       }
       if (turnCard && suit === turnCard.suit) {
         throw new InvalidBidError(
-          `Cannot call the suit that was turned down (${turnCard.suit}).`
+          `Cannot call the suit that was turned down (${turnCard.suit}).`,
         );
       }
     }
@@ -193,13 +193,13 @@ export function validateBid(gameState, playerRole, decision, suit = null) {
     // This validation enforces that "pass" is invalid in that specific state.
     if (decision === "pass" && playerRole === dealer) {
       const passesInRound2 = bids.filter(
-        (b) => b.round === 2 && b.decision === "pass"
+        (b) => b.round === 2 && b.decision === "pass",
       ).length;
       // Check if all other players (PLAYER_ROLES.length - 1) have passed in round 2.
       // This implies it's the dealer's turn and they are the last one to bid in this round.
       if (passesInRound2 === PLAYER_ROLES.length - 1) {
         throw new InvalidBidError(
-          "Dealer must call a suit in this situation (stick the dealer)."
+          "Dealer must call a suit in this situation (stick the dealer).",
         );
       }
     }
@@ -208,7 +208,7 @@ export function validateBid(gameState, playerRole, decision, suit = null) {
   // Not a valid bidding phase
   else {
     throw new InvalidPhaseError(
-      `Cannot make bid decision during ${gamePhase} phase.`
+      `Cannot make bid decision during ${gamePhase} phase.`,
     );
   }
 }
@@ -232,7 +232,7 @@ export function validateDealerDiscard(
   gameState,
   playerRole,
   cardToDiscard,
-  playerHand
+  playerHand,
 ) {
   if (
     !gameState ||
@@ -248,22 +248,22 @@ export function validateDealerDiscard(
         cardToDiscardProvided: !!cardToDiscard,
         playerHandProvided: !!playerHand,
       },
-      "validateDealerDiscard: Missing or invalid arguments."
+      "validateDealerDiscard: Missing or invalid arguments.",
     );
     throw new ValidationError(
-      "Internal error: Missing data for discard validation."
+      "Internal error: Missing data for discard validation.",
     );
   }
 
   if (gameState.gamePhase !== GAME_PHASES.DEALER_DISCARD) {
     throw new InvalidPhaseError(
-      `Cannot discard card during ${gameState.gamePhase} phase.`
+      `Cannot discard card during ${gameState.gamePhase} phase.`,
     );
   }
 
   if (gameState.dealer !== playerRole) {
     throw new InvalidDiscardError(
-      `Only the dealer (${gameState.dealer}) can discard. Player ${playerRole} attempted.`
+      `Only the dealer (${gameState.dealer}) can discard. Player ${playerRole} attempted.`,
     );
   }
 
@@ -275,7 +275,7 @@ export function validateDealerDiscard(
   const cardInHand = playerHand.find((c) => c.id === cardToDiscard.id);
   if (!cardInHand) {
     throw new CardNotInHandError(
-      `Card ${cardToDiscard.id} is not in dealer's hand to discard.`
+      `Card ${cardToDiscard.id} is not in dealer's hand to discard.`,
     );
   }
 
@@ -284,7 +284,7 @@ export function validateDealerDiscard(
   if (playerHand.length !== 6) {
     logger.warn(
       { playerRole, handSize: playerHand.length, gameId: gameState.gameId },
-      "Dealer's hand does not have 6 cards at the point of discard validation."
+      "Dealer's hand does not have 6 cards at the point of discard validation.",
     );
   }
 

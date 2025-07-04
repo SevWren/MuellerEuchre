@@ -28,7 +28,8 @@ export function countTrumpInHand(hand, trumpSuit) {
   return hand.filter(
     (card) =>
       card.suit === trumpSuit ||
-      (card.rank === "J" && getSuitColor(card.suit) === getSuitColor(trumpSuit))
+      (card.rank === "J" &&
+        getSuitColor(card.suit) === getSuitColor(trumpSuit)),
   ).length;
 }
 
@@ -42,14 +43,14 @@ export function findBowers(hand, trumpSuit) {
   if (!Array.isArray(hand)) return { rightBower: false, leftBower: false };
 
   const rightBower = hand.some(
-    (card) => card.rank === "J" && card.suit === trumpSuit
+    (card) => card.rank === "J" && card.suit === trumpSuit,
   );
 
   const leftBower = hand.some(
     (card) =>
       card.rank === "J" &&
       card.suit !== trumpSuit &&
-      getSuitColor(card.suit) === getSuitColor(trumpSuit)
+      getSuitColor(card.suit) === getSuitColor(trumpSuit),
   );
 
   return { rightBower, leftBower };
@@ -80,12 +81,12 @@ export function calculatePointsForSuit(hand, suit) {
     if (card.suit === suit && !isBower) {
       const pointsToAdd = TRUMP_POINTS_MAP[card.rank] || 0;
       console.log(
-        `[aiLogic.calculatePointsForSuit] Card: ${card.rank} of ${card.suit}, isBower: ${isBower}, Suit matches: ${card.suit === suit}, Adding: ${pointsToAdd}`
+        `[aiLogic.calculatePointsForSuit] Card: ${card.rank} of ${card.suit}, isBower: ${isBower}, Suit matches: ${card.suit === suit}, Adding: ${pointsToAdd}`,
       ); // Log added for debugging
       return total + pointsToAdd;
     }
     console.log(
-      `[aiLogic.calculatePointsForSuit] Card: ${card.rank} of ${card.suit}, isBower: ${isBower}, Suit matches: ${card.suit === suit}, Skipping.`
+      `[aiLogic.calculatePointsForSuit] Card: ${card.rank} of ${card.suit}, isBower: ${isBower}, Suit matches: ${card.suit === suit}, Skipping.`,
     ); // Log added for debugging
     return total;
   }, 0);
@@ -268,7 +269,7 @@ export function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
       (card) =>
         card.suit === trumpSuit ||
         (card.rank === "J" &&
-          getSuitColor(card.suit) === getSuitColor(trumpSuit))
+          getSuitColor(card.suit) === getSuitColor(trumpSuit)),
     );
 
     if (trumpCards.length === hand.length) {
@@ -296,7 +297,7 @@ export function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
     if (winningCard) {
       const cardToBeat = getCardValue(winningCard, trumpSuit);
       const playableCards = cardsInSuit.filter(
-        (card) => getCardValue(card, trumpSuit) > cardToBeat
+        (card) => getCardValue(card, trumpSuit) > cardToBeat,
       );
 
       if (playableCards.length > 0) {

@@ -14,15 +14,15 @@
  * @see {@link module:src/game/phases/startNewHandPhase}
  */
 
-import { expect } from 'chai';
-import sinon from 'sinon';
-import { esmockWithPaths } from '../../utils/esmock_wrapper.js';
+import { expect } from "chai";
+import sinon from "sinon";
+import { esmockWithPaths } from "../../utils/esmock_wrapper.js";
 
 // Import constants using the correct relative path
-import { GAME_PHASES, PLAYER_ROLES } from '../../../src/config/constants.js';
+import { GAME_PHASES, PLAYER_ROLES } from "../../../src/config/constants.js";
 
 // Define module path using the correct relative path
-const MODULE_PATH = '../../../src/game/phases/startNewHandPhase.js';
+const MODULE_PATH = "../../../src/game/phases/startNewHandPhase.js";
 
 /**
  * @description Creates a mock implementation of the deck utilities for testing.
@@ -30,8 +30,8 @@ const MODULE_PATH = '../../../src/game/phases/startNewHandPhase.js';
  */
 const createMockDeckUtils = () => ({
   createDeck: sinon.stub(),
-  shuffleDeck: sinon.stub().callsFake(deck => [...deck]), // Return a copy to avoid mutation
-  cardToId: sinon.stub().returns('mock-card-id'),
+  shuffleDeck: sinon.stub().callsFake((deck) => [...deck]), // Return a copy to avoid mutation
+  cardToId: sinon.stub().returns("mock-card-id"),
 });
 
 /**
@@ -51,7 +51,7 @@ const mockLogger = {
 };
 
 // Import actual errors for instanceof checks
-import * as actualErrors from '../../../src/game/logic/errors.js';
+import * as actualErrors from "../../../src/game/logic/errors.js";
 
 /**
  * @description Creates a base game state object for use in tests.
@@ -59,8 +59,11 @@ import * as actualErrors from '../../../src/game/logic/errors.js';
  * @param {string} [dealer=PLAYER_ROLES[0]] - The role of the dealer.
  * @returns {object} A simplified but valid game state object.
  */
-const createBaseGameState = (phase = GAME_PHASES.LOBBY, dealer = PLAYER_ROLES[0]) => ({
-  gameId: 'test-game-123',
+const createBaseGameState = (
+  phase = GAME_PHASES.LOBBY,
+  dealer = PLAYER_ROLES[0],
+) => ({
+  gameId: "test-game-123",
   gamePhase: phase,
   dealer,
   players: {
@@ -80,25 +83,25 @@ const createBaseGameState = (phase = GAME_PHASES.LOBBY, dealer = PLAYER_ROLES[0]
  * @returns {Array<object>} An array of card objects.
  */
 const createMockDeck = (numCards = 24) => {
-  const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-  const values = ['9', '10', 'J', 'Q', 'K', 'A'];
+  const suits = ["hearts", "diamonds", "clubs", "spades"];
+  const values = ["9", "10", "J", "Q", "K", "A"];
   const deck = [];
-  
+
   for (let i = 0; i < numCards; i++) {
     const suit = suits[Math.floor(i / 6) % 4];
     const value = values[i % 6];
-    deck.push({ 
-      suit, 
-      value, 
+    deck.push({
+      suit,
+      value,
       id: `${value}_${suit}`,
-      rank: values.indexOf(value) + 1
+      rank: values.indexOf(value) + 1,
     });
   }
-  
+
   return deck;
 };
 
-describe('Dealer Rotation', () => {
+describe("Dealer Rotation", () => {
   let startNewHand;
   let mockDeckUtils;
   let mockPlayerUtils;
@@ -114,18 +117,14 @@ describe('Dealer Rotation', () => {
     mockPlayerUtils = createMockPlayerUtils();
 
     // Import the module with mocks using esmock_wrapper
-    const module = await esmockWithPaths(
-      import.meta.url,
-      MODULE_PATH,
-      {
-        // Use path aliases for mocks, as per project convention
-        '@/utils/deck.js': mockDeckUtils,
-        '@/utils/players.js': mockPlayerUtils,
-        '@/utils/logger.js': mockLogger,
-        '@/game/logic/errors.js': actualErrors, // Use actual error classes for instanceof checks
-      }
-    );
-    
+    const module = await esmockWithPaths(import.meta.url, MODULE_PATH, {
+      // Use path aliases for mocks, as per project convention
+      "@/utils/deck.js": mockDeckUtils,
+      "@/utils/players.js": mockPlayerUtils,
+      "@/utils/logger.js": mockLogger,
+      "@/game/logic/errors.js": actualErrors, // Use actual error classes for instanceof checks
+    });
+
     startNewHand = module.startNewHand;
   });
 
@@ -144,20 +143,20 @@ describe('Dealer Rotation', () => {
    * after a hand is completed. This test iterates through all four player positions to ensure
    * the rotation wraps around correctly.
    */
-  it('should rotate dealer to next player after each hand', () => {
+  it("should rotate dealer to next player after each hand", () => {
     // Test dealer rotation through all player positions
     for (let i = 0; i < PLAYER_ROLES.length; i++) {
       // Arrange
       const currentDealer = PLAYER_ROLES[i];
       const expectedNextDealer = PLAYER_ROLES[(i + 1) % PLAYER_ROLES.length];
       const expectedFirstBidder = PLAYER_ROLES[(i + 2) % PLAYER_ROLES.length];
-      
+
       const gameState = createBaseGameState(GAME_PHASES.SCORING, currentDealer);
-      
+
       // Create a full deck
       const fullDeck = createMockDeck();
       mockDeckUtils.createDeck.returns([...fullDeck]);
-      
+
       // Mock the next player with proper rotation logic
       // This single fake covers all calls to getNextPlayer within startNewHand
       mockPlayerUtils.getNextPlayer.callsFake((player) => {
@@ -169,14 +168,18 @@ describe('Dealer Rotation', () => {
       const result = startNewHand(gameState);
 
       // Assert - verify dealer rotation and game phase
-      expect(result.dealer, `Test iteration ${i}: Expected dealer to rotate from ${currentDealer} to ${expectedNextDealer}`)
-        .to.equal(expectedNextDealer);
-        
-      expect(result.currentPlayer, `Test iteration ${i}: Expected first bidder to be ${expectedFirstBidder}`)
-        .to.equal(expectedFirstBidder);
-        
+      expect(
+        result.dealer,
+        `Test iteration ${i}: Expected dealer to rotate from ${currentDealer} to ${expectedNextDealer}`,
+      ).to.equal(expectedNextDealer);
+
+      expect(
+        result.currentPlayer,
+        `Test iteration ${i}: Expected first bidder to be ${expectedFirstBidder}`,
+      ).to.equal(expectedFirstBidder);
+
       expect(result.orderUpTurn).to.equal(expectedFirstBidder);
-      expect(result.gamePhase).to.equal('ORDER_UP_ROUND1');
+      expect(result.gamePhase).to.equal("ORDER_UP_ROUND1");
     }
   });
 });

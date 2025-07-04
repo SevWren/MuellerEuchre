@@ -110,7 +110,7 @@ describe("ScoringPhase Logic", () => {
         // because `logger.js` is mocked by default in `createMockedModule`.
         // If scoringPhase.js *did* import `gameRepository.js`, we would mock it here:
         // '@/db/gameRepository.js': { updateGame: updateGameMock }
-      }
+      },
     );
     calculateAndApplyScore = module.calculateAndApplyScore;
     mockedDependencies = mocks; // Store the provided mocks for assertions in afterEach
@@ -136,7 +136,7 @@ describe("ScoringPhase Logic", () => {
       };
       await expect(calculateAndApplyScore(gameState)).to.be.rejectedWith(
         InvalidPhaseError,
-        /calculateAndApplyScore called inappropriately during PLAYING/i
+        /calculateAndApplyScore called inappropriately during PLAYING/i,
       );
     });
 
@@ -144,7 +144,7 @@ describe("ScoringPhase Logic", () => {
       const gameState = { ...createScoringGameState(), makerTeam: null };
       await expect(calculateAndApplyScore(gameState)).to.be.rejectedWith(
         PhaseLogicError,
-        /Cannot calculate score: makerTeam is not defined/i
+        /Cannot calculate score: makerTeam is not defined/i,
       );
     });
 
@@ -247,19 +247,19 @@ describe("ScoringPhase Logic", () => {
         expect(updateGameMock.called).to.be.false; // Ensure updateGame is NOT called
 
         expect(finalState.teamScores[TEAMS.TEAM_NS]).to.equal(
-          scenario.expectedScoreNS
+          scenario.expectedScoreNS,
         );
         expect(finalState.teamScores[TEAMS.TEAM_EW]).to.equal(
-          scenario.expectedScoreEW
+          scenario.expectedScoreEW,
         );
         expect(finalState.message).to.match(scenario.expectedMsg);
         expect(finalState.message).to.include(
-          `Current scores: Team NS ${scenario.expectedScoreNS}, Team EW ${scenario.expectedScoreEW}.`
+          `Current scores: Team NS ${scenario.expectedScoreNS}, Team EW ${scenario.expectedScoreEW}.`,
         );
         expect(finalState.tricksTaken[TEAMS.TEAM_NS]).to.equal(0);
         expect(finalState.tricksTaken[TEAMS.TEAM_EW]).to.equal(0);
         expect(finalState.previousTricksTaken[TEAMS.TEAM_NS]).to.equal(
-          scenario.tricksNS
+          scenario.tricksNS,
         );
 
         const WINNING_SCORE_VALUE = 10; // Assuming WINNING_SCORE is 10 for this check
@@ -289,7 +289,7 @@ describe("ScoringPhase Logic", () => {
       expect(finalState.gamePhase).to.equal(GAME_PHASES.DEALING);
       expect(finalState.message).to.include("Team NS made their bid. 1 point.");
       expect(finalState.message).to.include(
-        "Current scores: Team NS 9, Team EW 5."
+        "Current scores: Team NS 9, Team EW 5.",
       );
       expect(finalState.message).to.include("New dealer:"); // This message is added by checkGameOver/startNewHand
     });
@@ -311,10 +311,10 @@ describe("ScoringPhase Logic", () => {
       expect(finalState.gamePhase).to.equal(GAME_PHASES.GAME_OVER);
       expect(finalState.winningTeam).to.equal(TEAMS.TEAM_NS);
       expect(finalState.message).to.include(
-        "Team NS achieved a march! 2 points."
+        "Team NS achieved a march! 2 points.",
       );
       expect(finalState.message).to.include(
-        "Game Over! Team NS wins with 11 points!"
+        "Game Over! Team NS wins with 11 points!",
       );
     });
   });

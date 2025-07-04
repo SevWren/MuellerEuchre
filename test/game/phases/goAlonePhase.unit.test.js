@@ -17,11 +17,11 @@
  *     - No test will require integration with state, persistence, or network code.
  */
 
-import { expect } from 'chai';
-import sinon from 'sinon';
-import esmock from 'esmock';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { expect } from "chai";
+import sinon from "sinon";
+import esmock from "esmock";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // =============================================
 // PATH CONSTANTS (Pattern from esmock_fix_and_prevention_plan.md)
@@ -35,36 +35,36 @@ const __dirname = path.dirname(__filename);
  * @returns {string} Absolute path with POSIX separators
  */
 const toPosixPath = (relativePath) => {
-  return path.resolve(__dirname, relativePath).replace(/\\/g, '/');
+  return path.resolve(__dirname, relativePath).replace(/\\/g, "/");
 };
 
 // Define all module paths as constants at the top of the file
 const PATHS = {
   // Source files - use relative paths from the test file
-  GO_ALONE_PHASE: toPosixPath('../../../src/game/phases/goAlonePhase.js'),
-  CONSTANTS: toPosixPath('../../../src/config/constants.js'),
-  ERRORS: toPosixPath('../../../src/game/logic/errors.js'),
-  LOGGER: toPosixPath('../../../src/utils/logger.js'),
-  PLAYERS: toPosixPath('../../../src/utils/players.js'),
-  VALIDATION: toPosixPath('../../../src/game/logic/validation.js'),
-  
+  GO_ALONE_PHASE: toPosixPath("../../../src/game/phases/goAlonePhase.js"),
+  CONSTANTS: toPosixPath("../../../src/config/constants.js"),
+  ERRORS: toPosixPath("../../../src/game/logic/errors.js"),
+  LOGGER: toPosixPath("../../../src/utils/logger.js"),
+  PLAYERS: toPosixPath("../../../src/utils/players.js"),
+  VALIDATION: toPosixPath("../../../src/game/logic/validation.js"),
+
   // Test utilities
-  TEST_UTILS: toPosixPath('../../testUtils.js')
+  TEST_UTILS: toPosixPath("../../testUtils.js"),
 };
 
 // Import using path constants to ensure consistency
-import { 
-  GAME_PHASES, 
-  PLAYER_ROLES, 
-  TEAMS
-} from '../../../src/config/constants.js';
+import {
+  GAME_PHASES,
+  PLAYER_ROLES,
+  TEAMS,
+} from "../../../src/config/constants.js";
 
 import {
   ValidationError,
   InvalidPhaseError,
   NotPlayersTurnError,
   PhaseLogicError,
-} from '../../../src/game/logic/errors.js';
+} from "../../../src/game/logic/errors.js";
 
 // Default logger mock
 const defaultLoggerMock = {
@@ -72,30 +72,52 @@ const defaultLoggerMock = {
   warn: sinon.stub(),
   error: sinon.stub(),
   debug: sinon.stub(),
-  log: sinon.stub() // Add log method to match the logger interface
+  log: sinon.stub(), // Add log method to match the logger interface
 };
 
 // Helper to create a base game state for go_alone phase tests
 const createGoAloneGameState = (currentPlayer, trumpMaker) => ({
-  gameId: 'goAloneTestGame',
+  gameId: "goAloneTestGame",
   gamePhase: GAME_PHASES.GOING_ALONE_DECISION,
   players: {
-    [PLAYER_ROLES[0]]: { id: PLAYER_ROLES[0], name: 'South', teamId: TEAMS.TEAM_NS },
-    [PLAYER_ROLES[1]]: { id: PLAYER_ROLES[1], name: 'West', teamId: TEAMS.TEAM_EW },
-    [PLAYER_ROLES[2]]: { id: PLAYER_ROLES[2], name: 'North', teamId: TEAMS.TEAM_NS },
-    [PLAYER_ROLES[3]]: { id: PLAYER_ROLES[3], name: 'East', teamId: TEAMS.TEAM_EW },
+    [PLAYER_ROLES[0]]: {
+      id: PLAYER_ROLES[0],
+      name: "South",
+      teamId: TEAMS.TEAM_NS,
+    },
+    [PLAYER_ROLES[1]]: {
+      id: PLAYER_ROLES[1],
+      name: "West",
+      teamId: TEAMS.TEAM_EW,
+    },
+    [PLAYER_ROLES[2]]: {
+      id: PLAYER_ROLES[2],
+      name: "North",
+      teamId: TEAMS.TEAM_NS,
+    },
+    [PLAYER_ROLES[3]]: {
+      id: PLAYER_ROLES[3],
+      name: "East",
+      teamId: TEAMS.TEAM_EW,
+    },
   },
   dealer: PLAYER_ROLES[0], // South
   currentPlayer: currentPlayer,
   makerTeam: TEAMS.TEAM_NS,
-  playerWhoOrderedUp: trumpMaker === PLAYER_ROLES[0] || trumpMaker === PLAYER_ROLES[2] ? trumpMaker : null,
-  playerWhoCalledTrump: trumpMaker === PLAYER_ROLES[1] || trumpMaker === PLAYER_ROLES[3] ? trumpMaker : null,
+  playerWhoOrderedUp:
+    trumpMaker === PLAYER_ROLES[0] || trumpMaker === PLAYER_ROLES[2]
+      ? trumpMaker
+      : null,
+  playerWhoCalledTrump:
+    trumpMaker === PLAYER_ROLES[1] || trumpMaker === PLAYER_ROLES[3]
+      ? trumpMaker
+      : null,
   gameMessages: [],
   currentTrick: [], // Should be empty before play starts
-  leadSuit: null,   // Should be null before play starts
+  leadSuit: null, // Should be null before play starts
 });
 
-describe('GoAlonePhase Logic', () => {
+describe("GoAlonePhase Logic", () => {
   let handleGoAloneDecision;
   let updateGameStateStub;
   let getNextPlayerMock;
@@ -103,9 +125,9 @@ describe('GoAlonePhase Logic', () => {
   let currentTestGameStateForStub; // To be set by each test
 
   beforeEach(async () => {
-    updateGameStateStub = sinon.stub().callsFake(updaterFn => {
-        // The updater function will receive the gameState set by currentTestGameStateForStub
-        return updaterFn(currentTestGameStateForStub);
+    updateGameStateStub = sinon.stub().callsFake((updaterFn) => {
+      // The updater function will receive the gameState set by currentTestGameStateForStub
+      return updaterFn(currentTestGameStateForStub);
     });
     getNextPlayerMock = sinon.stub();
     getPartnerMock = sinon.stub();
@@ -133,50 +155,72 @@ describe('GoAlonePhase Logic', () => {
   });
 
   // Argument Validation Tests
-  it('should throw ValidationError if currentGameState is null', () => {
-    expect(() => handleGoAloneDecision(null, PLAYER_ROLES[0], true))
-      .to.throw(ValidationError, 'Internal error: Missing or invalid arguments for go alone decision.');
+  it("should throw ValidationError if currentGameState is null", () => {
+    expect(() => handleGoAloneDecision(null, PLAYER_ROLES[0], true)).to.throw(
+      ValidationError,
+      "Internal error: Missing or invalid arguments for go alone decision.",
+    );
   });
-  it('should throw ValidationError if decidingPlayerRole is invalid', () => {
+  it("should throw ValidationError if decidingPlayerRole is invalid", () => {
     const gameState = createGoAloneGameState(PLAYER_ROLES[0], PLAYER_ROLES[0]);
-    expect(() => handleGoAloneDecision(gameState, 'InvalidRole', true))
-      .to.throw(ValidationError, 'Internal error: Missing or invalid arguments for go alone decision.');
+    expect(() =>
+      handleGoAloneDecision(gameState, "InvalidRole", true),
+    ).to.throw(
+      ValidationError,
+      "Internal error: Missing or invalid arguments for go alone decision.",
+    );
   });
-  it('should throw ValidationError if wantsToGoAlone is not boolean', () => {
+  it("should throw ValidationError if wantsToGoAlone is not boolean", () => {
     const gameState = createGoAloneGameState(PLAYER_ROLES[0], PLAYER_ROLES[0]);
-    expect(() => handleGoAloneDecision(gameState, PLAYER_ROLES[0], 'not_boolean'))
-      .to.throw(ValidationError, 'Internal error: Missing or invalid arguments for go alone decision.');
+    expect(() =>
+      handleGoAloneDecision(gameState, PLAYER_ROLES[0], "not_boolean"),
+    ).to.throw(
+      ValidationError,
+      "Internal error: Missing or invalid arguments for go alone decision.",
+    );
   });
 
   // Phase and Turn Validation
-  it('should throw InvalidPhaseError if not in GOING_ALONE_DECISION phase', () => {
+  it("should throw InvalidPhaseError if not in GOING_ALONE_DECISION phase", () => {
     let gameState = createGoAloneGameState(PLAYER_ROLES[0], PLAYER_ROLES[0]);
     gameState.gamePhase = GAME_PHASES.PLAYING;
-    expect(() => handleGoAloneDecision(gameState, PLAYER_ROLES[0], true))
-      .to.throw(InvalidPhaseError, `Cannot make "go alone" decision during ${GAME_PHASES.PLAYING} phase.`);
+    expect(() =>
+      handleGoAloneDecision(gameState, PLAYER_ROLES[0], true),
+    ).to.throw(
+      InvalidPhaseError,
+      `Cannot make "go alone" decision during ${GAME_PHASES.PLAYING} phase.`,
+    );
   });
 
-  it('should throw NotPlayersTurnError if current player is not the deciding player', () => {
+  it("should throw NotPlayersTurnError if current player is not the deciding player", () => {
     const decidingPlayer = PLAYER_ROLES[0];
     const currentPlayer = PLAYER_ROLES[1];
     let gameState = createGoAloneGameState(currentPlayer, decidingPlayer); // currentPlayer is West, trumpMaker is South
-    expect(() => handleGoAloneDecision(gameState, decidingPlayer, true))
-      .to.throw(NotPlayersTurnError, `Not ${decidingPlayer}'s turn. It is ${currentPlayer}'s turn.`);
+    expect(() =>
+      handleGoAloneDecision(gameState, decidingPlayer, true),
+    ).to.throw(
+      NotPlayersTurnError,
+      `Not ${decidingPlayer}'s turn. It is ${currentPlayer}'s turn.`,
+    );
   });
 
-  it('should throw PhaseLogicError if deciding player is not the trump maker', () => {
+  it("should throw PhaseLogicError if deciding player is not the trump maker", () => {
     const trumpMaker = PLAYER_ROLES[0]; // South made trump
     const decidingPlayer = PLAYER_ROLES[1]; // West attempts to decide
     let gameState = createGoAloneGameState(decidingPlayer, trumpMaker); // West's turn, but South made trump
-    expect(() => handleGoAloneDecision(gameState, decidingPlayer, true))
-      .to.throw(PhaseLogicError, `Only the player who made trump (${trumpMaker}) can decide to go alone. Player ${decidingPlayer} attempted.`);
+    expect(() =>
+      handleGoAloneDecision(gameState, decidingPlayer, true),
+    ).to.throw(
+      PhaseLogicError,
+      `Only the player who made trump (${trumpMaker}) can decide to go alone. Player ${decidingPlayer} attempted.`,
+    );
   });
 
   // Success Path: Going Alone
-  it('should update state correctly when player decides to go alone', () => {
+  it("should update state correctly when player decides to go alone", () => {
     const trumpMaker = PLAYER_ROLES[0]; // South
-    const partner = PLAYER_ROLES[2];   // North
-    const dealer = PLAYER_ROLES[3];    // East (different from trumpMaker for this test)
+    const partner = PLAYER_ROLES[2]; // North
+    const dealer = PLAYER_ROLES[3]; // East (different from trumpMaker for this test)
     let gameState = createGoAloneGameState(trumpMaker, trumpMaker);
     gameState.dealer = dealer;
 
@@ -198,7 +242,8 @@ describe('GoAlonePhase Logic', () => {
     expect(newState.gamePhase).to.equal(GAME_PHASES.PLAYING);
     // South (trumpMaker, P0) is the initial lead and is going alone (not sitting out). So, South leads.
     expect(newState.currentPlayer).to.equal(trumpMaker);
-    expect(getPartnerMock.calledOnceWith(trumpMaker, gameState.players)).to.be.true;
+    expect(getPartnerMock.calledOnceWith(trumpMaker, gameState.players)).to.be
+      .true;
     // getNextPlayer is called once to determine the initial leader (left of dealer).
     // It's not called a second time because the initial leader (South) is not sitting out.
     expect(getNextPlayerMock.calledOnceWith(dealer, PLAYER_ROLES)).to.be.true;
@@ -206,16 +251,15 @@ describe('GoAlonePhase Logic', () => {
     expect(newState.leadSuit).to.be.null;
   });
 
-  it('should correctly set first player if initial lead player is sitting out', () => {
+  it("should correctly set first player if initial lead player is sitting out", () => {
     const trumpMaker = PLAYER_ROLES[1]; // West (EW team)
-    const partner = PLAYER_ROLES[3];   // East
-    const dealer = PLAYER_ROLES[0];    // South
+    const partner = PLAYER_ROLES[3]; // East
+    const dealer = PLAYER_ROLES[0]; // South
     let gameState = createGoAloneGameState(trumpMaker, trumpMaker);
     gameState.dealer = dealer;
     gameState.makerTeam = TEAMS.TEAM_EW;
     gameState.playerWhoOrderedUp = null; // Clear this if set by helper
     gameState.playerWhoCalledTrump = trumpMaker;
-
 
     currentTestGameStateForStub = gameState;
 
@@ -247,8 +291,12 @@ describe('GoAlonePhase Logic', () => {
     getPartnerMock.withArgs(south, gameState.players).returns(north); // South's partner is North
     // Dealer West (P1). Initial lead is North (P2). North (partner) sits out.
     // So, player after North (P2) should lead: East (P3).
-    getNextPlayerMock.withArgs(PLAYER_ROLES[1], PLAYER_ROLES).returns(PLAYER_ROLES[2]); // Call 1: getNextPlayer(West P1) -> North P2
-    getNextPlayerMock.withArgs(PLAYER_ROLES[2], PLAYER_ROLES).returns(PLAYER_ROLES[3]); // Call 2: getNextPlayer(North P2) -> East P3
+    getNextPlayerMock
+      .withArgs(PLAYER_ROLES[1], PLAYER_ROLES)
+      .returns(PLAYER_ROLES[2]); // Call 1: getNextPlayer(West P1) -> North P2
+    getNextPlayerMock
+      .withArgs(PLAYER_ROLES[2], PLAYER_ROLES)
+      .returns(PLAYER_ROLES[3]); // Call 2: getNextPlayer(North P2) -> East P3
 
     const newState = handleGoAloneDecision(gameState, south, true); // South goes alone, North sits out.
 
@@ -258,11 +306,10 @@ describe('GoAlonePhase Logic', () => {
     expect(newState.currentPlayer).to.equal(east); // East should lead
   });
 
-
   // Success Path: Not Going Alone
-  it('should update state correctly when team plays with partner', () => {
+  it("should update state correctly when team plays with partner", () => {
     const trumpMaker = PLAYER_ROLES[0]; // South
-    const dealer = PLAYER_ROLES[3];    // East
+    const dealer = PLAYER_ROLES[3]; // East
     let gameState = createGoAloneGameState(trumpMaker, trumpMaker);
     gameState.dealer = dealer;
 

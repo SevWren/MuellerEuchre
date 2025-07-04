@@ -18,11 +18,11 @@
  *       from state management, persistence, and network layers.
  */
 
-import { expect } from 'chai';
-import sinon from 'sinon';
-import esmock from 'esmock';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { expect } from "chai";
+import sinon from "sinon";
+import esmock from "esmock";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // =============================================
 // PATH CONSTANTS (Pattern from esmock_fix_and_prevention_plan.md)
@@ -36,455 +36,535 @@ const __dirname = path.dirname(__filename);
  * @returns {string} Absolute path with POSIX separators
  */
 const toPosixPath = (relativePath) => {
-  return path.resolve(__dirname, relativePath).replace(/\\/g, '/');
+  return path.resolve(__dirname, relativePath).replace(/\\/g, "/");
 };
 
 // Define all module paths as constants at the top of the file
 const PATHS = {
   // Source files - use relative paths from the test file
-  END_GAME: toPosixPath('../../../src/game/phases/endGame.js'),
-  VALIDATION: toPosixPath('../../../src/game/logic/validation.js'),
-  LOGGER: toPosixPath('../../../src/utils/logger.js'),
-  CONSTANTS: toPosixPath('../../../src/config/constants.js'),
-  PLAYERS: toPosixPath('../../../src/utils/players.js'),
-  ERRORS: toPosixPath('../../../src/game/logic/errors.js'),
-  
+  END_GAME: toPosixPath("../../../src/game/phases/endGame.js"),
+  VALIDATION: toPosixPath("../../../src/game/logic/validation.js"),
+  LOGGER: toPosixPath("../../../src/utils/logger.js"),
+  CONSTANTS: toPosixPath("../../../src/config/constants.js"),
+  PLAYERS: toPosixPath("../../../src/utils/players.js"),
+  ERRORS: toPosixPath("../../../src/game/logic/errors.js"),
+
   // Test utilities
-  TEST_UTILS: toPosixPath('../../testUtils.js')
+  TEST_UTILS: toPosixPath("../../testUtils.js"),
 };
 
 // Import constants using path constants to ensure consistency
-import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, WINNING_SCORE } from '../../../src/config/constants.js';
+import {
+  GAME_PHASES,
+  PLAYER_ROLES,
+  SUITS,
+  TEAMS,
+  WINNING_SCORE,
+} from "../../../src/config/constants.js";
 
 // Functions to be loaded with esmock
 let checkGameOver, handleEndOfHand, startNewGame, endGame;
 let mockLogger, mockPlayersUtils;
-
 
 /**
  * @description Test suite for the End Game Phase of the Euchre game.
  * This phase handles the conclusion of a hand, including score calculation,
  * game over detection, and match statistics tracking.
  */
-describe('End Game Phase', () => {
-    /** @type {Object} gameState - The game state object used across tests */
-    let gameState;
-    let sandbox;
+describe("End Game Phase", () => {
+  /** @type {Object} gameState - The game state object used across tests */
+  let gameState;
+  let sandbox;
 
-    beforeEach(async () => {
-        // Create a new sandbox for each test
-        sandbox = sinon.createSandbox();
+  beforeEach(async () => {
+    // Create a new sandbox for each test
+    sandbox = sinon.createSandbox();
 
-        // Setup mock logger with all necessary methods
-        mockLogger = {
-            info: sandbox.stub(),
-            warn: sandbox.stub(),
-            error: sandbox.stub(),
-            debug: sandbox.stub(),
-            log: sandbox.stub() // Alias for info or debug
-        };
+    // Setup mock logger with all necessary methods
+    mockLogger = {
+      info: sandbox.stub(),
+      warn: sandbox.stub(),
+      error: sandbox.stub(),
+      debug: sandbox.stub(),
+      log: sandbox.stub(), // Alias for info or debug
+    };
 
-        // Setup mock players utility
-        mockPlayersUtils = {
-            getNextPlayer: sandbox.stub().returns(PLAYER_ROLES[1])
-        };
+    // Setup mock players utility
+    mockPlayersUtils = {
+      getNextPlayer: sandbox.stub().returns(PLAYER_ROLES[1]),
+    };
 
-        // Setup mock constants
-        const mockConstants = {
-            GAME_PHASES: {
-                GAME_OVER: 'GAME_OVER',
-                LOBBY: 'LOBBY',
-                SCORING: 'SCORING'
-            },
-            TEAMS: {
-                TEAM_NS: 'NS',
-                TEAM_EW: 'EW'
-            },
-            WINNING_SCORE: 10
-        };
+    // Setup mock constants
+    const mockConstants = {
+      GAME_PHASES: {
+        GAME_OVER: "GAME_OVER",
+        LOBBY: "LOBBY",
+        SCORING: "SCORING",
+      },
+      TEAMS: {
+        TEAM_NS: "NS",
+        TEAM_EW: "EW",
+      },
+      WINNING_SCORE: 10,
+    };
 
-        // Import the module with esmock using path constants
-        const endGameModule = await esmock(PATHS.END_GAME, {
-            [PATHS.LOGGER]: { 
-                ...mockLogger, 
-                default: mockLogger, // For default import
-                log: mockLogger.log // For named import
-            },
-            [PATHS.PLAYERS]: mockPlayersUtils,
-            [PATHS.CONSTANTS]: {
-                GAME_PHASES,
-                PLAYER_ROLES,
-                SUITS,
-                TEAMS,
-                WINNING_SCORE
-            },
-            [PATHS.ERRORS]: {
-                PhaseLogicError: class PhaseLogicError extends Error {
-                    constructor(message) {
-                        super(message);
-                        this.name = 'PhaseLogicError';
-                    }
-                },
-                ValidationError: class ValidationError extends Error {
-                    constructor(message) {
-                        super(message);
-                        this.name = 'ValidationError';
-                    }
-                },
-                NotPlayersTurnError: class NotPlayersTurnError extends Error {
-                    constructor(message) {
-                        super(message);
-                        this.name = 'NotPlayersTurnError';
-                    }
-                },
-                InvalidBidError: class InvalidBidError extends Error {
-                    constructor(message) {
-                        super(message);
-                        this.name = 'InvalidBidError';
-                    }
-                },
-                InvalidPhaseError: class InvalidPhaseError extends Error {
-                    constructor(message) {
-                        super(message);
-                        this.name = 'InvalidPhaseError';
-                    }
-                }
-            }
-        });
-
-        // Extract the functions we want to test
-        checkGameOver = endGameModule.checkGameOver;
-        handleEndOfHand = endGameModule.handleEndOfHand;
-        startNewGame = endGameModule.startNewGame;
-        // Make sure endGame is properly imported
-        if (endGameModule.endGame) {
-            endGame = endGameModule.endGame;
-        } else {
-            // If endGame is not directly exported, we'll need to update the test approach
-            console.warn('endGame function is not exported from endGame.js');
-        }
-
-        // Base gameState structure, specific tests can override parts
-        gameState = {
-            gameId: 'testEndGame123',
-            gamePhase: GAME_PHASES.SCORING, // Default for many checkGameOver tests
-            players: { // initializePlayers structure
-                [PLAYER_ROLES[0]]: { id: 'p1', name: 'South', teamId: TEAMS.TEAM_NS, socketId: 's1', isConnected: true, hand: [] },
-                [PLAYER_ROLES[1]]: { id: 'p2', name: 'West', teamId: TEAMS.TEAM_EW, socketId: 's2', isConnected: true, hand: [] },
-                [PLAYER_ROLES[2]]: { id: 'p3', name: 'North', teamId: TEAMS.TEAM_NS, socketId: 's3', isConnected: true, hand: [] },
-                [PLAYER_ROLES[3]]: { id: 'p4', name: 'East', teamId: TEAMS.TEAM_EW, socketId: 's4', isConnected: true, hand: [] },
-            },
-            dealer: PLAYER_ROLES[0], // South
-            currentPlayer: PLAYER_ROLES[1], // West
-            roundNumber: 1,
-            bids: [],
-            kitty: [],
-            turnCard: null,
-            trumpSuit: null,
-            makerTeam: null,
-            tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
-            teamScores: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
-            gameMessages: [],
-            settings: { winningScore: WINNING_SCORE },
-            // Properties from the original test file's gameState that might be relevant:
-            // playerOrder: ['north', 'east', 'south', 'west'], // PLAYER_ROLES serves this
-            // currentPhase: GAME_PHASES.SCORING, // Already set
-            // playerWhoCalledTrump: 'north', // Set if needed by a specific test
-            // tricks: [], // Set if needed
-            // playerWhoCalledTrump: 'north', // Set if needed by a specific test
-            tricks: [], // individual tests will set this
-            // scores: { // Alias for teamScores, ensure consistency or pick one
-            //     'north+south': 0, // Will use teamScores primarily
-            //     'east+west': 0
-            // },
-            // messages: [] // Alias for gameMessages
-            // Explicitly set initial scores for a target WINNING_SCORE of 10 for testing handleEndOfHand
-            // Use TEAMS constants for keys to align with endGame.js refactor
-            scores: {
-                [TEAMS.TEAM_NS]: 8,
-                [TEAMS.TEAM_EW]: 7
-            },
-        };
-        // Align scores and teamScores (use teamScores as primary, which now uses short keys)
-        gameState.teamScores = gameState.scores; // gameState.scores now uses TEAMS.TEAM_NS etc.
-        gameState.messages = gameState.gameMessages; // Ensure gameState.messages is initialized from gameMessages
-        gameState.winningTeam = undefined; // Ensure explicitly undefined for tests checking it
-
+    // Import the module with esmock using path constants
+    const endGameModule = await esmock(PATHS.END_GAME, {
+      [PATHS.LOGGER]: {
+        ...mockLogger,
+        default: mockLogger, // For default import
+        log: mockLogger.log, // For named import
+      },
+      [PATHS.PLAYERS]: mockPlayersUtils,
+      [PATHS.CONSTANTS]: {
+        GAME_PHASES,
+        PLAYER_ROLES,
+        SUITS,
+        TEAMS,
+        WINNING_SCORE,
+      },
+      [PATHS.ERRORS]: {
+        PhaseLogicError: class PhaseLogicError extends Error {
+          constructor(message) {
+            super(message);
+            this.name = "PhaseLogicError";
+          }
+        },
+        ValidationError: class ValidationError extends Error {
+          constructor(message) {
+            super(message);
+            this.name = "ValidationError";
+          }
+        },
+        NotPlayersTurnError: class NotPlayersTurnError extends Error {
+          constructor(message) {
+            super(message);
+            this.name = "NotPlayersTurnError";
+          }
+        },
+        InvalidBidError: class InvalidBidError extends Error {
+          constructor(message) {
+            super(message);
+            this.name = "InvalidBidError";
+          }
+        },
+        InvalidPhaseError: class InvalidPhaseError extends Error {
+          constructor(message) {
+            super(message);
+            this.name = "InvalidPhaseError";
+          }
+        },
+      },
     });
 
-    afterEach(async () => {
-        // Restore all stubs and mocks
-        sandbox.restore();
-        
-        // Clear esmock cache to prevent test pollution
-        await esmock.purge();
-        
-        // Reset any module-level state if needed
-        if (typeof esmock.clearCache === 'function') {
-            await esmock.clearCache(PATHS.END_GAME);
-        }
+    // Extract the functions we want to test
+    checkGameOver = endGameModule.checkGameOver;
+    handleEndOfHand = endGameModule.handleEndOfHand;
+    startNewGame = endGameModule.startNewGame;
+    // Make sure endGame is properly imported
+    if (endGameModule.endGame) {
+      endGame = endGameModule.endGame;
+    } else {
+      // If endGame is not directly exported, we'll need to update the test approach
+      console.warn("endGame function is not exported from endGame.js");
+    }
+
+    // Base gameState structure, specific tests can override parts
+    gameState = {
+      gameId: "testEndGame123",
+      gamePhase: GAME_PHASES.SCORING, // Default for many checkGameOver tests
+      players: {
+        // initializePlayers structure
+        [PLAYER_ROLES[0]]: {
+          id: "p1",
+          name: "South",
+          teamId: TEAMS.TEAM_NS,
+          socketId: "s1",
+          isConnected: true,
+          hand: [],
+        },
+        [PLAYER_ROLES[1]]: {
+          id: "p2",
+          name: "West",
+          teamId: TEAMS.TEAM_EW,
+          socketId: "s2",
+          isConnected: true,
+          hand: [],
+        },
+        [PLAYER_ROLES[2]]: {
+          id: "p3",
+          name: "North",
+          teamId: TEAMS.TEAM_NS,
+          socketId: "s3",
+          isConnected: true,
+          hand: [],
+        },
+        [PLAYER_ROLES[3]]: {
+          id: "p4",
+          name: "East",
+          teamId: TEAMS.TEAM_EW,
+          socketId: "s4",
+          isConnected: true,
+          hand: [],
+        },
+      },
+      dealer: PLAYER_ROLES[0], // South
+      currentPlayer: PLAYER_ROLES[1], // West
+      roundNumber: 1,
+      bids: [],
+      kitty: [],
+      turnCard: null,
+      trumpSuit: null,
+      makerTeam: null,
+      tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
+      teamScores: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
+      gameMessages: [],
+      settings: { winningScore: WINNING_SCORE },
+      // Properties from the original test file's gameState that might be relevant:
+      // playerOrder: ['north', 'east', 'south', 'west'], // PLAYER_ROLES serves this
+      // currentPhase: GAME_PHASES.SCORING, // Already set
+      // playerWhoCalledTrump: 'north', // Set if needed by a specific test
+      // tricks: [], // Set if needed
+      // playerWhoCalledTrump: 'north', // Set if needed by a specific test
+      tricks: [], // individual tests will set this
+      // scores: { // Alias for teamScores, ensure consistency or pick one
+      //     'north+south': 0, // Will use teamScores primarily
+      //     'east+west': 0
+      // },
+      // messages: [] // Alias for gameMessages
+      // Explicitly set initial scores for a target WINNING_SCORE of 10 for testing handleEndOfHand
+      // Use TEAMS constants for keys to align with endGame.js refactor
+      scores: {
+        [TEAMS.TEAM_NS]: 8,
+        [TEAMS.TEAM_EW]: 7,
+      },
+    };
+    // Align scores and teamScores (use teamScores as primary, which now uses short keys)
+    gameState.teamScores = gameState.scores; // gameState.scores now uses TEAMS.TEAM_NS etc.
+    gameState.messages = gameState.gameMessages; // Ensure gameState.messages is initialized from gameMessages
+    gameState.winningTeam = undefined; // Ensure explicitly undefined for tests checking it
+  });
+
+  afterEach(async () => {
+    // Restore all stubs and mocks
+    sandbox.restore();
+
+    // Clear esmock cache to prevent test pollution
+    await esmock.purge();
+
+    // Reset any module-level state if needed
+    if (typeof esmock.clearCache === "function") {
+      await esmock.clearCache(PATHS.END_GAME);
+    }
+  });
+
+  /**
+   * @description Test suite for the handleEndOfHand function.
+   * Tests the end-of-hand scoring and game state updates.
+   */
+  describe("handleEndOfHand", () => {
+    /**
+     * @test {handleEndOfHand}
+     * @description Verifies that when makers make their bid, scores are updated correctly
+     * and appropriate messages are added to the game state.
+     */
+    it("should update scores and detect game over when winning score is reached", () => {
+      // Simulate makers winning 3 tricks (just enough to make their bid)
+      gameState.makerTeam = TEAMS.TEAM_NS; // Makers are North/South
+      gameState.tricks = Array(3).fill({ team: TEAMS.TEAM_NS });
+
+      const result = handleEndOfHand(gameState);
+
+      // Should update scores (north+south should reach WINNING_SCORE)
+      expect(result.scores[TEAMS.TEAM_NS]).to.equal(WINNING_SCORE - 1); // N/S score should be 9
+      expect(result.scores[TEAMS.TEAM_EW]).to.equal(7); // E/W score should remain 7
+
+      // Should add score messages
+      expect(
+        result.messages.some(
+          (m) =>
+            m.type === "score" &&
+            m.text.includes(`Team ${TEAMS.TEAM_NS} made their bid! 1 point.`),
+        ),
+      ).to.be.true;
+
+      // Should add score summary
+      expect(
+        result.messages.some(
+          (m) =>
+            m.type === "score_summary" &&
+            m.text.includes(
+              `Scores - ${TEAMS.TEAM_NS}: ${WINNING_SCORE - 1}, ${TEAMS.TEAM_EW}: 7`,
+            ),
+        ),
+      ).to.be.true;
+
+      // Should not be game over yet (not enough points)
+      // gameOver can be either false or undefined when the game is not over
+      expect(result.gameOver === false || result.gameOver === undefined).to.be
+        .true;
     });
 
     /**
-     * @description Test suite for the handleEndOfHand function.
-     * Tests the end-of-hand scoring and game state updates.
+     * @test {handleEndOfHand}
+     * @description Verifies that when a team wins all 5 tricks (a march),
+     * they are awarded 2 points and the game ends if they reach the winning score.
      */
-    describe('handleEndOfHand', () => {
-        /**
-         * @test {handleEndOfHand}
-         * @description Verifies that when makers make their bid, scores are updated correctly
-         * and appropriate messages are added to the game state.
-         */
-        it('should update scores and detect game over when winning score is reached', () => {
-            // Simulate makers winning 3 tricks (just enough to make their bid)
-            gameState.makerTeam = TEAMS.TEAM_NS; // Makers are North/South
-            gameState.tricks = Array(3).fill({ team: TEAMS.TEAM_NS });
-            
-            const result = handleEndOfHand(gameState);
-            
-            // Should update scores (north+south should reach WINNING_SCORE)
-            expect(result.scores[TEAMS.TEAM_NS]).to.equal(WINNING_SCORE - 1); // N/S score should be 9
-            expect(result.scores[TEAMS.TEAM_EW]).to.equal(7); // E/W score should remain 7
-            
-            // Should add score messages
-            expect(result.messages.some(m => 
-                m.type === 'score' && 
-                m.text.includes(`Team ${TEAMS.TEAM_NS} made their bid! 1 point.`)
-            )).to.be.true;
-            
-            // Should add score summary
-            expect(result.messages.some(m => 
-                m.type === 'score_summary' && 
-                m.text.includes(`Scores - ${TEAMS.TEAM_NS}: ${WINNING_SCORE - 1}, ${TEAMS.TEAM_EW}: 7`)
-            )).to.be.true;
-            
-            // Should not be game over yet (not enough points)
-            // gameOver can be either false or undefined when the game is not over
-            expect(result.gameOver === false || result.gameOver === undefined).to.be.true;
-        });
-        
-        /**
-         * @test {handleEndOfHand}
-         * @description Verifies that when a team wins all 5 tricks (a march),
-         * they are awarded 2 points and the game ends if they reach the winning score.
-         */
-        it('should award 2 points for a march', () => {
-            // Simulate makers winning all 5 tricks
-            gameState.makerTeam = TEAMS.TEAM_NS; // Makers are North/South
-            gameState.tricks = Array(5).fill({ team: TEAMS.TEAM_NS });
-            
-            const result = handleEndOfHand(gameState);
-            
-            // Should award 2 points for march
-            expect(result.scores[TEAMS.TEAM_NS]).to.equal(WINNING_SCORE); // N/S score should be 10
-            expect(result.messages.some(m => 
-                m.text.includes(`Team ${TEAMS.TEAM_NS} made a march! 2 points!`)
-            )).to.be.true;
-            
-            // Should be game over now
-            expect(result.gameOver).to.be.true;
-            expect(result.winningTeam).to.equal(TEAMS.TEAM_NS);
-            expect(result.currentPhase).to.equal(GAME_PHASES.GAME_OVER);
-        });
-        
-        /**
-         * @test {handleEndOfHand}
-         * @description Verifies that when the maker team is euchred (fails to make their bid),
-         * the opposing team is awarded 2 points.
-         */
-        it('should award 2 points for euchre', () => {
-            // Simulate makers getting euchred (0 tricks)
-            gameState.makerTeam = TEAMS.TEAM_NS; // Makers are North/South
-            gameState.tricks = Array(5).fill({ team: TEAMS.TEAM_EW }); // Opponents (East/West) take all tricks
-            
-            const result = handleEndOfHand(gameState);
-            
-            // Should award 2 points to opponents for euchre
-            expect(result.scores[TEAMS.TEAM_EW]).to.equal(WINNING_SCORE - 1); // E/W score should be 9
-            expect(result.messages.some(m =>
-                m.text.includes(`Team ${TEAMS.TEAM_NS} was euchred! 2 points for ${TEAMS.TEAM_EW}!`)
-            )).to.be.true;
-        });
+    it("should award 2 points for a march", () => {
+      // Simulate makers winning all 5 tricks
+      gameState.makerTeam = TEAMS.TEAM_NS; // Makers are North/South
+      gameState.tricks = Array(5).fill({ team: TEAMS.TEAM_NS });
 
-        it('should log a warning if a trick has an unknown team', () => {
-            gameState.makerTeam = TEAMS.TEAM_NS;
-            gameState.tricks = [{ team: 'UNKNOWN_TEAM' }]; // Simulate unknown team
-            gameState.scores = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }; // Reset scores for this test
+      const result = handleEndOfHand(gameState);
 
-            handleEndOfHand(gameState);
+      // Should award 2 points for march
+      expect(result.scores[TEAMS.TEAM_NS]).to.equal(WINNING_SCORE); // N/S score should be 10
+      expect(
+        result.messages.some((m) =>
+          m.text.includes(`Team ${TEAMS.TEAM_NS} made a march! 2 points!`),
+        ),
+      ).to.be.true;
 
-            expect(mockLogger.log.calledWith(2, sinon.match(/Encountered trick with unknown team/))).to.be.true;
-        });
-
-        it('should log a warning if no team scored points (e.g., invalid makerTeam or getOpponentTeam returns null)', () => {
-            // To make scoringTeam null, we need makerTeam to be invalid.
-            gameState.makerTeam = 'INVALID_TEAM'; // This will cause makerTeam to be invalid
-            gameState.tricks = Array(5).fill({ team: TEAMS.TEAM_NS }); // Tricks don't matter much here for this specific log
-            gameState.scores = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 };
-
-            handleEndOfHand(gameState);
-
-            // The log message is now at level 3 for invalid makerTeam, not 1.
-            expect(mockLogger.log.calledWith(3, sinon.match(/Invalid or missing makerTeam/))).to.be.true;
-        });
+      // Should be game over now
+      expect(result.gameOver).to.be.true;
+      expect(result.winningTeam).to.equal(TEAMS.TEAM_NS);
+      expect(result.currentPhase).to.equal(GAME_PHASES.GAME_OVER);
     });
 
     /**
-     * @description Test suite for the checkGameOver function.
-     * Tests game over detection and winner determination.
+     * @test {handleEndOfHand}
+     * @description Verifies that when the maker team is euchred (fails to make their bid),
+     * the opposing team is awarded 2 points.
      */
-    describe('checkGameOver', () => {
-        /**
-         * @test {checkGameOver}
-         * @description Verifies that when a team reaches the winning score,
-         * the game is marked as over and the winning team is set.
-         */
-        it('should detect when a team has won', () => {
-            // Set a team's score to the winning score
-            gameState.scores[TEAMS.TEAM_NS] = WINNING_SCORE; // N/S reaches winning score
-            
-            const result = checkGameOver(gameState);
-            
-            expect(result.gameOver).to.be.true;
-            expect(result.winningTeam).to.equal(TEAMS.TEAM_NS);
-            expect(result.currentPhase).to.equal(GAME_PHASES.GAME_OVER); // Phase changes to GAME_OVER
-            
-            // Should add game over message
-            const winningTeamDisplay = TEAMS.TEAM_NS === 'NS' ? 'North/South' : (TEAMS.TEAM_NS || 'Unknown'); // Handle potential display name mapping if needed
-            expect(result.messages.some(m =>
-                m.type === 'game_over' &&
-                m.text.includes(`Team ${winningTeamDisplay} wins the game!`)
-            )).to.be.true;
-            
-            // Should update match stats
-            expect(result.matchStats.gamesPlayed).to.equal(1);
-            expect(result.matchStats.teamWins[TEAMS.TEAM_NS]).to.equal(1);
-        });
-        
-        /**
-         * @test {checkGameOver}
-         * @description Verifies that when no team has reached the winning score,
-         * the game continues without declaring a winner.
-         */
-        it('should not detect game over when no team has won', () => {
-            // Set scores below winning threshold
-            gameState.scores = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 };
-            
-            const result = checkGameOver(gameState);
-            
-            expect(result.gameOver).to.be.undefined;
-            expect(result.winningTeam).to.be.undefined;
-            expect(result.gamePhase).to.equal(GAME_PHASES.SCORING); // Should not change phase
-        });
+    it("should award 2 points for euchre", () => {
+      // Simulate makers getting euchred (0 tricks)
+      gameState.makerTeam = TEAMS.TEAM_NS; // Makers are North/South
+      gameState.tricks = Array(5).fill({ team: TEAMS.TEAM_EW }); // Opponents (East/West) take all tricks
 
-        it('should log a warning if an attempt is made to increment win for an unknown team', async () => {
-            // Skip this test on Windows due to esmock issues with Windows file paths
-            if (process.platform === 'win32') {
-                console.log('Skipping test on Windows due to esmock issues with Windows file paths');
-                return;
-            }
+      const result = handleEndOfHand(gameState);
 
-            // Create a test state with an unknown team that has reached the winning score
-            const testState = {
-                ...JSON.parse(JSON.stringify(gameState)), // Deep clone to avoid mutation
-                gameOver: false,
-                winningTeam: null,
-                currentPhase: 'SCORING',
-                scores: { 'UNKNOWN_TEAM': WINNING_SCORE }, // This will be the winning team
-                messages: [],
-                matchStats: {
-                    gamesPlayed: 0,
-                    teamWins: {
-                        [TEAMS.TEAM_NS]: 0,
-                        [TEAMS.TEAM_EW]: 0
-                    },
-                    lastUpdated: new Date().toISOString()
-                }
-            };
+      // Should award 2 points to opponents for euchre
+      expect(result.scores[TEAMS.TEAM_EW]).to.equal(WINNING_SCORE - 1); // E/W score should be 9
+      expect(
+        result.messages.some((m) =>
+          m.text.includes(
+            `Team ${TEAMS.TEAM_NS} was euchred! 2 points for ${TEAMS.TEAM_EW}!`,
+          ),
+        ),
+      ).to.be.true;
+    });
 
-            // Import the endGame function using the path constant
-            const { endGame } = await import(PATHS.END_GAME);
+    it("should log a warning if a trick has an unknown team", () => {
+      gameState.makerTeam = TEAMS.TEAM_NS;
+      gameState.tricks = [{ team: "UNKNOWN_TEAM" }]; // Simulate unknown team
+      gameState.scores = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }; // Reset scores for this test
 
-            // Call endGame directly with an unknown team
-            const result = endGame(testState, 'UNKNOWN_TEAM', { 'UNKNOWN_TEAM': WINNING_SCORE });
-            
-            // Check if the warning was logged by checking the logger calls
-            const warningCalls = mockLogger.log.getCalls().filter(call => 
-                call.args[0] === 3 && 
-                call.args[1] && 
-                call.args[1].includes('Attempted to increment win for unknown team:')
-            );
-            
-            // Debug output if the test fails
-            if (warningCalls.length === 0) {
-                console.log('Warning log not found. All log calls:', 
-                    mockLogger.log.getCalls().map(call => ({
-                        level: call.args[0],
-                        message: call.args[1]
-                    }))
-                );
-            }
-            
-            expect(warningCalls.length).to.be.greaterThan(0, 'Expected a warning log for unknown team');
-            expect(warningCalls[0].args[1]).to.include('UNKNOWN_TEAM');
-        });
+      handleEndOfHand(gameState);
+
+      expect(
+        mockLogger.log.calledWith(
+          2,
+          sinon.match(/Encountered trick with unknown team/),
+        ),
+      ).to.be.true;
+    });
+
+    it("should log a warning if no team scored points (e.g., invalid makerTeam or getOpponentTeam returns null)", () => {
+      // To make scoringTeam null, we need makerTeam to be invalid.
+      gameState.makerTeam = "INVALID_TEAM"; // This will cause makerTeam to be invalid
+      gameState.tricks = Array(5).fill({ team: TEAMS.TEAM_NS }); // Tricks don't matter much here for this specific log
+      gameState.scores = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 };
+
+      handleEndOfHand(gameState);
+
+      // The log message is now at level 3 for invalid makerTeam, not 1.
+      expect(
+        mockLogger.log.calledWith(
+          3,
+          sinon.match(/Invalid or missing makerTeam/),
+        ),
+      ).to.be.true;
+    });
+  });
+
+  /**
+   * @description Test suite for the checkGameOver function.
+   * Tests game over detection and winner determination.
+   */
+  describe("checkGameOver", () => {
+    /**
+     * @test {checkGameOver}
+     * @description Verifies that when a team reaches the winning score,
+     * the game is marked as over and the winning team is set.
+     */
+    it("should detect when a team has won", () => {
+      // Set a team's score to the winning score
+      gameState.scores[TEAMS.TEAM_NS] = WINNING_SCORE; // N/S reaches winning score
+
+      const result = checkGameOver(gameState);
+
+      expect(result.gameOver).to.be.true;
+      expect(result.winningTeam).to.equal(TEAMS.TEAM_NS);
+      expect(result.currentPhase).to.equal(GAME_PHASES.GAME_OVER); // Phase changes to GAME_OVER
+
+      // Should add game over message
+      const winningTeamDisplay =
+        TEAMS.TEAM_NS === "NS" ? "North/South" : TEAMS.TEAM_NS || "Unknown"; // Handle potential display name mapping if needed
+      expect(
+        result.messages.some(
+          (m) =>
+            m.type === "game_over" &&
+            m.text.includes(`Team ${winningTeamDisplay} wins the game!`),
+        ),
+      ).to.be.true;
+
+      // Should update match stats
+      expect(result.matchStats.gamesPlayed).to.equal(1);
+      expect(result.matchStats.teamWins[TEAMS.TEAM_NS]).to.equal(1);
     });
 
     /**
-     * @description Test suite for the startNewGame function.
-     * Tests the game state reset functionality for starting a new game.
+     * @test {checkGameOver}
+     * @description Verifies that when no team has reached the winning score,
+     * the game continues without declaring a winner.
      */
-    describe('startNewGame', () => {
-        /**
-         * @test {startNewGame}
-         * @description Verifies that the game state is properly reset for a new game
-         * while preserving match statistics and generating appropriate messages.
-         */
-        it('should reset the game state for a new game', () => {
-            // Set up a completed game state
-            const completedGame = {
-                ...gameState, // Spread the base gameState from beforeEach
-                gameOver: true,
-                winningTeam: TEAMS.TEAM_NS, // Use constant
-                currentPhase: GAME_PHASES.GAME_OVER,
-                // Players might be reset differently or kept if they are to stay for next game
-                // For this test, startNewGame is expected to clear them for a fresh lobby.
-                players: {
-                    [PLAYER_ROLES[0]]: { id: 'p1', name: 'South', teamId: TEAMS.TEAM_NS },
-                    [PLAYER_ROLES[1]]: { id: 'p2', name: 'West', teamId: TEAMS.TEAM_EW },
-                    [PLAYER_ROLES[2]]: { id: 'p3', name: 'North', teamId: TEAMS.TEAM_NS },
-                    [PLAYER_ROLES[3]]: { id: 'p4', name: 'East', teamId: TEAMS.TEAM_EW },
-                },
-                scores: { [TEAMS.TEAM_NS]: WINNING_SCORE, [TEAMS.TEAM_EW]: 5 }, // Example scores
-                matchStats: { gamesPlayed: 1, teamWins: { [TEAMS.TEAM_NS]: 1, [TEAMS.TEAM_EW]: 0 } }
-            };
-            
-            const result = startNewGame(completedGame);
-            
-            // Should reset game state
-            expect(result.gameOver).to.be.false;
-            expect(result.winningTeam).to.be.null; // Winning team is reset
-            expect(result.currentPhase).to.equal(GAME_PHASES.LOBBY); // Should go to LOBBY
-            expect(result.players).to.deep.equal({}); // Players should be empty for a new lobby
-            
-            // Should reset scores
-            expect(result.scores).to.deep.equal({
-                [TEAMS.TEAM_NS]: 0,
-                [TEAMS.TEAM_EW]: 0
-            });
-            
-            // Should keep match stats (incremented gamesPlayed is responsibility of checkGameOver/endGame)
-            // startNewGame should preserve the existing matchStats object for continuity of gamesPlayed / teamWins from previous games.
-            // The test setup for completedGame already has gamesPlayed:1.
-            // If startNewGame is only resetting for a *new* series of matches, then matchStats itself could be reset.
-            // Assuming it preserves for now.
-            expect(result.matchStats.gamesPlayed).to.equal(1);
-            
-            // Should add new game message
-            expect(result.messages.some(m =>
-                m.type === 'game' &&
-                m.text.includes('A new game is starting!')
-            )).to.be.true;
-        });
+    it("should not detect game over when no team has won", () => {
+      // Set scores below winning threshold
+      gameState.scores = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 };
+
+      const result = checkGameOver(gameState);
+
+      expect(result.gameOver).to.be.undefined;
+      expect(result.winningTeam).to.be.undefined;
+      expect(result.gamePhase).to.equal(GAME_PHASES.SCORING); // Should not change phase
     });
+
+    it("should log a warning if an attempt is made to increment win for an unknown team", async () => {
+      // Skip this test on Windows due to esmock issues with Windows file paths
+      if (process.platform === "win32") {
+        console.log(
+          "Skipping test on Windows due to esmock issues with Windows file paths",
+        );
+        return;
+      }
+
+      // Create a test state with an unknown team that has reached the winning score
+      const testState = {
+        ...JSON.parse(JSON.stringify(gameState)), // Deep clone to avoid mutation
+        gameOver: false,
+        winningTeam: null,
+        currentPhase: "SCORING",
+        scores: { UNKNOWN_TEAM: WINNING_SCORE }, // This will be the winning team
+        messages: [],
+        matchStats: {
+          gamesPlayed: 0,
+          teamWins: {
+            [TEAMS.TEAM_NS]: 0,
+            [TEAMS.TEAM_EW]: 0,
+          },
+          lastUpdated: new Date().toISOString(),
+        },
+      };
+
+      // Import the endGame function using the path constant
+      const { endGame } = await import(PATHS.END_GAME);
+
+      // Call endGame directly with an unknown team
+      const result = endGame(testState, "UNKNOWN_TEAM", {
+        UNKNOWN_TEAM: WINNING_SCORE,
+      });
+
+      // Check if the warning was logged by checking the logger calls
+      const warningCalls = mockLogger.log
+        .getCalls()
+        .filter(
+          (call) =>
+            call.args[0] === 3 &&
+            call.args[1] &&
+            call.args[1].includes(
+              "Attempted to increment win for unknown team:",
+            ),
+        );
+
+      // Debug output if the test fails
+      if (warningCalls.length === 0) {
+        console.log(
+          "Warning log not found. All log calls:",
+          mockLogger.log.getCalls().map((call) => ({
+            level: call.args[0],
+            message: call.args[1],
+          })),
+        );
+      }
+
+      expect(warningCalls.length).to.be.greaterThan(
+        0,
+        "Expected a warning log for unknown team",
+      );
+      expect(warningCalls[0].args[1]).to.include("UNKNOWN_TEAM");
+    });
+  });
+
+  /**
+   * @description Test suite for the startNewGame function.
+   * Tests the game state reset functionality for starting a new game.
+   */
+  describe("startNewGame", () => {
+    /**
+     * @test {startNewGame}
+     * @description Verifies that the game state is properly reset for a new game
+     * while preserving match statistics and generating appropriate messages.
+     */
+    it("should reset the game state for a new game", () => {
+      // Set up a completed game state
+      const completedGame = {
+        ...gameState, // Spread the base gameState from beforeEach
+        gameOver: true,
+        winningTeam: TEAMS.TEAM_NS, // Use constant
+        currentPhase: GAME_PHASES.GAME_OVER,
+        // Players might be reset differently or kept if they are to stay for next game
+        // For this test, startNewGame is expected to clear them for a fresh lobby.
+        players: {
+          [PLAYER_ROLES[0]]: { id: "p1", name: "South", teamId: TEAMS.TEAM_NS },
+          [PLAYER_ROLES[1]]: { id: "p2", name: "West", teamId: TEAMS.TEAM_EW },
+          [PLAYER_ROLES[2]]: { id: "p3", name: "North", teamId: TEAMS.TEAM_NS },
+          [PLAYER_ROLES[3]]: { id: "p4", name: "East", teamId: TEAMS.TEAM_EW },
+        },
+        scores: { [TEAMS.TEAM_NS]: WINNING_SCORE, [TEAMS.TEAM_EW]: 5 }, // Example scores
+        matchStats: {
+          gamesPlayed: 1,
+          teamWins: { [TEAMS.TEAM_NS]: 1, [TEAMS.TEAM_EW]: 0 },
+        },
+      };
+
+      const result = startNewGame(completedGame);
+
+      // Should reset game state
+      expect(result.gameOver).to.be.false;
+      expect(result.winningTeam).to.be.null; // Winning team is reset
+      expect(result.currentPhase).to.equal(GAME_PHASES.LOBBY); // Should go to LOBBY
+      expect(result.players).to.deep.equal({}); // Players should be empty for a new lobby
+
+      // Should reset scores
+      expect(result.scores).to.deep.equal({
+        [TEAMS.TEAM_NS]: 0,
+        [TEAMS.TEAM_EW]: 0,
+      });
+
+      // Should keep match stats (incremented gamesPlayed is responsibility of checkGameOver/endGame)
+      // startNewGame should preserve the existing matchStats object for continuity of gamesPlayed / teamWins from previous games.
+      // The test setup for completedGame already has gamesPlayed:1.
+      // If startNewGame is only resetting for a *new* series of matches, then matchStats itself could be reset.
+      // Assuming it preserves for now.
+      expect(result.matchStats.gamesPlayed).to.equal(1);
+
+      // Should add new game message
+      expect(
+        result.messages.some(
+          (m) =>
+            m.type === "game" && m.text.includes("A new game is starting!"),
+        ),
+      ).to.be.true;
+    });
+  });
 });

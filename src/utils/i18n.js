@@ -42,12 +42,12 @@ export function t(key, replacements = {}) {
       const regex = new RegExp(`{${placeholder}}`, "g");
       translatedString = translatedString.replace(
         regex,
-        replacements[placeholder]
+        replacements[placeholder],
       );
     }
   } else {
     logger.warn(
-      `Invalid replacements object provided for key "${key}": ${replacements}`
+      `Invalid replacements object provided for key "${key}": ${replacements}`,
     );
     // Proceed without replacements if invalid object is provided
   }

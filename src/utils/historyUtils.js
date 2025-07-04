@@ -18,14 +18,14 @@ export function createHistoryEntry(actionType, detailsObject = {}) {
 
   if (typeof actionType !== "string" || actionType.trim() === "") {
     logger.warn(
-      `Invalid actionType provided to createHistoryEntry: ${actionType}`
+      `Invalid actionType provided to createHistoryEntry: ${actionType}`,
     );
     action = "UNKNOWN_ACTION";
   }
 
   if (typeof detailsObject !== "object" || detailsObject === null) {
     logger.warn(
-      `Invalid detailsObject provided for actionType "${actionType}": ${detailsObject}`
+      `Invalid detailsObject provided for actionType "${actionType}": ${detailsObject}`,
     );
     details = { originalDetails: detailsObject };
   }
@@ -38,7 +38,7 @@ export function createHistoryEntry(actionType, detailsObject = {}) {
       !details.card.id)
   ) {
     logger.warn(
-      `Malformed card object in details for actionType "${actionType}": ${JSON.stringify(details.card)}`
+      `Malformed card object in details for actionType "${actionType}": ${JSON.stringify(details.card)}`,
     );
     details.cardId = "INVALID_CARD";
     delete details.card; // Remove the malformed card object
@@ -53,12 +53,12 @@ export function createHistoryEntry(actionType, detailsObject = {}) {
       // Ensure playerRole and cardId are present if expected for this action
       if (!details.playerRole) {
         logger.warn(
-          `Missing playerRole for PLAY_CARD action: ${JSON.stringify(detailsObject)}`
+          `Missing playerRole for PLAY_CARD action: ${JSON.stringify(detailsObject)}`,
         );
       }
       if (!details.cardId) {
         logger.warn(
-          `Missing cardId for PLAY_CARD action: ${JSON.stringify(detailsObject)}`
+          `Missing cardId for PLAY_CARD action: ${JSON.stringify(detailsObject)}`,
         );
       }
       break;

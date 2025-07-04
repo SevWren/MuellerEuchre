@@ -28,7 +28,7 @@ export function getDefaultSettings() {
 export function validateSettings(customSettings) {
   const result = {
     isValid: true,
-    errors: []
+    errors: [],
   };
 
   if (typeof customSettings !== "object" || customSettings === null) {
@@ -46,7 +46,7 @@ export function validateSettings(customSettings) {
     // Type validation
     if (rule.type && typeof customSettings[key] !== rule.type) {
       result.isValid = false;
-      if (key === 'winningScore') {
+      if (key === "winningScore") {
         result.errors.push("Winning score must be an integer.");
       } else {
         result.errors.push(`Setting '${key}' must be of type ${rule.type}`);
@@ -57,7 +57,7 @@ export function validateSettings(customSettings) {
     // Integer validation
     if (rule.integer && !Number.isInteger(customSettings[key])) {
       result.isValid = false;
-      if (key === 'winningScore') {
+      if (key === "winningScore") {
         result.errors.push("Winning score must be an integer.");
       } else {
         result.errors.push(`Setting '${key}' must be an integer`);
@@ -68,7 +68,7 @@ export function validateSettings(customSettings) {
     // Min value validation
     if (rule.min !== undefined && customSettings[key] < rule.min) {
       result.isValid = false;
-      if (key === 'winningScore') {
+      if (key === "winningScore") {
         result.errors.push("Winning score must be between 5 and 21.");
       } else {
         result.errors.push(`Setting '${key}' must be at least ${rule.min}`);
@@ -79,7 +79,7 @@ export function validateSettings(customSettings) {
     // Max value validation
     if (rule.max !== undefined && customSettings[key] > rule.max) {
       result.isValid = false;
-      if (key === 'winningScore') {
+      if (key === "winningScore") {
         result.errors.push("Winning score must be between 5 and 21.");
       } else {
         result.errors.push(`Setting '${key}' must be at most ${rule.max}`);

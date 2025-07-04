@@ -2,8 +2,8 @@
  * Utility functions related to player management, teams, and turn order.
  * @module players
  */
-import { PLAYER_ROLES, TEAMS } from '../config/constants.js';
-import logger from './logger.js'; // Use the new Pino logger
+import { PLAYER_ROLES, TEAMS } from "../config/constants.js";
+import logger from "./logger.js"; // Use the new Pino logger
 
 /**
  * Gets the team identifier for a given player role.
@@ -30,8 +30,16 @@ function getTeamForPlayer(playerRole) {
  * @returns {boolean} True if the players are on the same team, false otherwise.
  */
 export function isTeammate(player1Role, player2Role) {
-  if (!player1Role || !player2Role || !PLAYER_ROLES.includes(player1Role) || !PLAYER_ROLES.includes(player2Role)) {
-    logger.warn({ player1Role, player2Role }, 'Invalid role(s) passed to isTeammate');
+  if (
+    !player1Role ||
+    !player2Role ||
+    !PLAYER_ROLES.includes(player1Role) ||
+    !PLAYER_ROLES.includes(player2Role)
+  ) {
+    logger.warn(
+      { player1Role, player2Role },
+      "Invalid role(s) passed to isTeammate",
+    );
     return false;
   }
   if (player1Role === player2Role) return false; // A player is not their own teammate for game logic purposes
@@ -39,7 +47,7 @@ export function isTeammate(player1Role, player2Role) {
   const team1 = getTeamForPlayer(player1Role);
   const team2 = getTeamForPlayer(player2Role);
 
-  return team1 !== '' && team1 === team2;
+  return team1 !== "" && team1 === team2;
 }
 
 /**
@@ -48,19 +56,19 @@ export function isTeammate(player1Role, player2Role) {
  * @returns {string|undefined} The partner's role, or undefined if the role is invalid.
  */
 export function getPartner(playerRole) {
-    // Assuming PLAYER_ROLES = ['south', 'west', 'north', 'east']
-    // South's partner is North, West's partner is East.
-    const partnerMap = {
-        [PLAYER_ROLES[0]]: PLAYER_ROLES[2], // south: north
-        [PLAYER_ROLES[1]]: PLAYER_ROLES[3], // west: east
-        [PLAYER_ROLES[2]]: PLAYER_ROLES[0], // north: south
-        [PLAYER_ROLES[3]]: PLAYER_ROLES[1]  // east: west
-    };
-    if (!PLAYER_ROLES.includes(playerRole)) {
-        logger.warn({ playerRole }, 'Invalid playerRole passed to getPartner');
-        return undefined;
-    }
-    return partnerMap[playerRole];
+  // Assuming PLAYER_ROLES = ['south', 'west', 'north', 'east']
+  // South's partner is North, West's partner is East.
+  const partnerMap = {
+    [PLAYER_ROLES[0]]: PLAYER_ROLES[2], // south: north
+    [PLAYER_ROLES[1]]: PLAYER_ROLES[3], // west: east
+    [PLAYER_ROLES[2]]: PLAYER_ROLES[0], // north: south
+    [PLAYER_ROLES[3]]: PLAYER_ROLES[1], // east: west
+  };
+  if (!PLAYER_ROLES.includes(playerRole)) {
+    logger.warn({ playerRole }, "Invalid playerRole passed to getPartner");
+    return undefined;
+  }
+  return partnerMap[playerRole];
 }
 
 /**
@@ -71,28 +79,39 @@ export function getPartner(playerRole) {
  * @param {string} [partnerSittingOut] - The role of the partner who is sitting out (if goingAlone is true).
  * @returns {string|undefined} The next player's role, or undefined if inputs are invalid.
  */
-export function getNextPlayer(currentPlayerRole, playerSlots = PLAYER_ROLES, goingAlone = false, partnerSittingOut = null) {
-    if (!currentPlayerRole || !playerSlots || playerSlots.length !== 4) {
-        logger.warn({ currentPlayerRole, playerSlots }, 'Invalid parameters for getNextPlayer: requires currentPlayerRole and valid playerSlots (array of 4).');
-        return undefined;
-    }
+export function getNextPlayer(
+  currentPlayerRole,
+  playerSlots = PLAYER_ROLES,
+  goingAlone = false,
+  partnerSittingOut = null,
+) {
+  if (!currentPlayerRole || !playerSlots || playerSlots.length !== 4) {
+    logger.warn(
+      { currentPlayerRole, playerSlots },
+      "Invalid parameters for getNextPlayer: requires currentPlayerRole and valid playerSlots (array of 4).",
+    );
+    return undefined;
+  }
 
-    const currentIndex = playerSlots.indexOf(currentPlayerRole);
-    if (currentIndex === -1) {
-        logger.warn({ currentPlayerRole, playerSlots }, `Current player role ${currentPlayerRole} not found in provided player slots.`);
-        return undefined;
-    }
+  const currentIndex = playerSlots.indexOf(currentPlayerRole);
+  if (currentIndex === -1) {
+    logger.warn(
+      { currentPlayerRole, playerSlots },
+      `Current player role ${currentPlayerRole} not found in provided player slots.`,
+    );
+    return undefined;
+  }
 
-    let nextIndex = (currentIndex + 1) % playerSlots.length;
-    let nextPlayer = playerSlots[nextIndex];
+  let nextIndex = (currentIndex + 1) % playerSlots.length;
+  let nextPlayer = playerSlots[nextIndex];
 
-    // If going alone, and the next player is the one sitting out, skip them.
-    if (goingAlone && partnerSittingOut && nextPlayer === partnerSittingOut) {
-        nextIndex = (nextIndex + 1) % playerSlots.length;
-        nextPlayer = playerSlots[nextIndex];
-    }
+  // If going alone, and the next player is the one sitting out, skip them.
+  if (goingAlone && partnerSittingOut && nextPlayer === partnerSittingOut) {
+    nextIndex = (nextIndex + 1) % playerSlots.length;
+    nextPlayer = playerSlots[nextIndex];
+  }
 
-    return nextPlayer;
+  return nextPlayer;
 }
 
 /**
@@ -102,17 +121,25 @@ export function getNextPlayer(currentPlayerRole, playerSlots = PLAYER_ROLES, goi
  * @returns {object|null} The player object (value from the gameState.players map) or null if not found or inputs are invalid.
  */
 export function getPlayerBySocketId(gameState, socketId) {
-    if (!gameState || !gameState.players || typeof gameState.players !== 'object' || !socketId) {
-        logger.warn({ gameStateExists: !!gameState, socketId }, 'Invalid arguments for getPlayerBySocketId.');
-        return null;
-    }
-    
-    for (const role in gameState.players) {
-        if (gameState.players[role].socketId === socketId) {
-            return gameState.players[role];
-        }
-    }
+  if (
+    !gameState ||
+    !gameState.players ||
+    typeof gameState.players !== "object" ||
+    !socketId
+  ) {
+    logger.warn(
+      { gameStateExists: !!gameState, socketId },
+      "Invalid arguments for getPlayerBySocketId.",
+    );
     return null;
+  }
+
+  for (const role in gameState.players) {
+    if (gameState.players[role].socketId === socketId) {
+      return gameState.players[role];
+    }
+  }
+  return null;
 }
 
 /**
@@ -122,17 +149,25 @@ export function getPlayerBySocketId(gameState, socketId) {
  * @returns {string|null} The player's role (key from the gameState.players map) or null if not found or inputs are invalid.
  */
 export function getRoleBySocketId(gameState, socketId) {
-    if (!gameState || !gameState.players || typeof gameState.players !== 'object' || !socketId) {
-        logger.warn({ gameStateExists: !!gameState, socketId }, 'Invalid arguments for getRoleBySocketId.');
-        return null;
-    }
-    
-    for (const role in gameState.players) {
-        if (gameState.players[role].socketId === socketId) {
-            return role;
-        }
-    }
+  if (
+    !gameState ||
+    !gameState.players ||
+    typeof gameState.players !== "object" ||
+    !socketId
+  ) {
+    logger.warn(
+      { gameStateExists: !!gameState, socketId },
+      "Invalid arguments for getRoleBySocketId.",
+    );
     return null;
+  }
+
+  for (const role in gameState.players) {
+    if (gameState.players[role].socketId === socketId) {
+      return role;
+    }
+  }
+  return null;
 }
 
 /**
@@ -142,23 +177,23 @@ export function getRoleBySocketId(gameState, socketId) {
  * @returns {object} The initialized players object, mapping roles to player data.
  */
 export function initializePlayers() {
-    const players = {};
-    PLAYER_ROLES.forEach((role, index) => {
-        // Determine team: PLAYER_ROLES = ['south', 'west', 'north', 'east']
-        // South & North (indices 0, 2) are TEAM_NS
-        // West & East (indices 1, 3) are TEAM_EW
-        const teamId = (index % 2 === 0) ? TEAMS.TEAM_NS : TEAMS.TEAM_EW;
-        players[role] = {
-            name: role.charAt(0).toUpperCase() + role.slice(1), // e.g., 'South'
-            socketId: null,
-            hand: [],
-            teamId: teamId, // Assign to TEAM_NS or TEAM_EW
-            score: 0, // Overall game score for this player's team (might be redundant if teamScores used in gameState)
-            isConnected: false,
-            tricksWonThisHand: 0,
-        };
-    });
-    return players;
+  const players = {};
+  PLAYER_ROLES.forEach((role, index) => {
+    // Determine team: PLAYER_ROLES = ['south', 'west', 'north', 'east']
+    // South & North (indices 0, 2) are TEAM_NS
+    // West & East (indices 1, 3) are TEAM_EW
+    const teamId = index % 2 === 0 ? TEAMS.TEAM_NS : TEAMS.TEAM_EW;
+    players[role] = {
+      name: role.charAt(0).toUpperCase() + role.slice(1), // e.g., 'South'
+      socketId: null,
+      hand: [],
+      teamId: teamId, // Assign to TEAM_NS or TEAM_EW
+      score: 0, // Overall game score for this player's team (might be redundant if teamScores used in gameState)
+      isConnected: false,
+      tricksWonThisHand: 0,
+    };
+  });
+  return players;
 }
 
 /**
@@ -167,12 +202,15 @@ export function initializePlayers() {
  * @returns {number|undefined} The team ID of the player, or undefined if player is invalid or teamId is not set.
  */
 export function getPlayerTeam(player) {
-  if (!player || typeof player !== 'object') {
-    logger.warn({ player }, 'Invalid player object passed to getPlayerTeam.');
+  if (!player || typeof player !== "object") {
+    logger.warn({ player }, "Invalid player object passed to getPlayerTeam.");
     return undefined;
   }
   if (player.teamId === undefined) {
-    logger.warn({ playerId: player.id, playerName: player.name }, 'Player object does not have a teamId.');
+    logger.warn(
+      { playerId: player.id, playerName: player.name },
+      "Player object does not have a teamId.",
+    );
     // Fallback or error handling could be more sophisticated here if needed
   }
   return player.teamId;

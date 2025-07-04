@@ -37,10 +37,10 @@ const VALUE_NAME_MAP = {
 // These values are used to create a clear hierarchy in card ranking:
 // Right Bower (Jack of trump) > Left Bower (Jack of same color) > Other trumps > Led suit > Off-suit
 // Note: These values are set to match test expectations
-const RIGHT_BOWER_RANK_BONUS = 150;  // Base rank + 100
-const LEFT_BOWER_RANK_BONUS = 100;   // Base rank + 50
-const TRUMP_RANK_BONUS = 100;        // Base rank + 100
-const LED_SUIT_RANK_BONUS = 50;      // Base rank + 50
+const RIGHT_BOWER_RANK_BONUS = 150; // Base rank + 100
+const LEFT_BOWER_RANK_BONUS = 100; // Base rank + 50
+const TRUMP_RANK_BONUS = 100; // Base rank + 100
+const LED_SUIT_RANK_BONUS = 50; // Base rank + 50
 
 /**
  * @typedef {Object} Card
@@ -59,26 +59,26 @@ const LED_SUIT_RANK_BONUS = 50;      // Base rank + 50
  */
 function getSuitColor(suit) {
   if (!suit) {
-    throw new InvalidCardError('Suit is required');
+    throw new InvalidCardError("Suit is required");
   }
-  
+
   // Normalize the suit to lowercase for comparison
   const normalizedSuit = suit.toLowerCase();
-  
+
   // Check if the suit is valid by comparing against all SUITS values
   const isValidSuit = Object.values(SUITS).some(
-    validSuit => validSuit.toLowerCase() === normalizedSuit
+    (validSuit) => validSuit.toLowerCase() === normalizedSuit,
   );
-  
+
   if (!isValidSuit) {
     throw new InvalidCardError(`Invalid suit: ${suit}`);
   }
-  
+
   // Determine the color based on the normalized suit
-  return normalizedSuit === SUITS.HEARTS.toLowerCase() || 
-         normalizedSuit === SUITS.DIAMONDS.toLowerCase() 
-         ? 'red' 
-         : 'black';
+  return normalizedSuit === SUITS.HEARTS.toLowerCase() ||
+    normalizedSuit === SUITS.DIAMONDS.toLowerCase()
+    ? "red"
+    : "black";
 }
 
 /**
@@ -96,7 +96,7 @@ export function areSameColor(suitA, suitB) {
     // (e.g., checking a non-card object).
     logger.warn(
       `Invalid suit comparison: suitA=${suitA}, suitB=${suitB}`,
-      error
+      error,
     );
     return false;
   }
@@ -118,7 +118,7 @@ export function createDeck() {
       // The card's value can be determined from the id or name if needed
       id: `${value}${SUIT_CHAR_MAP[suit]}`,
       name: `${VALUE_NAME_MAP[value]} of ${suit.charAt(0).toUpperCase() + suit.slice(1)}`,
-    }))
+    })),
   );
 }
 
@@ -132,7 +132,7 @@ export function createDeck() {
 export function shuffleDeck(deck) {
   if (!Array.isArray(deck)) {
     throw new InvalidCardError(
-      "Invalid deck provided for shuffling: must be an array."
+      "Invalid deck provided for shuffling: must be an array.",
     );
   }
 
@@ -151,23 +151,26 @@ export function shuffleDeck(deck) {
  */
 export function cardToId(card) {
   // Debug log the card object
-  console.log('cardToId received card:', JSON.stringify(card, null, 2));
-  console.log('SUITS:', JSON.stringify(SUITS, null, 2));
-  console.log('VALUES:', JSON.stringify(VALUES, null, 2));
-  
+  console.log("cardToId received card:", JSON.stringify(card, null, 2));
+  console.log("SUITS:", JSON.stringify(SUITS, null, 2));
+  console.log("VALUES:", JSON.stringify(VALUES, null, 2));
+
   // Check for invalid card objects
-  if (!card || typeof card !== 'object') {
-    console.error('Invalid card object (not an object):', card);
-    logger.warn('Invalid card object passed to cardToId (not an object):', card);
-    return '??';
+  if (!card || typeof card !== "object") {
+    console.error("Invalid card object (not an object):", card);
+    logger.warn(
+      "Invalid card object passed to cardToId (not an object):",
+      card,
+    );
+    return "??";
   }
-  
+
   if (!card.suit) {
-    console.error('Card object missing suit property:', card);
-    logger.warn('Card object missing suit property:', card);
-    return '??';
+    console.error("Card object missing suit property:", card);
+    logger.warn("Card object missing suit property:", card);
+    return "??";
   }
-  
+
   // If value is not provided, try to extract it from the name
   let value = card.value;
   if (value === undefined && card.name) {
@@ -175,63 +178,73 @@ export function cardToId(card) {
     const valueMatch = card.name.match(/^(\w+)/);
     if (valueMatch) {
       let valueName = valueMatch[1].toLowerCase();
-      
+
       // Special case for 'Ten' which is two words but we only matched the first part
-      if (valueName === 'ten') {
-        value = '10';
-        console.log('Extracted value from name (Ten):', value);
+      if (valueName === "ten") {
+        value = "10";
+        console.log("Extracted value from name (Ten):", value);
       } else {
         // Map full value names to their corresponding values
         const valueMap = {
-          'ace': 'A',
-          'king': 'K',
-          'queen': 'Q',
-          'jack': 'J',
-          'nine': '9'
+          ace: "A",
+          king: "K",
+          queen: "Q",
+          jack: "J",
+          nine: "9",
         };
-        
+
         if (valueName in valueMap) {
           value = valueMap[valueName];
-          console.log('Extracted value from name:', value);
+          console.log("Extracted value from name:", value);
         }
       }
     }
   }
-  
+
   if (value === undefined) {
-    console.error('Card object missing value property and could not extract from name:', card);
-    logger.warn('Card object missing value property and could not extract from name:', card);
-    return '??';
+    console.error(
+      "Card object missing value property and could not extract from name:",
+      card,
+    );
+    logger.warn(
+      "Card object missing value property and could not extract from name:",
+      card,
+    );
+    return "??";
   }
-  
+
   // Normalize the suit to lowercase to match SUIT_CHAR_MAP keys
-  const normalizedSuit = typeof card.suit === 'string' ? card.suit.toLowerCase() : card.suit;
-  console.log('Normalized suit:', normalizedSuit);
-  
+  const normalizedSuit =
+    typeof card.suit === "string" ? card.suit.toLowerCase() : card.suit;
+  console.log("Normalized suit:", normalizedSuit);
+
   // Check if the suit is valid
   if (!(normalizedSuit in SUIT_CHAR_MAP)) {
-    console.error(`Invalid suit in card object: "${card.suit}" (normalized: "${normalizedSuit}"). Valid suits:`, Object.keys(SUIT_CHAR_MAP));
+    console.error(
+      `Invalid suit in card object: "${card.suit}" (normalized: "${normalizedSuit}"). Valid suits:`,
+      Object.keys(SUIT_CHAR_MAP),
+    );
     logger.warn(`Invalid suit in card object: ${card.suit}`);
-    return '??';
+    return "??";
   }
-  
+
   // Get the suit character (H, D, C, S)
   const suitChar = SUIT_CHAR_MAP[normalizedSuit];
-  
+
   // Convert value to string and handle special cases
   let valueStr = String(value).toUpperCase();
-  console.log('Value string:', valueStr);
-  
+  console.log("Value string:", valueStr);
+
   // Handle the special case for '10' value
-  if (valueStr === '10') {
+  if (valueStr === "10") {
     const result = `10${suitChar}`;
-    console.log('Returning 10 card ID:', result);
+    console.log("Returning 10 card ID:", result);
     return result;
   }
-  
+
   // For other values, use the first character (A, K, Q, J, 9)
   const result = `${valueStr.charAt(0)}${suitChar}`;
-  console.log('Returning card ID:', result);
+  console.log("Returning card ID:", result);
   return result;
 }
 
@@ -244,59 +257,62 @@ export function cardToId(card) {
  */
 export function isRightBower(card, trumpSuit) {
   // Debug logging
-  console.log('isRightBower called with:', { 
-    card, 
+  console.log("isRightBower called with:", {
+    card,
     trumpSuit,
     VALUES: VALUES,
     SUITS: SUITS,
-    'VALUES.JACK': VALUES.JACK
+    "VALUES.JACK": VALUES.JACK,
   });
 
   if (!card || typeof card !== "object" || !card.suit || !trumpSuit) {
-    console.log('Invalid input to isRightBower:', { card, trumpSuit });
+    console.log("Invalid input to isRightBower:", { card, trumpSuit });
     return false;
   }
-  
+
   // A card is a Jack if:
   // 1. Its value is 'J' or 'JACK'
   // 2. Its name indicates it's a Jack
   // 3. Its ID starts with 'J' (e.g., 'JS' for Jack of Spades)
-  const isJack = (card.value === 'J' || 
-                card.value === 'JACK' ||
-                (card.name && typeof card.name === 'string' && 
-                 card.name.toLowerCase().startsWith('jack')) ||
-                (card.id && card.id.startsWith('J')));
-  
+  const isJack =
+    card.value === "J" ||
+    card.value === "JACK" ||
+    (card.name &&
+      typeof card.name === "string" &&
+      card.name.toLowerCase().startsWith("jack")) ||
+    (card.id && card.id.startsWith("J"));
+
   if (!isJack) {
-    console.log('Card is not a Jack:', card);
+    console.log("Card is not a Jack:", card);
     return false;
   }
-  
+
   // Normalize both the card suit and trump suit to lowercase for case-insensitive comparison
-  const normalizedCardSuit = typeof card.suit === 'string' ? card.suit.toLowerCase() : card.suit;
-  
+  const normalizedCardSuit =
+    typeof card.suit === "string" ? card.suit.toLowerCase() : card.suit;
+
   // Convert trumpSuit to lowercase if it's a string, or get the value from SUITS if it's a key
   let normalizedTrumpSuit;
-  if (typeof trumpSuit === 'string') {
+  if (typeof trumpSuit === "string") {
     normalizedTrumpSuit = trumpSuit.toLowerCase();
   } else if (trumpSuit in SUITS) {
     normalizedTrumpSuit = SUITS[trumpSuit].toLowerCase();
   } else {
-    console.log('Invalid trumpSuit:', trumpSuit);
+    console.log("Invalid trumpSuit:", trumpSuit);
     return false; // Invalid trumpSuit
   }
-  
+
   // Debug logging
-  console.log('Comparing:', {
+  console.log("Comparing:", {
     isJack,
     normalizedCardSuit,
     normalizedTrumpSuit,
-    suitsMatch: normalizedCardSuit === normalizedTrumpSuit
+    suitsMatch: normalizedCardSuit === normalizedTrumpSuit,
   });
-  
+
   // The Right Bower must be a Jack, and its suit must match the trump suit (case-insensitive)
   const result = isJack && normalizedCardSuit === normalizedTrumpSuit;
-  console.log('isRightBower result:', result);
+  console.log("isRightBower result:", result);
   return result;
 }
 
@@ -309,34 +325,38 @@ export function isRightBower(card, trumpSuit) {
  */
 export function isLeftBower(card, trumpSuit) {
   // Debug log the input values
-  logger.debug('isLeftBower called with:', { 
-    card, 
-    trumpSuit, 
-    'VALUES.JACK': VALUES.JACK,
-    'card.value': card?.value,
-    'card.suit': card?.suit
+  logger.debug("isLeftBower called with:", {
+    card,
+    trumpSuit,
+    "VALUES.JACK": VALUES.JACK,
+    "card.value": card?.value,
+    "card.suit": card?.suit,
   });
 
   // Basic validation
   if (!card || !trumpSuit) {
-    logger.debug('Invalid input to isLeftBower:', { card, trumpSuit });
+    logger.debug("Invalid input to isLeftBower:", { card, trumpSuit });
     return false;
   }
 
   // Check if the card is a Jack by value, name, or ID
-  const isJack = (card.value === 'J' || 
-                card.value === 'JACK' || 
-                (card.name && card.name.toUpperCase().startsWith('JACK')) ||
-                (card.id && (card.id.startsWith('J') || card.id.includes('J'))));
-  
+  const isJack =
+    card.value === "J" ||
+    card.value === "JACK" ||
+    (card.name && card.name.toUpperCase().startsWith("JACK")) ||
+    (card.id && (card.id.startsWith("J") || card.id.includes("J")));
+
   if (!isJack) {
-    logger.debug('Card is not a Jack:', { id: card.id, value: card.value });
+    logger.debug("Card is not a Jack:", { id: card.id, value: card.value });
     return false;
   }
 
   // Check if the card is the Right Bower (which would make it not the Left Bower)
   if (isRightBower(card, trumpSuit)) {
-    logger.debug('Card is the Right Bower, not Left Bower:', { id: card.id, suit: card.suit });
+    logger.debug("Card is the Right Bower, not Left Bower:", {
+      id: card.id,
+      suit: card.suit,
+    });
     return false;
   }
 
@@ -345,16 +365,17 @@ export function isLeftBower(card, trumpSuit) {
   if (!cardSuit && card.id) {
     // Extract suit from ID (e.g., 'JC' -> 'C' -> 'clubs')
     const suitChar = card.id.substring(1).toUpperCase();
-    cardSuit = {
-      'H': 'hearts',
-      'D': 'diamonds',
-      'C': 'clubs',
-      'S': 'spades'
-    }[suitChar] || cardSuit;
+    cardSuit =
+      {
+        H: "hearts",
+        D: "diamonds",
+        C: "clubs",
+        S: "spades",
+      }[suitChar] || cardSuit;
   }
 
   // Normalize the suits for comparison
-  const normalizedCardSuit = cardSuit ? cardSuit.toLowerCase() : '';
+  const normalizedCardSuit = cardSuit ? cardSuit.toLowerCase() : "";
   const normalizedTrumpSuit = trumpSuit.toLowerCase();
 
   // Check if the card's suit is the same color as the trump suit but different
@@ -362,19 +383,19 @@ export function isLeftBower(card, trumpSuit) {
   const trumpSuitColor = getSuitColor(normalizedTrumpSuit);
   const sameColor = cardSuitColor === trumpSuitColor;
   const differentSuit = normalizedCardSuit !== normalizedTrumpSuit;
-  
+
   const result = sameColor && differentSuit;
-  
-  logger.debug('isLeftBower result:', { 
+
+  logger.debug("isLeftBower result:", {
     result,
     cardSuit: normalizedCardSuit,
     trumpSuit: normalizedTrumpSuit,
     sameColor,
     differentSuit,
     cardSuitColor,
-    trumpSuitColor
+    trumpSuitColor,
   });
-  
+
   return result;
 }
 
@@ -389,18 +410,18 @@ export function isLeftBower(card, trumpSuit) {
  */
 export function getCardRank(card, trumpSuit, ledSuit = null) {
   // Debug logging
-  console.log('getCardRank called with:', { 
-    card, 
-    trumpSuit, 
+  console.log("getCardRank called with:", {
+    card,
+    trumpSuit,
     ledSuit,
-    'card.value': card?.value,
-    'card.suit': card?.suit
+    "card.value": card?.value,
+    "card.suit": card?.suit,
   });
 
   // More permissive validation that matches test cases
-  if (!card || typeof card !== 'object' || !card.suit || !trumpSuit) {
+  if (!card || typeof card !== "object" || !card.suit || !trumpSuit) {
     // Use the logger instead of console.error to match test expectations
-    logger.error('Invalid arguments for getCardRank:', { card, trumpSuit });
+    logger.error("Invalid arguments for getCardRank:", { card, trumpSuit });
     return 0; // Return 0 for invalid cards instead of throwing to match test expectations
   }
 
@@ -408,7 +429,7 @@ export function getCardRank(card, trumpSuit, ledSuit = null) {
   let cardValue = card.value;
   if (!cardValue && card.name) {
     // Try to extract value from name (e.g., "Ace of Hearts" -> "Ace")
-    const valueFromName = card.name.split(' ')[0].toUpperCase();
+    const valueFromName = card.name.split(" ")[0].toUpperCase();
     if (valueFromName in CARD_RANKS) {
       cardValue = valueFromName;
     }
@@ -416,9 +437,9 @@ export function getCardRank(card, trumpSuit, ledSuit = null) {
 
   // Get the base rank of the card from its value
   let baseRank = CARD_RANKS[cardValue] || 0;
-  
+
   // Special case for Jacks - they have a base rank of 50
-  if (cardValue === 'JACK' || cardValue === 'J') {
+  if (cardValue === "JACK" || cardValue === "J") {
     baseRank = 50; // Base rank for Jacks (will get bonus for being a bower)
   }
 
@@ -468,32 +489,39 @@ export function sortHand(hand, trumpSuit) {
   const handCopy = [...hand];
 
   // Debug: Log the hand before sorting
-  logger.debug('Sorting hand with trumpSuit:', { 
+  logger.debug("Sorting hand with trumpSuit:", {
     trumpSuit,
-    hand: handCopy.map(c => ({
-      id: c.id, 
-      suit: c.suit, 
-      value: c.value,
-      isRightBower: isRightBower(c, trumpSuit),
-      isLeftBower: isLeftBower(c, trumpSuit)
-    }))
-  });
-
-  // Define a consistent suit order for non-trump suits (Clubs, Diamonds, Hearts, Spades)
-  const nonTrumpSuitOrder = [SUITS.CLUBS, SUITS.DIAMONDS, SUITS.HEARTS, SUITS.SPADES]
-    .filter((suit) => suit !== trumpSuit);
-
-  // Debug: Log the hand before sorting
-  logger.debug('Sorting hand:', { 
-    hand: handCopy.map(c => ({
-      id: c.id, 
-      suit: c.suit, 
+    hand: handCopy.map((c) => ({
+      id: c.id,
+      suit: c.suit,
       value: c.value,
       isRightBower: isRightBower(c, trumpSuit),
       isLeftBower: isLeftBower(c, trumpSuit),
-      isTrump: c.suit === trumpSuit || isRightBower(c, trumpSuit) || isLeftBower(c, trumpSuit)
     })),
-    trumpSuit
+  });
+
+  // Define a consistent suit order for non-trump suits (Clubs, Diamonds, Hearts, Spades)
+  const nonTrumpSuitOrder = [
+    SUITS.CLUBS,
+    SUITS.DIAMONDS,
+    SUITS.HEARTS,
+    SUITS.SPADES,
+  ].filter((suit) => suit !== trumpSuit);
+
+  // Debug: Log the hand before sorting
+  logger.debug("Sorting hand:", {
+    hand: handCopy.map((c) => ({
+      id: c.id,
+      suit: c.suit,
+      value: c.value,
+      isRightBower: isRightBower(c, trumpSuit),
+      isLeftBower: isLeftBower(c, trumpSuit),
+      isTrump:
+        c.suit === trumpSuit ||
+        isRightBower(c, trumpSuit) ||
+        isLeftBower(c, trumpSuit),
+    })),
+    trumpSuit,
   });
 
   return handCopy.sort((a, b) => {
@@ -513,9 +541,21 @@ export function sortHand(hand, trumpSuit) {
     const bIsLeftBower = isLeftBower(b, trumpSuit);
 
     // Debug: Log comparison
-    logger.debug('Comparing cards:', {
-      a: { id: a.id, suit: a.suit, value: a.value, isRightBower: aIsRightBower, isLeftBower: aIsLeftBower },
-      b: { id: b.id, suit: b.suit, value: b.value, isRightBower: bIsRightBower, isLeftBower: bIsLeftBower }
+    logger.debug("Comparing cards:", {
+      a: {
+        id: a.id,
+        suit: a.suit,
+        value: a.value,
+        isRightBower: aIsRightBower,
+        isLeftBower: aIsLeftBower,
+      },
+      b: {
+        id: b.id,
+        suit: b.suit,
+        value: b.value,
+        isRightBower: bIsRightBower,
+        isLeftBower: bIsLeftBower,
+      },
     });
 
     const aIsTrump = aIsRightBower || aIsLeftBower || a.suit === trumpSuit;
@@ -523,61 +563,67 @@ export function sortHand(hand, trumpSuit) {
 
     // 1. Sort by Trump status (Trump cards first)
     if (aIsTrump && !bIsTrump) {
-      logger.debug('a is trump, b is not - a comes first', { a: a.id, b: b.id });
+      logger.debug("a is trump, b is not - a comes first", {
+        a: a.id,
+        b: b.id,
+      });
       return -1;
     }
     if (!aIsTrump && bIsTrump) {
-      logger.debug('b is trump, a is not - b comes first', { a: a.id, b: b.id });
+      logger.debug("b is trump, a is not - b comes first", {
+        a: a.id,
+        b: b.id,
+      });
       return 1;
     }
 
     // If both are trump, sort by rank (Bowers highest)
     if (aIsTrump && bIsTrump) {
       // Debug: Log trump comparison
-      logger.debug('Both cards are trump', {
-        a: { 
-          id: a.id, 
-          suit: a.suit, 
+      logger.debug("Both cards are trump", {
+        a: {
+          id: a.id,
+          suit: a.suit,
           value: a.value,
-          isRightBower: aIsRightBower, 
-          isLeftBower: aIsLeftBower 
+          isRightBower: aIsRightBower,
+          isLeftBower: aIsLeftBower,
         },
-        b: { 
-          id: b.id, 
-          suit: b.suit, 
+        b: {
+          id: b.id,
+          suit: b.suit,
           value: b.value,
-          isRightBower: bIsRightBower, 
-          isLeftBower: bIsLeftBower 
-        }
+          isRightBower: bIsRightBower,
+          isLeftBower: bIsLeftBower,
+        },
       });
-      
+
       // Right Bower is highest
       if (aIsRightBower) {
-        logger.debug('a is Right Bower, a comes first');
+        logger.debug("a is Right Bower, a comes first");
         return -1;
       }
       if (bIsRightBower) {
-        logger.debug('b is Right Bower, b comes first');
+        logger.debug("b is Right Bower, b comes first");
         return 1;
       }
-      
+
       // Left Bower is second highest
       if (aIsLeftBower) {
-        logger.debug('a is Left Bower, a comes before other trumps');
+        logger.debug("a is Left Bower, a comes before other trumps");
         return -1;
       }
       if (bIsLeftBower) {
-        logger.debug('b is Left Bower, b comes before other trumps');
+        logger.debug("b is Left Bower, b comes before other trumps");
         return 1;
       }
-      
+
       // For other trump cards, sort by rank (highest first)
       const rankA = CARD_RANKS[a.value] || 0;
       const rankB = CARD_RANKS[b.value] || 0;
-      logger.debug('Both are regular trump cards, comparing ranks:', { 
+      logger.debug("Both are regular trump cards, comparing ranks:", {
         a: { id: a.id, value: a.value, rank: rankA },
         b: { id: b.id, value: b.value, rank: rankB },
-        result: rankB - rankA
+        result: rankB - rankA,
       });
       return rankB - rankA;
     }
@@ -593,7 +639,7 @@ export function sortHand(hand, trumpSuit) {
       if (suitOrderB === -1) return -1;
       return suitOrderA - suitOrderB; // Sort by index (ascending)
     }
-    
+
     // If same suit, sort by rank (highest first)
     const rankA = CARD_RANKS[a.value] || 0;
     const rankB = CARD_RANKS[b.value] || 0;

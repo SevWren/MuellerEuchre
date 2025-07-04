@@ -1,7 +1,12 @@
-import { GAME_PHASES, WINNING_SCORE, TEAMS, PLAYER_ROLES } from '../../config/constants.js';
-import { getNextPlayer } from '../../utils/players.js';
-import logger from '../../utils/logger.js';
-import { InvalidPhaseError, PhaseLogicError } from '../logic/errors.js';
+import {
+  GAME_PHASES,
+  WINNING_SCORE,
+  TEAMS,
+  PLAYER_ROLES,
+} from "../../config/constants.js";
+import { getNextPlayer } from "../../utils/players.js";
+import logger from "../../utils/logger.js";
+import { InvalidPhaseError, PhaseLogicError } from "../logic/errors.js";
 
 /**
  * Calculates the score for the completed hand and updates the game state.
@@ -13,11 +18,15 @@ import { InvalidPhaseError, PhaseLogicError } from '../logic/errors.js';
  */
 async function calculateAndApplyScore(gameState) {
   if (gameState.gamePhase !== GAME_PHASES.SCORING) {
-    throw new InvalidPhaseError(`calculateAndApplyScore called inappropriately during ${gameState.gamePhase}.`);
+    throw new InvalidPhaseError(
+      `calculateAndApplyScore called inappropriately during ${gameState.gamePhase}.`,
+    );
   }
 
   if (!gameState.makerTeam) {
-    throw new PhaseLogicError("Cannot calculate score: makerTeam is not defined.");
+    throw new PhaseLogicError(
+      "Cannot calculate score: makerTeam is not defined.",
+    );
   }
 
   let newGameState = JSON.parse(JSON.stringify(gameState)); // Work on a clone
@@ -30,21 +39,25 @@ async function calculateAndApplyScore(gameState) {
   };
 
   const makingTeamTricks = newGameState.tricksTaken[makerTeam] || 0;
-  const opponentTeam = makerTeam === TEAMS.TEAM_NS ? TEAMS.TEAM_EW : TEAMS.TEAM_NS;
+  const opponentTeam =
+    makerTeam === TEAMS.TEAM_NS ? TEAMS.TEAM_EW : TEAMS.TEAM_NS;
 
   let pointsScored = 0;
   let scoringTeam = null;
   let message = "";
 
-  if (makingTeamTricks === 5) { // Makers took all 5 tricks (March)
+  if (makingTeamTricks === 5) {
+    // Makers took all 5 tricks (March)
     pointsScored = goingAlone ? 4 : 2;
     scoringTeam = makerTeam;
-    message = `Team ${makerTeam} achieved a march${goingAlone ? ' (alone)' : ''}! ${pointsScored} points.`;
-  } else if (makingTeamTricks >= 3) { // Makers made their bid
+    message = `Team ${makerTeam} achieved a march${goingAlone ? " (alone)" : ""}! ${pointsScored} points.`;
+  } else if (makingTeamTricks >= 3) {
+    // Makers made their bid
     pointsScored = goingAlone ? 1 : 1;
     scoringTeam = makerTeam;
-    message = `Team ${makerTeam} made their bid${goingAlone && makingTeamTricks < 5 ? ' (alone)' : ''}. ${pointsScored} point.`;
-  } else { // Makers were euchred
+    message = `Team ${makerTeam} made their bid${goingAlone && makingTeamTricks < 5 ? " (alone)" : ""}. ${pointsScored} point.`;
+  } else {
+    // Makers were euchred
     pointsScored = 2;
     scoringTeam = opponentTeam;
     message = `Team ${makerTeam} was euchred! Team ${opponentTeam} gets ${pointsScored} points.`;
@@ -67,7 +80,9 @@ async function calculateAndApplyScore(gameState) {
   newGameState.tricksTaken = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }; // Reset for next hand
   newGameState.currentTrick = [];
 
-  logger.info(`[Game ID: ${gameId}] Scoring complete. ${message}. Scores: NS ${newGameState.teamScores[TEAMS.TEAM_NS]}, EW ${newGameState.teamScores[TEAMS.TEAM_EW]}`);
+  logger.info(
+    `[Game ID: ${gameId}] Scoring complete. ${message}. Scores: NS ${newGameState.teamScores[TEAMS.TEAM_NS]}, EW ${newGameState.teamScores[TEAMS.TEAM_EW]}`,
+  );
 
   return checkGameOver(newGameState);
 }
@@ -95,7 +110,9 @@ function checkGameOver(gameState) {
     newGameState.winningTeam = winningTeam;
     newGameState.currentPlayer = null;
     newGameState.message = `${newGameState.message} ${gameOverMessagePart}`;
-    logger.info(`[Game ID: ${gameId}] Game over. Winner: ${winningTeam}. ${gameOverMessagePart}`);
+    logger.info(
+      `[Game ID: ${gameId}] Game over. Winner: ${winningTeam}. ${gameOverMessagePart}`,
+    );
   } else {
     const nextDealerRole = getNextPlayer(currentDealer, PLAYER_ROLES);
     const transitionMessage = `Hand scored. Next hand starting. New dealer: ${nextDealerRole}. Current scores: Team NS ${nsScore}, Team EW ${ewScore}.`;
@@ -114,7 +131,9 @@ function checkGameOver(gameState) {
     newGameState.turnCard = null;
     newGameState.leadSuit = null;
     newGameState.message = `${newGameState.message} ${transitionMessage}`;
-    logger.info(`[Game ID: ${gameId}] Hand scored. Transitioning to DEALING. New dealer: ${nextDealerRole}.`);
+    logger.info(
+      `[Game ID: ${gameId}] Hand scored. Transitioning to DEALING. New dealer: ${nextDealerRole}.`,
+    );
   }
   return newGameState;
 }

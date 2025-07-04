@@ -1,8 +1,12 @@
-import { validatePlay } from '../logic/validation.js'; // Changed from isValidPlay
-import { getCardRank } from '../../utils/deck.js';
-import { getNextPlayer } from '../../utils/players.js';
-import { GAME_PHASES } from '../../config/constants.js';
-import { PhaseLogicError, NotPlayersTurnError, InvalidPhaseError } from '../logic/errors.js'; // Added error imports
+import { validatePlay } from "../logic/validation.js"; // Changed from isValidPlay
+import { getCardRank } from "../../utils/deck.js";
+import { getNextPlayer } from "../../utils/players.js";
+import { GAME_PHASES } from "../../config/constants.js";
+import {
+  PhaseLogicError,
+  NotPlayersTurnError,
+  InvalidPhaseError,
+} from "../logic/errors.js"; // Added error imports
 
 /**
  * Handles a player playing a card.
@@ -34,7 +38,7 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
   let newGameState = JSON.parse(JSON.stringify(gameState));
 
   // Remove card from player's hand
-  const newHand = player.hand.filter(card => card.id !== cardPlayed.id);
+  const newHand = player.hand.filter((card) => card.id !== cardPlayed.id);
   newGameState.players = {
     ...newGameState.players,
     [playerRole]: {
@@ -44,16 +48,25 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
   };
 
   // Add card to current trick
-  newGameState.currentTrick = [...newGameState.currentTrick, { ...cardPlayed, playedBy: playerRole }];
+  newGameState.currentTrick = [
+    ...newGameState.currentTrick,
+    { ...cardPlayed, playedBy: playerRole },
+  ];
 
   // Determine next player or end trick/hand
   if (newGameState.currentTrick.length === 4) {
     // Determine trick winner
-    const trickWinnerRole = determineTrickWinner(newGameState.currentTrick, newGameState.trumpSuit, newGameState.currentTrick[0]?.playedBy);
+    const trickWinnerRole = determineTrickWinner(
+      newGameState.currentTrick,
+      newGameState.trumpSuit,
+      newGameState.currentTrick[0]?.playedBy,
+    );
     const winningPlayer = newGameState.players[trickWinnerRole];
 
     if (!winningPlayer || winningPlayer.teamId === undefined) {
-      throw new PhaseLogicError(`Could not determine teamId for trick winner: ${trickWinnerRole}`);
+      throw new PhaseLogicError(
+        `Could not determine teamId for trick winner: ${trickWinnerRole}`,
+      );
     }
     const winnerTeam = winningPlayer.teamId;
 
@@ -66,7 +79,9 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
     newGameState.lastTrickWinner = trickWinnerRole;
     newGameState.message = `${trickWinnerRole} wins the trick.`;
 
-    const totalTricksPlayedThisHand = Object.values(newGameState.tricksTaken).reduce((sum, count) => sum + count, 0);
+    const totalTricksPlayedThisHand = Object.values(
+      newGameState.tricksTaken,
+    ).reduce((sum, count) => sum + count, 0);
 
     if (totalTricksPlayedThisHand === 5) {
       const finalTricksMessageSegment = `Scores for this hand: ${JSON.stringify(newGameState.tricksTaken)}.`;
@@ -77,7 +92,12 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
   } else {
     // Advance to next player if trick is not over
     const playerRoles = Object.keys(newGameState.players);
-    const nextPlayerForTrick = getNextPlayer(playerRole, playerRoles, newGameState.goingAlone, newGameState.partnerSittingOut);
+    const nextPlayerForTrick = getNextPlayer(
+      playerRole,
+      playerRoles,
+      newGameState.goingAlone,
+      newGameState.partnerSittingOut,
+    );
     newGameState.currentPlayer = nextPlayerForTrick;
     newGameState.message = `${playerRole} played ${cardPlayed.rank} of ${cardPlayed.suit}. Next player: ${nextPlayerForTrick}.`;
   }
@@ -94,7 +114,7 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
  */
 function determineTrickWinner(trick, trumpSuit, leadPlayerRole) {
   if (!trick || trick.length !== 4) {
-    throw new PhaseLogicError('Trick must have 4 cards to determine a winner.');
+    throw new PhaseLogicError("Trick must have 4 cards to determine a winner.");
   }
 
   const leadCard = trick[0];

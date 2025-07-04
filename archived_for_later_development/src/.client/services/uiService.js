@@ -4,18 +4,24 @@
 // for how the client might handle game events and state.
 // Actual UI rendering and direct DOM manipulation are beyond the scope here.
 
-import { SUITS, GAME_PHASES } from '../../config/constants.js'; // For SUITS.HEARTS etc. & GAME_PHASES
-import stateServiceInstance from './stateService.js'; // Import the actual stateService instance
-import socketServiceInstance from './socketService.js'; // Import the actual socketService instance
+import { SUITS, GAME_PHASES } from "../../config/constants.js"; // For SUITS.HEARTS etc. & GAME_PHASES
+import stateServiceInstance from "./stateService.js"; // Import the actual stateService instance
+import socketServiceInstance from "./socketService.js"; // Import the actual socketService instance
 
 // The global/mock stateService and socketService objects defined previously are illustrative
 // but the UiService class will now use the imported singleton instances by default.
 
-export class UiService { // Export the class
-  constructor(stateServiceParam = stateServiceInstance, socketServiceParam = socketServiceInstance) {
+export class UiService {
+  // Export the class
+  constructor(
+    stateServiceParam = stateServiceInstance,
+    socketServiceParam = socketServiceInstance,
+  ) {
     this.stateService = stateServiceParam;
     this.socketService = socketServiceParam; // socketServiceInstance will be the updated one
-    console.log('[Conceptual UiService] Initialized with injected/imported service instances.');
+    console.log(
+      "[Conceptual UiService] Initialized with injected/imported service instances.",
+    );
 
     // Conceptual: In a real UI framework (React, Vue, Angular, Svelte, etc.),
     // components or a UI coordinator would subscribe to stateService to trigger re-renders.
@@ -44,268 +50,379 @@ export class UiService { // Export the class
   }
 
   updateLobbyView(players) {
-    console.log('[Conceptual UiService] Updating lobby view with players:');
-    (players || []).forEach(player => {
-      console.log(`  - Player: ${player.name || player.role}, Role: ${player.role}, Connected: ${player.isConnected ? 'Yes' : 'No'}`);
+    console.log("[Conceptual UiService] Updating lobby view with players:");
+    (players || []).forEach((player) => {
+      console.log(
+        `  - Player: ${player.name || player.role}, Role: ${player.role}, Connected: ${player.isConnected ? "Yes" : "No"}`,
+      );
     });
   }
 
-  displayMessage(message, type = 'info') { // Added type for styling (info, error, success)
+  displayMessage(message, type = "info") {
+    // Added type for styling (info, error, success)
     // In a real UI, this might change the color or icon of the message.
-    console.log(`[Conceptual UiService] Displaying message (type: ${type}): "${message}"`);
+    console.log(
+      `[Conceptual UiService] Displaying message (type: ${type}): "${message}"`,
+    );
   }
 
   // Refined showErrorModal to be more specific for action errors.
-  showErrorModal(message, title = 'Error') {
+  showErrorModal(message, title = "Error") {
     // This could be a dedicated modal for critical errors.
-    console.error(`[Conceptual UiService] Showing error modal (title: ${title}): "${message}"`);
+    console.error(
+      `[Conceptual UiService] Showing error modal (title: ${title}): "${message}"`,
+    );
     // For example, a pop-up: alert(`[${title}] ${message}`);
   }
 
   // New method for global, non-action-specific errors (e.g., from server GAME_EVENTS.ERROR)
   displayGlobalError(message) {
-    console.error(`[Conceptual UiService] Displaying GLOBAL error: "${message}"`);
+    console.error(
+      `[Conceptual UiService] Displaying GLOBAL error: "${message}"`,
+    );
     // This might be a banner at the top of the page or a toast notification.
     // For instance, it could call displayMessage with type 'error'.
-    this.displayMessage(`Global Error: ${message}`, 'error');
+    this.displayMessage(`Global Error: ${message}`, "error");
   }
 
   promptForRejoin(gameId) {
-    console.log(`[Conceptual UiService] Displaying prompt for rejoining game ID: ${gameId}.`);
+    console.log(
+      `[Conceptual UiService] Displaying prompt for rejoining game ID: ${gameId}.`,
+    );
     // Conceptual: In a real UI, this would be a modal with "Yes" / "No" buttons.
     // Simulate user confirming "Yes" to rejoin.
     const userConfirmsRejoin = true; // Simulate user clicking "Yes"
 
     if (userConfirmsRejoin) {
-      console.log(`[Conceptual UiService] User confirmed rejoin for game ${gameId}. Calling socketService.emitRejoinGame.`);
+      console.log(
+        `[Conceptual UiService] User confirmed rejoin for game ${gameId}. Calling socketService.emitRejoinGame.`,
+      );
       this.showSpinner(`Rejoining game ${gameId}...`);
-      this.socketService.emitRejoinGame(gameId)
+      this.socketService
+        .emitRejoinGame(gameId)
         .then(() => {
           this.hideSpinner();
           // showReconnectedMessage is likely called by socketService itself on successful ack,
           // but we can also reinforce it here or handle UI state specific to rejoining.
-          this.displayMessage(`Successfully requested to rejoin game ${gameId}. Waiting for server update...`, 'success');
+          this.displayMessage(
+            `Successfully requested to rejoin game ${gameId}. Waiting for server update...`,
+            "success",
+          );
         })
         .catch((error) => {
           this.hideSpinner();
           // showErrorModal is likely called by socketService itself on error ack,
           // but we can provide additional context or fallback here.
-          this.showErrorModal(`Failed to rejoin game ${gameId}: ${error.message || 'Server error'}. You might need to join as a new player.`, 'Rejoin Failed');
+          this.showErrorModal(
+            `Failed to rejoin game ${gameId}: ${error.message || "Server error"}. You might need to join as a new player.`,
+            "Rejoin Failed",
+          );
         });
     } else {
-      console.log(`[Conceptual UiService] User declined to rejoin game ${gameId}.`);
-      this.displayMessage('Okay, not rejoining. You can start or join a new game.', 'info');
+      console.log(
+        `[Conceptual UiService] User declined to rejoin game ${gameId}.`,
+      );
+      this.displayMessage(
+        "Okay, not rejoining. You can start or join a new game.",
+        "info",
+      );
       // Potentially navigate to lobby or main menu.
-      this.navigateTo('lobby');
+      this.navigateTo("lobby");
     }
   }
 
-  showConnectionLostMessage(reason = 'Connection to server lost.') {
-    console.warn(`[Conceptual UiService] Displaying connection lost message: "${reason} Attempting to reconnect..."`);
+  showConnectionLostMessage(reason = "Connection to server lost.") {
+    console.warn(
+      `[Conceptual UiService] Displaying connection lost message: "${reason} Attempting to reconnect..."`,
+    );
     // This should be a non-modal, persistent message (e.g., a banner).
     // It might also trigger a visual indicator like a "connecting" spinner globally.
-    this.displayMessage(`${reason} Attempting to reconnect...`, 'error'); // Use displayMessage for a banner-like message
+    this.displayMessage(`${reason} Attempting to reconnect...`, "error"); // Use displayMessage for a banner-like message
   }
 
-  showReconnectingModal(message = 'Reconnecting to server...') {
-    console.log(`[Conceptual UiService] Displaying reconnecting modal: "${message}"`);
+  showReconnectingModal(message = "Reconnecting to server...") {
+    console.log(
+      `[Conceptual UiService] Displaying reconnecting modal: "${message}"`,
+    );
     // This should be a blocking modal to prevent actions while auto-reconnecting.
     this.showSpinner(message); // Use spinner as a full-screen modal concept
   }
 
-  showReconnectedMessage(message = 'Successfully reconnected!') {
-    console.log(`[Conceptual UiService] Displaying reconnected message: "${message}"`);
+  showReconnectedMessage(message = "Successfully reconnected!") {
+    console.log(
+      `[Conceptual UiService] Displaying reconnected message: "${message}"`,
+    );
     this.hideSpinner(); // Hide any reconnecting modal/spinner
-    this.displayMessage(message, 'success');
+    this.displayMessage(message, "success");
     // Potentially hide any persistent "connection lost" banners.
   }
 
-  showReconnectionFailedModal(reason = 'Failed to reconnect.') {
-    console.error(`[Conceptual UiService] Displaying reconnection failed modal: "${reason} Please check your internet connection or try joining again."`);
+  showReconnectionFailedModal(reason = "Failed to reconnect.") {
+    console.error(
+      `[Conceptual UiService] Displaying reconnection failed modal: "${reason} Please check your internet connection or try joining again."`,
+    );
     this.hideSpinner(); // Hide any reconnecting modal/spinner
-    this.showErrorModal(`${reason} Please check your internet connection or try joining again. You may need to start a new game.`, 'Reconnection Failed');
+    this.showErrorModal(
+      `${reason} Please check your internet connection or try joining again. You may need to start a new game.`,
+      "Reconnection Failed",
+    );
     // Offer options like "Try Again" (manual reconnect) or "Go to Lobby".
   }
 
   // Helper to hide generic modals if one is shown by showReconnectingModal
   hideModal() {
-    console.log('[Conceptual UiService] Hiding generic modal (e.g., spinner).');
+    console.log("[Conceptual UiService] Hiding generic modal (e.g., spinner).");
     this.hideSpinner();
   }
-
 
   // --- UI Update Methods for Core Game Info (from Task 3) ---
   displayPlayerHand() {
     const hand = this.stateService.getPlayerHand(); // Fetches fresh data from the injected stateService
-    console.log('[UiService - Conceptual] Displaying Player Hand:', hand ? hand.map(c => `${c.rank} of ${c.suit}`).join(', ') : 'No hand found');
+    console.log(
+      "[UiService - Conceptual] Displaying Player Hand:",
+      hand
+        ? hand.map((c) => `${c.rank} of ${c.suit}`).join(", ")
+        : "No hand found",
+    );
   }
 
   displayTurnCard() {
     const turnCard = this.stateService.getTurnCard(); // Fetches fresh data
     if (turnCard) {
-      console.log(`[UiService - Conceptual] Displaying Turn Card: ${turnCard.rank} of ${turnCard.suit}`);
+      console.log(
+        `[UiService - Conceptual] Displaying Turn Card: ${turnCard.rank} of ${turnCard.suit}`,
+      );
     } else {
-      console.log('[UiService - Conceptual] No Turn Card to display.');
+      console.log("[UiService - Conceptual] No Turn Card to display.");
     }
   }
 
   displayCurrentTrick() {
     const currentTrick = this.stateService.getCurrentTrick(); // Fetches fresh data
-    console.log('[UiService - Conceptual] Displaying Current Trick:');
+    console.log("[UiService - Conceptual] Displaying Current Trick:");
     if (currentTrick && currentTrick.length > 0) {
-      currentTrick.forEach(play => {
-        console.log(`  - ${play.playedBy} played: ${play.rank} of ${play.suit}`);
+      currentTrick.forEach((play) => {
+        console.log(
+          `  - ${play.playedBy} played: ${play.rank} of ${play.suit}`,
+        );
       });
     } else {
-      console.log('  - No cards in current trick.');
+      console.log("  - No cards in current trick.");
     }
   }
 
   displayTeamScores() {
     const scores = this.stateService.getTeamScores(); // Fetches fresh data
     if (scores) {
-      console.log('[UiService - Conceptual] Displaying Team Scores:');
+      console.log("[UiService - Conceptual] Displaying Team Scores:");
       for (const team in scores) {
         console.log(`  - Team ${team}: ${scores[team]}`);
       }
     } else {
-      console.log('[UiService - Conceptual] No team scores to display.');
+      console.log("[UiService - Conceptual] No team scores to display.");
     }
   }
 
   displayGameMessages() {
     const message = this.stateService.getLatestGameMessage(); // Fetches fresh data
-    console.log(`[UiService - Conceptual] Displaying Game Message: "${message || 'No new messages.'}"`);
+    console.log(
+      `[UiService - Conceptual] Displaying Game Message: "${message || "No new messages."}"`,
+    );
   }
 
   // --- UI Interaction Logic Methods for Bidding (Task 4) ---
   // These methods use the injected socketService to send messages.
   // They also use stateService (injected) to get current game context if needed.
-  promptOrderUp(passesDecision) { // Parameterized for testing/simulation
-    console.log(`[UiService - Conceptual] User decided to pass on ordering up: ${passesDecision}.`);
-    this.showSpinner('Submitting your decision...');
-    return this.socketService.emitOrderUpDecision(passesDecision) // Added return
+  promptOrderUp(passesDecision) {
+    // Parameterized for testing/simulation
+    console.log(
+      `[UiService - Conceptual] User decided to pass on ordering up: ${passesDecision}.`,
+    );
+    this.showSpinner("Submitting your decision...");
+    return this.socketService
+      .emitOrderUpDecision(passesDecision) // Added return
       .then((response) => {
         this.hideSpinner();
-        this.displayMessage('Decision submitted successfully.', 'success');
-        console.log('[UiService] Order up decision ack:', response);
+        this.displayMessage("Decision submitted successfully.", "success");
+        console.log("[UiService] Order up decision ack:", response);
         // UI would update based on new game state from server
         return response; // Propagate response
       })
       .catch((error) => {
         this.hideSpinner();
-        console.error('[UiService] Failed to submit order up decision:', error);
-        this.showErrorModal(`Failed to submit decision: ${error.message || 'Server error'}. Please try again.`, 'Order Up Failed');
+        console.error("[UiService] Failed to submit order up decision:", error);
+        this.showErrorModal(
+          `Failed to submit decision: ${error.message || "Server error"}. Please try again.`,
+          "Order Up Failed",
+        );
         throw error; // Re-throw
       });
   }
 
-  promptDealerDiscard(cardToDiscard) { // Parameterized
+  promptDealerDiscard(cardToDiscard) {
+    // Parameterized
     const hand = this.stateService.getPlayerHand(); // Still useful for context or pre-validation
     if (!hand || hand.length === 0) {
-      console.error('[UiService - Conceptual] promptDealerDiscard: No hand to discard from.');
-      this.showErrorModal('Cannot discard, no hand found.', 'Discard Error');
+      console.error(
+        "[UiService - Conceptual] promptDealerDiscard: No hand to discard from.",
+      );
+      this.showErrorModal("Cannot discard, no hand found.", "Discard Error");
       return;
     }
     if (!cardToDiscard) {
-        console.error('[UiService - Conceptual] promptDealerDiscard: No card provided to discard.');
-        this.showErrorModal('No card selected to discard.', 'Discard Error');
-        return;
+      console.error(
+        "[UiService - Conceptual] promptDealerDiscard: No card provided to discard.",
+      );
+      this.showErrorModal("No card selected to discard.", "Discard Error");
+      return;
     }
-    console.log('[UiService - Conceptual] Dealer selected card for discard:', cardToDiscard);
-    this.showSpinner('Discarding card...');
-    return this.socketService.emitDealerDiscard(cardToDiscard) // Added return
+    console.log(
+      "[UiService - Conceptual] Dealer selected card for discard:",
+      cardToDiscard,
+    );
+    this.showSpinner("Discarding card...");
+    return this.socketService
+      .emitDealerDiscard(cardToDiscard) // Added return
       .then((response) => {
         this.hideSpinner();
-        this.displayMessage('Card discarded successfully.', 'success');
-        console.log('[UiService] Dealer discard ack:', response);
+        this.displayMessage("Card discarded successfully.", "success");
+        console.log("[UiService] Dealer discard ack:", response);
         return response;
       })
       .catch((error) => {
         this.hideSpinner();
-        console.error('[UiService] Failed to discard card:', error);
-        this.showErrorModal(`Failed to discard card: ${error.message || 'Server error'}.`, 'Discard Failed');
+        console.error("[UiService] Failed to discard card:", error);
+        this.showErrorModal(
+          `Failed to discard card: ${error.message || "Server error"}.`,
+          "Discard Failed",
+        );
         throw error;
       });
   }
 
-  promptCallTrump(suit, passesDecision) { // Parameterized
-    console.log(`[UiService - Conceptual] User decided on trump call. Suit: ${suit}, Passes: ${passesDecision}`);
-    this.showSpinner('Submitting trump call...');
-    return this.socketService.emitCallTrumpDecision(suit, passesDecision) // Added return
+  promptCallTrump(suit, passesDecision) {
+    // Parameterized
+    console.log(
+      `[UiService - Conceptual] User decided on trump call. Suit: ${suit}, Passes: ${passesDecision}`,
+    );
+    this.showSpinner("Submitting trump call...");
+    return this.socketService
+      .emitCallTrumpDecision(suit, passesDecision) // Added return
       .then((response) => {
         this.hideSpinner();
-        this.displayMessage('Trump call submitted successfully.', 'success');
-        console.log('[UiService] Call trump decision ack:', response);
+        this.displayMessage("Trump call submitted successfully.", "success");
+        console.log("[UiService] Call trump decision ack:", response);
         return response;
       })
       .catch((error) => {
         this.hideSpinner();
-        console.error('[UiService] Failed to submit trump call:', error);
-        this.showErrorModal(`Failed to submit trump call: ${error.message || 'Server error'}.`, 'Call Trump Failed');
+        console.error("[UiService] Failed to submit trump call:", error);
+        this.showErrorModal(
+          `Failed to submit trump call: ${error.message || "Server error"}.`,
+          "Call Trump Failed",
+        );
         throw error;
       });
   }
 
-  promptGoAlone(goesAloneDecision) { // Parameterized
+  promptGoAlone(goesAloneDecision) {
+    // Parameterized
     const playerRole = this.stateService.getPlayerRole();
     const maker = this.stateService.getMaker();
 
     if (playerRole !== maker) {
-      console.log('[UiService - Conceptual] Not the maker, cannot prompt for "Go Alone". Player role:', playerRole, 'Maker:', maker);
-      this.showErrorModal('Only the maker can decide to go alone.', 'Action Not Allowed');
+      console.log(
+        '[UiService - Conceptual] Not the maker, cannot prompt for "Go Alone". Player role:',
+        playerRole,
+        "Maker:",
+        maker,
+      );
+      this.showErrorModal(
+        "Only the maker can decide to go alone.",
+        "Action Not Allowed",
+      );
       return;
     }
-    console.log(`[UiService - Conceptual] Maker chose to go alone: ${goesAloneDecision}`);
+    console.log(
+      `[UiService - Conceptual] Maker chose to go alone: ${goesAloneDecision}`,
+    );
     this.showSpinner('Submitting "go alone" decision...');
-    return this.socketService.emitGoAloneDecision(goesAloneDecision) // Added return
+    return this.socketService
+      .emitGoAloneDecision(goesAloneDecision) // Added return
       .then((response) => {
         this.hideSpinner();
-        this.displayMessage('"Go alone" decision submitted.', 'success');
-        console.log('[UiService] Go alone decision ack:', response);
+        this.displayMessage('"Go alone" decision submitted.', "success");
+        console.log("[UiService] Go alone decision ack:", response);
         return response;
       })
       .catch((error) => {
         this.hideSpinner();
-        console.error('[UiService] Failed to submit "go alone" decision:', error);
-        this.showErrorModal(`Failed to submit "go alone" decision: ${error.message || 'Server error'}.`, 'Go Alone Failed');
+        console.error(
+          '[UiService] Failed to submit "go alone" decision:',
+          error,
+        );
+        this.showErrorModal(
+          `Failed to submit "go alone" decision: ${error.message || "Server error"}.`,
+          "Go Alone Failed",
+        );
         throw error;
       });
   }
 
   handlePlayCardSelection(card) {
-    console.log('[UiService - Conceptual] Handling play card selection for card:', card ? card.id : 'undefined');
-    if (!card || typeof card.suit !== 'string' || typeof card.rank !== 'string' || typeof card.id !== 'string') {
-      console.error('[UiService - Conceptual] Invalid card object provided for playing:', card);
-      this.showErrorModal('Invalid card selected. Card data is incomplete. Please try again.', 'Play Card Error');
-      return Promise.reject(new Error('Invalid card object')); // Return a rejected promise for consistency
+    console.log(
+      "[UiService - Conceptual] Handling play card selection for card:",
+      card ? card.id : "undefined",
+    );
+    if (
+      !card ||
+      typeof card.suit !== "string" ||
+      typeof card.rank !== "string" ||
+      typeof card.id !== "string"
+    ) {
+      console.error(
+        "[UiService - Conceptual] Invalid card object provided for playing:",
+        card,
+      );
+      this.showErrorModal(
+        "Invalid card selected. Card data is incomplete. Please try again.",
+        "Play Card Error",
+      );
+      return Promise.reject(new Error("Invalid card object")); // Return a rejected promise for consistency
     }
 
-    this.showSpinner('Playing card...');
+    this.showSpinner("Playing card...");
     // socketService.emitPlayCard is designed to get gameId/playerRole from stateService
-    return this.socketService.emitPlayCard(null, null, card) // Added return
+    return this.socketService
+      .emitPlayCard(null, null, card) // Added return
       .then((response) => {
         this.hideSpinner();
         // Immediate feedback, though UI will primarily update via game state.
-        this.displayMessage(`You played ${card.rank} of ${card.suit}. Waiting for other players...`, 'success');
-        console.log('[UiService] Play card ack:', response);
+        this.displayMessage(
+          `You played ${card.rank} of ${card.suit}. Waiting for other players...`,
+          "success",
+        );
+        console.log("[UiService] Play card ack:", response);
         return response;
       })
       .catch((error) => {
         this.hideSpinner();
-        console.error('[UiService] Failed to play card:', error);
-        this.showErrorModal(`Failed to play card: ${error.message || 'Server error'}. Please try again.`, 'Play Card Failed');
+        console.error("[UiService] Failed to play card:", error);
+        this.showErrorModal(
+          `Failed to play card: ${error.message || "Server error"}. Please try again.`,
+          "Play Card Failed",
+        );
         throw error;
       });
   }
 
   // --- Other conceptual UI update methods ---
-  showSpinner(message = 'Loading...') {
+  showSpinner(message = "Loading...") {
     console.log(`[Conceptual UiService] Show spinner: ${message}`);
   }
 
   hideSpinner() {
-    console.log('[Conceptual UiService] Hide spinner');
+    console.log("[Conceptual UiService] Hide spinner");
   }
 
   navigateTo(viewName) {
@@ -323,9 +440,11 @@ export class UiService { // Export the class
     const currentPlayer = this.stateService.gameState?.currentPlayer; // Player whose turn it is
     const gamePhase = this.stateService.gameState?.phase;
 
-    const isActivePlayer = playerRole && currentPlayer && playerRole === currentPlayer;
-    const isBiddingPhase = gamePhase === GAME_PHASES.ORDER_UP_ROUND1 ||
-                           gamePhase === GAME_PHASES.ORDER_UP_ROUND2; // Assuming ORDER_UP_ROUND2 is for calling trump
+    const isActivePlayer =
+      playerRole && currentPlayer && playerRole === currentPlayer;
+    const isBiddingPhase =
+      gamePhase === GAME_PHASES.ORDER_UP_ROUND1 ||
+      gamePhase === GAME_PHASES.ORDER_UP_ROUND2; // Assuming ORDER_UP_ROUND2 is for calling trump
 
     const controlsState = {
       visible: isActivePlayer && isBiddingPhase,
@@ -337,7 +456,10 @@ export class UiService { // Export the class
       // isDealer: playerRole === this.stateService.gameState?.dealer, // For "pick it up" as dealer
     };
 
-    console.log('[UiService - Conceptual] Bidding controls state:', controlsState);
+    console.log(
+      "[UiService - Conceptual] Bidding controls state:",
+      controlsState,
+    );
     return controlsState;
   }
 
@@ -358,7 +480,10 @@ export class UiService { // Export the class
       enabled: isActivePlayerAndMaker && isGoAlonePhase,
     };
 
-    console.log('[UiService - Conceptual] Go Alone controls state:', controlsState);
+    console.log(
+      "[UiService - Conceptual] Go Alone controls state:",
+      controlsState,
+    );
     return controlsState;
   }
 
@@ -372,11 +497,12 @@ export class UiService { // Export the class
     const currentPlayer = this.stateService.gameState?.currentPlayer;
     const gamePhase = this.stateService.gameState?.phase;
 
-    const isPlayerTurn = playerRole && currentPlayer && playerRole === currentPlayer;
+    const isPlayerTurn =
+      playerRole && currentPlayer && playerRole === currentPlayer;
     const isPlayingPhase = gamePhase === GAME_PHASES.PLAYING;
 
     let cardPlayable = true;
-    let message = '';
+    let message = "";
 
     if (card) {
       // Conceptual: Add more detailed rule checks here
@@ -386,29 +512,35 @@ export class UiService { // Export the class
       // }
       if (!isPlayerTurn || !isPlayingPhase) {
         cardPlayable = false;
-        message = isPlayerTurn ? 'Not the playing phase.' : 'Not your turn to play.';
+        message = isPlayerTurn
+          ? "Not the playing phase."
+          : "Not your turn to play.";
       } else {
-         // Simple check: card must be in hand (actual hand check would be more robust)
-         const playerHand = this.stateService.getPlayerHand() || [];
-         if (!playerHand.find(c => c.id === card.id)) {
-             cardPlayable = false;
-             message = 'Card not in hand.';
-         }
-         // Add comment about "must follow suit" rule
-         // console.log('[UiService - Conceptual] TODO: Implement "must follow suit" logic for card playability.');
+        // Simple check: card must be in hand (actual hand check would be more robust)
+        const playerHand = this.stateService.getPlayerHand() || [];
+        if (!playerHand.find((c) => c.id === card.id)) {
+          cardPlayable = false;
+          message = "Card not in hand.";
+        }
+        // Add comment about "must follow suit" rule
+        // console.log('[UiService - Conceptual] TODO: Implement "must follow suit" logic for card playability.');
       }
     }
 
     const playSurfaceState = {
       canPlayOnSurface: isPlayerTurn && isPlayingPhase, // General ability to play any card
-      isCardPlayable: card ? cardPlayable : (isPlayerTurn && isPlayingPhase), // Playability of a specific card or generally
-      message: message
+      isCardPlayable: card ? cardPlayable : isPlayerTurn && isPlayingPhase, // Playability of a specific card or generally
+      message: message,
     };
 
-    console.log('[UiService - Conceptual] Card Playability/Play Surface state for card', card ? card.id : '(general)', ':', playSurfaceState);
+    console.log(
+      "[UiService - Conceptual] Card Playability/Play Surface state for card",
+      card ? card.id : "(general)",
+      ":",
+      playSurfaceState,
+    );
     return playSurfaceState;
   }
-
 
   /**
    * Determines the state of the "Request New Game" button.
@@ -423,12 +555,18 @@ export class UiService { // Export the class
       enabled: isGameOver,
     };
 
-    console.log('[UiService - Conceptual] Request New Game button state:', controlsState);
+    console.log(
+      "[UiService - Conceptual] Request New Game button state:",
+      controlsState,
+    );
     return controlsState;
   }
 }
 
-const uiServiceInstance = new UiService(stateServiceInstance, socketServiceInstance); // Pass instances if constructor expects them
+const uiServiceInstance = new UiService(
+  stateServiceInstance,
+  socketServiceInstance,
+); // Pass instances if constructor expects them
 export { uiServiceInstance }; // Export instance as named export
 export default uiServiceInstance; // Keep default export for existing app usage
 
@@ -480,7 +618,6 @@ export default uiServiceInstance; // Keep default export for existing app usage
 //   expect(controlsState.visible).to.be.false;
 // });
 
-
 // Conceptual Unit Test for getGoAloneControlsState:
 // it('should return active for go alone controls if current player is maker and GOING_ALONE phase', () => {
 //   const mockState = {
@@ -509,7 +646,6 @@ export default uiServiceInstance; // Keep default export for existing app usage
 //   const controlsState = service.getGoAloneControlsState();
 //   expect(controlsState.visible).to.be.false;
 // });
-
 
 // Conceptual Unit Test for getCardPlayabilityState:
 // it('should return canPlayOnSurface true if current player and PLAYING phase', () => {
@@ -567,7 +703,6 @@ export default uiServiceInstance; // Keep default export for existing app usage
 //   service.getCardPlayabilityState({id: 'AH', suit: 'H', rank: 'A'});
 //   // No direct expect here, relies on manual check of logs or future implementation.
 // });
-
 
 // Conceptual Unit Test for getRequestNewGameButtonState:
 // it('should return active for new game button if GAME_OVER phase', () => {

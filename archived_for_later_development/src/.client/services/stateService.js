@@ -4,48 +4,55 @@
 // for how the client might handle game events and state.
 // Actual UI rendering and direct DOM manipulation are beyond the scope here.
 
-export class StateService { // Export the class
+export class StateService {
+  // Export the class
   constructor() {
     // Conceptual: In a real app, these might be initialized from localStorage
     // to persist session across page reloads.
     // Example: this.playerId = localStorage.getItem('euchrePlayerId') || null;
     this.playerId = null; // Unique identifier for the player/session
-    this.gameId = null;   // Current game ID
+    this.gameId = null; // Current game ID
     this.playerRole = null; // e.g., 'south', 'player1' - role within the current game
     this.isHost = false;
     this.players = []; // List of player objects from the server's perspective (auxiliary or for lobby)
-    this.gameState = { // Stores the comprehensive game state received from the server
+    this.gameState = {
+      // Stores the comprehensive game state received from the server
       players: {}, // This will store player objects keyed by role, including their hands
       turnCard: null,
       currentTrick: [],
-      teamScores: { /* e.g., NS: 0, EW: 0 */ },
-      message: '', // For latest game message
+      teamScores: {
+        /* e.g., NS: 0, EW: 0 */
+      },
+      message: "", // For latest game message
       // ... other game state properties
     };
     this.subscriptions = []; // Initialize subscriptions array
 
-    console.log('[Conceptual StateService] Initialized');
+    console.log("[Conceptual StateService] Initialized");
   }
 
   setGameDetails({ gameId, isHost }) {
     this.gameId = gameId;
     // Conceptual: localStorage.setItem('euchreGameId', gameId);
     this.isHost = !!isHost; // Ensure boolean
-    console.log('[Conceptual StateService] setGameDetails:', { gameId: this.gameId, isHost: this.isHost });
+    console.log("[Conceptual StateService] setGameDetails:", {
+      gameId: this.gameId,
+      isHost: this.isHost,
+    });
   }
 
   // Added setPlayerId
   setPlayerId(id) {
     this.playerId = id;
     // Conceptual: localStorage.setItem('euchrePlayerId', id);
-    console.log('[Conceptual StateService] setPlayerId:', this.playerId);
+    console.log("[Conceptual StateService] setPlayerId:", this.playerId);
   }
 
   setPlayerRole(role) {
     this.playerRole = role;
     // Note: playerRole is specific to a game, might not be stored long-term in localStorage
     // unless tied to a specific game session being restored.
-    console.log('[Conceptual StateService] setPlayerRole:', this.playerRole);
+    console.log("[Conceptual StateService] setPlayerRole:", this.playerRole);
   }
 
   // --- Getters for connection/session info ---
@@ -59,7 +66,8 @@ export class StateService { // Export the class
     return this.gameId;
   }
 
-  getPlayerRole() { // Existing getter, just formalizing its presence
+  getPlayerRole() {
+    // Existing getter, just formalizing its presence
     return this.playerRole;
   }
 
@@ -69,7 +77,7 @@ export class StateService { // Export the class
    */
   hasReconnectInfo() {
     const hasInfo = !!(this.getPlayerId() && this.getGameId());
-    console.log('[Conceptual StateService] hasReconnectInfo:', hasInfo);
+    console.log("[Conceptual StateService] hasReconnectInfo:", hasInfo);
     return hasInfo;
   }
 
@@ -77,38 +85,55 @@ export class StateService { // Export the class
     // This might be an array of player data or an object, depending on server structure
     // For consistency with getPlayerHand, assume gameState.players is an object keyed by role
     // This function might re-populate this.players array or update gameState.players directly
-    this.players = Array.isArray(players) ? players : Object.values(players || {});
-    console.log('[Conceptual StateService] updatePlayerList (this.players might be auxiliary):', this.players);
+    this.players = Array.isArray(players)
+      ? players
+      : Object.values(players || {});
+    console.log(
+      "[Conceptual StateService] updatePlayerList (this.players might be auxiliary):",
+      this.players,
+    );
     // If the 'players' argument is the main player structure from gameState:
-    if (typeof players === 'object' && !Array.isArray(players) && players !== null) {
-         this.gameState.players = players; // Store the rich player objects here
-         console.log('[Conceptual StateService] gameState.players updated.');
+    if (
+      typeof players === "object" &&
+      !Array.isArray(players) &&
+      players !== null
+    ) {
+      this.gameState.players = players; // Store the rich player objects here
+      console.log("[Conceptual StateService] gameState.players updated.");
     }
   }
 
   getFullGameState() {
-    console.log('[Conceptual StateService] getFullGameState called.');
+    console.log("[Conceptual StateService] getFullGameState called.");
     return { ...this.gameState };
   }
 
   updateFullGameState(newState) {
-    console.log('[Conceptual StateService] updateFullGameState called.');
+    console.log("[Conceptual StateService] updateFullGameState called.");
     this.gameState = newState || {};
     // Update this.players array if it's meant to be a flat list derived from gameState.players
     if (this.gameState.players) {
-        this.players = Object.values(this.gameState.players);
+      this.players = Object.values(this.gameState.players);
     }
-    console.log('[Conceptual StateService] Full gameState updated:', this.gameState);
+    console.log(
+      "[Conceptual StateService] Full gameState updated:",
+      this.gameState,
+    );
 
     // Notify subscribers
-    this.subscriptions.forEach(callback => {
+    this.subscriptions.forEach((callback) => {
       try {
         callback(this.gameState);
       } catch (error) {
-        console.error('[Conceptual StateService] Error in subscription callback:', error);
+        console.error(
+          "[Conceptual StateService] Error in subscription callback:",
+          error,
+        );
       }
     });
-    console.log(`[Conceptual StateService] Notified ${this.subscriptions.length} subscribers.`);
+    console.log(
+      `[Conceptual StateService] Notified ${this.subscriptions.length} subscribers.`,
+    );
   }
 
   /**
@@ -117,16 +142,25 @@ export class StateService { // Export the class
    * @returns {function} An unsubscribe function.
    */
   subscribe(callback) {
-    if (typeof callback !== 'function') {
-      console.error('[Conceptual StateService] Attempted to subscribe with non-function:', callback);
+    if (typeof callback !== "function") {
+      console.error(
+        "[Conceptual StateService] Attempted to subscribe with non-function:",
+        callback,
+      );
       return () => {}; // Return a no-op unsubscribe function
     }
     this.subscriptions.push(callback);
-    console.log('[Conceptual StateService] New subscription added. Total subscribers:', this.subscriptions.length);
+    console.log(
+      "[Conceptual StateService] New subscription added. Total subscribers:",
+      this.subscriptions.length,
+    );
     // Return an unsubscribe function
     return () => {
-      this.subscriptions = this.subscriptions.filter(sub => sub !== callback);
-      console.log('[Conceptual StateService] Subscription removed. Total subscribers:', this.subscriptions.length);
+      this.subscriptions = this.subscriptions.filter((sub) => sub !== callback);
+      console.log(
+        "[Conceptual StateService] Subscription removed. Total subscribers:",
+        this.subscriptions.length,
+      );
     };
   }
 
@@ -138,12 +172,23 @@ export class StateService { // Export the class
    * @returns {Array|null} Array of card objects or null if not available.
    */
   getPlayerHand() {
-    if (!this.playerRole || !this.gameState.players || !this.gameState.players[this.playerRole]) {
-      console.warn('[Conceptual StateService] getPlayerHand: Player role or player data not found.');
+    if (
+      !this.playerRole ||
+      !this.gameState.players ||
+      !this.gameState.players[this.playerRole]
+    ) {
+      console.warn(
+        "[Conceptual StateService] getPlayerHand: Player role or player data not found.",
+      );
       return null;
     }
     const playerHand = this.gameState.players[this.playerRole]?.hand;
-    console.log('[Conceptual StateService] getPlayerHand for role', this.playerRole, ':', playerHand);
+    console.log(
+      "[Conceptual StateService] getPlayerHand for role",
+      this.playerRole,
+      ":",
+      playerHand,
+    );
     return playerHand || []; // Return empty array if hand is undefined
   }
 
@@ -153,7 +198,7 @@ export class StateService { // Export the class
    */
   getTurnCard() {
     const turnCard = this.gameState.turnCard;
-    console.log('[Conceptual StateService] getTurnCard:', turnCard);
+    console.log("[Conceptual StateService] getTurnCard:", turnCard);
     return turnCard;
   }
 
@@ -163,7 +208,7 @@ export class StateService { // Export the class
    */
   getCurrentTrick() {
     const currentTrick = this.gameState.currentTrick;
-    console.log('[Conceptual StateService] getCurrentTrick:', currentTrick);
+    console.log("[Conceptual StateService] getCurrentTrick:", currentTrick);
     return currentTrick || []; // Return empty array if undefined
   }
 
@@ -173,7 +218,7 @@ export class StateService { // Export the class
    */
   getTeamScores() {
     const teamScores = this.gameState.teamScores;
-    console.log('[Conceptual StateService] getTeamScores:', teamScores);
+    console.log("[Conceptual StateService] getTeamScores:", teamScores);
     return teamScores;
   }
 
@@ -183,15 +228,15 @@ export class StateService { // Export the class
    */
   getLatestGameMessage() {
     const message = this.gameState.message;
-    console.log('[Conceptual StateService] getLatestGameMessage:', message);
-    return message || ''; // Return empty string if undefined
+    console.log("[Conceptual StateService] getLatestGameMessage:", message);
+    return message || ""; // Return empty string if undefined
   }
 
   // Example utility to get current player's details from the list
   // This might be less relevant if role-based access in gameState.players is primary
   getCurrentPlayerInfoFromList() {
     if (!this.playerRole || !this.players.length) return null;
-    return this.players.find(p => p.role === this.playerRole) || null;
+    return this.players.find((p) => p.role === this.playerRole) || null;
   }
 }
 

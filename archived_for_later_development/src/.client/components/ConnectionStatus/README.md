@@ -20,7 +20,7 @@ A reusable React component that displays the current connection status and quali
 2. Import the component:
 
 ```jsx
-import ConnectionStatus from './path/to/ConnectionStatus';
+import ConnectionStatus from "./path/to/ConnectionStatus";
 ```
 
 ## Usage
@@ -28,8 +28,8 @@ import ConnectionStatus from './path/to/ConnectionStatus';
 ### Basic Usage
 
 ```jsx
-import { h } from 'preact';
-import ConnectionStatus from './components/ConnectionStatus/ConnectionStatus';
+import { h } from "preact";
+import ConnectionStatus from "./components/ConnectionStatus/ConnectionStatus";
 
 function App() {
   return (
@@ -47,11 +47,11 @@ export default App;
 
 The component accepts the following props:
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `className` | string | `''` | Additional CSS class names |
-| `showOnHover` | boolean | `false` | Show detailed info only on hover |
-| `position` | string | `'bottom-right'` | Position of the status indicator ('top-left', 'top-right', 'bottom-left', 'bottom-right') |
+| Prop          | Type    | Default          | Description                                                                               |
+| ------------- | ------- | ---------------- | ----------------------------------------------------------------------------------------- |
+| `className`   | string  | `''`             | Additional CSS class names                                                                |
+| `showOnHover` | boolean | `false`          | Show detailed info only on hover                                                          |
+| `position`    | string  | `'bottom-right'` | Position of the status indicator ('top-left', 'top-right', 'bottom-left', 'bottom-right') |
 
 ## Styling
 

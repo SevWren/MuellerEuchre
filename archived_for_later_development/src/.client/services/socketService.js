@@ -4,54 +4,101 @@
 // for how the client might handle game events and state.
 // Actual UI rendering and direct DOM manipulation are beyond the scope here.
 
-import { GAME_EVENTS, SUITS } from '../../config/constants.js'; // Assuming shared constants, added SUITS if needed by payloads
-import stateServiceInstance from './stateService.js'; // Import the actual stateService instance
+import { GAME_EVENTS, SUITS } from "../../config/constants.js"; // Assuming shared constants, added SUITS if needed by payloads
+import stateServiceInstance from "./stateService.js"; // Import the actual stateService instance
 // uiService will be properly injected or imported in a real scenario.
 // For now, we'll use the placeholder uiService defined below for the generic error handler.
 // This will be replaced by a proper import when uiService.js is also updated.
 let uiServicePlaceholder = {
-    displayGlobalError: (message) => console.error(`[Conceptual uiService Placeholder] GLOBAL ERROR: ${message}`),
-    // Methods below are placeholders from previous task, not directly used by socketService's new error handling logic,
-    // but kept to avoid breaking the constructor if it was using them.
-    displayAssignedRole: (role) => console.log('[Conceptual uiService Placeholder] displayAssignedRole called with:', role),
-    updateLobbyView: (players) => console.log('[Conceptual uiService Placeholder] updateLobbyView called with players:', players),
-    displayMessage: (message) => console.log('[Conceptual uiService Placeholder] displayMessage called with:', message),
-    showErrorModal: (message) => console.log('[Conceptual uiService Placeholder] showErrorModal called with:', message),
-    promptForRejoin: (gameId) => console.log('[Conceptual uiService Placeholder] promptForRejoin called for gameId:', gameId),
+  displayGlobalError: (message) =>
+    console.error(
+      `[Conceptual uiService Placeholder] GLOBAL ERROR: ${message}`,
+    ),
+  // Methods below are placeholders from previous task, not directly used by socketService's new error handling logic,
+  // but kept to avoid breaking the constructor if it was using them.
+  displayAssignedRole: (role) =>
+    console.log(
+      "[Conceptual uiService Placeholder] displayAssignedRole called with:",
+      role,
+    ),
+  updateLobbyView: (players) =>
+    console.log(
+      "[Conceptual uiService Placeholder] updateLobbyView called with players:",
+      players,
+    ),
+  displayMessage: (message) =>
+    console.log(
+      "[Conceptual uiService Placeholder] displayMessage called with:",
+      message,
+    ),
+  showErrorModal: (message) =>
+    console.log(
+      "[Conceptual uiService Placeholder] showErrorModal called with:",
+      message,
+    ),
+  promptForRejoin: (gameId) =>
+    console.log(
+      "[Conceptual uiService Placeholder] promptForRejoin called for gameId:",
+      gameId,
+    ),
 };
-
 
 const DEFAULT_SOCKET_TIMEOUT = 5000; // 5 seconds for acknowledgements
 
-export class SocketService { // Export the class
-  constructor(stateServiceParam = stateServiceInstance, uiServiceParam = uiServicePlaceholder) { // Allow injection for testing
-    this.socket = { // This is a conceptual socket object.
+export class SocketService {
+  // Export the class
+  constructor(
+    stateServiceParam = stateServiceInstance,
+    uiServiceParam = uiServicePlaceholder,
+  ) {
+    // Allow injection for testing
+    this.socket = {
+      // This is a conceptual socket object.
       on: (event, callback) => {
-        console.log(`[Conceptual Socket] Registered listener for event: ${event}`);
+        console.log(
+          `[Conceptual Socket] Registered listener for event: ${event}`,
+        );
       },
       // emit will be promisified using .timeout()
       emit: (event, data, ack) => {
-        console.log(`[Conceptual Socket] Raw emit called for event: ${event} with data:`, data);
+        console.log(
+          `[Conceptual Socket] Raw emit called for event: ${event} with data:`,
+          data,
+        );
         if (ack) {
-          console.log(`[Conceptual Socket] Ack callback provided for ${event}. Simulating success.`);
-          setTimeout(() => ack(null, { status: 'ok', message: 'Successfully processed.' }), 50); // Simulate successful ack
+          console.log(
+            `[Conceptual Socket] Ack callback provided for ${event}. Simulating success.`,
+          );
+          setTimeout(
+            () =>
+              ack(null, { status: "ok", message: "Successfully processed." }),
+            50,
+          ); // Simulate successful ack
           // To simulate an error ack:
           // setTimeout(() => ack({ status: 'error', message: 'Something went wrong on server.'}, null), 50);
         }
       },
       // Add timeout functionality to the conceptual socket
-      timeout: function(duration) {
+      timeout: function (duration) {
         // Store the original emit
         const originalEmit = this.emit;
         return {
           emit: (event, data, ack) => {
-            console.log(`[Conceptual Socket with Timeout (${duration}ms)] Emitting event: ${event} with data:`, data);
+            console.log(
+              `[Conceptual Socket with Timeout (${duration}ms)] Emitting event: ${event} with data:`,
+              data,
+            );
             let timedOut = false;
             const timer = setTimeout(() => {
               timedOut = true;
               // Call ack with an error if it's provided and timeout occurs
               if (ack) {
-                ack(new Error(`Timeout: Server did not acknowledge ${event} within ${duration}ms`), null);
+                ack(
+                  new Error(
+                    `Timeout: Server did not acknowledge ${event} within ${duration}ms`,
+                  ),
+                  null,
+                );
               }
             }, duration);
 
@@ -62,11 +109,11 @@ export class SocketService { // Export the class
                 ack(err, response);
               }
             });
-          }
+          },
         };
       },
-      connect: () => console.log('[Conceptual Socket] connect() called.'),
-      disconnect: () => console.log('[Conceptual Socket] disconnect() called.')
+      connect: () => console.log("[Conceptual Socket] connect() called."),
+      disconnect: () => console.log("[Conceptual Socket] disconnect() called."),
     };
     this._id = `conceptual-socket-${Date.now()}`;
     this.stateService = stateServiceParam;
@@ -75,94 +122,148 @@ export class SocketService { // Export the class
   }
 
   // --- Event Handlers ---
-  handleAssignRole({ role, gameId, players, isHost, playerId }) { // Assuming server sends playerId
-    console.log('[SocketService] Event received:', GAME_EVENTS.ASSIGN_ROLE, { role, gameId, players, isHost, playerId });
+  handleAssignRole({ role, gameId, players, isHost, playerId }) {
+    // Assuming server sends playerId
+    console.log("[SocketService] Event received:", GAME_EVENTS.ASSIGN_ROLE, {
+      role,
+      gameId,
+      players,
+      isHost,
+      playerId,
+    });
     // Use this.stateService for actual instance methods
     this.stateService.setGameDetails({ gameId, isHost }); // Sets gameId
     this.stateService.setPlayerId(playerId); // Sets playerId for session/reconnection
-    this.stateService.setPlayerRole(role);   // Sets playerRole for current game context
+    this.stateService.setPlayerRole(role); // Sets playerRole for current game context
     this.stateService.updatePlayerList(players);
     // These uiService calls are conceptual and might be handled differently with a real uiService import
-    if (this.uiService && this.uiService.displayAssignedRole) this.uiService.displayAssignedRole(role);
-    if (this.uiService && this.uiService.updateLobbyView) this.uiService.updateLobbyView(players);
+    if (this.uiService && this.uiService.displayAssignedRole)
+      this.uiService.displayAssignedRole(role);
+    if (this.uiService && this.uiService.updateLobbyView)
+      this.uiService.updateLobbyView(players);
   }
 
   handleGameFull({ message }) {
-    console.log('[SocketService] Event received:', GAME_EVENTS.GAME_FULL, { message });
-    if (this.uiService && this.uiService.showErrorModal) this.uiService.showErrorModal(message);
+    console.log("[SocketService] Event received:", GAME_EVENTS.GAME_FULL, {
+      message,
+    });
+    if (this.uiService && this.uiService.showErrorModal)
+      this.uiService.showErrorModal(message);
   }
 
   handlePlayerAlreadyInGame({ message, gameId }) {
-    console.log('[SocketService] Event received:', GAME_EVENTS.PLAYER_ALREADY_IN_GAME, { message, gameId });
-    if (this.uiService && this.uiService.displayMessage) this.uiService.displayMessage(message);
-    if (this.uiService && this.uiService.promptForRejoin) this.uiService.promptForRejoin(gameId);
+    console.log(
+      "[SocketService] Event received:",
+      GAME_EVENTS.PLAYER_ALREADY_IN_GAME,
+      { message, gameId },
+    );
+    if (this.uiService && this.uiService.displayMessage)
+      this.uiService.displayMessage(message);
+    if (this.uiService && this.uiService.promptForRejoin)
+      this.uiService.promptForRejoin(gameId);
   }
 
   handleGameStateUpdate(newState) {
-    console.log('[SocketService] Event received:', GAME_EVENTS.STATE_UPDATE, newState);
+    console.log(
+      "[SocketService] Event received:",
+      GAME_EVENTS.STATE_UPDATE,
+      newState,
+    );
     this.stateService.updateFullGameState(newState);
   }
 
   // Generic error handler from server
   handleGenericError({ message }) {
-    console.error('[SocketService] Generic error from server:', message);
+    console.error("[SocketService] Generic error from server:", message);
     // Use the uiService instance passed in the constructor
-    this.uiService.displayGlobalError(message || 'An unspecified error occurred on the server.');
+    this.uiService.displayGlobalError(
+      message || "An unspecified error occurred on the server.",
+    );
   }
 
   // --- Setup Event Listeners ---
   initializeEventListeners() {
-    console.log('[SocketService] Initializing event listeners...');
-    this.socket.on(GAME_EVENTS.ASSIGN_ROLE, (data) => this.handleAssignRole(data));
+    console.log("[SocketService] Initializing event listeners...");
+    this.socket.on(GAME_EVENTS.ASSIGN_ROLE, (data) =>
+      this.handleAssignRole(data),
+    );
     this.socket.on(GAME_EVENTS.GAME_FULL, (data) => this.handleGameFull(data));
-    this.socket.on(GAME_EVENTS.PLAYER_ALREADY_IN_GAME, (data) => this.handlePlayerAlreadyInGame(data));
-    this.socket.on(GAME_EVENTS.STATE_UPDATE, (newState) => this.handleGameStateUpdate(newState));
+    this.socket.on(GAME_EVENTS.PLAYER_ALREADY_IN_GAME, (data) =>
+      this.handlePlayerAlreadyInGame(data),
+    );
+    this.socket.on(GAME_EVENTS.STATE_UPDATE, (newState) =>
+      this.handleGameStateUpdate(newState),
+    );
     this.socket.on(GAME_EVENTS.ERROR, (data) => this.handleGenericError(data));
 
     // Native socket event listeners for reconnection logic
-    this.socket.on('connect', async () => {
-      console.log('[SocketService] Conceptual connect event: Connected with ID', this.socket.id || this._id);
-      if (this.uiService.showReconnectingModal) this.uiService.showReconnectingModal();
+    this.socket.on("connect", async () => {
+      console.log(
+        "[SocketService] Conceptual connect event: Connected with ID",
+        this.socket.id || this._id,
+      );
+      if (this.uiService.showReconnectingModal)
+        this.uiService.showReconnectingModal();
 
       if (this.stateService.hasReconnectInfo()) {
         const playerId = this.stateService.getPlayerId();
         const gameId = this.stateService.getGameId();
-        console.log(`[SocketService] Reconnection detected. Attempting to rejoin game ${gameId} as player ${playerId}`);
+        console.log(
+          `[SocketService] Reconnection detected. Attempting to rejoin game ${gameId} as player ${playerId}`,
+        );
         try {
           // GAME_EVENTS.RECONNECT is a general purpose event that the server can handle
           // to re-establish the player in their game.
-          const response = await this._emitWithAck(GAME_EVENTS.RECONNECT, { gameId, playerId });
-          console.log('[SocketService] Reconnect attempt successful:', response);
+          const response = await this._emitWithAck(GAME_EVENTS.RECONNECT, {
+            gameId,
+            playerId,
+          });
+          console.log(
+            "[SocketService] Reconnect attempt successful:",
+            response,
+          );
           // Server should send a STATE_UPDATE upon successful reconnect.
           // If player details (like role) need to be re-confirmed, server might send ASSIGN_ROLE too.
-          if (this.uiService.showReconnectedMessage) this.uiService.showReconnectedMessage();
+          if (this.uiService.showReconnectedMessage)
+            this.uiService.showReconnectedMessage();
           // Potentially, server sends back full game state or specific rejoin confirmation data.
           // stateService might be updated via a subsequent STATE_UPDATE event.
         } catch (error) {
-          console.error('[SocketService] Failed to auto-rejoin game:', error);
-          if (this.uiService.showReconnectionFailedModal) this.uiService.showReconnectionFailedModal(error.message);
+          console.error("[SocketService] Failed to auto-rejoin game:", error);
+          if (this.uiService.showReconnectionFailedModal)
+            this.uiService.showReconnectionFailedModal(error.message);
           // Clear potentially stale reconnect info if rejoin fails definitively
           // this.stateService.setPlayerId(null); // Or server should guide this
           // this.stateService.setGameDetails({ gameId: null, isHost: false });
         }
       } else {
-        console.log('[SocketService] Fresh connection, no reconnect info found.');
+        console.log(
+          "[SocketService] Fresh connection, no reconnect info found.",
+        );
         if (this.uiService.hideModal) this.uiService.hideModal(); // Hide reconnecting modal if shown
         // Or display a message like "Connected to server."
-        if (this.uiService.displayMessage) this.uiService.displayMessage("Connected to server.", "success");
+        if (this.uiService.displayMessage)
+          this.uiService.displayMessage("Connected to server.", "success");
       }
     });
 
-    this.socket.on('disconnect', (reason) => {
-      console.log('[SocketService] Conceptual disconnect event: Disconnected, reason:', reason);
-      if (this.uiService.showConnectionLostMessage) this.uiService.showConnectionLostMessage(reason);
+    this.socket.on("disconnect", (reason) => {
+      console.log(
+        "[SocketService] Conceptual disconnect event: Disconnected, reason:",
+        reason,
+      );
+      if (this.uiService.showConnectionLostMessage)
+        this.uiService.showConnectionLostMessage(reason);
     });
 
-    this.socket.on('connect_error', (error) => {
-      console.error('[SocketService] Conceptual connect_error event:', error.message);
+    this.socket.on("connect_error", (error) => {
+      console.error(
+        "[SocketService] Conceptual connect_error event:",
+        error.message,
+      );
       // Potentially call uiService.showConnectionFailedPermanentlyModal() if error indicates no retry
     });
-    console.log('[SocketService] Event listeners conceptually initialized.');
+    console.log("[SocketService] Event listeners conceptually initialized.");
   }
 
   // --- Emitter Methods ---
@@ -175,15 +276,23 @@ export class SocketService { // Export the class
         if (err) {
           // This 'err' could be from timeout or a general socket error from the conceptual socket.emit
           console.error(`[SocketService] Error or Timeout for ${event}:`, err);
-          return reject(err.message || `Failed to emit ${event}. Network error or timeout.`);
+          return reject(
+            err.message || `Failed to emit ${event}. Network error or timeout.`,
+          );
         }
-        if (response && response.status === 'ok') {
+        if (response && response.status === "ok") {
           console.log(`[SocketService] Ack success for ${event}:`, response);
           resolve(response.data || response); // Resolve with data if present, else the whole response
         } else {
           // Error indicated by server acknowledgement
-          const errorMessage = response ? response.message : `Server error for ${event}.`;
-          console.error(`[SocketService] Ack error for ${event}:`, errorMessage, response);
+          const errorMessage = response
+            ? response.message
+            : `Server error for ${event}.`;
+          console.error(
+            `[SocketService] Ack error for ${event}:`,
+            errorMessage,
+            response,
+          );
           reject(new Error(errorMessage));
         }
       });
@@ -202,7 +311,11 @@ export class SocketService { // Export the class
   emitPlayCard(gameId, playerRole, card) {
     const currentრავgameId = gameId || this.stateService.getGameId();
     const currentPlayerRole = playerRole || this.stateService.getPlayerRole();
-    const payload = { gameId: currentGameId, playerRole: currentPlayerRole, card };
+    const payload = {
+      gameId: currentGameId,
+      playerRole: currentPlayerRole,
+      card,
+    };
     return this._emitWithAck(GAME_EVENTS.PLAY_CARD, payload);
   }
 
@@ -248,24 +361,34 @@ export class SocketService { // Export the class
   emitRejoinGame(gameIdToRejoin) {
     const playerId = this.stateService.getPlayerId();
     if (!playerId) {
-      console.error('[SocketService] emitRejoinGame: No playerId found in stateService.');
-      return Promise.reject(new Error('Player ID not found. Cannot rejoin.'));
+      console.error(
+        "[SocketService] emitRejoinGame: No playerId found in stateService.",
+      );
+      return Promise.reject(new Error("Player ID not found. Cannot rejoin."));
     }
     const payload = { gameId: gameIdToRejoin, playerId };
-    console.log('[SocketService] Emitting rejoin game confirmation:', payload);
+    console.log("[SocketService] Emitting rejoin game confirmation:", payload);
     // Using ACTION_REJOIN_GAME for user-confirmed rejoin.
     // Server should handle this, validate, and send STATE_UPDATE or ASSIGN_ROLE.
     return this._emitWithAck(GAME_EVENTS.ACTION_REJOIN_GAME, payload)
-      .then(response => {
-        console.log('[SocketService] Rejoin game confirmed successfully by server:', response);
+      .then((response) => {
+        console.log(
+          "[SocketService] Rejoin game confirmed successfully by server:",
+          response,
+        );
         // Assuming server sends full game state or necessary updates.
         // A STATE_UPDATE event is expected.
-        if (this.uiService.showReconnectedMessage) this.uiService.showReconnectedMessage();
+        if (this.uiService.showReconnectedMessage)
+          this.uiService.showReconnectedMessage();
         return response;
       })
-      .catch(error => {
-        console.error('[SocketService] Server failed to process rejoin game confirmation:', error);
-        if (this.uiService.showReconnectionFailedModal) this.uiService.showReconnectionFailedModal(error.message);
+      .catch((error) => {
+        console.error(
+          "[SocketService] Server failed to process rejoin game confirmation:",
+          error,
+        );
+        if (this.uiService.showReconnectionFailedModal)
+          this.uiService.showReconnectionFailedModal(error.message);
         throw error; // Re-throw for uiService to potentially handle further
       });
   }
@@ -276,7 +399,10 @@ export class SocketService { // Export the class
 }
 
 // Create a single instance of SocketService, injecting the stateService instance
-const socketServiceInstance = new SocketService(stateServiceInstance, uiServicePlaceholder); // Ensure uiServicePlaceholder is passed if constructor expects it
+const socketServiceInstance = new SocketService(
+  stateServiceInstance,
+  uiServicePlaceholder,
+); // Ensure uiServicePlaceholder is passed if constructor expects it
 export { socketServiceInstance }; // Export instance as named export
 export default socketServiceInstance; // Keep default export for existing app usage
 

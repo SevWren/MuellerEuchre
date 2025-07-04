@@ -7,9 +7,9 @@
  * Manages the Euchre game state, ensuring immutability and controlled updates.
  * @module state
  */
-import { GAME_PHASES, PLAYER_ROLES, TEAMS } from '../config/constants.js'; // Added TEAMS
-import { initializePlayers } from '../utils/players.js';
-import logger from '../utils/logger.js';
+import { GAME_PHASES, PLAYER_ROLES, TEAMS } from "../config/constants.js"; // Added TEAMS
+import { initializePlayers } from "../utils/players.js";
+import logger from "../utils/logger.js";
 
 let gameState = {};
 
@@ -20,13 +20,16 @@ let gameState = {};
  * @private
  */
 function deepClone(obj) {
-  if (obj === null || typeof obj !== 'object') {
+  if (obj === null || typeof obj !== "object") {
     return obj;
   }
   try {
     return JSON.parse(JSON.stringify(obj));
   } catch (error) {
-    logger.error({ err: error, objToString: String(obj) }, 'Error during deepClone.');
+    logger.error(
+      { err: error, objToString: String(obj) },
+      "Error during deepClone.",
+    );
     throw new Error(`Failed to deep clone object: ${error.message}`);
   }
 }
@@ -76,7 +79,10 @@ function resetFullGame() {
     gameMessages: [],
     lastUpdated: Date.now(),
   };
-  logger.info({ gameId: gameState.gameId, phase: gameState.gamePhase }, 'Game state initialized/reset');
+  logger.info(
+    { gameId: gameState.gameId, phase: gameState.gamePhase },
+    "Game state initialized/reset",
+  );
   return deepClone(gameState);
 }
 
@@ -86,7 +92,9 @@ function resetFullGame() {
  */
 function getGameState() {
   if (Object.keys(gameState).length === 0) {
-    logger.warn('getGameState called before state was initialized. Returning empty object.');
+    logger.warn(
+      "getGameState called before state was initialized. Returning empty object.",
+    );
     return {};
   }
   return deepClone(gameState);
@@ -101,12 +109,16 @@ function getGameState() {
  */
 function updateGameState(updater) {
   if (Object.keys(gameState).length === 0) {
-    logger.error('updateGameState called before state was initialized. Call resetFullGame() first.');
-    throw new Error('Game state is not initialized. Call resetFullGame() first.');
+    logger.error(
+      "updateGameState called before state was initialized. Call resetFullGame() first.",
+    );
+    throw new Error(
+      "Game state is not initialized. Call resetFullGame() first.",
+    );
   }
-  if (typeof updater !== 'function') {
-    logger.error('updateGameState: updater must be a function.');
-    throw new Error('Updater must be a function.');
+  if (typeof updater !== "function") {
+    logger.error("updateGameState: updater must be a function.");
+    throw new Error("Updater must be a function.");
   }
 
   const currentClone = deepClone(gameState);
@@ -114,13 +126,15 @@ function updateGameState(updater) {
   try {
     newPartialState = updater(currentClone);
   } catch (err) {
-    logger.error('updateGameState: updater function threw an error.');
+    logger.error("updateGameState: updater function threw an error.");
     throw err;
   }
 
-  if (typeof newPartialState !== 'object' || newPartialState === null) {
-    logger.error('updateGameState: updater function did not return a valid object.');
-    throw new Error('Updater function must return a valid new state object.');
+  if (typeof newPartialState !== "object" || newPartialState === null) {
+    logger.error(
+      "updateGameState: updater function did not return a valid object.",
+    );
+    throw new Error("Updater function must return a valid new state object.");
   }
 
   gameState = deepClone({ ...currentClone, ...newPartialState });
@@ -133,7 +147,9 @@ function updateGameState(updater) {
 
 // Exported function to create a new, initial game state object
 export function createInitialGameState(gameIdInput) {
-  const gameId = gameIdInput || `game_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const gameId =
+    gameIdInput ||
+    `game_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const initialPlayers = initializePlayers(); // This already sets up player objects keyed by role
 
   return {
@@ -169,12 +185,11 @@ export function createInitialGameState(gameIdInput) {
     // lastUpdated: Date.now(), // Set when game is actually created/updated in DB
     hostId: null, // To be set when first player creates/joins
     settings: {
-        winningScore: 10, // Default, can be overridden
-        // other game settings
-    }
+      winningScore: 10, // Default, can be overridden
+      // other game settings
+    },
   };
 }
-
 
 export {
   resetFullGame, // Keep for now if used by anything for its side-effecting nature

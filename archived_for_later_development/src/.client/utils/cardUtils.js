@@ -7,7 +7,7 @@
  */
 export const sortHand = (hand, trumpSuit, ledSuit) => {
   if (!Array.isArray(hand) || hand.length === 0) return [];
-  
+
   // Create a copy of the hand to avoid mutating the original
   return [...hand].sort((a, b) => {
     const valueA = getCardValue(a, trumpSuit, ledSuit);
@@ -23,40 +23,40 @@ export const sortHand = (hand, trumpSuit, ledSuit) => {
  * @returns {number} - Numeric value of the card
  */
 export const getCardValue = (card, trumpSuit) => {
-    if (!card || !card.rank || !card.suit) return 0;
-    
-    const isTrump = card.suit === trumpSuit || isLeftBower(card, trumpSuit);
-    const isRightBower = card.rank === 'J' && card.suit === trumpSuit;
-    const isLeftBowerCard = isLeftBower(card, trumpSuit);
-    
-    // Special handling for bowers (highest trumps)
-    if (isRightBower) return 100; // Right bower is highest
-    if (isLeftBowerCard) return 99;  // Left bower is second highest
-    
-    // Other trump cards
-    if (isTrump) {
-        const trumpValues = {
-            'A': 14,
-            'K': 13,
-            'Q': 12,
-            'J': 11,
-            '10': 10,
-            '9': 9
-        };
-        return 40 + (trumpValues[card.rank] || 0);
-    }
-    
-    // Non-trump cards
-    const nonTrumpValues = {
-        'A': 14,
-        'K': 13,
-        'Q': 12,
-        'J': 11,
-        '10': 10,
-        '9': 9
+  if (!card || !card.rank || !card.suit) return 0;
+
+  const isTrump = card.suit === trumpSuit || isLeftBower(card, trumpSuit);
+  const isRightBower = card.rank === "J" && card.suit === trumpSuit;
+  const isLeftBowerCard = isLeftBower(card, trumpSuit);
+
+  // Special handling for bowers (highest trumps)
+  if (isRightBower) return 100; // Right bower is highest
+  if (isLeftBowerCard) return 99; // Left bower is second highest
+
+  // Other trump cards
+  if (isTrump) {
+    const trumpValues = {
+      A: 14,
+      K: 13,
+      Q: 12,
+      J: 11,
+      10: 10,
+      9: 9,
     };
-    
-    return nonTrumpValues[card.rank] || 0;
+    return 40 + (trumpValues[card.rank] || 0);
+  }
+
+  // Non-trump cards
+  const nonTrumpValues = {
+    A: 14,
+    K: 13,
+    Q: 12,
+    J: 11,
+    10: 10,
+    9: 9,
+  };
+
+  return nonTrumpValues[card.rank] || 0;
 };
 
 /**
@@ -67,7 +67,7 @@ export const getCardValue = (card, trumpSuit) => {
  */
 export const isRightBower = (card, trumpSuit) => {
   if (!card || !card.rank || !card.suit) return false;
-  return card.rank === 'J' && card.suit === trumpSuit;
+  return card.rank === "J" && card.suit === trumpSuit;
 };
 
 /**
@@ -77,21 +77,21 @@ export const isRightBower = (card, trumpSuit) => {
  * @returns {boolean} - True if the card is the left bower
  */
 export const isLeftBower = (card, trumpSuit) => {
-    if (!card || !trumpSuit) return false;
-    
-    // Left bower is the jack of the same color as trump
-    if (card.rank === 'J') {
-        const sameColorSuits = {
-            'hearts': 'diamonds',
-            'diamonds': 'hearts',
-            'clubs': 'spades',
-            'spades': 'clubs'
-        };
-        
-        return sameColorSuits[card.suit] === trumpSuit;
-    }
-    
-    return false;
+  if (!card || !trumpSuit) return false;
+
+  // Left bower is the jack of the same color as trump
+  if (card.rank === "J") {
+    const sameColorSuits = {
+      hearts: "diamonds",
+      diamonds: "hearts",
+      clubs: "spades",
+      spades: "clubs",
+    };
+
+    return sameColorSuits[card.suit] === trumpSuit;
+  }
+
+  return false;
 };
 
 /**
@@ -103,28 +103,28 @@ export const isLeftBower = (card, trumpSuit) => {
  * @returns {boolean} - True if the play is valid
  */
 export const isValidPlay = (card, hand, ledSuit, trumpSuit) => {
-    if (!card || !hand || !hand.length) return false;
-    
-    // If no suit has been led yet, any card is valid
-    if (!ledSuit) return true;
-    
-    // Check if player has any cards of the led suit (including left bower)
-    const hasLedSuit = hand.some(c => {
-        if (isLeftBower(c, trumpSuit)) {
-            return ledSuit === trumpSuit;
-        }
-        return c.suit === ledSuit;
-    });
-    
-    // If player doesn't have the led suit, any card is valid
-    if (!hasLedSuit) return true;
-    
-    // If player has the led suit, they must follow suit
-    if (isLeftBower(card, trumpSuit)) {
-        return ledSuit === trumpSuit;
+  if (!card || !hand || !hand.length) return false;
+
+  // If no suit has been led yet, any card is valid
+  if (!ledSuit) return true;
+
+  // Check if player has any cards of the led suit (including left bower)
+  const hasLedSuit = hand.some((c) => {
+    if (isLeftBower(c, trumpSuit)) {
+      return ledSuit === trumpSuit;
     }
-    
-    return card.suit === ledSuit;
+    return c.suit === ledSuit;
+  });
+
+  // If player doesn't have the led suit, any card is valid
+  if (!hasLedSuit) return true;
+
+  // If player has the led suit, they must follow suit
+  if (isLeftBower(card, trumpSuit)) {
+    return ledSuit === trumpSuit;
+  }
+
+  return card.suit === ledSuit;
 };
 
 /**
@@ -135,51 +135,53 @@ export const isValidPlay = (card, hand, ledSuit, trumpSuit) => {
  * @returns {number} - Index of the winning card in the trick array
  */
 export const getWinningCardIndex = (trick, trumpSuit, ledSuit) => {
-    if (!trick || !trick.length) return -1;
-    
-    // Find the highest card that follows the led suit or is trump
-    let highestCard = null;
-    let highestIndex = -1;
-    
-    trick.forEach((card, index) => {
-        if (!card) return;
-        
-        const isTrump = card.suit === trumpSuit || isLeftBower(card, trumpSuit);
-        const isLedSuit = card.suit === ledSuit || 
-                         (isLeftBower(card, trumpSuit) && ledSuit === trumpSuit);
-        
-        // First card is always eligible
-        if (highestIndex === -1) {
-            highestCard = card;
-            highestIndex = index;
-            return;
-        }
-        
-        const currentIsTrump = highestCard.suit === trumpSuit || 
-                             isLeftBower(highestCard, trumpSuit);
-        const currentIsLedSuit = highestCard.suit === ledSuit || 
-                               (isLeftBower(highestCard, trumpSuit) && ledSuit === trumpSuit);
-        
-        // Trump beats non-trump
-        if (isTrump && !currentIsTrump) {
-            highestCard = card;
-            highestIndex = index;
-            return;
-        }
-        
-        // If both are trump or both follow suit, compare values
-        if ((isTrump && currentIsTrump) || (isLedSuit && currentIsLedSuit)) {
-            const currentValue = getCardValue(highestCard, trumpSuit);
-            const newValue = getCardValue(card, trumpSuit);
-            
-            if (newValue > currentValue) {
-                highestCard = card;
-                highestIndex = index;
-            }
-        }
-    });
-    
-    return highestIndex;
+  if (!trick || !trick.length) return -1;
+
+  // Find the highest card that follows the led suit or is trump
+  let highestCard = null;
+  let highestIndex = -1;
+
+  trick.forEach((card, index) => {
+    if (!card) return;
+
+    const isTrump = card.suit === trumpSuit || isLeftBower(card, trumpSuit);
+    const isLedSuit =
+      card.suit === ledSuit ||
+      (isLeftBower(card, trumpSuit) && ledSuit === trumpSuit);
+
+    // First card is always eligible
+    if (highestIndex === -1) {
+      highestCard = card;
+      highestIndex = index;
+      return;
+    }
+
+    const currentIsTrump =
+      highestCard.suit === trumpSuit || isLeftBower(highestCard, trumpSuit);
+    const currentIsLedSuit =
+      highestCard.suit === ledSuit ||
+      (isLeftBower(highestCard, trumpSuit) && ledSuit === trumpSuit);
+
+    // Trump beats non-trump
+    if (isTrump && !currentIsTrump) {
+      highestCard = card;
+      highestIndex = index;
+      return;
+    }
+
+    // If both are trump or both follow suit, compare values
+    if ((isTrump && currentIsTrump) || (isLedSuit && currentIsLedSuit)) {
+      const currentValue = getCardValue(highestCard, trumpSuit);
+      const newValue = getCardValue(card, trumpSuit);
+
+      if (newValue > currentValue) {
+        highestCard = card;
+        highestIndex = index;
+      }
+    }
+  });
+
+  return highestIndex;
 };
 
 /**
@@ -187,23 +189,23 @@ export const getWinningCardIndex = (trick, trumpSuit, ledSuit) => {
  * @returns {Array} - Array of card objects
  */
 export const createDeck = () => {
-    const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-    const ranks = ['9', '10', 'J', 'Q', 'K', 'A'];
-    const deck = [];
-    
-    let id = 0;
-    suits.forEach(suit => {
-        ranks.forEach(rank => {
-            deck.push({
-                id: id++,
-                rank,
-                suit,
-                code: `${rank[0].toUpperCase()}${suit[0].toUpperCase()}`
-            });
-        });
+  const suits = ["hearts", "diamonds", "clubs", "spades"];
+  const ranks = ["9", "10", "J", "Q", "K", "A"];
+  const deck = [];
+
+  let id = 0;
+  suits.forEach((suit) => {
+    ranks.forEach((rank) => {
+      deck.push({
+        id: id++,
+        rank,
+        suit,
+        code: `${rank[0].toUpperCase()}${suit[0].toUpperCase()}`,
+      });
     });
-    
-    return deck;
+  });
+
+  return deck;
 };
 
 /**
@@ -212,12 +214,12 @@ export const createDeck = () => {
  * @returns {Array} - The shuffled array
  */
 export const shuffleDeck = (array) => {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
 };
 
 /**
@@ -228,19 +230,21 @@ export const shuffleDeck = (array) => {
  * @returns {Object} - Object containing hands and remaining deck
  */
 export const dealCards = (deck, numPlayers, cardsPerPlayer) => {
-    const hands = Array(numPlayers).fill().map(() => []);
-    const newDeck = [...deck];
-    
-    for (let i = 0; i < cardsPerPlayer; i++) {
-        for (let j = 0; j < numPlayers; j++) {
-            if (newDeck.length > 0) {
-                hands[j].push(newDeck.pop());
-            }
-        }
+  const hands = Array(numPlayers)
+    .fill()
+    .map(() => []);
+  const newDeck = [...deck];
+
+  for (let i = 0; i < cardsPerPlayer; i++) {
+    for (let j = 0; j < numPlayers; j++) {
+      if (newDeck.length > 0) {
+        hands[j].push(newDeck.pop());
+      }
     }
-    
-    return {
-        hands,
-        remainingDeck: newDeck
-    };
+  }
+
+  return {
+    hands,
+    remainingDeck: newDeck,
+  };
 };

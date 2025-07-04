@@ -21,63 +21,29 @@
 
 import { expect } from "chai";
 import sinon from "sinon";
-import esmock from "esmock";
 import chaiAsPromised from "chai-as-promised";
-import path from "path";
-import { fileURLToPath } from "url";
 
-// =============================================
-// PATH CONSTANTS (Pattern from esmock_fix_and_prevention_plan.md)
-// =============================================
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Import the new esmock wrapper
+import { createMockedModule } from "../../utils/esmock_wrapper.js"; // Corrected relative path
 
-/**
- * Converts a relative path to an absolute path with POSIX separators
- * @param {string} relativePath - Path relative to the test file
- * @returns {string} Absolute path with POSIX separators
- */
-const toPosixPath = (relativePath) => {
-  return path.resolve(__dirname, relativePath).replace(/\\/g, "/");
-};
-
-// Define all module paths as constants at the top of the file
-const PATHS = {
-  // Source files - use relative paths from the test file
-  SCORING_PHASE: toPosixPath("../../../src/game/phases/scoringPhase.js"),
-  CONSTANTS: toPosixPath("../../../src/config/constants.js"),
-  ERRORS: toPosixPath("../../../src/game/logic/errors.js"),
-  LOGGER: toPosixPath("../../../src/utils/logger.js"),
-};
-
-// Import other dependencies using the path constants with file:// protocol
-const importWithFileProtocol = async (path) => {
-  const fileUrl = `file://${path}`.replace(/\\/g, '/');
-  return import(fileUrl);
-};
-
-const constantsModule = await importWithFileProtocol(PATHS.CONSTANTS);
-const errorsModule = await importWithFileProtocol(PATHS.ERRORS);
-
-const {
+// Direct imports for constants and errors, as they are not mocked dependencies
+// of scoringPhase.js itself, but rather foundational values used by the tests.
+import {
   GAME_PHASES,
   TEAMS,
   PLAYER_ROLES,
   WINNING_SCORE,
-} = constantsModule;
-
-const { InvalidPhaseError, PhaseLogicError } = errorsModule;
+} from "../../../src/config/constants.js";
+import {
+  InvalidPhaseError,
+  PhaseLogicError,
+} from "../../../src/game/logic/errors.js";
 
 // Apply chai-as-promised
 import * as chaiModule from "chai";
 chaiModule.use(chaiAsPromised);
 
-const defaultLoggerMock = {
-  info: sinon.stub(),
-  warn: sinon.stub(),
-  error: sinon.stub(),
-  debug: sinon.stub(),
-};
+// Removed defaultLoggerMock as createMockedModule will provide its own stubs.
 
 const createScoringGameState = () => ({
   gameId: "scoringTestGame",
@@ -125,32 +91,44 @@ const createScoringGameState = () => ({
 });
 
 describe("ScoringPhase Logic", () => {
+  let calculateAndApplyScore;
+  let mockedDependencies; // To hold the mocks (e.g., logger) provided by createMockedModule
+  let updateGameMock; // This stub is for asserting that Layer 1 does NOT call Layer 5 directly.
+
+  beforeEach(async () => {
+    // This stub is for asserting that Layer 1 (scoringPhase.js) does NOT
+    // directly interact with Layer 5 (Persistence). It's not a dependency
+    // being injected into scoringPhase.js.
+    updateGameMock = sinon.stub().resolves();
+
+    // Use the new wrapper to mock dependencies of scoringPhase.js
+    const { module, mocks } = await createMockedModule(
+      import.meta.url, // Pass import.meta.url of the current test file
+      "../../../src/game/phases/scoringPhase.js", // Path to the module under test
+      {
+        // No specific overrides needed here for scoringPhase's dependencies
+        // because `logger.js` is mocked by default in `createMockedModule`.
+        // If scoringPhase.js *did* import `gameRepository.js`, we would mock it here:
+        // '@/db/gameRepository.js': { updateGame: updateGameMock }
+      }
+    );
+    calculateAndApplyScore = module.calculateAndApplyScore;
+    mockedDependencies = mocks; // Store the provided mocks for assertions in afterEach
+  });
+
   afterEach(() => {
-    sinon.restore();
-    defaultLoggerMock.info.resetHistory();
-    defaultLoggerMock.warn.resetHistory();
-    defaultLoggerMock.error.resetHistory();
-    defaultLoggerMock.debug.resetHistory();
+    sinon.restore(); // Restores all stubs created with sinon.stub()
+    // Reset the history of the logger stubs provided by createMockedModule
+    if (mockedDependencies && mockedDependencies.logger) {
+      mockedDependencies.logger.info.resetHistory();
+      mockedDependencies.logger.warn.resetHistory();
+      mockedDependencies.logger.error.resetHistory();
+      mockedDependencies.logger.debug.resetHistory();
+    }
+    // updateGameMock is redefined in each beforeEach, so its history is implicitly reset.
   });
 
   describe("calculateAndApplyScore", () => {
-    let calculateAndApplyScore;
-    let updateGameMock;
-
-    beforeEach(async () => {
-      updateGameMock = sinon.stub().resolves();
-      const scoringPhaseModule = await esmock(
-        PATHS.SCORING_PHASE,
-        {
-          [PATHS.LOGGER]: defaultLoggerMock,
-        },
-        {
-          // Additional options for esmock if needed
-        }
-      );
-      calculateAndApplyScore = scoringPhaseModule.calculateAndApplyScore;
-    });
-
     it("should throw InvalidPhaseError if not in SCORING phase", async () => {
       const gameState = {
         ...createScoringGameState(),
@@ -294,7 +272,7 @@ describe("ScoringPhase Logic", () => {
       });
     }
 
-    it("should correctly update scores and transition phase via checkGameOver (which calls mocked updateGame)", async () => {
+    it("should correctly update scores and transition phase via checkGameOver", async () => {
       let gameState = createScoringGameState();
       gameState.makerTeam = TEAMS.TEAM_NS;
       gameState.tricksTaken[TEAMS.TEAM_NS] = 3;
@@ -313,10 +291,10 @@ describe("ScoringPhase Logic", () => {
       expect(finalState.message).to.include(
         "Current scores: Team NS 9, Team EW 5."
       );
-      expect(finalState.message).to.include("New dealer:");
+      expect(finalState.message).to.include("New dealer:"); // This message is added by checkGameOver/startNewHand
     });
 
-    it("should correctly handle game over via checkGameOver (which calls mocked updateGame)", async () => {
+    it("should correctly handle game over via checkGameOver", async () => {
       let gameState = createScoringGameState();
       gameState.makerTeam = TEAMS.TEAM_NS;
       gameState.tricksTaken[TEAMS.TEAM_NS] = 5;

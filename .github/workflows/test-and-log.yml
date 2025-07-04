@@ -5,9 +5,9 @@ name: Run Tests and Save Output
 # 1. Define the trigger for the workflow
 on:
   push:
-    branches: [ main ] # Runs on pushes to the main branch
+    branches: [main] # Runs on pushes to the main branch
   pull_request:
-    branches: [ main ] # Runs on pull requests targeting the main branch
+    branches: [main] # Runs on pull requests targeting the main branch
 
 # 2. Define the job(s) to be run
 jobs:
@@ -24,8 +24,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc' # Automatically uses the version from your .nvmrc file
-          cache: 'npm' # Caches npm dependencies for faster runs
+          node-version-file: ".nvmrc" # Automatically uses the version from your .nvmrc file
+          cache: "npm" # Caches npm dependencies for faster runs
 
       # 5. Step to install project dependencies
       - name: Install dependencies

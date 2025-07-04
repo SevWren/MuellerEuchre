@@ -12,7 +12,7 @@
  */
 import { expect } from 'chai';
 import sinon from 'sinon';
-import esmock from 'esmock';
+import { createMockedModule } from './esmock_wrapper.js';
 import { PLAYER_ROLES, TEAMS } from '../../src/config/constants.js';
 
 // Mock logger to prevent console output during tests
@@ -34,10 +34,15 @@ describe('Lobby Utility Functions', () => {
     loggerMock.error.resetHistory();
     loggerMock.debug.resetHistory();
 
-    // Es-mock the module under test to inject our logger mock
-    lobbyUtils = await esmock('../../src/utils/lobbyUtils.js', {
-      '../../src/utils/logger.js': loggerMock,
-    });
+    // Use createMockedModule to set up the module with our logger mock
+    const { module: lobbyUtilsModule } = await createMockedModule(
+      import.meta.url,
+      '../../src/utils/lobbyUtils.js',
+      {
+        '@/utils/logger.js': loggerMock,
+      }
+    );
+    lobbyUtils = lobbyUtilsModule;
 
     baseGameState = {
       gameId: 'testGame123',

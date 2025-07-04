@@ -7,8 +7,8 @@
  * Utility functions for Euchre deck and card manipulations.
  * @module deck
  */
-import { SUITS, VALUES, CARD_RANKS } from '../config/constants.js';
-import logger from './logger.js';
+import { SUITS, VALUES, CARD_RANKS } from "../config/constants.js";
+import logger from "./logger.js";
 
 /**
  * Gets the color of a suit.
@@ -17,10 +17,10 @@ import logger from './logger.js';
  * @private
  */
 function getSuitColor(suit) {
-  if (suit === 'hearts' || suit === 'diamonds') {
-    return 'red';
+  if (suit === "hearts" || suit === "diamonds") {
+    return "red";
   }
-  return 'black';
+  return "black";
 }
 
 /**
@@ -32,19 +32,28 @@ function getSuitColor(suit) {
 export function createDeck() {
   const deck = [];
   const valueToName = {
-    '9': 'Nine', '10': 'Ten', 'J': 'Jack', 'Q': 'Queen', 'K': 'King', 'A': 'Ace'
+    9: "Nine",
+    10: "Ten",
+    J: "Jack",
+    Q: "Queen",
+    K: "King",
+    A: "Ace",
   };
   const suitToChar = {
-    'hearts': 'H', 'diamonds': 'D', 'clubs': 'C', 'spades': 'S'
+    hearts: "H",
+    diamonds: "D",
+    clubs: "C",
+    spades: "S",
   };
 
-  for (const suit of Object.values(SUITS)) { // Iterate over values if SUITS is an object
+  for (const suit of Object.values(SUITS)) {
+    // Iterate over values if SUITS is an object
     for (const value of VALUES) {
       deck.push({
         suit: suit,
         value: value,
         id: `${value}${suitToChar[suit]}`, // e.g., AH, 9S
-        name: `${valueToName[value]} of ${suit.charAt(0).toUpperCase() + suit.slice(1)}` // e.g. Ace of Hearts
+        name: `${valueToName[value]} of ${suit.charAt(0).toUpperCase() + suit.slice(1)}`, // e.g. Ace of Hearts
       });
     }
   }
@@ -73,15 +82,17 @@ export function shuffleDeck(deck) {
  */
 export function cardToId(card) {
   if (!card || !card.suit || !card.value) {
-    logger.warn({ card }, 'Invalid card object passed to cardToId');
-    return '??';
+    logger.warn({ card }, "Invalid card object passed to cardToId");
+    return "??";
   }
-   const suitToChar = {
-    'hearts': 'H', 'diamonds': 'D', 'clubs': 'C', 'spades': 'S'
+  const suitToChar = {
+    hearts: "H",
+    diamonds: "D",
+    clubs: "C",
+    spades: "S",
   };
   return `${card.value}${suitToChar[card.suit]}`;
 }
-
 
 /**
  * Checks if a card is the Right Bower.
@@ -91,7 +102,7 @@ export function cardToId(card) {
  * @returns {boolean} True if the card is the Right Bower.
  */
 export function isRightBower(card, trumpSuit) {
-  return card && card.value === 'J' && card.suit === trumpSuit;
+  return card && card.value === "J" && card.suit === trumpSuit;
 }
 
 /**
@@ -102,7 +113,7 @@ export function isRightBower(card, trumpSuit) {
  * @returns {boolean} True if the card is the Left Bower.
  */
 export function isLeftBower(card, trumpSuit) {
-  if (!card || card.value !== 'J' || !trumpSuit) return false;
+  if (!card || card.value !== "J" || !trumpSuit) return false;
   if (card.suit === trumpSuit) return false; // Not the Right Bower
   return getSuitColor(card.suit) === getSuitColor(trumpSuit);
 }
@@ -117,7 +128,10 @@ export function isLeftBower(card, trumpSuit) {
  */
 export function getCardRank(card, trumpSuit, ledSuit = null) {
   if (!card || !card.value || !card.suit || !trumpSuit) {
-    logger.error({ card, trumpSuit, ledSuit }, 'Invalid arguments for getCardRank');
+    logger.error(
+      { card, trumpSuit, ledSuit },
+      "Invalid arguments for getCardRank",
+    );
     return 0;
   }
 
@@ -154,33 +168,42 @@ export function getCardRank(card, trumpSuit, ledSuit = null) {
  */
 export function sortHand(hand, trumpSuit) {
   if (!hand || !Array.isArray(hand)) return [];
-  if (!trumpSuit) return [...hand].sort((a, b) => (b.value_rank || 0) - (a.value_rank || 0)); // Basic sort if no trump
+  if (!trumpSuit)
+    return [...hand].sort((a, b) => (b.value_rank || 0) - (a.value_rank || 0)); // Basic sort if no trump
 
   // Define a suit order for non-trump suits (e.g., Spades, Clubs, Diamonds, Hearts)
   // This helps in grouping suits consistently.
   const suitOrder = { [trumpSuit]: 0 };
   let orderIndex = 1;
-  for (const s of ['spades', 'clubs', 'diamonds', 'hearts']) { // Example non-trump order
+  for (const s of ["spades", "clubs", "diamonds", "hearts"]) {
+    // Example non-trump order
     if (s !== trumpSuit) {
       suitOrder[s] = orderIndex++;
     }
   }
   // Ensure any unexpected suit gets a high order
-  const getSuitOrder = (suit) => suitOrder[suit] !== undefined ? suitOrder[suit] : 99;
-
+  const getSuitOrder = (suit) =>
+    suitOrder[suit] !== undefined ? suitOrder[suit] : 99;
 
   return [...hand].sort((a, b) => {
-    const aIsTrump = isRightBower(a, trumpSuit) || isLeftBower(a, trumpSuit) || a.suit === trumpSuit;
-    const bIsTrump = isRightBower(b, trumpSuit) || isLeftBower(b, trumpSuit) || b.suit === trumpSuit;
+    const aIsTrump =
+      isRightBower(a, trumpSuit) ||
+      isLeftBower(a, trumpSuit) ||
+      a.suit === trumpSuit;
+    const bIsTrump =
+      isRightBower(b, trumpSuit) ||
+      isLeftBower(b, trumpSuit) ||
+      b.suit === trumpSuit;
 
     // Rank for Bowers within trump
     const rankA = getCardRank(a, trumpSuit, null); // ledSuit null as we only care about general power here
     const rankB = getCardRank(b, trumpSuit, null);
 
     if (aIsTrump && !bIsTrump) return -1; // a (trump) comes before b (non-trump)
-    if (!aIsTrump && bIsTrump) return 1;  // b (trump) comes before a (non-trump)
+    if (!aIsTrump && bIsTrump) return 1; // b (trump) comes before a (non-trump)
 
-    if (aIsTrump && bIsTrump) { // Both are trump
+    if (aIsTrump && bIsTrump) {
+      // Both are trump
       return rankB - rankA; // Higher rank first
     }
 

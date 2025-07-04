@@ -1,0 +1,25 @@
+Layer 1 ("Core Game Logic & Utilities (Pure Functions)" that are deterministic, depend only on their input, and have no side effects like database calls or network I/O)
+	the following files are considered Layer 1:
+
+1.  `src/config/constants.js`
+2.  `src/config/database.js`
+3.  `src/config/locales/en.json`
+4.  `src/game/logic/aiLogic.js`
+5.  `src/game/logic/errors.js`
+6.  `src/game/logic/validation.js`
+7.  `src/game/phases/biddingPhase.js`
+8.  `src/game/phases/endGame.js`
+9.  `src/game/phases/goAlonePhase.js`
+10. `src/game/phases/lobbyPhase.js`
+11. `src/game/phases/playingPhase.js`
+12. `src/game/phases/scoringPhase.js`
+13. `src/game/phases/startNewHandPhase.js`
+14. `src/utils/deck.js`
+15. `src/utils/errorUtils.js`
+16. `src/utils/historyUtils.js`
+17. `src/utils/i18n.js`
+18. `src/utils/idGenerator.js`
+19. `src/utils/lobbyUtils.js`
+20. `src/utils/players.js`
+21. `src/utils/settingsUtils.js`
+22. `src/utils/statsUtils.js`

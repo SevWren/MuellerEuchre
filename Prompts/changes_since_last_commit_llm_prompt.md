@@ -7,30 +7,29 @@ You will be provided with two pieces of information:
 
 **Your Instructions:**
 
-1.  **Analyze the `Code Changes`**: Carefully review the diffs to understand *what* has changed (additions, modifications, deletions).
-2.  **Use the `Repository Context`**: Leverage the full codebase information to understand the *why* behind the changes and their impact on the project.
+1.  **Analyze the `Code Changes`**: Carefully review the diffs to understand _what_ has changed (additions, modifications, deletions).
+2.  **Use the `Repository Context`**: Leverage the full codebase information to understand the _why_ behind the changes and their impact on the project.
 3.  **Follow the Rules**:
-    *   For any file that was **deleted** (indicated by `deleted file mode` in the diff), you MUST refer to it simply as `deleted` in the commit body. Do not describe its former contents.
-    *   For all **new or modified** files, intelligently synthesize the changes. Do not just list the changes line-by-line. Instead, describe the overall goal, such as "refactored the card dealing logic for better testability" or "added input validation to the user settings form."
+    - For any file that was **deleted** (indicated by `deleted file mode` in the diff), you MUST refer to it simply as `deleted` in the commit body. Do not describe its former contents.
+    - For all **new or modified** files, intelligently synthesize the changes. Do not just list the changes line-by-line. Instead, describe the overall goal, such as "refactored the card dealing logic for better testability" or "added input validation to the user settings form."
 4.  **Format the Output**: The commit message MUST adhere to the following structure:
+    - **Subject Line**:
+      - Starts with a type prefix, followed by a short description. The available types are:
+        - `feat`: A new feature for the user.
+        - `fix`: A bug fix for the user.
+        - `refactor`: A code change that neither fixes a bug nor adds a feature.
+        - `style`: Changes that do not affect the meaning of the code (white-space, formatting, etc).
+        - `docs`: Documentation only changes.
+        - `test`: Adding missing tests or correcting existing tests.
+        - `chore`: Changes to the build process or auxiliary tools and libraries.
+      - Must be 50 characters or less.
+      - Written in the imperative mood (e.g., "Add feature," not "Added feature" or "Adds feature").
 
-    *   **Subject Line**:
-        *   Starts with a type prefix, followed by a short description. The available types are:
-            *   `feat`: A new feature for the user.
-            *   `fix`: A bug fix for the user.
-            *   `refactor`: A code change that neither fixes a bug nor adds a feature.
-            *   `style`: Changes that do not affect the meaning of the code (white-space, formatting, etc).
-            *   `docs`: Documentation only changes.
-            *   `test`: Adding missing tests or correcting existing tests.
-            *   `chore`: Changes to the build process or auxiliary tools and libraries.
-        *   Must be 50 characters or less.
-        *   Written in the imperative mood (e.g., "Add feature," not "Added feature" or "Adds feature").
-
-    *   **Body (Optional but Recommended)**:
-        *   Separated from the subject by a blank line.
-        *   Explains the motivation for the change and contrasts it with previous behavior.
-        *   Wraps at 72 characters.
-        *   Use bullet points (`-` or `*`) for clarity when describing multiple changes.
+    - **Body (Optional but Recommended)**:
+      - Separated from the subject by a blank line.
+      - Explains the motivation for the change and contrasts it with previous behavior.
+      - Wraps at 72 characters.
+      - Use bullet points (`-` or `*`) for clarity when describing multiple changes.
 
 ---
 

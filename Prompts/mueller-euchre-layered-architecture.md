@@ -64,6 +64,7 @@
 - **Low-Level Comments for Untested Code:** Whenever generating code that has not been tested yet via `npm test`, include low-level comments explaining the purpose and expected behavior of the code.
 
 **Example:**
+
 ```js
 // filepath: src/game/phases/playingPhase.js
 /**
@@ -80,7 +81,8 @@ export function determineTrickWinner(trickPlays, trumpSuit) {
   let highestCard = null;
   let winningPlayer = null;
 
-  for (const play of trickPlays) { // explain how this works in this specific project
+  for (const play of trickPlays) {
+    // explain how this works in this specific project
     const { card, playerRole } = play;
     if (!highestCard || isHigherCard(card, highestCard, trumpSuit)) {
       highestCard = card;
@@ -180,6 +182,7 @@ function isHigherCard(card1, card2, trumpSuit) {
 
 3. **Duplicating Logic:**
    - **Violation:**
+
      ```js
      // Incorrect: Duplicated logic for determining the winner of a trick.
      export function determineTrickWinner(trickPlays, trumpSuit) {
@@ -190,7 +193,9 @@ function isHigherCard(card1, card2, trumpSuit) {
        // Same logic as determineTrickWinner
      }
      ```
+
    - **Fix:**
+
      ```js
      // Correct: Refactor to avoid duplication.
      export function determineWinner(plays, trumpSuit) {
@@ -211,7 +216,7 @@ function isHigherCard(card1, card2, trumpSuit) {
      ```js
      // Incorrect: Synchronous I/O operation
      export function loadGameRules() {
-       const rules = fs.readFileSync('game-rules.json', 'utf-8');
+       const rules = fs.readFileSync("game-rules.json", "utf-8");
        return JSON.parse(rules);
      }
      ```
@@ -219,25 +224,28 @@ function isHigherCard(card1, card2, trumpSuit) {
      ```js
      // Correct: Use asynchronous I/O.
      export async function loadGameRules() {
-       const rules = await fs.promises.readFile('game-rules.json', 'utf-8');
+       const rules = await fs.promises.readFile("game-rules.json", "utf-8");
        return JSON.parse(rules);
      }
      ```
 
 5. **Importing Client-Side Utilities:**
    - **Violation:**
+
      ```js
      // Incorrect: Importing a client-side utility
-     import { formatScore } from 'client/utils/scoreFormatter';
+     import { formatScore } from "client/utils/scoreFormatter";
 
      export function calculateFinalScore(score) {
        return formatScore(score); // Client-side utility
      }
      ```
+
    - **Fix:**
+
      ```js
      // Correct: Use a server-side utility.
-     import { formatScore } from 'server/utils/scoreFormatter';
+     import { formatScore } from "server/utils/scoreFormatter";
 
      export function calculateFinalScore(score) {
        return formatScore(score);

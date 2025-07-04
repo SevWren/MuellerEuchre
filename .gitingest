@@ -1,0 +1,41 @@
+# This is a TOML file. Use key = ["value1", "value2"] format.
+# Exclude patterns for the gitingest tool.
+
+exclude-pattern = [
+  # Node.js dependencies
+  "node_modules/",
+
+  # Git internal directory
+  ".git/",
+
+  # Coverage reports and test output
+  "coverage/",
+  ".nyc_output/",
+  "*.lcov",
+  "full_test_out.txt",
+
+  # Build output folders
+  "dist/",
+  "build/",
+  "out/",
+
+  # Log files and temporary files
+  "*.log",
+  "logs/",
+  "server_log.txt",
+  "*.tmp",
+  "tmp/",
+  "temp/",
+
+  # The tool's own output file
+  "mueller_euchre_repo_llm.txt",
+
+  # OS and editor-specific files
+  ".DS_Store",
+  "Thumbs.db",
+  ".vscode/",
+  ".idea/",
+
+  # Archived files
+  "archived_for_later_development/",
+]

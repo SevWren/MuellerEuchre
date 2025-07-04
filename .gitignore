@@ -123,3 +123,5 @@ findfiles.bat
 find_files_report.txt
 mocha
 package-lock.json
+npm_test.txt
+log.txt

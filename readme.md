@@ -45,7 +45,6 @@ A dynamic, real-time online Euchre card game experience. This project leverages 
     Currently, the default configuration (e.g., for MongoDB connection) should work out of the box for local development if MongoDB is running on its default port (`mongodb://localhost:27017`).
 
 4.  **Run the server:**
-
     - For production mode (or a simple start):
       ```bash
       npm start
@@ -88,8 +87,14 @@ _(Note: The test structure aims to mirror the `src/` directory organization. End
 #### Running Tests
 
 - **Run all tests (as defined in `package.json`):**
+
   ```bash
   npm test
+  ```
+
+- **Run specific tests (as defined in `package.json`):**
+  ```bash
+  npm test test_filename
   ```
 - **Run tests in watch mode (re-runs on file changes):**
   ```bash
@@ -133,19 +138,16 @@ The CI pipeline is triggered on:
 **Key Actions Performed:**
 
 1.  **Linting:**
-
     - **ESLint:** Checks the JavaScript code for style and potential errors (`npx eslint .`).
     - **Prettier:** Verifies code formatting consistency (`npx prettier --check .`).
       _(This job runs on Node.js 20.x)_
 
 2.  **Testing:**
-
     - Tests are executed across multiple Node.js versions: `18.x` and `20.x`.
     - Dependencies are installed using `npm ci`.
     - The command `npm run test:coverage` is used, which implies test execution and coverage generation via `c8`.
 
 3.  **Test Coverage:**
-
     - Coverage reports are generated during the test runs.
     - For pushes to the `resolve_unit_tests` branch on the `SevWren/MuellerEuchre` repository, and specifically for the Node.js `18.x` test run, the lcov coverage report (`./coverage/lcov.info`) is uploaded to [Codecov](https://about.codecov.io/) if a `CODECOV_TOKEN` is available.
 
@@ -217,21 +219,16 @@ Server-initiated events inform clients about changes in game state, errors, or o
 - **Persistent Game State**: Game progress is saved to MongoDB via `src/db/gameRepository.js`, allowing games to be resumed.
 - **Automatic Reconnection**: Players can disconnect and then rejoin active games with their state (hand, score, etc.) preserved. This is handled by logic in `src/socket/handlers/playerConnectionHandlers.js`.
 - **Comprehensive Testing**: A suite of tests (unit, integration) covers core game logic, server operations, and component interactions, as detailed in the "Testing" section.
-- **User Interface (UI)**: Currently, the project focus is primarily on the backend game logic and server operations. A fully-featured, responsive HTML frontend is a **future development task**.
 
 ### Incomplete or Missing Features
 
 - **User Interface (UI) Implementation**: The most significant missing piece is a dynamic, browser-based UI for players to interact with the game.
-- **Advanced Player Disconnection/Reconnection Handling**: While basic reconnection functionality exists (players can rejoin and their state is preserved), further enhancements are planned:
+- **Player Disconnection/Reconnection Handling**: While basic reconnection functionality exists (players can rejoin and their state is preserved), further enhancements are planned:
   - More sophisticated UI feedback and options for players experiencing intermittent connection issues.
   - Graceful game pausing/unpausing if multiple players disconnect or if a host disconnects.
   - Potential for temporary AI takeover for a disconnected player (as an optional feature to keep games flowing).
-- **Lobby Enhancements**: The current lobby system is functional but basic. Future improvements could include:
-  - Game naming and listing.
-  - Password-protected (private) games.
-  - More detailed player status indicators.
-  - Chat functionality.
 - **Comprehensive End-to-End (E2E) Testing**: While unit and integration tests are in place, a full E2E testing suite (e.g., using tools like Cypress or Playwright) is yet to be developed.
+- **User Interface (UI)**: Currently, the project focus is primarily on the backend game logic and server operations. A fully-featured, responsive HTML frontend is a **future development task**.
 
 ## 🤝 Contributing
 
@@ -319,7 +316,6 @@ We welcome contributions! Here's how you can help:
 **Key Modules & Responsibilities:**
 
 - **`src/db/gameRepository.js` (Layer 5 - Persistence):**
-
   - This is the data access layer (DAL), responsible for all direct communication with the MongoDB database.
   - It provides asynchronous methods like `getGame(gameId)`, `updateGame(gameId, gameState)`, and `createGame(gameId, gameState)`.
   - All other parts of the application interact with the database _only_ through this module, ensuring a clean separation of concerns.
@@ -333,7 +329,6 @@ We welcome contributions! Here's how you can help:
     4.  The Layer 1 function returns a new, updated state object.
     5.  The handler persists this new state using `gameRepository.updateGame()`.
     6.  The handler broadcasts the new state to clients.
-  - The `src/game/state.js` file is a legacy artifact from the initial rewrite and is **not** part of the current active architecture.
 
 ---
 

@@ -19,39 +19,7 @@
 
 import { expect } from "chai";
 import sinon from "sinon";
-import esmock from "esmock";
-import path from "path";
-import { fileURLToPath } from "url";
-
-// =============================================
-// PATH CONSTANTS (Pattern from esmock_fix_and_prevention_plan.md)
-// =============================================
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/**
- * Converts a relative path to an absolute path with POSIX separators
- * @param {string} relativePath - Path relative to the test file
- * @returns {string} Absolute path with POSIX separators
- */
-const toPosixPath = (relativePath) => {
-  return path.resolve(__dirname, relativePath).replace(/\\/g, "/");
-};
-
-// Define all module paths as constants at the top of the file
-const PATHS = {
-  // Source files - use relative paths from the test file
-  PLAYING_PHASE: toPosixPath("../../../src/game/phases/playingPhase.js"),
-  CONSTANTS: toPosixPath("../../../src/config/constants.js"),
-  ERRORS: toPosixPath("../../../src/game/logic/errors.js"),
-  DECK_UTILS: toPosixPath("../../../src/utils/deck.js"),
-  PLAYER_UTILS: toPosixPath("../../../src/utils/players.js"),
-  VALIDATION: toPosixPath("../../../src/game/logic/validation.js"),
-  LOGGER: toPosixPath("../../../src/utils/logger.js"),
-
-  // Test utilities
-  TEST_UTILS: toPosixPath("../../testUtils.js"),
-};
+import { esmockWithPaths, createMockedModule } from "../../utils/esmock_wrapper.js";
 
 // Import using path constants to ensure consistency
 import {
@@ -127,74 +95,73 @@ const createPlayingGameState = () => {
 
 describe("PlayingPhase Logic", () => {
   let sandbox;
+  let handlePlayCard, determineTrickWinner, mocks;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Create a fresh sandbox for each test
     sandbox = sinon.createSandbox();
 
-    // Reset all logger mocks
-    Object.values(loggerMock).forEach((mock) => {
-      if (typeof mock.resetHistory === "function") {
-        mock.resetHistory();
+    // Create a fresh set of mocks for each test
+    const result = await createMockedModule(
+      import.meta.url,
+      "../../../src/game/phases/playingPhase.js",
+      {
+        '@/utils/logger.js': loggerMock,
+        '@/game/logic/validation.js': {
+          validatePlay: sinon.stub().returns(true),
+          validateGamePhase: sinon.stub().returns(true)
+        },
+        '@/utils/players.js': {
+          getNextPlayer: sinon.stub().callsFake((currentPlayer) => {
+            const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
+            return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
+          })
+        },
+        '@/utils/deck.js': {
+          getCardRank: (card, trumpSuit, ledSuit) => {
+            // Mock implementation of getCardRank for testing
+            const valueOrder = ["9", "10", "J", "Q", "K", "A"];
+            
+            // Right bower (jack of trump suit)
+            if (card.value === "J" && card.suit === trumpSuit) return 100;
+            
+            // Left bower (jack of same color as trump)
+            const sameColorSuits = {
+              [SUITS.HEARTS]: SUITS.DIAMONDS,
+              [SUITS.DIAMONDS]: SUITS.HEARTS,
+              [SUITS.CLUBS]: SUITS.SPADES,
+              [SUITS.SPADES]: SUITS.CLUBS
+            };
+            if (card.value === "J" && card.suit === sameColorSuits[trumpSuit]) return 90;
+            
+            // Other cards
+            const baseValue = valueOrder.indexOf(card.value) * 10;
+            if (card.suit === trumpSuit) return baseValue + 50; // Trump cards
+            if (card.suit === ledSuit) return baseValue; // Led suit cards
+            return baseValue - 10; // Off-suit cards
+          }
+        }
       }
-    });
+    );
+    
+    ({ module: { handlePlayCard, determineTrickWinner }, mocks } = result);
+
+    // Reset all mocks before each test
+    Object.values(loggerMock).forEach((mock) => mock.resetHistory());
+
+    // Stub process.hrtime for consistent timing in tests
+    sandbox.stub(process, "hrtime").returns([0, 0]);
   });
 
   afterEach(() => {
-    // Restore the sandbox after each test
+    // Restore the sandbox
     sandbox.restore();
+    // Restore all mocks
+    sinon.restore();
   });
 
   describe("handlePlayCard", () => {
-    let handlePlayCard;
-    let mockValidation;
-    let mockPlayers;
-    let mockDeck;
-    let playingPhaseModule;
-
-    beforeEach(async () => {
-      // Setup mocks
-      mockValidation = {
-        validatePlay: sandbox.stub().returns({ valid: true, errors: [] }),
-      };
-
-      mockPlayers = {
-        getNextPlayer: sandbox.stub().callsFake((currentPlayer) => {
-          const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-          return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-        }),
-        getPartner: sandbox.stub().callsFake((playerRole) => {
-          const partnerMap = {
-            [PLAYER_ROLES[0]]: PLAYER_ROLES[2], // South's partner is North
-            [PLAYER_ROLES[1]]: PLAYER_ROLES[3], // West's partner is East
-            [PLAYER_ROLES[2]]: PLAYER_ROLES[0], // North's partner is South
-            [PLAYER_ROLES[3]]: PLAYER_ROLES[1], // East's partner is West
-          };
-          return partnerMap[playerRole];
-        }),
-      };
-
-      mockDeck = {
-        createDeck: sandbox.stub().callsFake(createDeck),
-        shuffleDeck: sandbox.stub().callsFake(shuffleDeck),
-      };
-
-      // Import the module with the mocked dependencies using path constants
-      playingPhaseModule = await esmock(
-        PATHS.PLAYING_PHASE,
-        {
-          [PATHS.LOGGER]: loggerMock,
-          [PATHS.VALIDATION]: mockValidation,
-          [PATHS.PLAYER_UTILS]: mockPlayers,
-          [PATHS.DECK_UTILS]: mockDeck,
-        },
-        {
-          // Additional options for esmock if needed
-        },
-      );
-
-      handlePlayCard = playingPhaseModule.handlePlayCard;
-    });
+    // No need to re-import or set up mocks here as they're handled in the outer beforeEach
 
     // Helper function to create a test card
     const createTestCard = (suit, value) => ({ suit, value });
@@ -214,7 +181,7 @@ describe("PlayingPhase Logic", () => {
       const gameState = createPlayingGameState();
 
       // Mock validation to pass the initial null check but fail on player lookup
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
+      mocks['@/game/logic/validation.js'].validatePlay.returns({ valid: true, errors: [] });
 
       expect(() =>
         handlePlayCard(
@@ -230,7 +197,7 @@ describe("PlayingPhase Logic", () => {
       const cardPlayed = gameState.players[PLAYER_ROLES[0]].hand[0];
 
       // Mock the validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
+      mocks['@/game/logic/validation.js'].validatePlay.returns({ valid: true, errors: [] });
 
       // Try to play with a non-existent player
       expect(() =>
@@ -244,17 +211,17 @@ describe("PlayingPhase Logic", () => {
       const cardPlayed = gameState.players[playerRole].hand[0];
 
       // Reset the mock to track calls
-      mockValidation.validatePlay.resetHistory();
+      mocks['@/game/logic/validation.js'].validatePlay.resetHistory();
 
       // Mock validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
+      mocks['@/game/logic/validation.js'].validatePlay.returns({ valid: true, errors: [] });
 
       // Call the function
       handlePlayCard(gameState, playerRole, cardPlayed);
 
       // Verify validatePlay was called with the expected arguments
-      expect(mockValidation.validatePlay.calledOnce).to.be.true;
-      const callArgs = mockValidation.validatePlay.firstCall.args;
+      expect(mocks['@/game/logic/validation.js'].validatePlay.calledOnce).to.be.true;
+      const callArgs = mocks['@/game/logic/validation.js'].validatePlay.firstCall.args;
 
       expect(callArgs[0]).to.deep.include({
         gameId: gameState.gameId,
@@ -273,7 +240,7 @@ describe("PlayingPhase Logic", () => {
       const cardPlayed = { id: "XX", suit: SUITS.CLUBS, value: "X" }; // Not in hand
 
       // Mock validation to throw CardNotInHandError
-      mockValidation.validatePlay.throws(
+      mocks['@/game/logic/validation.js'].validatePlay.throws(
         new CardNotInHandError("Card not in hand."),
       );
 
@@ -288,7 +255,7 @@ describe("PlayingPhase Logic", () => {
       const cardPlayed = gameState.players[playerRole].hand[0];
 
       // Mock validation to throw MustFollowSuitError
-      mockValidation.validatePlay.throws(
+      mocks['@/game/logic/validation.js'].validatePlay.throws(
         new MustFollowSuitError("Must follow suit."),
       );
 
@@ -320,14 +287,14 @@ describe("PlayingPhase Logic", () => {
       const initialHandSize = gameState.players[playerRole].hand.length;
 
       // Mock validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
+      mocks['@/game/logic/validation.js'].validatePlay.returns({ valid: true, errors: [] });
 
       // Mock getNextPlayer to return the next player
       const nextPlayer =
         PLAYER_ROLES[
           (PLAYER_ROLES.indexOf(playerRole) + 1) % PLAYER_ROLES.length
         ];
-      mockPlayers.getNextPlayer.returns(nextPlayer);
+      mocks['@/utils/players.js'].getNextPlayer.returns(nextPlayer);
 
       // Call the function
       const newState = handlePlayCard(gameState, playerRole, cardToPlay);
@@ -396,13 +363,22 @@ describe("PlayingPhase Logic", () => {
       gameState.trumpSuit = SUITS.SPADES;
 
       // Mock validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
+      mocks['@/game/logic/validation.js'].validatePlay.returns({ valid: true, errors: [] });
 
       // Mock getNextPlayer to return the winner (South)
-      mockPlayers.getNextPlayer.returns(player4);
+      mocks['@/utils/players.js'].getNextPlayer.returns(player4);
 
       // Mock getPartner to return the partner (North for South)
-      mockPlayers.getPartner.withArgs(player4).returns(player2);
+      const mockGetPartner = sinon.stub().callsFake((playerRole) => {
+        const partnerMap = {
+          [PLAYER_ROLES[0]]: PLAYER_ROLES[2], // South's partner is North
+          [PLAYER_ROLES[1]]: PLAYER_ROLES[3], // West's partner is East
+          [PLAYER_ROLES[2]]: PLAYER_ROLES[0], // North's partner is South
+          [PLAYER_ROLES[3]]: PLAYER_ROLES[1], // East's partner is West
+        };
+        return partnerMap[playerRole];
+      });
+      mocks['@/utils/players.js'].getPartner = mockGetPartner;
 
       // Call the function
       const newState = handlePlayCard(gameState, player4, aceOfSpades);
@@ -461,13 +437,13 @@ describe("PlayingPhase Logic", () => {
       delete gameState.players[player4].teamId;
 
       // Mock validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
+      mocks['@/game/logic/validation.js'].validatePlay.returns({ valid: true, errors: [] });
 
       // Mock getNextPlayer to return the winner (South)
-      mockPlayers.getNextPlayer.returns(player4);
+      mocks['@/utils/players.js'].getNextPlayer.returns(player4);
 
       // Mock getPartner to return null to simulate the error condition
-      mockPlayers.getPartner.withArgs(player4).returns(null);
+      mocks['@/utils/players.js'].getPartner.returns(null);
 
       // Call the function and expect an error
       expect(() => {
@@ -506,47 +482,25 @@ describe("PlayingPhase Logic", () => {
       ];
 
       // Mock validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
+      mocks['@/game/logic/validation.js'].validatePlay.returns({ valid: true, errors: [] });
 
       // Mock getNextPlayer to return the next player
-      mockPlayers.getNextPlayer.returns(PLAYER_ROLES[1]);
+      mocks['@/utils/players.js'].getNextPlayer.returns(PLAYER_ROLES[1]);
 
       // Mock getPartner to return a partner for the trick winner
-      mockPlayers.getPartner.returns(PLAYER_ROLES[2]); // North is South's partner
-
-      // Import the module with the mocked getCardRank function
-      const mockedPlayingPhaseModule = await esmock(
-        PATHS.PLAYING_PHASE,
-        {
-          [PATHS.LOGGER]: loggerMock,
-          [PATHS.VALIDATION]: mockValidation,
-          [PATHS.PLAYER_UTILS]: mockPlayers,
-          [PATHS.DECK_UTILS]: mockDeck,
-          // Mock getCardRank to control the trick winner determination
-          [PATHS.DECK_UTILS]: {
-            ...mockDeck,
-            getCardRank: (card, trumpSuit, ledSuit) => {
-              // Make the ace of spades the highest card
-              if (card.id === "AS") return 100;
-              // Make all other cards lower
-              return 1;
-            },
-          },
-        },
-        {
-          // Additional options for esmock if needed
-        },
-      );
-
-      // Get the handlePlayCard function from the mocked module
-      const mockedHandlePlayCard = mockedPlayingPhaseModule.handlePlayCard;
+      const mockGetPartner = sinon.stub().callsFake((playerRole) => {
+        const partnerMap = {
+          [PLAYER_ROLES[0]]: PLAYER_ROLES[2], // South's partner is North
+          [PLAYER_ROLES[1]]: PLAYER_ROLES[3], // West's partner is East
+          [PLAYER_ROLES[2]]: PLAYER_ROLES[0], // North's partner is South
+          [PLAYER_ROLES[3]]: PLAYER_ROLES[1], // East's partner is West
+        };
+        return partnerMap[playerRole];
+      });
+      mocks['@/utils/players.js'].getPartner = mockGetPartner;
 
       // Call the function
-      const newState = mockedHandlePlayCard(
-        gameState,
-        PLAYER_ROLES[0],
-        cardToPlay,
-      );
+      const newState = handlePlayCard(gameState, PLAYER_ROLES[0], cardToPlay);
 
       // Verify the game transitioned to SCORING phase
       expect(newState.gamePhase).to.equal(GAME_PHASES.SCORING);
@@ -557,35 +511,7 @@ describe("PlayingPhase Logic", () => {
     });
 
     describe("determineTrickWinner", () => {
-      let determineTrickWinner;
-      let mockGetCardRank;
-
-      beforeEach(async () => {
-        // Mock getCardRank to control the trick winner determination
-        mockGetCardRank = sinon.stub();
-
-        // Create a mock for the deck utils that includes our stubbed getCardRank
-        const mockDeckUtils = {
-          ...mockDeck,
-          getCardRank: mockGetCardRank,
-        };
-
-        // Import the module with our mocks
-        const mockedPlayingPhaseModule = await esmock(
-          PATHS.PLAYING_PHASE,
-          {
-            [PATHS.LOGGER]: loggerMock,
-            [PATHS.VALIDATION]: mockValidation,
-            [PATHS.PLAYER_UTILS]: mockPlayers,
-            [PATHS.DECK_UTILS]: mockDeckUtils,
-          },
-          {
-            // Additional options for esmock if needed
-          },
-        );
-
-        determineTrickWinner = mockedPlayingPhaseModule.determineTrickWinner;
-      });
+      // No need to re-import or set up mocks here as they're handled in the outer beforeEach
 
       it("should throw PhaseLogicError if trick doesn't have exactly 4 cards", () => {
         const trick = [
@@ -612,10 +538,11 @@ describe("PlayingPhase Logic", () => {
         ];
 
         // Mock getCardRank to return higher values for higher cards
-        mockGetCardRank.callsFake((card) => {
+        const mockGetCardRank = sinon.stub().callsFake((card) => {
           const values = { J: 11, Q: 12, K: 13, A: 14 };
           return values[card.value];
         });
+        mocks['@/utils/deck.js'].getCardRank = mockGetCardRank;
 
         const winner = determineTrickWinner(trick, SUITS.SPADES, "player1");
         expect(winner).to.equal("player1"); // Ace is highest
@@ -630,7 +557,7 @@ describe("PlayingPhase Logic", () => {
         ];
 
         // Mock getCardRank to handle trump cards and right bower correctly
-        mockGetCardRank.callsFake((card, trumpSuit) => {
+        const mockGetCardRank = sinon.stub().callsFake((card, trumpSuit) => {
           const baseValues = { 9: 9, 10: 10, J: 11, Q: 12, K: 13, A: 14 };
 
           // Right bower (J of trump suit) is highest
@@ -642,6 +569,7 @@ describe("PlayingPhase Logic", () => {
           // Non-trump cards
           return baseValues[card.value];
         });
+        mocks['@/utils/deck.js'].getCardRank = mockGetCardRank;
 
         const winner = determineTrickWinner(trick, SUITS.SPADES, "player1");
         expect(winner).to.equal("player2"); // Right bower (J of spades) should win
@@ -669,11 +597,11 @@ describe("PlayingPhase Logic", () => {
         ];
 
         // Mock getCardRank to handle bowers correctly
-        mockGetCardRank.callsFake((card, trumpSuit, ledSuit) => {
+        const mockGetCardRank = sinon.stub().callsFake((card, trumpSuit, ledSuit) => {
           const baseValues = { J: 11, Q: 12, K: 13, A: 14 };
 
           // Right bower (J of trump suit) is highest
-          if (card.suit === trumpSuit && card.value === "J") return 40;
+          if (card.value === "J" && card.suit === trumpSuit) return 40;
 
           // Left bower (J of same color as trump) is next highest
           const isLeftBower =
@@ -691,6 +619,7 @@ describe("PlayingPhase Logic", () => {
           // Non-trump cards
           return baseValues[card.value];
         });
+        mocks['@/utils/deck.js'].getCardRank = mockGetCardRank;
 
         const winner = determineTrickWinner(trick, SUITS.SPADES, "player1");
         expect(winner).to.equal("player2"); // Right bower (J of spades) wins
@@ -709,7 +638,7 @@ describe("PlayingPhase Logic", () => {
         ];
 
         // Simple ranking where higher face value wins
-        mockGetCardRank.callsFake((card) => {
+        const mockGetCardRank = sinon.stub().callsFake((card) => {
           const values = { 9: 9, 10: 10, J: 11, Q: 12, K: 13, A: 14 };
           return values[card.value];
         });

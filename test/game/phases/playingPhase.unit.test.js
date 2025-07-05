@@ -19,39 +19,7 @@
 
 import { expect } from "chai";
 import sinon from "sinon";
-import esmock from "esmock";
-import path from "path";
-import { fileURLToPath } from "url";
-
-// =============================================
-// PATH CONSTANTS (Pattern from esmock_fix_and_prevention_plan.md)
-// =============================================
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/**
- * Converts a relative path to an absolute path with POSIX separators
- * @param {string} relativePath - Path relative to the test file
- * @returns {string} Absolute path with POSIX separators
- */
-const toPosixPath = (relativePath) => {
-  return path.resolve(__dirname, relativePath).replace(/\\/g, "/");
-};
-
-// Define all module paths as constants at the top of the file
-const PATHS = {
-  // Source files - use relative paths from the test file
-  PLAYING_PHASE: toPosixPath("../../../src/game/phases/playingPhase.js"),
-  CONSTANTS: toPosixPath("../../../src/config/constants.js"),
-  ERRORS: toPosixPath("../../../src/game/logic/errors.js"),
-  DECK_UTILS: toPosixPath("../../../src/utils/deck.js"),
-  PLAYER_UTILS: toPosixPath("../../../src/utils/players.js"),
-  VALIDATION: toPosixPath("../../../src/game/logic/validation.js"),
-  LOGGER: toPosixPath("../../../src/utils/logger.js"),
-
-  // Test utilities
-  TEST_UTILS: toPosixPath("../../testUtils.js"),
-};
+import { esmockWithPaths } from "../../utils/esmock_wrapper.js";
 
 // Import using path constants to ensure consistency
 import {
@@ -179,18 +147,16 @@ describe("PlayingPhase Logic", () => {
         shuffleDeck: sandbox.stub().callsFake(shuffleDeck),
       };
 
-      // Import the module with the mocked dependencies using path constants
-      playingPhaseModule = await esmock(
-        PATHS.PLAYING_PHASE,
+      // Import the module with the mocked dependencies using esmockWithPaths
+      playingPhaseModule = await esmockWithPaths(
+        import.meta.url,
+        '../../../src/game/phases/playingPhase.js',
         {
-          [PATHS.LOGGER]: loggerMock,
-          [PATHS.VALIDATION]: mockValidation,
-          [PATHS.PLAYER_UTILS]: mockPlayers,
-          [PATHS.DECK_UTILS]: mockDeck,
-        },
-        {
-          // Additional options for esmock if needed
-        },
+          '@/utils/logger.js': loggerMock,
+          '@/game/logic/validation.js': mockValidation,
+          '@/utils/players.js': mockPlayers,
+          '@/utils/deck.js': mockDeck,
+        }
       );
 
       handlePlayCard = playingPhaseModule.handlePlayCard;
@@ -514,28 +480,27 @@ describe("PlayingPhase Logic", () => {
       // Mock getPartner to return a partner for the trick winner
       mockPlayers.getPartner.returns(PLAYER_ROLES[2]); // North is South's partner
 
-      // Import the module with the mocked getCardRank function
-      const mockedPlayingPhaseModule = await esmock(
-        PATHS.PLAYING_PHASE,
-        {
-          [PATHS.LOGGER]: loggerMock,
-          [PATHS.VALIDATION]: mockValidation,
-          [PATHS.PLAYER_UTILS]: mockPlayers,
-          [PATHS.DECK_UTILS]: mockDeck,
-          // Mock getCardRank to control the trick winner determination
-          [PATHS.DECK_UTILS]: {
-            ...mockDeck,
-            getCardRank: (card, trumpSuit, ledSuit) => {
-              // Make the ace of spades the highest card
-              if (card.id === "AS") return 100;
-              // Make all other cards lower
-              return 1;
-            },
-          },
+      // Create a custom mock for deck utils with getCardRank
+      const customMockDeck = {
+        ...mockDeck,
+        getCardRank: (card, trumpSuit, ledSuit) => {
+          // Make the ace of spades the highest card
+          if (card.id === "AS") return 100;
+          // Make all other cards lower
+          return 1;
         },
+      };
+
+      // Import the module with the mocked getCardRank function using esmockWithPaths
+      const mockedPlayingPhaseModule = await esmockWithPaths(
+        import.meta.url,
+        '../../../src/game/phases/playingPhase.js',
         {
-          // Additional options for esmock if needed
-        },
+          '@/utils/logger.js': loggerMock,
+          '@/game/logic/validation.js': mockValidation,
+          '@/utils/players.js': mockPlayers,
+          '@/utils/deck.js': customMockDeck,
+        }
       );
 
       // Get the handlePlayCard function from the mocked module
@@ -570,21 +535,19 @@ describe("PlayingPhase Logic", () => {
           getCardRank: mockGetCardRank,
         };
 
-        // Import the module with our mocks
-        const mockedPlayingPhaseModule = await esmock(
-          PATHS.PLAYING_PHASE,
+        // Import the module with our mocks using esmockWithPaths
+        const playingPhaseModule = await esmockWithPaths(
+          import.meta.url,
+          '../../../src/game/phases/playingPhase.js',
           {
-            [PATHS.LOGGER]: loggerMock,
-            [PATHS.VALIDATION]: mockValidation,
-            [PATHS.PLAYER_UTILS]: mockPlayers,
-            [PATHS.DECK_UTILS]: mockDeckUtils,
-          },
-          {
-            // Additional options for esmock if needed
-          },
+            '@/utils/logger.js': loggerMock,
+            '@/game/logic/validation.js': mockValidation,
+            '@/utils/players.js': mockPlayers,
+            '@/utils/deck.js': mockDeckUtils,
+          }
         );
 
-        determineTrickWinner = mockedPlayingPhaseModule.determineTrickWinner;
+        determineTrickWinner = playingPhaseModule.determineTrickWinner;
       });
 
       it("should throw PhaseLogicError if trick doesn't have exactly 4 cards", () => {

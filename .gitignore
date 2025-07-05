@@ -72,7 +72,6 @@ bower_components
 # OS generated files
 .DS_Store
 .DS_Store?
-._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
@@ -101,7 +100,6 @@ mueller_euchre_repo_llm.txt
 npm_test_dos_output.txt
 npm_test_powershell_output.txt
 test_results.txt
-docs\File Review*
 docs/File Reviews/errors.js-validation.js.review.md
 docs/File Reviews/CodeReview-errorUtils.unit.test-lobbyUtils.unit.test-logger.unit.test.md
 docs/File Reviews/gemini_review_deck.unit.test.js.md
@@ -111,17 +109,11 @@ docs/File Reviews/validation.unit.test.js.review.md
 memory-bank/rules_improvement_plan.md
 .kilocodemodes*
 .kilocodemodes/*
-test/game/phases/lobbyPhase.unit.test.js.aistudio.js
-test/game/logic/validation.js.aistudio.js
-test/utils/deck.unit.test.js.aistudio.js
-missing_layer_1.1.png
-missing_layer_1.2.png
-docs/Supplemental_Layer1_Plan_Improvements.md
-changes_since_last_commit.txt
-test\game\phases\lobbyPhase.unit.test.js.aistudio.js
 findfiles.bat
 find_files_report.txt
-mocha
 package-lock.json
 npm_test.txt
 log.txt
+digest.txt
+archived_for_later_development/test/game/state.unit.test.js
+archived_for_later_development/**/*

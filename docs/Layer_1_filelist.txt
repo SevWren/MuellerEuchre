@@ -23,3 +23,23 @@ Layer 1 ("Core Game Logic & Utilities (Pure Functions)" that are deterministic, 
 20. `src/utils/players.js`
 21. `src/utils/settingsUtils.js`
 22. `src/utils/statsUtils.js`
+
+Unit Tests
+1.  `test/game/logic/aiLogic.unit.test.js`
+2.  `test/game/logic/errors.unit.test.js`
+3.  `test/game/logic/validation.unit.test.js`
+4.  `test/game/phases/biddingPhase.unit.test.js`
+5.  `test/game/phases/endGame.unit.test.js`
+6.  `test/game/phases/goAlonePhase.unit.test.js`
+7. `test/game/phases/lobbyPhase.unit.test.js`
+8. `test/game/phases/playingPhase.unit.test.js`
+9. `test/game/phases/scoringPhase.unit.test.js`
+10. `test/game/phases/startNewHandPhase.unit.test.js`
+11. `test/utils/deck.unit.test.js`
+12. `test/utils/errorUtils.unit.test.js`
+13. `test/utils/idGenerator.unit.test.js`
+14. `test/utils/lobbyUtils.unit.test.js`
+15. `test/utils/players.unit.test.js`
+16. `test/utils/historyUtils.unit.test.js`
+17. `test/utils/settingsUtils.unit.test.js`
+18.  `test/utils/statsUtils.unit.test.js`

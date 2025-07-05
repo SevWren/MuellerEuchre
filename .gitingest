@@ -1,23 +1,55 @@
-# This is a TOML file. Use key = ["value1", "value2"] format.
-# Exclude patterns for the gitingest tool.
+# This is a TOML file used by the gitingest tool.
+# Patterns listed here will be excluded from the context file generation.
 
 exclude-pattern = [
-  # Node.js dependencies
+  # Core Dependencies & Build Output
   "node_modules/",
-
-  # Git internal directory
-  ".git/",
-
-  # Coverage reports and test output
-  "coverage/",
-  ".nyc_output/",
-  "*.lcov",
-  "full_test_out.txt",
-
-  # Build output folders
+  "package-lock.json",
   "dist/",
   "build/",
   "out/",
+
+  # Version Control & CI/CD
+  ".git/",
+  ".github/",
+  ".husky/",
+
+  # Test & Coverage Artifacts
+  "coverage/",
+  ".nyc_output",
+  "*.lcov",
+  "full_test_out.txt",
+  "unit_test_results.txt",
+  "players.unit.test.js_100_percent.txt",
+
+  # Local & Editor Configuration
+  ".vscode/",
+  ".idea/",
+  ".DS_Store",
+  "Thumbs.db",
+  ".windsurf/",
+  ".kilocode",
+  ".kilocodemodes",
+
+  # Project-Specific & Archived Directories
+  "archived/",
+  "archived_for_later_development/",
+  "Repo_To_LLM/",
+  "Prompts/",
+  "memory-bank/",
+  "tools/",
+  
+  # Public Assets (as requested)
+  "public/",
+  "assets/",
+
+  # Specific Config & Backup Files
+  ".markdownlint.json",
+  ".mocharc - Copy.cjs.txt",
+  ".mocharc.js.bak",
+
+  # Documentation Files (as requested)
+  "CODE_OF_CONDUCT.md",
 
   # Log files and temporary files
   "*.log",
@@ -27,15 +59,6 @@ exclude-pattern = [
   "tmp/",
   "temp/",
 
-  # The tool's own output file
+  # Tool's own output file
   "mueller_euchre_repo_llm.txt",
-
-  # OS and editor-specific files
-  ".DS_Store",
-  "Thumbs.db",
-  ".vscode/",
-  ".idea/",
-
-  # Archived files
-  "archived_for_later_development/",
 ]

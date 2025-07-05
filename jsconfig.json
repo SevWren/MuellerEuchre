@@ -11,7 +11,9 @@
     "paths": {
       "@/*": ["src/*"],
       "@test/*": ["test/*"],
-      "@public/*": ["public/*"]
+      "@public/*": ["public/*"],
+      "@fixtures/*": ["test/__fixtures__/*"],
+      "@mocks/*": ["test/__mocks__/*"]
     }
   },
   "exclude": [
@@ -51,19 +53,19 @@
     "readme.md",
     "ENVIRONMENT_INSTABILITY.md.errors",
     ".vscode/*",
+    "archived_for_later_development/test/db/gameRepository.unit.test.js",
     "Repo_To_LLM"
   ],
   "include": [
     "src/**/*.js",
     "src/**/*.jsx",
-    "public/js/**/*.js",
     "test/**/*.js",
     "test/**/*.jsx",
+    "public/js/**/*.js",
     "**/*.ts",
     "**/*.tsx",
     "**/__mocks__",
     "**/cypress",
-    "**/e2e",
-    "archived_for_later_development/test/db/gameRepository.unit.test.js"
+    "**/e2e"
   ]
 }

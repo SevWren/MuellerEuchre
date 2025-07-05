@@ -9,8 +9,8 @@ Files that need to be updated to use the new `esmock_wrapper.js` standard.
     - [ ] Replace hardcoded relative paths with `esmockWithPaths` or `createMockedModule`. Run individual file test to verify any changes made.
   - [ ] `test/utils/statsUtils.unit.test.js`
     - [ ] Replace direct `esmock` call with `esmockWithPaths` or `createMockedModule`. Run individual file test to verify any changes made.
-  - [ ] `test/game/logic/aiLogic.unit.test.js`
-    - [ ] Replace `path.join(__dirname, ...)` logic with `esmockWithPaths` or `createMockedModule`. Run individual file test to verify any changes made.
+  - [x] `test/game/logic/aiLogic.unit.test.js`
+    - [x] Audited and verified to be compliant with `esmock_wrapper.js` standards. No changes needed as it already uses `esmockWithPaths` correctly.
   - [ ] `test/utils/historyUtils.unit.test.js`
     - [ ] Replace `path.join(__dirname, ...)` logic with `esmockWithPaths` or `createMockedModule`. Run individual file test to verify any changes made.
   - [x] `test/game/phases/biddingPhase.unit.test.js`
@@ -25,8 +25,8 @@ Files that need to be updated to use the new `esmock_wrapper.js` standard.
     - [x] Replace `toPosixPath` helper and path constants with `esmock_wrapper.js` utility. Run individual file test to verify any changes made.
   - [x] `test/game/phases/scoringPhase.unit.test.js`
     - [x] Replace `toPosixPath` helper and path constants with `esmock_wrapper.js` utility. Run individual file test to verify any changes made.
-  - [ ] `test/game/logic/validation.unit.test.js`
-    - [ ] Replace `toPosixPath` helper and path constants with `esmock_wrapper.js` utility. Run individual file test to verify any changes made.
+  - [x] `test/game/logic/validation.unit.test.js`
+    - [x] Audited and verified to be compliant with `esmock_wrapper.js` standards. The file correctly uses `esmockWithPaths` and follows project mocking patterns.
   - [ ] `test/socket/handlers/goAloneHandlers.unit.test.js`
     - [ ] Replace direct `esmock` call with `esmockWithPaths` or `createMockedModule`. Run individual file test to verify any changes made.
   - [ ] `test/socket/handlers/playingHandlers.unit.test.js`
@@ -55,5 +55,7 @@ All Layer 1 test files have been verified to use `esmock_wrapper.js` with the fo
 - [x] `test/game/phases/lobbyPhase.unit.test.js`
 - [x] `test/game/phases/playingPhase.unit.test.js`
 - [x] `test/game/phases/scoringPhase.unit.test.js`
+- [x] `test/game/logic/aiLogic.unit.test.js`
+- [x] `test/game/logic/validation.unit.test.js`
 
 ## Current Goal

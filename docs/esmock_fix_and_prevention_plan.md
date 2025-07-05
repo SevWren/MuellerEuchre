@@ -15,10 +15,11 @@ A project-wide analysis reveals that while progress has been made, several legac
   - **Files to fix:** `test/db/gameRepository.unit.test.js`, `test/game/state.unit.test.js`, `test/socket/handlers/biddingHandlers.unit.test.js`, `test/utils/statsUtils.unit.test.js`.
 
 - **Pattern B (Medium-Risk - DEPRECATED):** Using `path.join(__dirname, ...)`. This is slightly more robust but does not support path aliasing and is less readable than the wrapper.
-  - **Files to fix:** `test/game/logic/aiLogic.unit.test.js`, `test/utils/historyUtils.unit.test.js`.
+  - **Files to fix:** `test/utils/historyUtils.unit.test.js`.
+  - **Files audited and compliant:** `test/game/logic/aiLogic.unit.test.js` has been audited and verified to be compliant with the new mocking standards.
 
 - **Pattern C (COMPLETED - DEPRECATED):** Defining module paths as constants using `toPosixPath`. This pattern has been completely removed from all Layer 1 test files and replaced with the new wrapper.
-  - **Completed Files:** All phase tests (`biddingPhase.unit.test.js`, `endGame.unit.test.js`, `goAlonePhase.unit.test.js`, `lobbyPhase.unit.test.js`, `playingPhase.unit.test.js`, `scoringPhase.unit.test.js`) have been successfully refactored.
+  - **Completed Files:** All phase tests (`biddingPhase.unit.test.js`, `endGame.unit.test.js`, `goAlonePhase.unit.test.js`, `lobbyPhase.unit.test.js`, `playingPhase.unit.test.js`, `scoringPhase.unit.test.js`) and logic tests (`aiLogic.unit.test.js`, `validation.unit.test.js`) have been successfully audited and verified to be compliant with the new mocking standards.
 
 #### **3. Phase 2: Staged Correction Strategy (Status: Layer 1 Complete)**
 
@@ -28,6 +29,7 @@ The fix is proceeding in stages, with Layer 1 (core game phase tests) now fully 
   - All Layer 1 test files have been refactored to use `esmockWithPaths` or `createMockedModule`
   - Tests have been verified to pass with the new implementation
   - Documentation has been updated to reflect current patterns
+  - All Layer 1 logic test files (`aiLogic.unit.test.js`, `validation.unit.test.js`) have been audited and verified to be compliant with the new mocking standards
 
 - **Stage 2: Remaining Files - IN PROGRESS**
   - Continue refactoring remaining test files using Patterns A and B

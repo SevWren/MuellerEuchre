@@ -3,7 +3,23 @@
 ## Overview
 This document outlines the recommended patterns for mocking ES modules in tests using the `esmock_wrapper.js` utility. This wrapper provides a consistent way to mock dependencies across the codebase and handles path resolution automatically.
 
-> **Migration Status**: All Layer 1 test files have been successfully migrated to use `esmock_wrapper.js`. See [Migration Status](#migration-status) for details.
+> **Migration Status**: All Layer 1 test files have been migrated to use `esmock_wrapper.js`. The following files are now using the new mocking pattern:
+
+### Layer 1 - Game Phases (Completed)
+- [x] `test/game/phases/biddingPhase.unit.test.js`
+- [x] `test/game/phases/endGame.unit.test.js`
+- [x] `test/game/phases/goAlonePhase.unit.test.js`
+- [x] `test/game/phases/lobbyPhase.unit.test.js`
+- [x] `test/game/phases/playingPhase.unit.test.js`
+- [x] `test/game/phases/scoringPhase.unit.test.js`
+
+### Layer 1 - Game Logic (Completed)
+- [x] `test/game/logic/aiLogic.unit.test.js` - Verified to be compliant with the new mocking standards
+- [x] `test/game/logic/validation.unit.test.js` - Verified to be compliant with the new mocking standards
+
+### Next Steps
+- [ ] Continue migration of remaining test files in other layers
+- [ ] Update ESLint rules to enforce the new mocking pattern
 
 ## Table of Contents
 1. [Basic Usage](#basic-usage)

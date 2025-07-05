@@ -19,40 +19,10 @@
 
 import { expect } from "chai";
 import sinon from "sinon";
-import esmock from "esmock";
-import path from "path";
-import { fileURLToPath } from "url";
+import { esmockWithPaths } from "../../utils/esmock_wrapper.js";
+import { createMockLogger, resetMocks } from "../../utils/testMocks.js";
 
-// =============================================
-// PATH CONSTANTS (Pattern from esmock_fix_and_prevention_plan.md)
-// =============================================
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/**
- * Converts a relative path to an absolute path with POSIX separators
- * @param {string} relativePath - Path relative to the test file
- * @returns {string} Absolute path with POSIX separators
- */
-const toPosixPath = (relativePath) => {
-  return path.resolve(__dirname, relativePath).replace(/\\/g, "/");
-};
-
-// Define all module paths as constants at the top of the file
-const PATHS = {
-  // Source files - use relative paths from the test file
-  GO_ALONE_PHASE: toPosixPath("../../../src/game/phases/goAlonePhase.js"),
-  CONSTANTS: toPosixPath("../../../src/config/constants.js"),
-  ERRORS: toPosixPath("../../../src/game/logic/errors.js"),
-  LOGGER: toPosixPath("../../../src/utils/logger.js"),
-  PLAYERS: toPosixPath("../../../src/utils/players.js"),
-  VALIDATION: toPosixPath("../../../src/game/logic/validation.js"),
-
-  // Test utilities
-  TEST_UTILS: toPosixPath("../../testUtils.js"),
-};
-
-// Import using path constants to ensure consistency
+// Import constants and errors directly
 import {
   GAME_PHASES,
   PLAYER_ROLES,
@@ -66,14 +36,8 @@ import {
   PhaseLogicError,
 } from "../../../src/game/logic/errors.js";
 
-// Default logger mock
-const defaultLoggerMock = {
-  info: sinon.stub(),
-  warn: sinon.stub(),
-  error: sinon.stub(),
-  debug: sinon.stub(),
-  log: sinon.stub(), // Add log method to match the logger interface
-};
+// Create logger mock
+const defaultLoggerMock = createMockLogger();
 
 // Helper to create a base game state for go_alone phase tests
 const createGoAloneGameState = (currentPlayer, trumpMaker) => ({
@@ -101,19 +65,14 @@ const createGoAloneGameState = (currentPlayer, trumpMaker) => ({
       teamId: TEAMS.TEAM_EW,
     },
   },
-  dealer: PLAYER_ROLES[0], // South
-  currentPlayer: currentPlayer,
-  makerTeam: TEAMS.TEAM_NS,
-  playerWhoOrderedUp:
-    trumpMaker === PLAYER_ROLES[0] || trumpMaker === PLAYER_ROLES[2]
-      ? trumpMaker
-      : null,
-  playerWhoCalledTrump:
-    trumpMaker === PLAYER_ROLES[1] || trumpMaker === PLAYER_ROLES[3]
-      ? trumpMaker
-      : null,
+  currentPlayer: currentPlayer || PLAYER_ROLES[0],
+  dealer: PLAYER_ROLES[0],
+  makerTeam: trumpMaker ? TEAMS.TEAM_NS : TEAMS.TEAM_EW,
+  playerWhoOrderedUp: trumpMaker || PLAYER_ROLES[0],
+  currentTrick: [],
+  tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
   gameMessages: [],
-  currentTrick: [], // Should be empty before play starts
+  settings: { winningScore: 10 },
   leadSuit: null, // Should be null before play starts
 });
 
@@ -123,34 +82,44 @@ describe("GoAlonePhase Logic", () => {
   let getNextPlayerMock;
   let getPartnerMock;
   let currentTestGameStateForStub; // To be set by each test
+  let sandbox;
 
   beforeEach(async () => {
-    updateGameStateStub = sinon.stub().callsFake((updaterFn) => {
+    // Create a fresh sandbox for each test
+    sandbox = sinon.createSandbox();
+    
+    // Setup stubs
+    updateGameStateStub = sandbox.stub().callsFake((updaterFn) => {
       // The updater function will receive the gameState set by currentTestGameStateForStub
       return updaterFn(currentTestGameStateForStub);
     });
-    getNextPlayerMock = sinon.stub();
-    getPartnerMock = sinon.stub();
+    
+    getNextPlayerMock = sandbox.stub();
+    getPartnerMock = sandbox.stub();
 
-    const goAlonePhaseModule = await esmock(PATHS.GO_ALONE_PHASE, {
-      [PATHS.LOGGER]: defaultLoggerMock,
-      [PATHS.PLAYERS]: {
-        getNextPlayer: getNextPlayerMock,
-        getPartner: getPartnerMock,
-      },
-      // Errors are imported by the test file directly for assertions.
-      // If goAlonePhase.js itself needed to import specific error *instances* (not classes),
-      // then errors.js might need mocking here. But it imports classes.
-    });
+    // Reset the logger mocks
+    resetMocks(sandbox, { defaultLoggerMock });
+
+    // Import the module with mocked dependencies using esmockWithPaths
+    const goAlonePhaseModule = await esmockWithPaths(
+      import.meta.url,
+      '../../../src/game/phases/goAlonePhase.js',
+      {
+        '@/utils/logger.js': defaultLoggerMock,
+        '@/utils/players.js': {
+          getNextPlayer: getNextPlayerMock,
+          getPartner: getPartnerMock,
+        },
+        // Errors are imported by the test file directly for assertions
+      }
+    );
+
     handleGoAloneDecision = goAlonePhaseModule.handleGoAloneDecision;
-
-    // Reset stubs that might be used across tests
-    defaultLoggerMock.info.resetHistory();
-    defaultLoggerMock.warn.resetHistory();
-    defaultLoggerMock.error.resetHistory();
   });
 
   afterEach(() => {
+    // Restore the sandbox and reset all mocks after each test
+    sandbox.restore();
     sinon.restore();
   });
 

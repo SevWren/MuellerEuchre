@@ -1,17 +1,31 @@
 # ESMock Wrapper Usage Guide
 
 ## Overview
-This document outlines the recommended patterns for mocking ES modules in tests using the `esmock_wrapper.js` utility.
+This document outlines the recommended patterns for mocking ES modules in tests using the `esmock_wrapper.js` utility. This wrapper provides a consistent way to mock dependencies across the codebase and handles path resolution automatically.
+
+> **Migration Status**: All Layer 1 test files have been successfully migrated to use `esmock_wrapper.js`. See [Migration Status](#migration-status) for details.
+
+## Table of Contents
+1. [Basic Usage](#basic-usage)
+2. [Mocking Patterns](#mocking-patterns)
+   - [Basic Module Mocking](#1-basic-module-mocking)
+   - [Using createMockedModule](#2-using-createmockedmodule)
+   - [Mocking Dependencies](#3-mocking-dependencies)
+   - [Testing Different Scenarios](#4-testing-different-scenarios)
+3. [Migration Status](#migration-status)
+4. [Best Practices](#best-practices)
+5. [Common Pitfalls](#common-pitfalls)
 
 ## Basic Usage
 
 ### Importing the Wrapper
 ```javascript
-import { esmockWithPaths } from '../../test/utils/esmock_wrapper.js';
+import { esmockWithPaths, createMockedModule } from '../../test/utils/esmock_wrapper.js';
 ```
 
-### Mocking a Module
+### Basic Module Mocking
 ```javascript
+// Basic usage with esmockWithPaths
 const mockModule = await esmockWithPaths(
   import.meta.url,  // Always use import.meta.url for the test file
   '../../../src/path/to/module.js',  // Path to the module under test
@@ -24,12 +38,168 @@ const mockModule = await esmockWithPaths(
 );
 ```
 
-### Mocking Patterns
+### Using createMockedModule
+For more complex scenarios, use `createMockedModule`:
 
-#### 1. Basic Mock Setup
 ```javascript
+const { module: mockModule, mocks } = await createMockedModule(
+  import.meta.url,
+  '../../../src/path/to/module.js',
+  {
+    // Mock dependencies
+    '@/utils/logger.js': {
+      info: sinon.stub(),
+      error: sinon.stub()
+    },
+    // Other mocks...
+  }
+);
+
+// Access mocks through the mocks object
+const { logger } = mocks;
+```
+
+## Mocking Patterns
+
+### 1. Basic Module Mocking
+```javascript
+// Simple stub example
 const mockValidation = {
-  validateSomething: sinon.stub().returns(true)
+  validateSomething: sinon.stub().returns(true),
+  // Reset the stub in beforeEach
+  reset: function() {
+    this.validateSomething.resetHistory();
+  }
+};
+
+// In your test file
+beforeEach(() => {
+  mockValidation.reset();
+});
+
+// Usage in tests
+it('should validate input', async () => {
+  const { validateInput } = await esmockWithPaths(
+    import.meta.url,
+    '../../../src/utils/validation.js',
+    {
+      './validators': mockValidation
+    }
+  );
+  
+  const result = validateInput('test');
+  expect(result).to.be.true;
+  expect(mockValidation.validateSomething).to.have.been.calledWith('test');
+});
+
+### 2. Using createMockedModule for Complex Scenarios
+```javascript
+describe('Complex Module', () => {
+  let moduleUnderTest;
+  let mocks;
+  
+  beforeEach(async () => {
+    const result = await createMockedModule(
+      import.meta.url,
+      '../../../src/game/phases/complexPhase.js',
+      {
+        '@/utils/logger.js': {
+          info: sinon.stub(),
+          error: sinon.stub().throws('Unexpected error call')
+        },
+        '../validators': {
+          validate: sinon.stub().returns(true)
+        }
+      }
+    );
+    
+    moduleUnderTest = result.module;
+    mocks = result.mocks;
+  });
+  
+  afterEach(() => {
+    sinon.restore();
+  });
+  
+  it('should handle complex scenarios', () => {
+    // Test implementation
+  });
+});
+
+### 3. Mocking Dependencies
+
+#### Mocking Node.js Built-ins
+```javascript
+const { module: fsMock } = await createMockedModule(
+  import.meta.url,
+  '../../../src/utils/fileHandler.js',
+  {
+    'node:fs/promises': {
+      readFile: sinon.stub().resolves('file content'),
+      writeFile: sinon.stub().resolves()
+    }
+  }
+);
+
+#### Mocking External Packages
+```javascript
+const { module: paymentService } = await createMockedModule(
+  import.meta.url,
+  '../../../src/services/payment.js',
+  {
+    'stripe': {
+      charges: {
+        create: sinon.stub().resolves({ id: 'ch_123', status: 'succeeded' })
+      }
+    }
+  }
+);
+
+### 4. Testing Different Scenarios
+
+#### Testing Error Cases
+```javascript
+it('should handle validation errors', async () => {
+  // Setup error case
+  mocks['../validators'].validate.throws(new Error('Validation failed'));
+  
+  await expect(moduleUnderTest.processData(invalidData))
+    .to.be.rejectedWith('Validation failed');
+  
+  expect(mocks['@/utils/logger.js'].error)
+    .to.have.been.calledWith('Validation failed');
+});
+
+#### Testing Async Operations
+```javascript
+it('should handle async operations', async () => {
+  const promise = moduleUnderTest.longRunningOperation();
+  
+  // Simulate async completion
+  await new Promise(resolve => setImmediate(resolve));
+  
+  // Assert async behavior
+  expect(mocks['../services/api'].fetch).to.have.been.calledOnce;
+  
+  const result = await promise;
+  expect(result).to.equal('expected result');
+});
+
+## Best Practices
+
+1. **Isolate Tests**: Each test should be independent and not rely on state from other tests
+2. **Use beforeEach/afterEach**: Reset mocks and test state between tests
+3. **Be Specific with Mocks**: Only mock what's necessary for the test
+4. **Test Error Cases**: Verify error handling and edge cases
+5. **Use Sinon Sandbox**: For automatic cleanup of stubs and spies
+
+## Common Pitfalls
+
+1. **Memory Leaks**: Always clean up mocks and stubs in afterEach
+2. **Over-mocking**: Don't mock everything, focus on external dependencies
+3. **Fragile Tests**: Avoid testing implementation details
+4. **Async Issues**: Handle promises and timeouts properly
+5. **Global State**: Be careful with module caching in tests
 };
 
 const module = await esmockWithPaths(

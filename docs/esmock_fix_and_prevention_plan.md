@@ -17,17 +17,22 @@ A project-wide analysis reveals that while progress has been made, several legac
 - **Pattern B (Medium-Risk - DEPRECATED):** Using `path.join(__dirname, ...)`. This is slightly more robust but does not support path aliasing and is less readable than the wrapper.
   - **Files to fix:** `test/game/logic/aiLogic.unit.test.js`, `test/utils/historyUtils.unit.test.js`.
 
-- **Pattern C (Intermediate - DEPRECATED):** Defining module paths as constants using `toPosixPath`. While an improvement over Pattern A, this pattern is now superseded by the wrapper.
-  - **Files to fix:** Most phase tests (`biddingPhase.unit.test.js`, `endGame.unit.test.js`, etc.) and some socket handler tests currently use this pattern and should be refactored for consistency.
+- **Pattern C (COMPLETED - DEPRECATED):** Defining module paths as constants using `toPosixPath`. This pattern has been completely removed from all Layer 1 test files and replaced with the new wrapper.
+  - **Completed Files:** All phase tests (`biddingPhase.unit.test.js`, `endGame.unit.test.js`, `goAlonePhase.unit.test.js`, `lobbyPhase.unit.test.js`, `playingPhase.unit.test.js`, `scoringPhase.unit.test.js`) have been successfully refactored.
 
-#### **3. Phase 2: Staged Correction Strategy (Status: Updated Strategy)**
+#### **3. Phase 2: Staged Correction Strategy (Status: Layer 1 Complete)**
 
-The fix will continue in stages, with the goal of migrating all tests to the new standard.
+The fix is proceeding in stages, with Layer 1 (core game phase tests) now fully migrated to the new standard.
 
-- **Stage 1: Systemic Refactoring**
-  - Systematically read and refactor every test file identified as using Patterns A, B, or C.
-  - The sole objective is to replace their `esmock` implementation with calls to `esmockWithPaths` or `createMockedModule`.
-  - Run tests for each file after refactoring to confirm it passes and functionality is preserved.
+- **Stage 1: Layer 1 Files - COMPLETED**
+  - All Layer 1 test files have been refactored to use `esmockWithPaths` or `createMockedModule`
+  - Tests have been verified to pass with the new implementation
+  - Documentation has been updated to reflect current patterns
+
+- **Stage 2: Remaining Files - IN PROGRESS**
+  - Continue refactoring remaining test files using Patterns A and B
+  - Follow the same patterns established in Layer 1
+  - Verify all tests pass after refactoring
 
 - **Stage 2: Full Suite Verification**
   - After all individual files are refactored, run the entire test suite (`npm test`) to guarantee no cross-module regressions were introduced.
@@ -38,9 +43,11 @@ To ensure these issues do not happen again and that the new standard is followed
 
 1.  **Mandate `esmock_wrapper.js`:** All tests involving `esmock` **must** use the functions provided by `test/utils/esmock_wrapper.js`. Direct calls to `esmock()` with manual pathing are now strictly forbidden. This leverages the project's existing `jsconfig.json` path aliases for a clean and maintainable approach.
 
-2.  **Create New Conventions Document:** A new document **must** be created at `docs/TESTING_CONVENTIONS.md`. This file will serve as the official guide for all future tests and will contain:
-    - A clear statement mandating the use of the `esmock_wrapper.js`.
-    - Code examples demonstrating how to use `esmockWithPaths` and `createMockedModule`.
-    - An explanation of _why_ this wrapper is used (cross-platform compatibility, path alias support).
+2.  **Testing Conventions Document:** The document at `docs/testing/mocking-patterns.md` serves as the official guide for all future tests and contains:
+    - A clear statement mandating the use of the `esmock_wrapper.js`
+    - Code examples demonstrating how to use `esmockWithPaths` and `createMockedModule`
+    - An explanation of _why_ this wrapper is used (cross-platform compatibility, path alias support)
+    - Best practices and common patterns for testing
+    - Reference: [Mocking Patterns Documentation](./testing/mocking-patterns.md)
 
 3.  **Update Existing Documentation:** All other development plans and workflow documents that reference testing or mocking must be updated to refer to the new `TESTING_CONVENTIONS.md` and the `esmock_wrapper.js` standard. This ensures a single, consistent source of truth.

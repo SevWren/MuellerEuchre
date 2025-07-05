@@ -12,55 +12,19 @@
 
 import { expect } from "chai";
 import sinon from "sinon";
-import esmock from "esmock";
-import path from "path";
-import { fileURLToPath } from "url";
+import { esmockWithPaths } from "../../utils/esmock_wrapper.js";
+import { createMockLogger, resetMocks } from "../../utils/testMocks.js";
 
-// =============================================
-// PATH CONSTANTS (Pattern from esmock_fix_and_prevention_plan.md)
-// =============================================
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/**
- * Converts a relative path to an absolute path with POSIX separators
- * @param {string} relativePath - Path relative to the test file
- * @returns {string} Absolute path with POSIX separators
- */
-const toPosixPath = (relativePath) => {
-  return path.resolve(__dirname, relativePath).replace(/\\/g, "/");
-};
-
-// Define all module paths as constants at the top of the file
-const PATHS = {
-  // Source files - use relative paths from the test file
-  LOBBY_PHASE: toPosixPath("../../../src/game/phases/lobbyPhase.js"),
-  CONSTANTS: toPosixPath("../../../src/config/constants.js"),
-  ERRORS: toPosixPath("../../../src/game/logic/errors.js"),
-  LOGGER: toPosixPath("../../../src/utils/logger.js"),
-  PLAYERS: toPosixPath("../../../src/utils/players.js"),
-
-  // Test utilities
-  TEST_UTILS: toPosixPath("../../testUtils.js"),
-};
-
-// Import using path constants to ensure consistency
+// Import constants and errors directly
 import { GAME_PHASES, PLAYER_ROLES } from "../../../src/config/constants.js";
-
 import {
   ValidationError,
   InvalidPhaseError,
   PhaseLogicError,
 } from "../../../src/game/logic/errors.js";
 
-// Default logger mock
-const defaultLoggerMock = {
-  info: sinon.stub(),
-  warn: sinon.stub(),
-  error: sinon.stub(),
-  debug: sinon.stub(),
-  log: sinon.stub(), // Add log method to match the logger interface
-};
+// Create logger mock
+const defaultLoggerMock = createMockLogger();
 
 // Helper to create a base game state for lobby phase tests
 /**
@@ -103,33 +67,24 @@ describe("LobbyPhase Logic", () => {
     sandbox = sinon.createSandbox();
 
     // Reset the logger mocks
-    Object.values(defaultLoggerMock).forEach((mock) => {
-      if (typeof mock.resetHistory === "function") {
-        mock.resetHistory();
-      }
-    });
+    resetMocks(sandbox, { defaultLoggerMock });
 
-    // Import the module with the mocked dependencies using path constants
-    const lobbyPhaseModule = await esmock(
-      PATHS.LOBBY_PHASE,
+    // Import the module with mocked dependencies using esmockWithPaths
+    const lobbyPhaseModule = await esmockWithPaths(
+      import.meta.url,
+      '../../../src/game/phases/lobbyPhase.js',
       {
-        [PATHS.LOGGER]: defaultLoggerMock,
+        '@/utils/logger.js': defaultLoggerMock,
         // Errors are imported by the test file for assertions
-      },
-      {
-        // Additional options for esmock if needed
-      },
+      }
     );
 
     attemptToStartGame = lobbyPhaseModule.attemptToStartGame;
   });
 
   afterEach(() => {
-    // Restore the sandbox after each test
+    // Restore the sandbox and reset all mocks after each test
     sandbox.restore();
-  });
-
-  afterEach(() => {
     sinon.restore();
   });
 

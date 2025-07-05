@@ -26,15 +26,6 @@
  *Tests are isolated with proper beforeEach/afterEach
  *Uses Chai assertions with Sinon-Chai for mock verification
  *Properly resets mocks between tests
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
  */
 import { expect, use } from 'chai';
 import sinon from 'sinon';

@@ -1,6 +1,21 @@
 /**
- * Unit tests for test mocks in testMocks.js
+ * @file Unit tests for the test mocks defined in testMocks.js
  * @module test/utils/testMocks.unit.test
+ * @description Contains comprehensive test suites for the mock utilities used throughout
+ * the Euchre game test suite. These tests ensure that the mock implementations behave
+ * as expected and maintain consistency with the actual implementations they're mocking.
+ *
+ * @example
+ * // Example test structure from this file
+ * describe('Test Mocks', () => {
+ *   describe('createMockPlayerUtils()', () => {
+ *     it('should return the next player in standard order', () => {
+ *       // Test implementation
+ *     });
+ *   });
+ * });
+ *
+ * @see testMocks.js For the implementation being tested
  */
 
 import { expect } from 'chai';

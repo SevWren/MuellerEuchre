@@ -1,3 +1,26 @@
+/**
+ * @file Test helper utilities for the Euchre game test suite
+ * @module test-helpers
+ * @description Provides utility functions for creating mock game data and test fixtures.
+ * These helpers are designed to make tests more maintainable and reduce boilerplate code.
+ * 
+ * @example
+ * // Basic usage in a test file
+ * import { createBaseGameState, createMockPlayer } from '@test/utils/test-helpers';
+ * 
+ * describe('Game Logic', () => {
+ *   it('should handle player turns correctly', () => {
+ *     const gameState = createBaseGameState({
+ *       currentPlayer: 'PLAYER_1',
+ *       gamePhase: 'PLAYING'
+ *     });
+ *     const player = createMockPlayer('player1', { isReady: true });
+ *     // Test logic here
+ *   });
+ * });
+ * 
+ */
+
 import { PATHS } from './path-utils.js';
 
 /**

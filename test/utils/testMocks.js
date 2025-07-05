@@ -1,6 +1,38 @@
 /**
- * Common test mocks and utilities for unit testing
+ * @file Test mocks and utilities for Euchre game unit testing
  * @module testMocks
+ * @description Provides reusable mock objects and utilities for testing Euchre game logic.
+ * This module includes mock implementations of common game components like loggers, player utilities,
+ * validation functions, and game state management to facilitate isolated unit testing.
+ *
+ * @example
+ * // Basic usage in a test file
+ * import { createMockLogger, createMockGameState, resetMocks } from '@test/utils/testMocks';
+ * import sinon from 'sinon';
+ *
+ * describe('Game Logic', () => {
+ *   let sandbox;
+ *   let logger;
+ *   let gameState;
+ *
+ *   beforeEach(() => {
+ *     sandbox = sinon.createSandbox();
+ *     logger = createMockLogger();
+ *     gameState = createMockGameState({
+ *       gamePhase: 'BIDDING',
+ *       currentPlayer: 'south'
+ *     });
+ *   });
+ *
+ *   afterEach(() => {
+ *     resetMocks(sandbox, { logger });
+ *     sandbox.restore();
+ *   });
+ *
+ *   it('should handle player turns', () => {
+ *     // Test implementation using the mocks
+ *   });
+ * });
  */
 
 import sinon from 'sinon';

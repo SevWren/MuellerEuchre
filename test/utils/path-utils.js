@@ -1,3 +1,23 @@
+/**
+ * @file Path utility functions for test files
+ * @module test/utils/path-utils
+ * @description Provides cross-platform path handling utilities for test files.
+ * These utilities help manage file paths consistently across different operating systems
+ * and provide common path resolution functionality for test files.
+ * 
+ * @example
+ * import { toPosixPath, fromProjectRoot, PATHS } from '@test/utils/path-utils';
+ * 
+ * // Convert a relative path to POSIX format
+ * const absPath = toPosixPath('../../src/utils');
+ * 
+ * // Get a path relative to project root
+ * const configPath = fromProjectRoot('config/test.json');
+ * 
+ * // Use predefined paths
+ * const testUtilsPath = PATHS.TEST_UTILS;
+ */
+
 import path from 'path';
 import { fileURLToPath } from 'url';
 

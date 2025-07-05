@@ -1,3 +1,26 @@
+/**
+ * @module game/phases/scoringPhase
+ * @description Handles the scoring phase of an Euchre game, including point calculation,
+ * game over conditions, and new game initialization. This module is responsible for
+ * processing the results of a completed hand, updating scores, and determining if the
+ * game has been won.
+ *
+ * @see {@link module:game/phases/biddingPhase} - Previous phase in the game flow
+ * @see {@link module:game/phases/playingPhase} - Previous phase where tricks are played
+ *
+ * @example
+ * // In a game flow controller:
+ * if (currentPhase === GAME_PHASES.SCORING) {
+ *   const updatedState = await calculateAndApplyScore(gameState);
+ *   return updatedState;
+ * }
+ *
+ * @requires module:config/constants
+ * @requires module:utils/players
+ * @requires module:utils/logger
+ * @requires module:game/logic/errors
+ */
+
 import {
   GAME_PHASES,
   WINNING_SCORE,

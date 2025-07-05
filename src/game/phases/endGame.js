@@ -1,3 +1,25 @@
+/**
+ * @module game/phases/endGame
+ * @description Manages the end-game phase of an Euchre game, including game over conditions,
+ * final score calculation, and new game initialization. This module handles the transition
+ * from active play to game completion, including winner determination and match statistics.
+ *
+ * @see {@link module:game/phases/scoringPhase} - Previous phase that triggers end-game checks
+ * @see {@link module:config/constants} - For GAME_PHASES and TEAMS constants
+ *
+ * @example
+ * // In a game flow controller:
+ * if (currentPhase === GAME_PHASES.END_GAME) {
+ *   const updatedState = checkGameOver(gameState);
+ *   if (updatedState.gameOver) {
+ *     // Handle game over UI/cleanup
+ *   }
+ * }
+ *
+ * @requires module:config/constants
+ * @requires module:utils/logger
+ */
+
 import { GAME_PHASES, WINNING_SCORE } from "../../config/constants.js";
 import { log } from "../../utils/logger.js";
 import { TEAMS } from "../../config/constants.js";

@@ -26,10 +26,36 @@ export function createMockLogger() {
  */
 export function createMockPlayerUtils(overrides = {}) {
   const defaults = {
-    getNextPlayer: sinon.stub().callsFake((currentPlayer) => {
-      const playerOrder = ['south', 'west', 'north', 'east'];
-      const currentIndex = playerOrder.indexOf(currentPlayer);
-      return playerOrder[(currentIndex + 1) % playerOrder.length];
+    /**
+     * Mock implementation of getNextPlayer that matches the real implementation's behavior
+     * @param {string} currentPlayerRole - The current player's role
+     * @param {Array<string>} [playerSlots=PLAYER_ROLES] - Ordered array of player roles
+     * @param {boolean} [goingAlone=false] - Whether a player is "going alone"
+     * @param {string} [partnerSittingOut] - Role of the partner who is sitting out
+     * @returns {string|undefined} Next player's role or undefined if inputs are invalid
+     */
+    getNextPlayer: sinon.stub().callsFake((currentPlayerRole, playerSlots = ['south', 'west', 'north', 'east'], goingAlone = false, partnerSittingOut = null) => {
+      // Input validation
+      if (!currentPlayerRole || !playerSlots || playerSlots.length !== 4) {
+        return undefined;
+      }
+
+      const currentIndex = playerSlots.indexOf(currentPlayerRole);
+      if (currentIndex === -1) {
+        return undefined;
+      }
+
+      // Calculate next player index with wrap-around
+      let nextIndex = (currentIndex + 1) % playerSlots.length;
+      let nextPlayer = playerSlots[nextIndex];
+
+      // Handle going alone scenario
+      if (goingAlone && partnerSittingOut && nextPlayer === partnerSittingOut) {
+        nextIndex = (nextIndex + 1) % playerSlots.length;
+        nextPlayer = playerSlots[nextIndex];
+      }
+
+      return nextPlayer;
     }),
     getPartner: sinon.stub().callsFake((player) => {
       const partners = {

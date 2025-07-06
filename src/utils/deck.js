@@ -1,14 +1,25 @@
-// filepath: src/utils/deck.js
 /**
- * Provides a comprehensive set of utility functions for creating, managing,
- * and evaluating a 24-card Euchre deck.
- *
  * @module utils/deck
  * @description
+ *   Provides a comprehensive set of utility functions for creating, managing,
+ *   and evaluating a 24-card Euchre deck.
+ *
  *   Core logic for card and deck manipulations in Euchre. Includes:
  *   - Deck creation and shuffling
  *   - Card ranking and identification
  *   - Hand sorting and suit evaluation
+ *
+ * @example
+ * import { createDeck, shuffleDeck, sortHand } from '@/utils/deck';
+ * import { SUITS } from '@/config/constants';
+ *
+ * // Create and shuffle a deck
+ * const deck = createDeck();
+ * const shuffled = shuffleDeck(deck);
+ *
+ * // Sort a player's hand
+ * const hand = [/* cards *\/];
+ * const sortedHand = sortHand(hand, SUITS.HEARTS);
  *
  * @since 1.0.0
  */
@@ -16,7 +27,12 @@ import { SUITS, VALUES, CARD_RANKS } from "../config/constants.js";
 import { InvalidCardError } from "../game/logic/errors.js";
 import logger from "./logger.js";
 
-// Constants grouped together for better maintainability
+/**
+ * Maps suit names to their single-character representations
+ * @private
+ * @readonly
+ * @enum {string}
+ */
 const SUIT_CHAR_MAP = {
   hearts: "H",
   diamonds: "D",
@@ -24,6 +40,12 @@ const SUIT_CHAR_MAP = {
   spades: "S",
 };
 
+/**
+ * Maps card values to their full names
+ * @private
+ * @readonly
+ * @enum {string}
+ */
 const VALUE_NAME_MAP = {
   9: "Nine",
   10: "Ten",
@@ -33,21 +55,46 @@ const VALUE_NAME_MAP = {
   A: "Ace",
 };
 
-// Pre-calculated values for performance and readability in getCardRank
-// These values are used to create a clear hierarchy in card ranking:
-// Right Bower (Jack of trump) > Left Bower (Jack of same color) > Other trumps > Led suit > Off-suit
-// Note: These values are set to match test expectations
-const RIGHT_BOWER_RANK_BONUS = 150; // Base rank + 100
-const LEFT_BOWER_RANK_BONUS = 100; // Base rank + 50
-const TRUMP_RANK_BONUS = 100; // Base rank + 100
-const LED_SUIT_RANK_BONUS = 50; // Base rank + 50
+/**
+ * Rank bonus values for card evaluation in Euchre.
+ * These values create a clear hierarchy in card ranking:
+ * Right Bower (Jack of trump) > Left Bower (Jack of same color as trump) > Other trumps > Led suit > Off-suit
+ * @private
+ * @readonly
+ * @enum {number}
+ * @property {number} RIGHT_BOWER_RANK_BONUS=150 - Bonus for the Right Bower (Jack of trump)
+ * @property {number} LEFT_BOWER_RANK_BONUS=100 - Bonus for the Left Bower (Jack of same color as trump)
+ * @property {number} TRUMP_RANK_BONUS=100 - Bonus for any trump card (except bowers)
+ * @property {number} LED_SUIT_RANK_BONUS=50 - Bonus for cards in the led suit (non-trump)
+ */
+const CARD_RANK_BONUSES = {
+  RIGHT_BOWER: 150,
+  LEFT_BOWER: 100,
+  TRUMP: 100,
+  LED_SUIT: 50,
+};
+
+const {
+  RIGHT_BOWER_RANK_BONUS,
+  LEFT_BOWER_RANK_BONUS,
+  TRUMP_RANK_BONUS,
+  LED_SUIT_RANK_BONUS,
+} = CARD_RANK_BONUSES;
 
 /**
+ * Represents a playing card in Euchre.
  * @typedef {Object} Card
- * @property {string} suit - The suit ('hearts', 'spades', etc.)
- * @property {string} value - The face value ('9', '10', 'J', etc.)
+ * @property {string} suit - The suit of the card (must be one of SUITS values)
+ * @property {string} value - The face value ('9', '10', 'J', 'Q', 'K', 'A')
  * @property {string} id - Unique identifier (e.g., 'AH' for Ace of Hearts)
  * @property {string} name - Human-readable name (e.g., 'Ace of Hearts')
+ * @example
+ * {
+ *   suit: 'hearts',
+ *   value: 'A',
+ *   id: 'AH',
+ *   name: 'Ace of Hearts'
+ * }
  */
 
 /**
@@ -56,6 +103,9 @@ const LED_SUIT_RANK_BONUS = 50; // Base rank + 50
  * @param {string} suit - The suit to evaluate (case-insensitive).
  * @returns {'red'|'black'} The suit color.
  * @throws {InvalidCardError} If suit is invalid.
+ * @example
+ * getSuitColor('hearts'); // returns 'red'
+ * getSuitColor('CLUBS'); // returns 'black'
  */
 function getSuitColor(suit) {
   if (!suit) {
@@ -83,9 +133,12 @@ function getSuitColor(suit) {
 
 /**
  * Checks if two suits are the same color.
- * @param {string} suitA - First suit.
- * @param {string} suitB - Second suit.
- * @returns {boolean} True if same color.
+ * @param {string} suitA - First suit (case-insensitive).
+ * @param {string} suitB - Second suit (case-insensitive).
+ * @returns {boolean} True if both suits are the same color, false otherwise.
+ * @example
+ * areSameColor('hearts', 'diamonds'); // returns true (both red)
+ * areSameColor('hearts', 'spades');   // returns false (red vs black)
  */
 export function areSameColor(suitA, suitB) {
   try {
@@ -106,9 +159,13 @@ export function areSameColor(suitA, suitB) {
  * Creates a standard 24-card Euchre deck.
  *
  * The deck consists of the 9, 10, Jack, Queen, King, and Ace cards for each of the four standard suits.
- * Each card is represented as a detailed object.
+ * Each card is represented as a detailed object with suit, value, id, and name properties.
  *
  * @returns {Card[]} An array of 24 card objects, forming a complete Euchre deck.
+ * @example
+ * const deck = createDeck();
+ * console.log(deck.length); // 24
+ * console.log(deck[0]); // { suit: 'hearts', id: '9H', name: 'Nine of Hearts' }
  */
 export function createDeck() {
   return Object.values(SUITS).flatMap((suit) =>
@@ -124,10 +181,15 @@ export function createDeck() {
 
 /**
  * Shuffles a deck of cards using the Fisher-Yates algorithm.
- * Returns a new shuffled array, does not mutate the original.
+ * Returns a new shuffled array without mutating the original.
+ *
  * @param {Card[]} deck - The deck to shuffle.
- * @returns {Card[]} A new array with the cards shuffled.
+ * @returns {Card[]} A new array with the cards in random order.
  * @throws {InvalidCardError} If deck is not a valid array.
+ * @example
+ * const deck = createDeck();
+ * const shuffled = shuffleDeck(deck);
+ * console.log(shuffled[0] === deck[0]); // false (very likely)
  */
 export function shuffleDeck(deck) {
   if (!Array.isArray(deck)) {
@@ -146,8 +208,12 @@ export function shuffleDeck(deck) {
 
 /**
  * Formats a card object into a concise string ID (e.g., "KH", "9S").
- * @param {Card} card - The card object { suit, value }.
- * @returns {string} The string representation of the card, or "??" if invalid.
+ *
+ * @param {Card} card - The card object containing at least a suit and value.
+ * @returns {string} The string representation of the card (e.g., "KH"), or "??" if invalid.
+ * @example
+ * const card = { suit: 'hearts', value: 'K' };
+ * cardToId(card); // returns 'KH'
  */
 export function cardToId(card) {
   // Debug log the card object

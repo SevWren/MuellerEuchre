@@ -54,7 +54,8 @@
     "ENVIRONMENT_INSTABILITY.md.errors",
     ".vscode/*",
     "archived_for_later_development/test/db/gameRepository.unit.test.js",
-    "Repo_To_LLM"
+    "Repo_To_LLM",
+    "archived_for_later_development"
   ],
   "include": [
     "src/**/*.js",

@@ -51,6 +51,43 @@ export class ValidationError extends Error {
 }
 
 /**
+ * Thrown when a player attempts to declare 'go alone' in an invalid context.
+ * This error indicates that the player cannot declare to go alone, either because
+ * they are not the winning bidder, it's not the correct phase, or they've already
+ * made their decision.
+ *
+ * @class InvalidGoAloneError
+ * @extends ValidationError
+ * @param {string} message - Description of why the go-alone declaration is invalid
+ * @property {string} name - The error name ('InvalidGoAloneError')
+ *
+ * @example
+ * // Throwing the error - player not the winning bidder
+ * if (playerRole !== winningBidder) {
+ *   throw new InvalidGoAloneError('Only the winning bidder can declare to go alone');
+ * }
+ *
+ * @example
+ * // Catching and handling the error
+ * try {
+ *   declareGoAlone(gameState, playerRole);
+ * } catch (error) {
+ *   if (error instanceof InvalidGoAloneError) {
+ *     console.error('Cannot go alone:', error.message);
+ *     // Show error to player
+ *   }
+ * }
+ *
+ * @see ValidationError Base class for all validation errors
+ */
+export class InvalidGoAloneError extends ValidationError {
+  constructor(message) {
+    super(message);
+    this.name = 'InvalidGoAloneError';
+  }
+}
+
+/**
  * Thrown when a player attempts to take an action when it's not their turn.
  *
  * @class NotPlayersTurnError

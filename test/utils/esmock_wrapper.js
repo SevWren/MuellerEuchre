@@ -1,4 +1,24 @@
-// filepath: test/utils/esmock_wrapper.js
+/**
+ * @file ES Module mocking utility with path alias resolution
+ * @module test/utils/esmock_wrapper
+ * @description This module provides a wrapper around esmock that adds support for:
+ * - Path alias resolution (e.g., @/utils/logger.js)
+ * - Cross-platform path handling (Windows/POSIX)
+ * - Consistent path resolution for tests
+ * - Caching of resolved paths and mocks for performance
+ * 
+ * @example
+ * // Basic usage
+ * import { esmockWithPaths } from './test/utils/esmock_wrapper.js';
+ * 
+ * const mockModule = await esmockWithPaths(
+ *   import.meta.url,
+ *   '../../src/module.js',
+ *   { '@/utils/logger.js': { log: () => {} } }
+ * );
+ * 
+ * @see {@link https://github.com/iambumblehead/esmock} for the underlying esmock library
+ */
 import esmock from 'esmock';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,9 +27,48 @@ import sinon from 'sinon';
 import { parse } from 'jsonc-parser'; // <-- IMPORT THE NEW PARSER
 
 // --- Configuration ---
+/** @constant {boolean} IS_DEBUG - Controls debug logging */
 const IS_DEBUG = process.env.ESMOCK_DEBUG === 'true';
+
+/** @constant {string} projectRoot - Absolute path to the project root directory */
 const projectRoot = path.resolve(fileURLToPath(import.meta.url), '../../../');
+
+/** @constant {string} jsconfigPath - Path to the jsconfig.json file */
 const jsconfigPath = path.join(projectRoot, 'jsconfig.json');
+
+/**
+ * @typedef {Object} JsConfig
+ * @property {Object} [compilerOptions] - Compiler options from jsconfig
+ * @property {Object} [compilerOptions.paths] - Path aliases configuration
+ * @property {string[]} [compilerOptions.paths.*] - Array of path patterns for each alias
+ */
+
+// --- Error Classes ---
+
+/**
+ * Error thrown when there's an issue with the jsconfig.json configuration
+ * @extends Error
+ */
+class ConfigError extends Error {
+  constructor(message, cause) {
+    super(message);
+    this.name = 'ConfigError';
+    this.cause = cause;
+  }
+}
+
+/**
+ * Error thrown when path resolution fails
+ * @extends Error
+ */
+class PathResolutionError extends Error {
+  constructor(message, specifier, cause) {
+    super(message);
+    this.name = 'PathResolutionError';
+    this.specifier = specifier;
+    this.cause = cause;
+  }
+}
 
 /**
  * Logs messages to the console only if ESMOCK_DEBUG is enabled.
@@ -22,9 +81,31 @@ const logDebug = (...args) => {
 };
 
 /**
+ * Validates the structure of jsconfig.json
+ * @param {JsConfig} jsconfig - The parsed jsconfig object
+ * @throws {ConfigError} If the configuration is invalid
+ */
+function validateJsConfig(jsconfig) {
+  if (!jsconfig || typeof jsconfig !== 'object') {
+    throw new ConfigError('Invalid jsconfig.json: must be an object');
+  }
+
+  const { compilerOptions } = jsconfig;
+  if (!compilerOptions || typeof compilerOptions !== 'object') {
+    throw new ConfigError('Missing or invalid compilerOptions in jsconfig.json');
+  }
+
+  const { paths } = compilerOptions;
+  if (paths && typeof paths !== 'object') {
+    throw new ConfigError('paths in compilerOptions must be an object');
+  }
+}
+
+/**
  * Parses jsconfig.json to extract path aliases.
  * Caches the result to avoid repeated file reads.
  * @returns {Map<string, string>} A map of aliases to their resolved paths.
+ * @throws {ConfigError} If jsconfig.json is invalid or cannot be read
  */
 const getPathAliases = (() => {
   let aliases = null;
@@ -32,50 +113,132 @@ const getPathAliases = (() => {
     if (aliases) {
       return aliases;
     }
-    aliases = new Map();
-    try {
-      if (fs.existsSync(jsconfigPath)) {
-        // --- IMPROVEMENT ---
-        // Read the file content once
-        const jsconfigRaw = fs.readFileSync(jsconfigPath, 'utf-8');
-        // Use the robust jsonc-parser to handle comments and trailing commas
-        const jsconfig = parse(jsconfigRaw);
-        // --- END IMPROVEMENT ---
 
-        const paths = jsconfig?.compilerOptions?.paths || {};
-        
-        for (const [alias, pathArray] of Object.entries(paths)) {
-          if (!Array.isArray(pathArray) || pathArray.length === 0) continue;
+    aliases = new Map();
+    
+    try {
+      if (!fs.existsSync(jsconfigPath)) {
+        logDebug('jsconfig.json not found, using default aliases');
+        return aliases;
+      }
+
+      const jsconfigRaw = fs.readFileSync(jsconfigPath, 'utf-8');
+      const jsconfig = parse(jsconfigRaw);
+      
+      // Validate the structure
+      validateJsConfig(jsconfig);
+
+      const paths = jsconfig?.compilerOptions?.paths || {};
+      
+      for (const [alias, pathArray] of Object.entries(paths)) {
+        try {
+          if (!Array.isArray(pathArray) || pathArray.length === 0) {
+            logDebug(`Skipping empty path array for alias: ${alias}`);
+            continue;
+          }
+          
           const cleanAlias = alias.replace(/[\/*]+$/, '');
           const cleanTargetPath = pathArray[0].replace(/[\/*]+$/, '');
-          if (cleanAlias && cleanTargetPath) {
-            aliases.set(cleanAlias, path.join(projectRoot, cleanTargetPath));
+          
+          if (!cleanAlias) {
+            logDebug('Skipping empty alias');
+            continue;
           }
+          
+          if (!cleanTargetPath) {
+            logDebug(`Skipping empty target path for alias: ${alias}`);
+            continue;
+          }
+          
+          const resolvedPath = path.join(projectRoot, cleanTargetPath);
+          
+          // Verify the path exists
+          if (!fs.existsSync(resolvedPath)) {
+            logDebug(`Path does not exist: ${resolvedPath} (alias: ${alias})`);
+            continue;
+          }
+          
+          aliases.set(cleanAlias, resolvedPath);
+          logDebug(`Mapped alias: ${alias} -> ${resolvedPath}`);
+          
+        } catch (error) {
+          console.warn(`[esmockWrapper] Error processing alias '${alias}':`, error.message);
         }
       }
+      
     } catch (error) {
-      console.error('[esmockWrapper] Error parsing jsconfig.json:', error);
-      // The error from `jsonc-parser` will be more informative than JSON.parse
+      // Re-throw as ConfigError with more context
+      throw new ConfigError(
+        `Failed to process jsconfig.json: ${error.message}`,
+        error
+      );
     }
-    logDebug('Resolved Path Aliases:', aliases);
+    
     return aliases;
   };
 })();
 
 /**
  * Resolves an import string using path aliases if applicable.
- * @param {string} importString - The import string from the mock object key.
- * @returns {string} The resolved path or the original string if no alias matches.
+ * 
+ * For aliased paths (e.g., @/utils/logger.js), it returns a path relative to the project root.
+ * For relative paths (./path or ../path), it returns them unchanged.
+ * For absolute paths, it returns them unchanged.
+ * 
+ * All paths use forward slashes for cross-platform consistency.
+ * 
+ * @param {string} importString - The import string to resolve
+ * @returns {string} The resolved path:
+ *   - For aliases: path relative to project root (e.g., 'src/utils/logger.js')
+ *   - For relative paths: the original path (e.g., './relative/path.js')
+ *   - For absolute paths: the original path (e.g., '/absolute/path.js')
+ * @throws {PathResolutionError} If there's an error resolving the path
+ * @example
+ * // Returns 'src/utils/logger.js'
+ * resolveAlias('@/utils/logger.js');
+ * 
+ * // Returns './relative/path.js'
+ * resolveAlias('./relative/path.js');
  */
 const resolveAlias = (importString) => {
-  const aliases = getPathAliases();
-  for (const [alias, basePath] of aliases.entries()) {
-    if (importString.startsWith(alias + '/')) {
-      const resolvedPath = path.join(basePath, importString.substring(alias.length + 1));
-      return resolvedPath.replace(/\\/g, '/');
+  try {
+    if (typeof importString !== 'string' || !importString.trim()) {
+      throw new Error('Invalid import string');
     }
+
+    const aliases = getPathAliases();
+    
+    for (const [alias, basePath] of aliases.entries()) {
+      if (importString.startsWith(`${alias}/`)) {
+        const relativePath = importString.substring(alias.length + 1);
+        const resolvedPath = path.join(basePath, relativePath);
+        
+        // Normalize path for consistent output
+        const normalizedPath = path.normalize(resolvedPath);
+        
+        // Verify the resolved path is within the project
+        if (!normalizedPath.startsWith(projectRoot)) {
+          throw new Error(`Resolved path is outside project root: ${normalizedPath}`);
+        }
+        
+        // Convert to relative path from project root and normalize separators
+        const relativeToRoot = path.relative(projectRoot, normalizedPath);
+        return relativeToRoot.replace(/\\/g, '/');
+      }
+    }
+    
+    return importString;
+    
+  } catch (error) {
+    if (error instanceof ConfigError) {
+      throw error; // Re-throw config errors as-is
+    }
+    throw new PathResolutionError(
+      `Failed to resolve import: ${importString}`,
+      importString,
+      error
+    );
   }
-  return importString;
 };
 
 /**
@@ -100,7 +263,8 @@ const resolveAlias = (importString) => {
  *   { Date: MockDate }
  * );
  */
-export async function esmockWithPaths(
+// Main function to mock modules with path resolution
+async function esmockWithPaths(
   testFileUrl,
   modulePathRelativeToTestFile,
   userMocks = {},
@@ -175,7 +339,8 @@ export async function esmockWithPaths(
  *   ));
  * });
  */
-export async function createMockedModule(testFileUrl, modulePathRelativeToTestFile, overrideMocks = {}) {
+// Create the mocked module with common stubs
+async function createMockedModule(testFileUrl, modulePathRelativeToTestFile, overrideMocks = {}) {
   const mocks = {
     logger: {
       info: sinon.stub(),
@@ -195,6 +360,21 @@ export async function createMockedModule(testFileUrl, modulePathRelativeToTestFi
 
   return { module, mocks };
 }
+
+// Export the public API
+export {
+  esmockWithPaths,
+  createMockedModule,
+  resolveAlias
+};
+
+// For testing purposes only
+export const _testing = {
+  projectRoot,
+  jsconfigPath,
+  ConfigError,
+  PathResolutionError
+};
 
 /**
  * IMPORTANT: Mock Cleanup

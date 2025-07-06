@@ -118,11 +118,14 @@ docs\Project_FR_NFR_Functional_Requirements.md
 docs\Project_Technical_Assumptions.md
 docs\Project_User_Interface_Design_Goals.md
 docs\Project_Brief_Euchre_Multiplayer.md
-
+docs\Project_Architectural_Mandate_for_Layer_1.md
+docs\Project_Development_Plan.md
+docs\Supplemental_Layer1_Plan_Improvements.md
+docs\TEST_FILE_RESTRUCTURING_PLAN.md
+docs\TEST_STRUCTURE_IMPLEMENTATION.md
 #git-ingest-files
 mueller_euchre_repo_llm.txt
 digest.txt
 
 #windsurf memories
 memory-bank/rules_improvement_plan.md
-.windsurf

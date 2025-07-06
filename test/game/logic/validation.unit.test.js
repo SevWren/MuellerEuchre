@@ -37,7 +37,8 @@
  * @example
  * // Run all validation tests
  * npm test test/game/logic/validation.unit.test.js
- *
+ * npm test test\game\logic\validation.GoAlone.unit.test.js
+ * 
  * @example
  * // Run specific test with Mocha's grep flag
  * npm test -- -g "validatePlay - Following Suit Logic"

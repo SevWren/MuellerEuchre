@@ -21,6 +21,7 @@ import {
   MustFollowSuitError,
   InvalidBidError,
   InvalidDiscardError,
+  InvalidGoAloneError,
 } from "./errors.js";
 
 /**
@@ -449,12 +450,107 @@ function validateDealerDiscard(
   return true; // If no errors were thrown, the discard is valid.
 }
 
+/**
+ * Validates if a player can declare "go alone" (playing without their partner).
+ * 
+ * @function isValidGoAlone
+ * @memberof module:validation
+ * @param {Object} gameState - The current game state.
+ * @param {string} gameState.gamePhase - The current game phase.
+ * @param {string} gameState.currentPlayer - The role of the player whose turn it is.
+ * @param {string} gameState.winningBidder - The role of the player who won the bid.
+ * @param {Object} gameState.players - Object containing player information.
+ * @param {string} playerRole - The role of the player attempting to go alone.
+ * @returns {true} Returns true if the go-alone declaration is valid.
+ * @throws {ValidationError} If the go-alone declaration is invalid.
+ * @throws {InvalidPhaseError} If not in a valid phase for going alone.
+ * @throws {NotPlayersTurnError} If it's not the player's turn.
+ * @throws {InvalidGoAloneError} If the player cannot go alone in the current context.
+ * 
+ * @example
+ * // Valid go-alone scenario
+ * const validGameState = {
+ *   gamePhase: 'GO_ALONE_DECISION',
+ *   currentPlayer: 'south',
+ *   winningBidder: 'south',
+ *   players: { south: {}, north: {}, east: {}, west: {} }
+ * };
+ * isValidGoAlone(validGameState, 'south'); // Returns true
+ * 
+ * @example
+ * // Invalid - wrong phase
+ * try {
+ *   isValidGoAlone({ gamePhase: 'PLAYING' }, 'south');
+ * } catch (error) {
+ *   console.error(error); // Throws InvalidPhaseError
+ * }
+ */
+function isValidGoAlone(gameState, playerRole) {
+  // Input validation
+  if (!gameState || !playerRole || !PLAYER_ROLES.includes(playerRole)) {
+    throw new ValidationError('Invalid arguments for go-alone validation');
+  }
+
+  // Phase validation - must be in the go-alone decision phase
+  if (gameState.gamePhase !== GAME_PHASES.GOING_ALONE) {
+    logger.error('Invalid phase for go-alone', { 
+      playerRole, 
+      gamePhase: gameState.gamePhase,
+      expectedPhase: 'GO_ALONE_DECISION'
+    });
+    throw new InvalidPhaseError('Cannot go alone in the current phase');
+  }
+
+  // Player validation - must be the current player's turn
+  if (gameState.currentPlayer !== playerRole) {
+    logger.error('Not player\'s turn', { 
+      playerRole, 
+      currentPlayer: gameState.currentPlayer 
+    });
+    throw new NotPlayersTurnError(
+      `Not ${playerRole}'s turn. It is ${gameState.currentPlayer}'s turn.`
+    );
+  }
+
+  // Must be the winning bidder to go alone
+  if (!gameState.winningBidder || gameState.winningBidder !== playerRole) {
+    logger.error('Player is not the winning bidder', { 
+      playerRole, 
+      winningBidder: gameState.winningBidder 
+    });
+    throw new InvalidGoAloneError('Only the winning bidder can declare to go alone');
+  }
+
+  // Must have a valid players object with the current player
+  if (!gameState.players || !gameState.players[playerRole]) {
+    logger.error('Player data missing', { playerRole });
+    throw new InvalidGoAloneError(`Player ${playerRole} not found in game state`);
+  }
+
+  // Can't go alone if already declared
+  if (gameState.players[playerRole].isGoingAlone !== undefined) {
+    logger.error('Go-alone already decided', { playerRole });
+    throw new InvalidGoAloneError(
+      `Player ${playerRole} has already made their go-alone decision`
+    );
+  }
+
+  // Log successful validation
+  logger.debug('Go-alone validation successful', { 
+    playerRole, 
+    gamePhase: gameState.gamePhase 
+  });
+
+  return true; // All validations passed
+}
+
 // Export all public functions
 export {
   getEffectiveSuit,
   validatePlay,
   validateBid,
-  validateDealerDiscard
+  validateDealerDiscard,
+  isValidGoAlone
 };
 
-// TODO: Add other validation functions as needed (e.g., isValidGoAlone)
+// TODO: Consider adding validateGameSetup and validatePlayerAction

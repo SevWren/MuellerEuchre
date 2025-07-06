@@ -123,6 +123,7 @@ docs\Supplemental_Layer1_Plan_Improvements.md
 docs\TEST_FILE_RESTRUCTURING_PLAN.md
 docs\TEST_STRUCTURE_IMPLEMENTATION.md
 tools
+archived_for_later_development
 #git-ingest-files
 mueller_euchre_repo_llm.txt
 digest.txt
@@ -135,3 +136,4 @@ memory-bank/rules_improvement_plan.md
 7_5_2025.txt
 docs/TEST_FILE_RESTRUCTURING_PLAN.md
 docs/alias-resolution.md
+test-file-checker.js

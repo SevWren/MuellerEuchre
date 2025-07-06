@@ -112,7 +112,6 @@ npm_test.txt
 log.txt
 archived_for_later_development/test/game/state.unit.test.js
 archived_for_later_development/**/*
-7_3_2025.txt
 docs\Project_Epics.md
 docs\Project_FR_NFR_Functional_Requirements.md
 docs\Project_Technical_Assumptions.md
@@ -129,3 +128,7 @@ digest.txt
 
 #windsurf memories
 memory-bank/rules_improvement_plan.md
+
+#daily logs
+7_3_2025.txt
+7_5_2025.txt

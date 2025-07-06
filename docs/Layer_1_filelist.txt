@@ -42,4 +42,5 @@ Unit Tests
 15. `test/utils/players.unit.test.js`
 16. `test/utils/historyUtils.unit.test.js`
 17. `test/utils/settingsUtils.unit.test.js`
-18.  `test/utils/statsUtils.unit.test.js`
+18. `test/utils/statsUtils.unit.test.js`
+19.  

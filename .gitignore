@@ -82,9 +82,7 @@ index - Copy.html
 *copy*.*
 
 #Misc code editor files
-*.windsurfrules
 ENVIRONMENT_INSTABILITY.MD
-.windsurf/*
 
 #Archive
 archived/
@@ -96,7 +94,8 @@ resolve_assertion_errors_plan.md
 
 #LLM Related text files
 .kilocode
-mueller_euchre_repo_llm.txt
+.kilocodemodes/*
+.kilocodemodes*
 npm_test_dos_output.txt
 npm_test_powershell_output.txt
 test_results.txt
@@ -106,15 +105,24 @@ docs/File Reviews/gemini_review_deck.unit.test.js.md
 docs/File Reviews/gemini_review-endGame.js-goAlonePhase.js-biddingPhase.js.md
 docs/File Reviews/gemini_review-scoringPhase.js-startNewHandPhase.js-lobbyPhase.js-playingPhase.js.md
 docs/File Reviews/validation.unit.test.js.review.md
-memory-bank/rules_improvement_plan.md
-.kilocodemodes*
-.kilocodemodes/*
 findfiles.bat
 find_files_report.txt
 package-lock.json
 npm_test.txt
 log.txt
-digest.txt
 archived_for_later_development/test/game/state.unit.test.js
 archived_for_later_development/**/*
 7_3_2025.txt
+docs\Project_Epics.md
+docs\Project_FR_NFR_Functional_Requirements.md
+docs\Project_Technical_Assumptions.md
+docs\Project_User_Interface_Design_Goals.md
+docs\Project_Brief_Euchre_Multiplayer.md
+
+#git-ingest-files
+mueller_euchre_repo_llm.txt
+digest.txt
+
+#windsurf memories
+memory-bank/rules_improvement_plan.md
+.windsurf

@@ -1,64 +1,140 @@
 # This is a TOML file used by the gitingest tool.
 # Patterns listed here will be excluded from the context file generation.
+# This file is synchronized with .gitignore to maintain consistency.
 
 exclude-pattern = [
-  # Core Dependencies & Build Output
+  # ===== Core Dependencies & Build =====
   "node_modules/",
   "package-lock.json",
+  "yarn.lock",
+  "yarn-debug.log",
+  "yarn-error.log",
   "dist/",
   "build/",
   "out/",
+  "*.tgz",
+  ".npm",
+  "bower_components/",
+  ".grunt",
+  ".node_repl_history",
+  ".yarn-integrity",
 
-  # Version Control & CI/CD
+  # ===== Environment & Configuration =====
+  ".env",
+  ".env.*",
+  "!.env.example",
+  
+  # ===== Version Control & CI/CD =====
   ".git/",
   ".github/",
   ".husky/",
+  ".gitattributes",
+  ".gitignore",
+  ".gitmodules",
 
-  # Test & Coverage Artifacts
+  # ===== Test & Coverage Artifacts =====
   "coverage/",
   ".nyc_output",
   "*.lcov",
   "full_test_out.txt",
   "unit_test_results.txt",
   "players.unit.test.js_100_percent.txt",
+  ".tmp/",
+  ".nyc_output/",
+  "test_output.txt",
+  "test_output3.txt",
+  "npm_test.txt",
+  "npm_test_dos_output.txt",
+  "npm_test_powershell_output.txt",
+  "test_results.txt",
 
-  # Local & Editor Configuration
+  # ===== Local & Editor Configuration =====
   ".vscode/",
   ".idea/",
   ".DS_Store",
+  ".DS_Store?",
+  ".Spotlight-V100",
+  ".Trashes",
+  "ehthumbs.db",
   "Thumbs.db",
   ".windsurf/",
   ".kilocode",
   ".kilocodemodes",
+  ".kilocodemodes/*",
+  ".mocharc - Copy.cjs.txt",
+  ".mocharc.js.bak",
+  ".markdownlint.json",
+  ".mocharc.js",
 
-  # Project-Specific & Archived Directories
+  # ===== Project-Specific & Archived =====
   "archived/",
   "archived_for_later_development/",
+  "archived_for_later_development/**/*",
+  "archived_files_for_rewrite/",
   "Repo_To_LLM/",
   "Prompts/",
   "memory-bank/",
   "tools/",
-  
-  # Public Assets (as requested)
   "public/",
   "assets/",
-
-  # Specific Config & Backup Files
-  ".markdownlint.json",
-  ".mocharc - Copy.cjs.txt",
-  ".mocharc.js.bak",
-
-  # Documentation Files (as requested)
-  "CODE_OF_CONDUCT.md",
-
-  # Log files and temporary files
-  "*.log",
-  "logs/",
-  "server_log.txt",
-  "*.tmp",
+  "pids",
+  "*.pid",
+  "*.seed",
+  "*.pid.lock",
+  "lib-cov/",
+  ".grunt/",
+  ".tmp/",
   "tmp/",
   "temp/",
-
-  # Tool's own output file
+  "logs/",
+  "server3_migration_audit.md",
+  "resolve_assertion_errors_plan.md",
+  "main_branch_test_log.txt",
+  "ENVIRONMENT_INSTABILITY.MD",
+  "index - Copy.html",
+  "*copy*.*",
+  "findfiles.bat",
+  "find_files_report.txt",
+  "log.txt",
+  "server_log.txt",
+  "7_3_2025.txt",
+  "7_5_2025.txt",
+  "7_6_2025.txt",
+  "digest.txt",
   "mueller_euchre_repo_llm.txt",
+  
+  # ===== Documentation =====
+  "CODE_OF_CONDUCT.md",
+  "docs/Project_Epics.md",
+  "docs/Project_FR_NFR_Functional_Requirements.md",
+  "docs/Project_Technical_Assumptions.md",
+  "docs/Project_User_Interface_Design_Goals.md",
+  "docs/Project_Brief_Euchre_Multiplayer.md",
+  "docs/Project_Architectural_Mandate_for_Layer_1.md",
+  "docs/Project_Development_Plan.md",
+  "docs/Supplemental_Layer1_Plan_Improvements.md",
+  "docs/TEST_FILE_RESTRUCTURING_PLAN.md",
+  "docs/TEST_STRUCTURE_IMPLEMENTATION.md",
+  "docs/log_analysis_ESWrapper_Cause.txt",
+  "docs/esmock_wrapper.unit.test_documentation.md",
+  "docs/File Reviews/errors.js-validation.js.review.md",
+  "docs/File Reviews/CodeReview-errorUtils.unit.test-lobbyUtils.unit.test-logger.unit.test.md",
+  "docs/File Reviews/gemini_review_deck.unit.test.js.md",
+  "docs/File Reviews/gemini_review-endGame.js-goAlonePhase.js-biddingPhase.js.md",
+  "docs/File Reviews/gemini_review-scoringPhase.js-startNewHandPhase.js-lobbyPhase.js-playingPhase.js.md",
+  "docs/File Reviews/validation.unit.test.js.review.md",
+  "memory-bank/rules_improvement_plan.md",
+
+  # ===== Logs & Temporary Files =====
+  "*.log",
+  "*.tmp",
+  "*.bak",
+  "*.backup",
+  "*.old",
+  "*.orig",
+  "*.swp",
+  "*.lcov",
+  
+  # ===== Tool-Specific =====
+  "#git-ingest-files"
 ]

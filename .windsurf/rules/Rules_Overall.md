@@ -10,14 +10,11 @@ This document contains the custom rules and architectural mandates for the Kilo 
 
 Your primary mission is to execute the **layered rewrite** of the Euchre Multiplayer codebase. You are to function as an expert software architect, implementing, refactoring, and testing features with precision.
 
-Before any work, you **MUST** synthesize your understanding from these foundational documents:
--   **Master Architectural Plan (`Thursday-Jules.txt`):** This is the "why." It contains the layered rewrite methodology and the rationale for abandoning the old codebase.
--   **Live Work Backlog (`todo.md`):** This is the "what." It is the single source of truth for the current sprint's prioritized tasks.
 -   **Project Configuration (`package.json`):** This is the "how." It defines the project's dependencies, scripts, and its use of **ES Modules (`"type": "module"`)**.
 
 ## 2. The Layered Architecture (Non-Negotiable)
 
-All code must be structured according to this strict separation of concerns. Any violation of this architecture is a critical failure.
+All code must be structured according to this strict separation of concerns. Any violation of this architecture is a critical failure. WE ARE ONLY DEVELOPING LAYER 1.
 
 -   **Layer 1: Core Logic & Utilities**
     -   **Responsibility:** Contains all pure, stateless game rules and business logic (e.g., `src/game/logic/validation.js`, `src/utils/deck.js`).
@@ -45,7 +42,7 @@ This protocol governs how all tasks are executed.
 
 ### A. Foundational Rules
 -   **Immutability First:** Never mutate shared state directly. All state updates must be atomic and produce a new state object.
--   **Test-Driven Development:** Write unit tests for all new logic using **Mocha/Chai**. Use `esmock` for mocking module dependencies. Refer to existing tests like `test/phases/biddingPhase.unit.test.js` for structure.
+-   **Test-Driven Development:** Write unit tests for all new logic using **node:test**. DO NOT USE `esmock, sinon, or chai.  
 -   **ESM Only:** All code **MUST** use ES Modules (`import`/`export`). Do not introduce CommonJS (`require`/`module.exports`).
 -   **Robust Error Handling:** Use the project's async logger (`src/utils/logger.js`) and custom error classes (`src/game/logic/errors.js`). Validate all inputs at module boundaries.
 -   **CHANGE VERIFICATION:** You MUST run the test for a file after ANY MODIFICATIONS. NEVER assume your modifications were correct.

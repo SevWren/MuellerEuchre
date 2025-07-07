@@ -35,39 +35,79 @@
  * });
  */
 
-import sinon from 'sinon';
+/**
+ * @file Test mocks and utilities for Euchre game unit testing
+ * @module testMocks
+ * @description Provides reusable mock objects and utilities for testing Euchre game logic.
+ * This module includes mock implementations of common game components like loggers, player utilities,
+ * validation functions, and game state management to facilitate isolated unit testing.
+ * Mocking of specific methods should be done in individual test files using `node:test`'s `context.mock.method()`.
+ *
+ * @example
+ * // Basic usage in a test file using node:test
+ * import { test } from 'node:test';
+ * import assert from 'node:assert';
+ * import { createMockLogger, createMockGameState, createMockPlayerUtils } from '@test/utils/testMocks';
+ * import * as moduleUnderTest from 'src/game/phases/somePhase'; // Example module under test
+ *
+ * test('should handle player turns with mocked logger', async (context) => {
+ *   const mockLogger = createMockLogger();
+ *   const mockPlayerUtils = createMockPlayerUtils();
+ *
+ *   // Mock a specific method using node:test's mock API
+ *   const infoMock = context.mock.method(mockLogger, 'info', () => {});
+ *   const getNextPlayerMock = context.mock.method(mockPlayerUtils, 'getNextPlayer', () => 'east');
+ *
+ *   const gameState = createMockGameState({
+ *     gamePhase: 'BIDDING',
+ *     currentPlayer: 'south'
+ *   });
+ *
+ *   // Assuming moduleUnderTest takes dependencies as arguments or they are resolved via import maps
+ *   // For direct dependency injection:
+ *   // moduleUnderTest.someFunction(gameState, mockLogger, mockPlayerUtils);
+ *
+ *   // Assertions on mock calls
+ *   assert.strictEqual(infoMock.callCount(), 1);
+ *   assert.strictEqual(getNextPlayerMock.callCount(), 1);
+ *
+ *   // Assertions on game state changes
+ *   // assert.deepStrictEqual(updatedGameState, expectedState);
+ * });
+ */
 
 /**
- * Creates a mock logger with Sinon stubs for all logging methods
- * @returns {Object} Mock logger object with stubbed methods
+ * Creates a mock logger with no-op functions for all logging methods.
+ * Individual test cases can mock these methods using `context.mock.method()`.
+ * @returns {Object} Mock logger object with default no-op methods.
  */
-export function createMockLogger() {
+function createMockLogger() {
   return {
-    info: sinon.stub(),
-    warn: sinon.stub(),
-    error: sinon.stub(),
-    debug: sinon.stub(),
-    log: sinon.stub(),
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+    debug: () => {},
+    log: () => {},
   };
 }
 
 /**
- * Creates a mock player utilities object with common player-related functions
- * @param {Object} [overrides] - Methods to override the default mocks
- * @returns {Object} Mock player utilities
+ * Creates a mock player utilities object with default implementations for player-related functions.
+ * These functions provide basic logic that can be overridden or mocked in specific tests.
+ * @param {Object} [overrides] - Methods to override the default implementations.
+ * @returns {Object} Mock player utilities.
  */
-export function createMockPlayerUtils(overrides = {}) {
+function createMockPlayerUtils(overrides = {}) {
   const defaults = {
     /**
-     * Mock implementation of getNextPlayer that matches the real implementation's behavior
-     * @param {string} currentPlayerRole - The current player's role
-     * @param {Array<string>} [playerSlots=PLAYER_ROLES] - Ordered array of player roles
-     * @param {boolean} [goingAlone=false] - Whether a player is "going alone"
-     * @param {string} [partnerSittingOut] - Role of the partner who is sitting out
-     * @returns {string|undefined} Next player's role or undefined if inputs are invalid
+     * Default mock implementation of getNextPlayer.
+     * @param {string} currentPlayerRole - The current player's role.
+     * @param {Array<string>} [playerSlots=['south', 'west', 'north', 'east']] - Ordered array of player roles.
+     * @param {boolean} [goingAlone=false] - Whether a player is "going alone".
+     * @param {string} [partnerSittingOut=null] - Role of the partner who is sitting out.
+     * @returns {string|undefined} Next player's role or undefined if inputs are invalid.
      */
-    getNextPlayer: sinon.stub().callsFake((currentPlayerRole, playerSlots = ['south', 'west', 'north', 'east'], goingAlone = false, partnerSittingOut = null) => {
-      // Input validation
+    getNextPlayer: (currentPlayerRole, playerSlots = ['south', 'west', 'north', 'east'], goingAlone = false, partnerSittingOut = null) => {
       if (!currentPlayerRole || !playerSlots || playerSlots.length !== 4) {
         return undefined;
       }
@@ -77,19 +117,22 @@ export function createMockPlayerUtils(overrides = {}) {
         return undefined;
       }
 
-      // Calculate next player index with wrap-around
       let nextIndex = (currentIndex + 1) % playerSlots.length;
       let nextPlayer = playerSlots[nextIndex];
 
-      // Handle going alone scenario
       if (goingAlone && partnerSittingOut && nextPlayer === partnerSittingOut) {
         nextIndex = (nextIndex + 1) % playerSlots.length;
         nextPlayer = playerSlots[nextIndex];
       }
 
       return nextPlayer;
-    }),
-    getPartner: sinon.stub().callsFake((player) => {
+    },
+    /**
+     * Default mock implementation of getPartner.
+     * @param {string} player - The player's role.
+     * @returns {string|null} The partner's role or null if not found.
+     */
+    getPartner: (player) => {
       const partners = {
         south: 'north',
         north: 'south',
@@ -97,7 +140,7 @@ export function createMockPlayerUtils(overrides = {}) {
         west: 'east'
       };
       return partners[player] || null;
-    }),
+    },
     // Add other player utility mocks as needed
   };
 
@@ -105,13 +148,13 @@ export function createMockPlayerUtils(overrides = {}) {
 }
 
 /**
- * Creates a mock validation object with common validation functions
- * @param {Object} [overrides] - Methods to override the default mocks
- * @returns {Object} Mock validation object
+ * Creates a mock validation object with default implementations.
+ * @param {Object} [overrides] - Methods to override the default implementations.
+ * @returns {Object} Mock validation object.
  */
-export function createMockValidation(overrides = {}) {
+function createMockValidation(overrides = {}) {
   const defaults = {
-    validatePlay: sinon.stub().returns({ valid: true, errors: [] }),
+    validatePlay: () => ({ valid: true, errors: [] }),
     // Add other validation mocks as needed
   };
 
@@ -119,13 +162,13 @@ export function createMockValidation(overrides = {}) {
 }
 
 /**
- * Creates a mock deck utilities object
- * @param {Object} [overrides] - Methods to override the default mocks
- * @returns {Object} Mock deck utilities
+ * Creates a mock deck utilities object with default implementations.
+ * @param {Object} [overrides] - Methods to override the default implementations.
+ * @returns {Object} Mock deck utilities.
  */
-export function createMockDeckUtils(overrides = {}) {
+function createMockDeckUtils(overrides = {}) {
   const defaults = {
-    getCardRank: sinon.stub().returns(1),
+    getCardRank: () => 1,
     // Add other deck utility mocks as needed
   };
 
@@ -133,11 +176,11 @@ export function createMockDeckUtils(overrides = {}) {
 }
 
 /**
- * Creates a basic game state for testing
- * @param {Object} [overrides] - Properties to override in the default game state
- * @returns {Object} A game state object
+ * Creates a basic game state object for testing.
+ * @param {Object} [overrides] - Properties to override in the default game state.
+ * @returns {Object} A game state object.
  */
-export function createMockGameState(overrides = {}) {
+function createMockGameState(overrides = {}) {
   const defaultState = {
     gameId: 'test-game',
     gamePhase: 'PLAYING',
@@ -157,22 +200,11 @@ export function createMockGameState(overrides = {}) {
   return { ...defaultState, ...overrides };
 }
 
-/**
- * Resets all mocks in a sandbox
- * @param {Object} sandbox - Sinon sandbox
- * @param {Object} mocks - Object containing mock objects to reset
- */
-export function resetMocks(sandbox, mocks) {
-  sandbox.resetHistory();
-  
-  // Reset all stubs in the mocks
-  Object.values(mocks).forEach(mock => {
-    if (mock && typeof mock === 'object') {
-      Object.values(mock).forEach(value => {
-        if (value && typeof value.resetHistory === 'function') {
-          value.resetHistory();
-        }
-      });
-    }
-  });
-}
+// Export all mock creation functions
+export {
+  createMockLogger,
+  createMockPlayerUtils,
+  createMockValidation,
+  createMockDeckUtils,
+  createMockGameState,
+};

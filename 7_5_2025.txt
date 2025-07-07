@@ -58,3 +58,9 @@ test\game\logic\validation.unit.test.js - working on adding corresponding tests
 Rollback to 7-6-2025 ~1am if AI generates a TON of failing tests.
 AI fucking janked up like 60 tests by doing a lot of misc fucking things.  It messed
 with the eswrapper.
+
+
+NOT having: test\utils\path-utils.js
+Causes issues.
+
+Having test\utils\path-utils.js AND  test\utils\path-resolver.unit.test.js causes issues.

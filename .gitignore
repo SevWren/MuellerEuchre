@@ -88,7 +88,6 @@ ENVIRONMENT_INSTABILITY.MD
 archived/
 archived_files_for_rewrite/
 main_branch_test_log.txt
-file_tree.txt
 server3_migration_audit.md
 resolve_assertion_errors_plan.md
 
@@ -124,7 +123,6 @@ docs\Project_Development_Plan.md
 docs\Supplemental_Layer1_Plan_Improvements.md
 docs\TEST_FILE_RESTRUCTURING_PLAN.md
 docs\TEST_STRUCTURE_IMPLEMENTATION.md
-tools
 #git-ingest-files
 mueller_euchre_repo_llm.txt
 digest.txt

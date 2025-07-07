@@ -14,7 +14,7 @@ const config = {
   delay: false,
   diff: true,
   exit: false, // Important for watch mode
-  extension: ["js", "jsx"],
+  extension: ["js", "jsx"],  // Keep jobs at 1; parallel execution can be complex with ESM loaders like esmock.
   "fail-zero": true,
   "forbid-only": false,
   "forbid-pending": false,
@@ -29,8 +29,20 @@ const config = {
   sort: false,
   timeout: "10000",
   ui: "bdd",
+  ignore: [
+    "node_modules/",
+    "coverage/",
+    "dist/",
+    "build/",
+    "docs/",
+    "archived_for_later_development/",
+    "**/*.log",
+    "**/*.txt",
+    "**/*.md"
+  ],
   watch: false,
   "watch-files": ["src/**/*.js", "test/**/*.js"],
+  require: ["sinon-chai"],   //    'sinon-chai' enables assertions like `expect(spy).to.have.been.called`.
 };
 
 // Only set default spec pattern if not specified in command line

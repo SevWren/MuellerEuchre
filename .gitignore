@@ -138,3 +138,8 @@ test_output.txt
 test_output3.txt
 docs/log_analysis_ESWrapper_Cause.txt
 docs/esmock_wrapper.unit.test_documentation.md
+docs/Reports/filetree.txt
+filetree.txt
+.gitignore
+MIGRATION_GUIDE.md
+test-is-left-bower.js

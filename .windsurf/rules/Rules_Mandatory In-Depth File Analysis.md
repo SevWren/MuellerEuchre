@@ -2,20 +2,9 @@
 trigger: always_on
 ---
 
-Mandatory In-Depth File Analysis
-#analysis_standard
-#file_review
-#quality_assurance
-#analyze
-#verify
-#edit
-#modify
-#code
-#read
-#process
-#review
+#Analysis - Mandatory In-Depth
 
-EVERY time I generate the words "in detail" I will verify I have read at LEAST 3000 lines of the file. This ensures comprehensive analysis and prevents incomplete reviews. I will:
+##EVERY time I generate the words "in detail" I will verify I have **read at LEAST 3000 lines** of the file. This ensures comprehensive analysis and prevents incomplete reviews. I will:
 
 1. Use view_file to read the file in chunks if necessary
 2. Document the specific line ranges I've reviewed

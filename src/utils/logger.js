@@ -1,4 +1,5 @@
 /**
+ * src/utils/logger.js
  * @file logger.js
  * @description Logger utility for the Euchre game server.
  * Provides a centralized logging solution using Pino for high-performance,

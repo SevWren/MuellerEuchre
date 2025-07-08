@@ -4,6 +4,16 @@ import { promises as fs } from 'node:fs';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 
+// Debug logging utility
+const debug = (() => {
+  const isDebug = process.env.DEBUG_PATH_RESOLVER === 'true' || process.env.NODE_ENV === 'test';
+  return (...args) => {
+    if (isDebug) {
+      console.debug('[PathResolver]', ...args);
+    }
+  };
+})();
+
 /**
  * @file Path resolution utility for handling path aliases consistently
  * @module utils/path-resolver
@@ -11,11 +21,20 @@ import os from 'node:os';
  * defined in jsconfig.json. This utility is used by both the application
  * and test runners to ensure consistent path resolution.
  *
+ * Features:
+ * - Path alias resolution (e.g., @/utils/logger)
+ * - Test environment detection and handling
+ * - Debug logging for troubleshooting
+ * - Consistent path resolution across environments
+ *
  * @example
- * import { resolvePath } from '@/utils/path-resolver';
+ * import { resolvePath, getTestMockPath } from '@/utils/path-resolver';
  *
  * // Resolve a path using aliases
  * const absolutePath = resolvePath('@/config/database');
+ * 
+ * // Get correct mock path for tests
+ * const mockPath = getTestMockPath(import.meta.url, '../config/constants.js');
  */
 
 // Get project root directory
@@ -40,6 +59,62 @@ const isPathInProjectRoot = (filePath) => {
 
 // Cache for resolved aliases
 let aliasCache = null;
+
+/**
+ * Determines if the current environment is a test environment
+ * @returns {boolean} True if running in a test environment
+ */
+function isTestEnvironment() {
+  return process.env.NODE_ENV === 'test' || 
+         process.env.JEST_WORKER_ID !== undefined ||
+         process.env.VITEST_WORKER_ID !== undefined ||
+         process.env.MOCHA_WORKER !== undefined;
+}
+
+/**
+ * Helper to get the correct path for test mocks relative to the test file
+ * @param {string} testFileUrl - The URL of the test file (import.meta.url)
+ * @param {string} importPath - The import path from the module being tested
+ * @returns {string} The correct path to use for mocking
+ */
+export function getTestMockPath(testFileUrl, importPath) {
+  if (!isTestEnvironment()) {
+    return importPath;
+  }
+
+  const testDir = path.dirname(fileURLToPath(testFileUrl));
+  const projectRoot = findProjectRoot(__dirname);
+  
+  // If it's a relative path, resolve it relative to the test file
+  if (importPath.startsWith('.')) {
+    const resolvedPath = path.resolve(testDir, importPath);
+    const relativeToRoot = path.relative(projectRoot, resolvedPath);
+    debug(`Resolved test mock path: ${importPath} -> ${relativeToRoot}`);
+    return relativeToRoot.replace(/\\/g, '/');
+  }
+  
+  // For non-relative paths, return as-is
+  return importPath;
+}
+
+/**
+ * Finds the project root directory by looking for package.json
+ * @param {string} startDir - Directory to start searching from
+ * @returns {string} The project root directory
+ */
+function findProjectRoot(startDir) {
+  let current = path.resolve(startDir);
+  
+  while (current !== path.dirname(current)) {
+    const packagePath = path.join(current, 'package.json');
+    if (fs.existsSync(packagePath)) {
+      return current;
+    }
+    current = path.dirname(current);
+  }
+  
+  return process.cwd();
+}
 
 /**
  * Clears the alias cache, forcing it to be reloaded on next access
@@ -224,9 +299,13 @@ async function initAliasCache() {
  * @returns {Promise<string>} The resolved absolute path
  * @throws {PathResolutionError} If the path cannot be resolved
  */
-export async function resolvePath(specifier) {
+export async function resolvePath(specifier, basePath = process.cwd()) {
+  debug(`Resolving path: ${specifier} (base: ${basePath})`);
+  
   if (typeof specifier !== 'string' || !specifier.trim()) {
-    throw new PathResolutionError('Invalid path specifier', specifier);
+    const error = new PathResolutionError('Invalid path specifier', specifier);
+    debug(`Path resolution error: ${error.message}`);
+    throw error;
   }
 
   // Check if the path is already absolute
@@ -244,19 +323,32 @@ export async function resolvePath(specifier) {
 
   // Handle relative paths
   if (specifier.startsWith('.')) {
-    const resolvedPath = path.resolve(process.cwd(), specifier);
+    const resolvedPath = path.resolve(basePath, specifier);
+    debug(`Resolved relative path: ${specifier} -> ${resolvedPath}`);
+    
     // Security check: ensure relative paths don't escape project root
     if (!isPathInProjectRoot(resolvedPath)) {
-      throw new PathResolutionError(
+      const error = new PathResolutionError(
         `Resolved path is outside project root: ${resolvedPath}`,
         specifier
       );
+      debug(`Security violation: ${error.message}`);
+      throw error;
     }
+    
+    // In test environment, ensure the path is in a format that matches the module system's expectations
+    if (isTestEnvironment()) {
+      const normalizedPath = path.normalize(resolvedPath).replace(/\\/g, '/');
+      debug(`Normalized path for test environment: ${normalizedPath}`);
+      return normalizedPath;
+    }
+    
     return resolvedPath;
   }
 
   // Handle URL imports (e.g., from node_modules)
   if (!specifier.startsWith('@')) {
+    debug(`Returning non-aliased specifier as-is: ${specifier}`);
     return specifier;
   }
 
@@ -290,10 +382,10 @@ export async function resolvePath(specifier) {
   const relativePath = specifier.slice(aliasPrefix.length).replace(/^\.?\//, '');
   
   // Get the base path from the alias mapping (remove trailing /* if present)
-  const basePath = aliasMapping.replace(/\*$/, '');
+  const aliasBasePath = aliasMapping.replace(/\*$/, '');
   
   // Join the paths, ensuring we don't duplicate the project root
-  let fullPath = path.join(basePath, relativePath);
+  let fullPath = path.join(aliasBasePath, relativePath);
   
   // If the base path isn't absolute, prepend the project root
   if (!path.isAbsolute(fullPath)) {

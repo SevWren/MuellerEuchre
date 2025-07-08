@@ -29,7 +29,7 @@ function getTeamForPlayer(playerRole) {
  * @param {string} player2Role - The second player's role.
  * @returns {boolean} True if the players are on the same team, false otherwise.
  */
-export function isTeammate(player1Role, player2Role) {
+function isTeammate(player1Role, player2Role) {
   if (
     !player1Role ||
     !player2Role ||
@@ -55,7 +55,7 @@ export function isTeammate(player1Role, player2Role) {
  * @param {string} playerRole - The player's role (e.g., 'south', 'west', 'north', 'east').
  * @returns {string|undefined} The partner's role, or undefined if the role is invalid.
  */
-export function getPartner(playerRole) {
+function getPartner(playerRole) {
   // Assuming PLAYER_ROLES = ['south', 'west', 'north', 'east']
   // South's partner is North, West's partner is East.
   const partnerMap = {
@@ -79,16 +79,25 @@ export function getPartner(playerRole) {
  * @param {string} [partnerSittingOut] - The role of the partner who is sitting out (if goingAlone is true).
  * @returns {string|undefined} The next player's role, or undefined if inputs are invalid.
  */
-export function getNextPlayer(
+function getNextPlayer(
   currentPlayerRole,
   playerSlots = PLAYER_ROLES,
   goingAlone = false,
   partnerSittingOut = null,
 ) {
-  if (!currentPlayerRole || !playerSlots || playerSlots.length !== 4) {
+  if (!currentPlayerRole || !playerSlots) {
     logger.warn(
       { currentPlayerRole, playerSlots },
-      "Invalid parameters for getNextPlayer: requires currentPlayerRole and valid playerSlots (array of 4).",
+      'Invalid parameters for getNextPlayer',
+    );
+    return undefined;
+  }
+  
+  // Check if playerSlots is an array and has exactly 4 elements
+  if (!Array.isArray(playerSlots) || playerSlots.length !== 4) {
+    logger.warn(
+      { currentPlayerRole, playerSlots },
+      'Invalid parameters for getNextPlayer: playerSlots must be an array of length 4',
     );
     return undefined;
   }
@@ -97,7 +106,7 @@ export function getNextPlayer(
   if (currentIndex === -1) {
     logger.warn(
       { currentPlayerRole, playerSlots },
-      `Current player role ${currentPlayerRole} not found in provided player slots.`,
+      `Current player role ${currentPlayerRole} not found in provided player slots`,
     );
     return undefined;
   }
@@ -120,7 +129,7 @@ export function getNextPlayer(
  * @param {string} socketId - The socket ID to look up.
  * @returns {object|null} The player object (value from the gameState.players map) or null if not found or inputs are invalid.
  */
-export function getPlayerBySocketId(gameState, socketId) {
+function getPlayerBySocketId(gameState, socketId) {
   if (
     !gameState ||
     !gameState.players ||
@@ -148,7 +157,7 @@ export function getPlayerBySocketId(gameState, socketId) {
  * @param {string} socketId - The socket ID to look up.
  * @returns {string|null} The player's role (key from the gameState.players map) or null if not found or inputs are invalid.
  */
-export function getRoleBySocketId(gameState, socketId) {
+function getRoleBySocketId(gameState, socketId) {
   if (
     !gameState ||
     !gameState.players ||
@@ -176,7 +185,7 @@ export function getRoleBySocketId(gameState, socketId) {
  * isConnected status, and zero tricksWonThisHand.
  * @returns {object} The initialized players object, mapping roles to player data.
  */
-export function initializePlayers() {
+function initializePlayers() {
   const players = {};
   PLAYER_ROLES.forEach((role, index) => {
     // Determine team: PLAYER_ROLES = ['south', 'west', 'north', 'east']
@@ -201,7 +210,7 @@ export function initializePlayers() {
  * @param {object} player - The player object.
  * @returns {number|undefined} The team ID of the player, or undefined if player is invalid or teamId is not set.
  */
-export function getPlayerTeam(player) {
+function getPlayerTeam(player) {
   if (!player || typeof player !== "object") {
     logger.warn({ player }, "Invalid player object passed to getPlayerTeam.");
     return undefined;
@@ -215,3 +224,13 @@ export function getPlayerTeam(player) {
   }
   return player.teamId;
 }
+
+export {
+  isTeammate,
+  getPartner,
+  getNextPlayer,
+  getPlayerBySocketId,
+  getRoleBySocketId,
+  initializePlayers,
+  getPlayerTeam
+};

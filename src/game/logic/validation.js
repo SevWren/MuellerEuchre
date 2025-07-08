@@ -568,7 +568,6 @@ export {
   getEffectiveSuit,
   validatePlay,
   validateBid,
-  validateDealerDiscard
+  validateDealerDiscard,
+  isValidGoAlone,
 };
-
-// TODO: Add other validation functions as needed (e.g., isValidGoAlone)

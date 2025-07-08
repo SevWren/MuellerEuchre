@@ -330,6 +330,41 @@ export class PhaseLogicError extends ValidationError {
 }
 
 /**
+ * Thrown when an invalid go-alone declaration is made.
+ * This error indicates that a player's attempt to go alone is not valid.
+ *
+ * @class InvalidGoAloneError
+ * @extends ValidationError
+ * @param {string} message - Description of the go-alone validation error
+ * @property {string} name - The error name ('InvalidGoAloneError')
+ *
+ * @example
+ * // Throwing the error - player not the winning bidder
+ * if (playerRole !== winningBidder) {
+ *   throw new InvalidGoAloneError('Only the winning bidder can declare to go alone');
+ * }
+ *
+ * @example
+ * // Catching and handling the error
+ * try {
+ *   validateGoAlone(gameState, playerRole);
+ * } catch (error) {
+ *   if (error instanceof InvalidGoAloneError) {
+ *     console.error('Invalid go-alone declaration:', error.message);
+ *     // Show error to player
+ *   }
+ * }
+ *
+ * @see ValidationError Base class for all validation errors
+ */
+export class InvalidGoAloneError extends ValidationError {
+  constructor(message) {
+    super(message);
+    this.name = 'InvalidGoAloneError';
+  }
+}
+
+/**
  * Thrown when an invalid card object or property is encountered.
  * This error indicates that a card object is malformed or contains invalid data.
  *

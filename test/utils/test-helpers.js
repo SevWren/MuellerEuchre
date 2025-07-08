@@ -21,8 +21,6 @@
  * 
  */
 
-import { PATHS } from './path-utils.js';
-
 /**
  * @typedef {import('@/src/types').GameState} GameState
  * @typedef {import('@/src/types').Card} Card
@@ -34,7 +32,7 @@ import { PATHS } from './path-utils.js';
  * @param {Partial<GameState>} [overrides] - Optional overrides for the default game state
  * @returns {GameState} A game state object with default values
  */
-export function createBaseGameState(overrides = {}) {
+function createBaseGameState(overrides = {}) {
   const defaultState = {
     gamePhase: 'ORDER_UP_ROUND1',
     currentPlayer: 'PLAYER_1',
@@ -73,7 +71,7 @@ export function createBaseGameState(overrides = {}) {
  * @param {Partial<import('@/src/types').Player>} [overrides] - Optional overrides
  * @returns {import('@/src/types').Player}
  */
-export function createMockPlayer(id, overrides = {}) {
+function createMockPlayer(id, overrides = {}) {
   return {
     id,
     name: `Player ${id}`,
@@ -93,7 +91,7 @@ export function createMockPlayer(id, overrides = {}) {
  * @param {string|number} value - Card value (e.g., 'ACE', 'KING', 9, 10)
  * @returns {Card}
  */
-export function createMockCard(suit, value) {
+function createMockCard(suit, value) {
   return {
     suit,
     value: typeof value === 'number' ? value.toString() : value,
@@ -106,7 +104,7 @@ export function createMockCard(suit, value) {
  * @param {boolean} [shuffle=false] - Whether to shuffle the deck
  * @returns {Card[]} Array of cards
  */
-export function createDeck(shuffle = false) {
+function createDeck(shuffle = false) {
   const suits = ['HEARTS', 'DIAMONDS', 'CLUBS', 'SPADES'];
   const values = [
     '9', '10', 'JACK', 'QUEEN', 'KING', 'ACE'
@@ -126,10 +124,12 @@ export function createDeck(shuffle = false) {
   return deck;
 }
 
-export default {
+// ===== Exports =====
+// All exports are grouped here at the end of the file
+// This follows the project's code style guidelines
+export {
   createBaseGameState,
   createMockPlayer,
   createMockCard,
-  createDeck,
-  PATHS, // Re-export for convenience
+  createDeck
 };

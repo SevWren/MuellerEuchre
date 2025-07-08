@@ -21,7 +21,7 @@
  * @property {string} CARD_SUIT_CLUBS - Clubs suit (♣)
  * @property {string} CARD_SUIT_SPADES - Spades suit (♠)
  */
-export const CARD_SUITS = Object.freeze({
+export const CARD_SUITS = {
   // Original exports for backward compatibility
   HEARTS: 'CARD_SUIT_HEARTS',
   DIAMONDS: 'CARD_SUIT_DIAMONDS',
@@ -33,7 +33,7 @@ export const CARD_SUITS = Object.freeze({
   CARD_SUIT_DIAMONDS: 'CARD_SUIT_DIAMONDS',
   CARD_SUIT_CLUBS: 'CARD_SUIT_CLUBS',
   CARD_SUIT_SPADES: 'CARD_SUIT_SPADES'
-});
+};
 
 // Maintain original export for backward compatibility
 export const SUITS = CARD_SUITS;
@@ -48,7 +48,6 @@ export const SUITS = CARD_SUITS;
 export const CARD_VALUES = ["9", "10", "J", "Q", "K", "A"];
 
 // Maintain original export for backward compatibility
-// Note: CARD_VALUES is an array, so we don't freeze it
 export const VALUES = CARD_VALUES;
 
 /**
@@ -68,7 +67,7 @@ export const VALUES = CARD_VALUES;
  * @property {number} CARD_RANK_TEN=10 - Non-Trump 10
  * @property {number} CARD_RANK_NINE=9 - Lowest standard card
  */
-export const CARD_RANKS = Object.freeze({
+export const CARD_RANKS = {
   // (Do Not Change) Original special rank value exports for backward compatibility
   // (Do Not Change) The intrinsic value of a card, independent of suit context.
   RIGHT_BOWER: 150,
@@ -96,7 +95,7 @@ export const CARD_RANKS = Object.freeze({
   
   // Invalid card rank
   INVALID: 0
-});
+};
 
 /**
  * Logging levels for the application
@@ -108,7 +107,7 @@ export const CARD_RANKS = Object.freeze({
  * @property {string} LOG_LEVEL_DEBUG - Detailed debugging information
  * @property {string} LOG_LEVEL_TRACE - Very detailed logging for specific debugging
  */
-export const LOG_LEVELS = Object.freeze({
+export const LOG_LEVELS = {
   // Original exports for backward compatibility
   ERROR: 'LOG_LEVEL_ERROR',
   WARN: 'LOG_LEVEL_WARN',
@@ -122,7 +121,7 @@ export const LOG_LEVELS = Object.freeze({
   LOG_LEVEL_INFO: 'LOG_LEVEL_INFO',   // General information about application flow
   LOG_LEVEL_DEBUG: 'LOG_LEVEL_DEBUG', // Detailed debugging information
   LOG_LEVEL_TRACE: 'LOG_LEVEL_TRACE'  // Very detailed logging for specific debugging
-});
+};
 
 // Maintain original export for backward compatibility
 export const DEBUG_LEVELS = LOG_LEVELS;
@@ -136,7 +135,7 @@ export const DEBUG_LEVELS = LOG_LEVELS;
  * @property {string} STORAGE_KEY_PLAYER_NAME - Player's chosen name
  * @property {string} STORAGE_KEY_GAME_SETTINGS - Game settings/preferences
  */
-export const STORAGE_KEYS = Object.freeze({
+export const STORAGE_KEYS = {
   // Original exports for backward compatibility
   GAME_STATE: 'STORAGE_KEY_GAME_STATE',
   PLAYER_ID: 'STORAGE_KEY_PLAYER_ID',
@@ -148,7 +147,7 @@ export const STORAGE_KEYS = Object.freeze({
   STORAGE_KEY_PLAYER_ID: 'STORAGE_KEY_PLAYER_ID',      // Local player ID
   STORAGE_KEY_PLAYER_NAME: 'STORAGE_KEY_PLAYER_NAME',  // Player's chosen name
   STORAGE_KEY_GAME_SETTINGS: 'STORAGE_KEY_GAME_SETTINGS' // Game settings/preferences
-});
+};
 
 /**
  * Socket.io event names used for game communication
@@ -162,7 +161,7 @@ export const STORAGE_KEYS = Object.freeze({
  * @property {string} GAME_EVENT_PLAYER_LEAVE - Player leaves the game
  * @property {string} GAME_EVENT_GAME_OVER - Game has ended
  */
-export const GAME_EVENTS = Object.freeze({
+export const GAME_EVENTS = {
   // Original exports for backward compatibility
   STATE_UPDATE: 'GAME_EVENT_STATE_UPDATE',
   REQUEST_FULL_STATE: 'GAME_EVENT_REQUEST_STATE',
@@ -192,7 +191,7 @@ export const GAME_EVENTS = Object.freeze({
   GAME_EVENT_PLAYER_JOIN: 'GAME_EVENT_PLAYER_JOIN', // New player joins the game
   GAME_EVENT_PLAYER_LEAVE: 'GAME_EVENT_PLAYER_LEAVE', // Player leaves the game
   GAME_EVENT_GAME_OVER: 'GAME_EVENT_GAME_OVER' // Game has ended
-});
+};
 
 /**
  * Game phase states
@@ -207,7 +206,7 @@ export const GAME_EVENTS = Object.freeze({
  * @property {string} GAME_PHASE_SCORING - Phase where hand results are calculated
  * @property {string} GAME_PHASE_GAME_OVER - Final phase when game ends
  */
-export const GAME_PHASES = Object.freeze({
+export const GAME_PHASES = {
   // Original exports for backward compatibility
   LOBBY: 'GAME_PHASE_LOBBY',
   DEALING: 'GAME_PHASE_DEALING',
@@ -227,7 +226,7 @@ export const GAME_PHASES = Object.freeze({
   GAME_PHASE_PLAYING: 'GAME_PHASE_PLAYING', // Main gameplay phase where tricks are played
   GAME_PHASE_SCORING: 'GAME_PHASE_SCORING', // Phase where hand results are calculated
   GAME_PHASE_GAME_OVER: 'GAME_PHASE_GAME_OVER' // Final phase when game ends
-});
+};
 
 /**
  * Standard Euchre seating positions (North/South vs East/West)
@@ -237,20 +236,15 @@ export const GAME_PHASES = Object.freeze({
  * // Team NS: PLAYER_ROLES[0] and PLAYER_ROLES[2] (south and north)
  * // Team EW: PLAYER_ROLES[1] and PLAYER_ROLES[3] (west and east)
  */
-// Note: Arrays are already immutable by default in JavaScript when using const
-// and not using methods that mutate the array
-const PLAYER_ROLES_ARRAY = [
+export const PLAYER_ROLES = [
   'PLAYER_SOUTH',
   'PLAYER_WEST',
   'PLAYER_NORTH',
   'PLAYER_EAST'
 ];
 
-// Export as read-only view of the array
-export const PLAYER_ROLES = Object.freeze([...PLAYER_ROLES_ARRAY]);
-
 // Individual player role constants for easier reference
-export const PLAYER_POSITIONS = Object.freeze({
+export const PLAYER_POSITIONS = {
   // Original values for backward compatibility
   SOUTH: 'PLAYER_SOUTH',
   WEST: 'PLAYER_WEST',
@@ -262,7 +256,7 @@ export const PLAYER_POSITIONS = Object.freeze({
   PLAYER_WEST: 'PLAYER_WEST',
   PLAYER_NORTH: 'PLAYER_NORTH',
   PLAYER_EAST: 'PLAYER_EAST'
-});
+};
 
 /**
  * Team identifiers for Euchre (North/South vs East/West)
@@ -271,7 +265,7 @@ export const PLAYER_POSITIONS = Object.freeze({
  * @property {string} TEAM_NS - North/South team
  * @property {string} TEAM_EW - East/West team
  */
-export const TEAMS = Object.freeze({
+export const TEAMS = {
   // Original values for backward compatibility
   NS: 'TEAM_NS',
   EW: 'TEAM_EW',
@@ -279,7 +273,7 @@ export const TEAMS = Object.freeze({
   // New prefixed versions (preferred)
   TEAM_NS: 'TEAM_NS', // North/South team
   TEAM_EW: 'TEAM_EW'  // East/West team
-});
+};
 
 /**
  * Winning score for a Euchre game

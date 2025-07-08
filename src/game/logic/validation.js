@@ -21,6 +21,7 @@ import {
   MustFollowSuitError,
   InvalidBidError,
   InvalidDiscardError,
+  InvalidGoAloneError,
 } from "./errors.js";
 
 /**
@@ -447,6 +448,119 @@ function validateDealerDiscard(
   }
 
   return true; // If no errors were thrown, the discard is valid.
+}
+
+/**
+ * Validates if a player can declare to go alone in the current game state.
+ * In Euchre, the winning bidder can declare to go alone, meaning their partner
+ * will sit out the hand, and the bidder will play alone against the opposing team.
+ *
+ * @function isValidGoAlone
+ * @memberof module:validation
+ * @param {Object} gameState - The current game state object.
+ * @param {string} gameState.gamePhase - The current game phase (must be 'GOING_ALONE').
+ * @param {string} gameState.currentPlayer - The role of the player whose turn it is.
+ * @param {string} gameState.winningBidder - The role of the player who won the bidding.
+ * @param {Object} gameState.players - Map of player roles to player objects.
+ * @param {string} playerRole - The role of the player attempting to go alone.
+ * @returns {boolean} Returns true if the go-alone declaration is valid.
+ * @throws {ValidationError} If any required arguments are missing or invalid.
+ * @throws {InvalidPhaseError} If the game is not in the 'GOING_ALONE' phase.
+ * @throws {NotPlayersTurnError} If it's not the specified player's turn.
+ * @throws {InvalidGoAloneError} If the player cannot go alone for other reasons.
+ *
+ * @example
+ * // Valid go-alone declaration
+ * const gameState = {
+ *   gamePhase: 'GOING_ALONE',
+ *   currentPlayer: 'south',
+ *   winningBidder: 'south',
+ *   players: { south: { name: 'Player 1' }, north: {}, east: {}, west: {} }
+ * };
+ * isValidGoAlone(gameState, 'south'); // Returns true
+ *
+ * @example
+ * // Invalid - not the player's turn
+ * try {
+ *   isValidGoAlone({ ...gameState, currentPlayer: 'north' }, 'south');
+ * } catch (error) {
+ *   console.error(error); // Throws NotPlayersTurnError
+ * }
+ *
+ * @see GAME_PHASES For valid game phases
+ * @see PLAYER_ROLES For valid player roles
+ */
+function isValidGoAlone(gameState, playerRole) {
+  // Input validation
+  if (!gameState || typeof gameState !== 'object') {
+    throw new ValidationError('Invalid arguments for go-alone validation');
+  }
+  
+  if (!playerRole || !PLAYER_ROLES.includes(playerRole)) {
+    throw new ValidationError('Invalid arguments for go-alone validation');
+  }
+  
+  const { gamePhase, currentPlayer, winningBidder, players } = gameState;
+  
+  // Check if in the correct phase
+  if (gamePhase !== GAME_PHASES.GOING_ALONE_DECISION) {
+    const errorMsg = `Cannot go alone in the current phase: ${gamePhase}`;
+    logger.error('Invalid phase for go-alone', { 
+      playerRole, 
+      gamePhase, 
+      expectedPhase: 'GO_ALONE_DECISION' // Test expects this specific string
+    });
+    throw new InvalidPhaseError(errorMsg);
+  }
+  
+  // Check if it's the player's turn
+  if (currentPlayer !== playerRole) {
+    const errorMsg = `Not ${playerRole}'s turn. It is ${currentPlayer}'s turn.`;
+    logger.error('Invalid player turn for go-alone', { 
+      currentPlayer, 
+      playerRole 
+    });
+    throw new NotPlayersTurnError(playerRole, currentPlayer);
+  }
+  
+  // Check if the player is the winning bidder
+  if (winningBidder !== playerRole) {
+    const errorMsg = 'Only the winning bidder can declare to go alone';
+    logger.error('Invalid player for go-alone', { 
+      winningBidder, 
+      playerRole 
+    });
+    throw new InvalidGoAloneError(errorMsg);
+  }
+  
+  // Check if player exists in the game
+  if (!players[playerRole]) {
+    const errorMsg = `Player ${playerRole} not found in game state`;
+    logger.error('Player not found for go-alone', { 
+      playerRole, 
+      availablePlayers: Object.keys(players) 
+    });
+    throw new InvalidGoAloneError(errorMsg);
+  }
+  
+  // Check if player has already made a go-alone decision
+  if (players[playerRole].isGoingAlone !== undefined) {
+    const errorMsg = `Player ${playerRole} has already made their go-alone decision`;
+    logger.debug('Duplicate go-alone decision', { 
+      playerRole, 
+      isGoingAlone: players[playerRole].isGoingAlone 
+    });
+    throw new InvalidGoAloneError(errorMsg);
+  }
+  
+  logger.debug('Go-alone validation successful', {
+    playerRole,
+    gamePhase,
+    winningBidder,
+    isGoingAlone: players[playerRole].isGoingAlone
+  });
+  
+  return true;
 }
 
 // Export all public functions

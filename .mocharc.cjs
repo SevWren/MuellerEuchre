@@ -14,7 +14,7 @@ const config = {
   delay: false,
   diff: true,
   exit: false, // Important for watch mode
-  extension: ["js", "jsx"],  // Keep jobs at 1; parallel execution can be complex with ESM loaders like esmock.
+  extension: ["js", "jsx"],  // Keep jobs at 1
   
   // Set fail-zero to true to force Mocha to exit with a non-zero status code
   // when no tests are found, which is useful for CI/CD pipelines.

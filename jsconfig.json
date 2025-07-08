@@ -1,19 +1,21 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "target": "ES2022",
     "jsx": "react-jsx",
     "allowImportingTsExtensions": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
+    "types": ["node"],
     "paths": {
       "@/*": ["src/*"],
       "@test/*": ["test/*"],
-      "@public/*": ["public/*"],
-      "@fixtures/*": ["test/__fixtures__/*"],
-      "@mocks/*": ["test/__mocks__/*"]
+      "@public/*": ["public/*"]
     }
   },
   "exclude": [
@@ -40,7 +42,6 @@
     "package-lock.json",
     "**/public/vendor/*",
     "**/public/libs/*",
-    "**/*.min.js",
     "**/*.min.css",
     "**/webpack.config.override.js",
     "**/babel.config.override.js",
@@ -51,7 +52,6 @@
     "todo.md",
     "todo_possible_amendment.md",
     "readme.md",
-    "ENVIRONMENT_INSTABILITY.md.errors",
     ".vscode/*",
     "archived_for_later_development/test/db/gameRepository.unit.test.js",
     "Repo_To_LLM",
@@ -63,9 +63,6 @@
     "test/**/*.js",
     "test/**/*.jsx",
     "public/js/**/*.js",
-    "**/*.ts",
-    "**/*.tsx",
-    "**/__mocks__",
     "**/cypress",
     "**/e2e"
   ]

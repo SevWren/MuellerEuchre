@@ -37,7 +37,7 @@ Each priority related to Layer 1 development MUST strictly adhere to the Core Ar
   - **Implementation:**
     - Write comprehensive unit tests that target the pure logic functions in `src/game/logic/validation.js` and `src/game/phases/playingPhase.js` in strict isolation.
     - Provide mocked inputs (e.g., mock `gameState` objects, mock player hands) and assert the precise return values or the specific errors thrown.
-    - Ensure that mocking of internal dependencies (e.g., `src/utils/deck.js`, `src/utils/players.js` for `playingPhase.js`) is done using `esmock` as per the project's testing conventions (`test/utils/esmock_wrapper.js`).
+    - Ensure that mocking of internal dependencies (e.g., `src/utils/deck.js`, `src/utils/players.js` for `playingPhase.js`) is done using `node:test`, NEVER esmock NEVER sinon NEVER chai.
 
 **3. Develop Unit Tests for Core Logic (Scoring Phase)**
 
@@ -61,14 +61,14 @@ Each priority related to Layer 1 development MUST strictly adhere to the Core Ar
 **5. Stabilize the Test Suite by Resolving Intermittent Failures**
 
 - **Process for Layer 1 Tests:** For any Layer 1 unit tests experiencing intermittent failures, the cause MUST be a race condition or asynchronous issue _within the test environment or its mocks_, as Layer 1 functions themselves are pure and deterministic.
-- **Action:** Isolate the flaky test and debug the test setup itself (e.g., `esmock` usage, mock state, `beforeEach`/`afterEach` cleanup). If a fix is not immediate, disable the test with `it.skip()` and add a detailed `// TODO:` comment explaining the problem, ensuring the main test suite remains stable for development on individual layers.
+- **Action:** Isolate the flaky test and debug the test setup itself (e.g., `node:test` usage, mock state, any cleanup). If a fix is not immediate, disable the test and add a detailed `// TODO:` comment explaining the problem, ensuring the main test suite remains stable for development on individual layers.
 
 ---
 
 ### Foundational Rules (Applies to Layer 1 Code)
 
 - **Immutability First:** Never mutate shared state directly. All functions in Layer 1 MUST produce a new state object if a state change is required.
-- **Test-Driven Development:** Write unit tests for all new Layer 1 logic using **Mocha/Chai**. Tests MUST be self-contained and explicitly import all helpers. `test/utils/esmock_wrapper.js` (using `esmock`) is the mandated tool for mocking dependencies.
+- **Test-Driven Development:** Write unit tests for all new Layer 1 logic using **node:tets**. Tests MUST be self-contained and explicitly import all helpers.
 - **ESM Only:** All Layer 1 code MUST use ES Modules (`import`/`export`). No CommonJS (`require`/`module.exports`).
 - **Robust Error Handling:** Use the project's `src/utils/logger.js` for internal debugging logs within Layer 1. Errors for invalid actions MUST be _thrown_ as specific `src/game/logic/errors.js` instances, not handled internally.
 

@@ -1,3 +1,8 @@
+#
+#  Generate file with all files in the repo
+#  That pass .gitignore restrictions
+#
+#
 # Set console output encoding to UTF-8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 

@@ -168,22 +168,80 @@ const mockErrors = {
  * @returns {Promise<Object>} The imported module with mocked dependencies.
  */
 const importModuleUnderTest = async () => {
-  // Use path resolution that works across platforms
-  const modulePath = path
-    .relative(
-      path.dirname(__filename),
-      path.resolve(process.cwd(), "src/game/phases/startNewHandPhase.js"),
-    )
-    .replace(/\\/g, "/");
+  // Get the directory of the current test file
+  const testDir = path.dirname(fileURLToPath(import.meta.url));
+  
+  // Resolve the module path relative to the test file
+  const modulePath = path.relative(
+    testDir,
+    path.resolve(process.cwd(), 'src/game/phases/startNewHandPhase.js')
+  ).replace(/\\/g, '/');
 
-  return await esmockWithPaths(import.meta.url, modulePath, {
-    // Mock implementations using relative paths from the source file
-    "../../utils/deck.js": mockDeckUtils,
-    "../../utils/players.js": mockPlayerUtils,
-    "../../utils/logger.js": mockLogger,
-    // Import actual errors for comparison
-    "../../game/logic/errors.js": errorsModule,
+  // Resolve mock paths relative to the test file
+  const resolveMockPath = (relativePath) => {
+    const absolutePath = path.resolve(testDir, relativePath);
+    return path.relative(process.cwd(), absolutePath).replace(/\\/g, '/');
+  };
+
+  // Define mocks using absolute paths to avoid any resolution issues
+  const mocks = {
+    [path.resolve('src/utils/logger.js')]: mockLogger,
+    [path.resolve('src/utils/deck.js')]: mockDeckUtils,
+    [path.resolve('src/utils/players.js')]: mockPlayerUtils,
+    [path.resolve('src/config/constants.js')]: constantsModule,
+    [path.resolve('src/game/logic/errors.js')]: errorsModule
+  };
+  
+  // Debug level control (can be set via environment variable)
+  const DEBUG_LEVEL = process.env.TEST_DEBUG_LEVEL || 'normal'; // 'normal' | 'verbose'
+  
+  // Create a safe version of mocks for logging
+  const safeMocks = {};
+  
+  // Only log mock information in verbose mode
+  if (DEBUG_LEVEL === 'verbose') {
+    console.log('Using mocks with absolute paths:');
+    Object.keys(mocks).forEach(key => {
+      console.log(`- ${key}`);
+    });
+  }
+  Object.entries(mocks).forEach(([key, value]) => {
+    try {
+      // Handle null/undefined values
+      if (value === null) {
+        safeMocks[key] = '[null]';
+        return;
+      }
+      
+      if (value === undefined) {
+        safeMocks[key] = '[undefined]';
+        return;
+      }
+      
+      // Handle objects
+      if (typeof value === 'object') {
+        // Check if it's a mock object
+        if (value.constructor && value.constructor.name) {
+          safeMocks[key] = `[Mock: ${value.constructor.name}]`;
+        } else {
+          safeMocks[key] = '[Object]';
+        }
+      } else {
+        // Handle primitives
+        safeMocks[key] = value;
+      }
+    } catch (err) {
+      // Fallback for any errors
+      safeMocks[key] = '[Complex Object]';
+    }
   });
+  
+  if (DEBUG_LEVEL === 'verbose') {
+    console.log('Using mocks:');
+    console.log(JSON.stringify(safeMocks, null, 2));
+  }
+  
+  return await esmockWithPaths(import.meta.url, modulePath, mocks);
 };
 
 // Import the module under test with all mocks

@@ -7,15 +7,21 @@
   "engines": {
     "node": ">=v20.1.0"
   },
+  "imports": {
+  "#/*": "./src/*",
+  "#test/*": "./test/*",
+  "#public/*": "./public/*"
+},
   "scripts": {
-    "test": "mocha --recursive --timeout 10000 --loader=esmock",
+    "test": "mocha --recursive --timeout 10000 --require esm",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test:file": "mocha --timeout 10000 --loader=esmock --spec",
+    "test:file": "mocha --timeout 15000 --spec",
     "test:watch": "mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --watch --timeout 10000",
     "test:debug": "node --inspect node_modules/mocha/bin/mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --timeout 10000",
-    "clean:coverage": "rimraf coverage",
-    "test:coverage": "c8 mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --timeout 10000",
+    "test:coverage:file": "node Scripts/run-coverage-on-file.js",
+    "test:coverage": "c8 --clean node --test",
+    "test:coverage_old": "c8 mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --timeout 10000",
     "test:coverage:ci": "npm run clean:coverage && c8 --reporter=lcov --all mocha --loader=esm test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --timeout 10000",
     "test:coverage_layer1": "npm run clean:coverage && c8 mocha test/game/**/*.test.js test/utils/**/*.test.js --recursive --timeout 10000",
     "coverage:report": "npx c8 report --reporter=text-lcov | npx coveralls",

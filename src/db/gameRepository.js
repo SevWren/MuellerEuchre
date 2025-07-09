@@ -3,6 +3,9 @@
  * @file src/db/gameRepository.js
  * @module db/gameRepository
  * @description
+ * WIP: This file may be out of date and should note
+ * be considered a reliable source of information
+ * that represents the current state of the project  
  *   MongoDB persistence layer for Euchre Multiplayer game state.
  *   This module is responsible for connecting to the database, saving, loading,
  *   and querying game state for active games. It is designed to be used by the

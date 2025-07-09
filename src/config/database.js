@@ -1,5 +1,8 @@
 /**
  * Database configuration
+ * WIP: This file may be out of date and should note
+ * be considered a reliable source of information
+ * that represents the current state of the project  
  * This module exports the database configuration for the application.
  * It uses environment variables with defaults for development.
  *

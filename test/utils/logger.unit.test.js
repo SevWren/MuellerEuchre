@@ -1,9 +1,17 @@
 /**
  * Unit tests for the logger utility in the Euchre Multiplayer game.
+ * 
+ * @TODO: Refactor to use only node:test and remove external testing libraries (chai, sinon, esmock)
+ * - Replace chai assertions with node:assert
+ * - Replace sinon mocks with node:test/mock
+ * - Remove esmock and use native ESM mocking
+ * - Remove chai and sinon dependencies
+ * 
  * @module test/utils/logger.unit.test
  * @description
  *   Comprehensive test suite for the logging system including:
- *   - Logger initialization and configuration
+ *   TODO: REFACTOR TO NOT USE CHAI SINON OR ESMOCK
+ * - Logger initialization and configuration
  *   - Log level setting from environment variables
  *   - Log message formatting and routing
  *   - Debug level mapping functionality
@@ -11,10 +19,227 @@
  * @see {@link module:src/utils/logger} for the implementation being tested
  * @since 1.0.0
  */
-import { expect } from 'chai';
-import sinon from 'sinon';
-import esmock from 'esmock';
-import { DEBUG_LEVELS } from '../../src/config/constants.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { expect } from 'chai'; //REFACTOR AND REMOVE USING CHAI
+import sinon from 'sinon'; //REFACTOR AND REMOVE USING SINON
+import { esmockWithPaths } from './esmock_wrapper.js'; //REFACTOR AND REMOVE USING ESMOCK
+// Import the constants from the test logger constants
+import { DEBUG_LEVELS } from './test-logger-constants.js';
+
+// Store original environment variables
+const originalEnv = { ...process.env };
+  
+// Set up test environment variables
+process.env = {
+  ...originalEnv,
+  DEBUG_PATH_RESOLVER: 'true',
+  NODE_ENV: 'test',
+  // Set default log level for testing
+  LOG_LEVEL: 'silent',
+  // Clear any DEBUG_LEVEL that might interfere with tests
+  DEBUG_LEVEL: ''
+};
+  
+// Restore original environment after tests
+after(() => {
+  process.env = originalEnv;
+});
+
+// Enable stack trace limit for better debugging
+Error.stackTraceLimit = 20;
+
+// Get the directory name of the current module
+const currentFile = fileURLToPath(import.meta.url);
+const currentDir = path.dirname(currentFile);
+
+// Define project root path (go up three levels from test/utils/)
+const projectRoot = path.resolve(currentDir, '../../..');
+
+// Log module loading information
+console.log('\n=== Module Loading Debug ===');
+console.log('Current file:', currentFile);
+console.log('Current directory:', currentDir);
+console.log('Project root:', projectRoot);
+
+// Define paths using the path resolver
+console.log('\n=== Resolving Paths ===');
+const loggerPath = path.resolve(projectRoot, 'src/utils/logger.js');
+console.log('Logger path:', loggerPath);
+const constantsPath = path.resolve(projectRoot, 'src/config/constants.js');
+console.log('Constants path:', constantsPath);
+console.log('========================\n');
+
+// Ensure paths use forward slashes for cross-platform compatibility
+const normalizePath = (p) => p.replace(/\\/g, '/');
+
+// Helper function to create a fresh pino mock
+const createPinoMock = () => {
+  const mock = {
+    _level: 'info',  // Internal level storage
+    info: sinon.stub().returnsThis(),
+    error: sinon.stub().returnsThis(),
+    warn: sinon.stub().returnsThis(),
+    debug: sinon.stub().returnsThis(),
+    fatal: sinon.stub().returnsThis(),
+    trace: sinon.stub().returnsThis(),
+    child: sinon.stub().returnsThis()
+  };
+
+  // Add getter/setter for level property
+  Object.defineProperty(mock, 'level', {
+    get: () => mock._level,
+    set: (value) => { mock._level = value; },
+    enumerable: true,
+    configurable: true
+  });
+
+  return mock;
+};
+
+/**
+ * Creates a logger module with the specified mocks and environment variables
+ * @param {Object} [overrides] - Override default mocks and environment variables
+ * @param {Object} [overrides.mocks] - Additional module mocks
+ * @param {Object} [overrides.envVars] - Additional environment variables
+ * @param {Object} [overrides.constants] - Override default constants
+ * @returns {Promise<Object>} - Logger module and its dependencies
+ */
+const createLoggerModule = async (overrides = {}) => {
+  const pinoMock = createPinoMock();
+  
+  // Default mock constants that match the real ones
+  const defaultConstants = {
+    DEBUG_LEVELS: {
+      NONE: 0,
+      ERROR: 1,
+      WARNING: 2,
+      INFO: 3,
+      VERBOSE: 4
+    }
+  };
+
+  // Merge with any overrides
+  const mockConstants = { ...defaultConstants, ...overrides.constants };
+
+  // Default environment variables
+  const defaultEnv = {
+    NODE_ENV: 'test',
+    LOG_LEVEL: '',
+    DEBUG_LEVEL: '',
+    ...overrides.envVars
+  };
+  
+    // Mock the process object
+  const processMock = {
+    env: { ...defaultEnv }
+  };
+
+  try {
+    // Create a fresh pino mock for this test
+    const pinoMock = createPinoMock();
+    
+    // Mock the constants
+    const mockConstants = {
+      DEBUG_LEVELS: {
+        NONE: 0,
+        ERROR: 1,
+        WARNING: 2,
+        INFO: 3,
+        VERBOSE: 4
+      }
+    };
+
+      // Create a mock logger with all required methods and property getter/setter for level
+    const mockLogger = {
+      info: sinon.stub().returnsThis(),
+      error: sinon.stub().returnsThis(),
+      warn: sinon.stub().returnsThis(),
+      debug: sinon.stub().returnsThis(),
+      child: sinon.stub().returnsThis(),
+      _level: 'info',
+      get level() {
+        return this._level;
+      },
+      set level(val) {
+        this._level = val;
+      },
+      ...pinoMock
+    };
+
+    // Mock pino to return our mock logger
+    const pinoStub = sinon.stub().callsFake((options) => {
+      // Update mock logger with options if provided
+      if (options && options.level) {
+        mockLogger._level = options.level;
+      }
+      return mockLogger;
+    });
+    
+    // Add pino static methods
+    pinoStub.stub = pinoStub;
+    pinoStub.transport = { target: sinon.stub() };
+    pinoStub.transport.target.returns({ options: {} });
+    
+    // Add pino levels for testing
+    pinoStub.levels = {
+      values: {
+        error: 50,
+        warn: 40,
+        info: 30,
+        debug: 20,
+        trace: 10
+      },
+      labels: {
+        50: 'error',
+        40: 'warn',
+        30: 'info',
+        20: 'debug',
+        10: 'trace'
+      }
+    };
+
+    // Import the logger module with mocks
+    const loggerModule = await esmockWithPaths(
+      import.meta.url, // Current test file URL
+      loggerPath,      // Path to the module being tested
+      {
+        // Mock required modules
+        'pino': pinoStub,
+        '../config/constants.js': mockConstants,
+        // Mock process for the module
+        'process': processMock,
+        // Add any additional mocks
+        ...(overrides.mocks || {})
+      }
+    );
+
+    // The logger module exports both a default export and named exports
+    const logger = loggerModule.default || loggerModule;
+    const { log, setDebugLevel } = loggerModule;
+
+    // Verify we have valid exports
+    if (!logger) {
+      throw new Error('Logger instance is undefined');
+    }
+  
+  
+
+    return {
+      pinoMock: mockLogger,  // Return our enhanced mock logger
+      pinoStub,             // Return the pino stub for verification
+      processMock,
+      log: log || (() => {}),
+      setDebugLevel: setDebugLevel || (() => {}),
+      logger: mockLogger,    // Use our mock logger instead of the real one
+      constants: mockConstants,
+      envVars: { ...defaultEnv }
+    };
+  } catch (error) {
+    console.error('Error creating logger module:', error);
+    throw error;
+  }
+};
 
 describe('Logger Utility', () => {
   let loggerModule;

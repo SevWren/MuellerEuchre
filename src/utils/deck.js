@@ -788,49 +788,6 @@ function getCardRank(card, trumpSuit, ledSuit = null) {
   }
 }
 
-/**
- * Sorts a player's hand for optimal display in the UI according to Euchre conventions.
- * The sorting order is designed to group cards logically for easy play:
- * 1. Trump cards first (Right Bower, then Left Bower, then other trumps by rank)
- * 2. Non-trump cards grouped by suit in the order: Clubs, Diamonds, Hearts, Spades
- * 3. Within each group, cards are sorted by rank (highest first)
- *
- * @function sortHand
- * @memberof module:utils/deck
- * @param {Card[]} hand - The player's hand to sort. Must be an array of valid Card objects.
- * @param {string} trumpSuit - The current trump suit (case-insensitive).
- * @returns {Card[]} A new array containing the sorted cards. Returns an empty array if input is invalid.
- * @throws {TypeError} If `trumpSuit` is not provided or is not a string.
- * @example
- * // Basic usage
- * const hand = [
- *   { suit: 'hearts', value: 'J' },  // Right Bower if trump is hearts
- *   { suit: 'diamonds', value: 'J' }, // Left Bower if trump is hearts
- *   { suit: 'hearts', value: 'A' },   // Other trump
- *   { suit: 'clubs', value: 'K' },    // Off-suit
- *   { suit: 'spades', value: '10' }   // Off-suit
- * ];
- * const sortedHand = sortHand(hand, 'hearts');
- * // Returns: [
- * //   { suit: 'hearts', value: 'J' },   // Right Bower first
- * //   { suit: 'diamonds', value: 'J' },  // Left Bower second
- * //   { suit: 'hearts', value: 'A' },    // Other trumps by rank
- * //   { suit: 'clubs', value: 'K' },     // Off-suits by suit order
- * //   { suit: 'spades', value: '10' }    // Then by rank within suit
- * // ]
- *
- * // With error handling
- * try {
- *   const invalidHand = 'not an array';
- *   const result = sortHand(invalidHand, 'hearts'); // Returns [] with warning
- * } catch (error) {
- *   console.error(error);
- * }
- *
- * @see isRightBower
- * @see isLeftBower
- * @see getCardRank
- */
 function sortHand(hand, trumpSuit) {
   if (!Array.isArray(hand)) {
     logger.warn("Invalid hand provided for sorting: must be an array.", {

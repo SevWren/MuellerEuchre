@@ -42,7 +42,7 @@ This protocol governs how all tasks are executed.
 
 ### A. Foundational Rules
 -   **Immutability First:** Never mutate shared state directly. All state updates must be atomic and produce a new state object.
--   **Test-Driven Development:** Write unit tests for all new logic using **node:test**. DO NOT USE `esmock, sinon, or chai.  
+-   **Test-Driven Development:** Write unit tests for all new logic using **node:test**. DO NOT USE `esmock`, `sinon`, `chai`, or `jest` as those are FORBIDDEN.  
 -   **ESM Only:** All code **MUST** use ES Modules (`import`/`export`). Do not introduce CommonJS (`require`/`module.exports`).
 -   **Robust Error Handling:** Use the project's async logger (`src/utils/logger.js`) and custom error classes (`src/game/logic/errors.js`). Validate all inputs at module boundaries.
 -   **CHANGE VERIFICATION:** You MUST run the test for a file after ANY MODIFICATIONS. NEVER assume your modifications were correct.

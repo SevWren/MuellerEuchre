@@ -36,6 +36,7 @@ trigger: always_on
 - Isolate tests by mocking all non-Layer 1 functionality and external dependencies.
 
 # Code & File Organization
+- Minimal in-line functions prefer exports at end of file.
 - Use named exports at the bottom of the file.
 - Export only the functions and constants needed by other modules.
 - Core Logic: `src/game/logic/`

@@ -16,10 +16,12 @@
  * // Create and shuffle a deck
  * const deck = createDeck();
  * const shuffled = shuffleDeck(deck);
- *
+ * 
  * // Sort a player's hand
  * const hand = [/* cards *\/];
  * const sortedHand = sortHand(hand, SUITS.HEARTS);
+ * TODO: VERIFY All values are imported correctly from the recently updated Constants.js 
+ * 
  *
  * @since 1.0.0
  */
@@ -68,14 +70,6 @@ function normalizeSuit(suit) {
   return validSuit; // Return the correctly cased suit
 }
 
-/**
- * Validates card input parameters.
- * @private
- * @param {Object} card - The card to validate
- * @param {string} [trumpSuit] - Optional trump suit for validation
- * @returns {Object} Normalized card and suit information
- * @throws {InvalidCardError} If validation fails
- */
 function validateCardInput(card, trumpSuit) {
   logger.debug('validateCardInput called with:', { 
     card, 
@@ -146,32 +140,6 @@ const VALUE_NAME_MAP = {
   K: "King",
   A: "Ace",
 };
-
-/**
- * Rank bonus values for card evaluation in Euchre.
- * These values create a clear hierarchy in card ranking:
- * Right Bower (Jack of trump) > Left Bower (Jack of same color as trump) > Other trumps > Led suit > Off-suit
- * @private
- * @readonly
- * @enum {number}
- * @property {number} RIGHT_BOWER_RANK_BONUS=150 - Bonus for the Right Bower (Jack of trump)
- * @property {number} LEFT_BOWER_RANK_BONUS=100 - Bonus for the Left Bower (Jack of same color as trump)
- * @property {number} TRUMP_RANK_BONUS=100 - Bonus for any trump card (except bowers)
- * @property {number} LED_SUIT_RANK_BONUS=50 - Bonus for cards in the led suit (non-trump)
- */
-const CARD_RANK_BONUSES = {
-  RIGHT_BOWER: 150,
-  LEFT_BOWER: 100,
-  TRUMP: 100,
-  LED_SUIT: 50,
-};
-
-const {
-  RIGHT_BOWER_RANK_BONUS,
-  LEFT_BOWER_RANK_BONUS,
-  TRUMP_RANK_BONUS,
-  LED_SUIT_RANK_BONUS,
-} = CARD_RANK_BONUSES;
 
 /**
  * Represents a playing card in Euchre.
@@ -270,30 +238,6 @@ function createDeck() {
   );
 }
 
-/**
- * Shuffles a deck of cards using the Fisher-Yates algorithm.
- * Returns a new shuffled array without mutating the original.
- *
- * @function shuffleDeck
- * @memberof module:utils/deck
- * @param {Card[]} deck - The deck to shuffle. Must be an array of valid Card objects.
- * @returns {Card[]} A new array containing the same cards in random order.
- * @throws {InvalidCardError} If deck is not an array or contains invalid cards.
- * @example
- * // Basic usage
- * const deck = createDeck();
- * const shuffled = shuffleDeck(deck);
- * console.log(shuffled.length); // 24
- * console.log(deck[0] === shuffled[0]); // false (very likely)
- *
- * // With error handling
- * try {
- *   const badDeck = 'not an array';
- *   const result = shuffleDeck(badDeck);
- * } catch (error) {
- *   console.error(error.message); // 'Invalid deck provided for shuffling: must be an array.'
- * }
- */
 function shuffleDeck(deck) {
   if (!Array.isArray(deck)) {
     throw new InvalidCardError(
@@ -309,32 +253,6 @@ function shuffleDeck(deck) {
   return newDeck;
 }
 
-/**
- * Converts a card object into a standardized string identifier.
- * The ID follows the format: value followed by suit initial (e.g., 'KH' for King of Hearts).
- *
- * @function cardToId
- * @memberof module:utils/deck
- * @param {Card} card - The card object to convert. Must contain `suit` and `value` properties.
- * @returns {string} The card's ID string (e.g., '9H', 'KS', '10D'). Returns '??' if the card is invalid.
- * @throws {InvalidCardError} If the card parameter is missing or malformed.
- * @example
- * // Basic usage
- * const card = { suit: 'hearts', value: 'K' };
- * const cardId = cardToId(card); // Returns 'KH'
- *
- * // With error handling
- * try {
- *   const invalidCard = { value: 'K' }; // Missing suit
- *   const id = cardToId(invalidCard); // Throws InvalidCardError
- * } catch (error) {
- *   console.error(error.message);
- * }
- *
- * // With invalid card (returns '??')
- * const unknownCard = null;
- * const unknownId = cardToId(unknownCard); // Returns '??'
- */
 function cardToId(card) {
   // Debug log the card object
   console.log("cardToId received card:", JSON.stringify(card, null, 2));
@@ -426,34 +344,6 @@ function cardToId(card) {
   return result;
 }
 
-/**
- * Determines if a card is the Right Bower in the current game context.
- * The Right Bower is the Jack of the trump suit and is the highest-ranking card in Euchre.
- *
- * @function isRightBower
- * @memberof module:utils/deck
- * @param {Card} card - The card to check. Must contain `suit` and `value` properties.
- * @param {string} trumpSuit - The current trump suit (case-insensitive).
- * @returns {boolean} `true` if the card is the Right Bower, `false` otherwise.
- * @throws {InvalidCardError} If the card is invalid or missing required properties.
- * @throws {Error} If `trumpSuit` is not provided or invalid.
- * @example
- * // Basic usage
- * const card = { suit: 'hearts', value: 'J' };
- * const isRight = isRightBower(card, 'hearts'); // true
- *
- * // With different trump suit
- * const card2 = { suit: 'spades', value: 'J' };
- * const isRight2 = isRightBower(card2, 'hearts'); // false
- *
- * // With error handling
- * try {
- *   const invalidCard = { value: 'J' }; // Missing suit
- *   const result = isRightBower(invalidCard, 'hearts');
- * } catch (error) {
- *   console.error(error.message);
- * }
- */
 function isRightBower(card, trumpSuit) {
   // Debug logging
   console.log("isRightBower called with:", {
@@ -510,37 +400,6 @@ function isRightBower(card, trumpSuit) {
   return result;
 }
 
-/**
- * Determines if a card is the Left Bower in the current game context.
- * The Left Bower is the Jack of the suit that is the same color as the trump suit
- * and is the second-highest ranking card in Euchre.
- *
- * @function isLeftBower
- * @memberof module:utils/deck
- * @param {Card} card - The card to check. Must contain `suit` and `value` properties.
- * @param {string} trumpSuit - The current trump suit (case-insensitive).
- * @returns {boolean} `true` if the card is the Left Bower, `false` otherwise.
- * @throws {InvalidCardError} If the card is invalid or missing required properties.
- * @throws {Error} If `trumpSuit` is not provided or invalid.
- * @example
- * // Basic usage - Left Bower when trump is hearts (same color as diamonds)
- * const card = { suit: 'diamonds', value: 'J' };
- * const isLeft = isLeftBower(card, 'hearts'); // true
- *
- * // Not Left Bower when trump is clubs (same color as spades)
- * const card2 = { suit: 'diamonds', value: 'J' };
- * const isLeft2 = isLeftBower(card2, 'clubs'); // false
- *
- * // With error handling
- * try {
- *   const invalidCard = { value: 'J' }; // Missing suit
- *   const result = isLeftBower(invalidCard, 'hearts');
- * } catch (error) {
- *   console.error(error.message);
- * }
- *
- * @see isRightBower
- */
 function isLeftBower(card, trumpSuit) {
   // Debug log the input values
   logger.debug("isLeftBower called with:", {
@@ -638,43 +497,6 @@ function isLeftBower(card, trumpSuit) {
   return result;
 }
 
-/**
- * Calculates the relative rank of a card for trick evaluation in Euchre.
- * Higher numbers indicate higher rank. The ranking follows Euchre rules:
- * - Right Bower (Jack of trump suit) is highest
- * - Left Bower (Jack of same color as trump) is second highest
- * - Other trump cards follow in standard order (Ace high)
- * - Led suit cards (if any) come next
- * - Other cards are ranked by standard order
- *
- * @function getCardRank
- * @memberof module:utils/deck
- * @param {Card} card - The card to evaluate. Must contain `suit` and `value` properties.
- * @param {string} trumpSuit - The current trump suit (case-insensitive).
- * @param {string} [ledSuit=null] - Optional suit that was led in the current trick.
- * @returns {number} Numerical rank where higher numbers beat lower ones.
- * @throws {InvalidCardError} If card is invalid or missing required properties.
- * @throws {Error} If `trumpSuit` is not provided or invalid.
- * @example
- * // Basic usage with trump suit only
- * const card = { suit: 'hearts', value: 'J' };
- * const rank = getCardRank(card, 'hearts'); // Returns highest rank (Right Bower)
- *
- * // With led suit (affects non-trump cards of the led suit)
- * const card2 = { suit: 'diamonds', value: 'A' };
- * const rank2 = getCardRank(card2, 'hearts', 'diamonds'); // Higher than non-led suit cards
- *
- * // With error handling
- * try {
- *   const invalidCard = { value: 'K' }; // Missing suit
- *   const rank = getCardRank(invalidCard, 'hearts');
- * } catch (error) {
- *   console.error(error.message);
- * }
- *
- * @see isRightBower
- * @see isLeftBower
- */
 function getCardRank(card, trumpSuit, ledSuit = null) {
   // Debug logging
   logger.debug('getCardRank called with:', { 

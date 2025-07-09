@@ -48,4 +48,4 @@ trigger: always_on
 
 -   **Assertion Library**: All assertions **must** use the native `node:assert` module. The use of `chai`, `expect`, esmock, sinon, chai or other third-party assertion libraries is forbidden.
 
--   **Forbidden Libraries**: The use of `esmock`, `proxyquire`, or other third-party mocking/stubbing libraries is deprecated for new tests. Existing tests using these libraries are considered technical debt and **must be refactored** to use the native `node:test/mock` API upon discovery or when the file is otherwise modified.
+-   **Forbidden Libraries**: The use of `esmock`, `sinon`, `chai`, `jest`, `proxyquire`, or other third-party mocking/stubbing libraries is deprecated for new tests. Existing tests using these libraries are considered technical debt and **must be refactored** to use the native `node:test/mock` API upon discovery or when the file is otherwise modified.

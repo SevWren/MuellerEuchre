@@ -10,7 +10,7 @@
  *   All functions are stateless and throw specific validation errors.
  *   This module does not mutate state or perform I/O operations.
  */
-import { GAME_PHASES, SUITS, PLAYER_ROLES } from "../../config/constants.js";
+import { GAME_PHASES, SUITS, PLAYER_ROLES, BID_DECISIONS } from "../../config/constants.js";
 import { isLeftBower, areSameColor } from "../../utils/deck.js";
 import logger from "../../utils/logger.js";
 import {
@@ -23,6 +23,23 @@ import {
   InvalidDiscardError,
   InvalidGoAloneError,
 } from "./errors.js";
+
+/**
+ * Validates that a set of required arguments are provided.
+ * Throws a ValidationError if any argument is falsy.
+ * @private
+ * @param {object} args - An object where keys are argument names and values are the arguments.
+ * @param {string} context - A string describing the validation context for the error message.
+ */
+function requireArgs(args, context) {
+  for (const [key, value] of Object.entries(args)) {
+    if (!value) {
+      const message = `Internal error: Missing required argument '${key}' for ${context}.`;
+      logger.error({ missingArg: key, context }, message);
+      throw new ValidationError(message);
+    }
+  }
+}
 
 /**
  * Determines the effective suit of a card, considering the Left Bower rule.
@@ -50,97 +67,26 @@ import {
  * const effectiveSuit3 = getEffectiveSuit(null, 'hearts'); // Returns null
  */
 function getEffectiveSuit(card, trumpSuit) {
-  if (!card) return null;
-  if (isLeftBower(card, trumpSuit)) {
-    return trumpSuit;
+  if (!card) {
+    return null;
   }
-  return card.suit;
+  try {
+    // isLeftBower can throw if the card or trumpSuit is invalid.
+    // We want to handle this gracefully within the validation logic.
+    if (isLeftBower(card, trumpSuit)) {
+      return trumpSuit;
+    }
+  } catch (error) {
+    // If an error occurs (e.g., invalid suit), log it for debugging
+    // but fall back to the card's nominal suit. This prevents a crash.
+    logger.warn({ card, trumpSuit, error: error.message }, "getEffectiveSuit: Error determining if card is Left Bower. Falling back to nominal suit.");
+  }
+  return card.suit; // Return the card's nominal suit if not Left Bower or on error.
 }
 
-/**
- * Validates if a card play is legal according to Euchre rules.
- * This is a core validation function that enforces the fundamental rules of Euchre
- * regarding legal card plays, including following suit and turn order.
- *
- * @function validatePlay
- * @memberof module:validation
- * @param {Object} gameState - The current game state object.
- * @param {string} gameState.currentPhase - The current game phase (must be 'PLAYING' for valid play).
- * @param {string} gameState.currentPlayer - The role of the player whose turn it is.
- * @param {Array} gameState.currentTrick - Array of cards played in the current trick so far.
- * @param {string} gameState.trumpSuit - The current trump suit.
- * @param {string} gameState.ledSuit - The suit that was led in the current trick (if any).
- * @param {Array<Object>} playerHand - The player's current hand (array of card objects).
- * @param {Object} cardToPlay - The card the player intends to play.
- * @param {string} cardToPlay.id - Unique identifier for the card.
- * @param {string} cardToPlay.suit - The suit of the card.
- * @param {string} cardToPlay.value - The value of the card.
- * @param {string} playerRole - The role ('north', 'south', 'east', 'west') of the player making the play.
- * @returns {true} Returns true if the play is valid.
- * @throws {ValidationError} If any required arguments are missing or invalid.
- * @throws {InvalidPhaseError} If the game is not in the 'PLAYING' phase.
- * @throws {NotPlayersTurnError} If it's not the specified player's turn.
- * @throws {CardNotInHandError} If the card to play is not found in the player's hand.
- * @throws {MustFollowSuitError} If the player fails to follow suit when required by Euchre rules.
- *
- * @example
- * // Basic valid play (leading a trick)
- * const gameState = {
- *   currentPhase: 'PLAYING',
- *   currentPlayer: 'south',
- *   currentTrick: [],
- *   trumpSuit: 'hearts',
- *   ledSuit: null
- * };
- * const hand = [
- *   { id: 'JH', suit: 'hearts', value: 'J' },
- *   { id: '9D', suit: 'diamonds', value: '9' }
- * ];
- * validatePlay(gameState, hand, hand[0], 'south'); // Returns true
- *
- * @example
- * // Following suit
- * const gameState2 = {
- *   currentPhase: 'PLAYING',
- *   currentPlayer: 'north',
- *   currentTrick: [{ id: 'AS', suit: 'spades', value: 'A', playedBy: 'east' }],
- *   trumpSuit: 'hearts',
- *   ledSuit: 'spades'
- * };
- * const hand2 = [
- *   { id: 'KS', suit: 'spades', value: 'K' },
- *   { id: 'QH', suit: 'hearts', value: 'Q' }
- * ];
- * // Must play a spade (following suit)
- * validatePlay(gameState2, hand2, hand2[0], 'north'); // Returns true
- * // Invalid: Trying to play a heart when must follow spades
- * // Throws MustFollowSuitError
- * validatePlay(gameState2, hand2, hand2[1], 'north');
- *
- * @see getEffectiveSuit For how card suits are determined when trumps are involved
- * @see isLeftBower For special handling of the Left Bower card
- */
 function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
-  if (
-    !gameState ||
-    !playerHand ||
-    !cardToPlay ||
-    !cardToPlay.id ||
-    !playerRole
-  ) {
-    logger.error(
-      {
-        gameStateProvided: !!gameState,
-        playerHandProvided: !!playerHand,
-        cardToPlayProvided: !!cardToPlay,
-        playerRole,
-      },
-      "validatePlay: Missing or invalid arguments.",
-    );
-    throw new ValidationError(
-      "Internal error: Missing data for play validation.",
-    );
-  }
+  requireArgs({ gameState, playerHand, cardToPlay, playerRole }, 'play validation');
+  requireArgs({ 'cardToPlay.id': cardToPlay.id }, 'play validation');
 
   if (gameState.gamePhase !== GAME_PHASES.PLAYING) {
     throw new InvalidPhaseError(
@@ -189,78 +135,10 @@ function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
   return true; // If no errors were thrown, the play is valid.
 }
 
-/**
- * Validates if a player's bid (order up or call trump) is legal according to Euchre rules.
- * This function enforces the bidding rules for both the first and second rounds of bidding.
- *
- * @function validateBid
- * @memberof module:validation
- * @param {Object} gameState - The current game state object.
- * @param {string} gameState.gamePhase - The current game phase (must be a bidding phase).
- * @param {string} gameState.currentPlayer - The role of the player whose turn it is to bid.
- * @param {Object} gameState.turnCard - The turn card being considered for ordering up (in first round).
- * @param {string} gameState.dealer - The role of the dealer for the current hand.
- * @param {Array} gameState.bids - Array of bids made so far in the current round.
- * @param {string} playerRole - The role ('north', 'south', 'east', 'west') of the player making the bid.
- * @param {string} decision - The bid decision, one of: 'orderUp', 'pass', or 'callTrump'.
- * @param {string} [suit=null] - The suit being called (required if decision is 'callTrump').
- * @returns {true} Returns true if the bid is valid.
- * @throws {ValidationError} If any required arguments are missing or invalid.
- * @throws {NotPlayersTurnError} If it's not the specified player's turn to bid.
- * @throws {InvalidPhaseError} If bidding is attempted outside of valid bidding phases.
- * @throws {InvalidBidError} For various illegal bidding decisions.
- *
- * @example
- * // First round bidding - ordering up the turn card
- * const gameState1 = {
- *   gamePhase: 'ORDER_UP_ROUND1',
- *   currentPlayer: 'south',
- *   dealer: 'east',
- *   bids: [],
- *   turnCard: { suit: 'hearts', value: '9' }
- * };
- * validateBid(gameState1, 'south', 'orderUp'); // Returns true
- *
- * @example
- * // First round bidding - passing
- * validateBid(gameState1, 'south', 'pass'); // Returns true
- *
- * @example
- * // Second round bidding - calling trump
- * const gameState2 = {
- *   gamePhase: 'ORDER_UP_ROUND2',
- *   currentPlayer: 'west',
- *   dealer: 'east',
- *   bids: ['pass', 'pass', 'pass', 'pass'],
- *   turnCard: { suit: 'hearts', value: '9' }
- * };
- * validateBid(gameState2, 'west', 'callTrump', 'spades'); // Returns true
- *
- * @example
- * // Invalid bid - wrong phase
- * try {
- *   validateBid({ gamePhase: 'PLAYING' }, 'south', 'orderUp');
- * } catch (error) {
- *   console.error(error); // Throws InvalidPhaseError
- * }
- *
- * @see GAME_PHASES For valid game phases
- * @see SUITS For valid suit values
- */
 function validateBid(gameState, playerRole, decision, suit = null) {
-  if (
-    !gameState ||
-    !playerRole ||
-    !decision ||
-    !PLAYER_ROLES.includes(playerRole)
-  ) {
-    logger.warn(
-      { gameStateProvided: !!gameState, playerRole, decision, suit },
-      "validateBid: Missing or invalid arguments.",
-    );
-    throw new ValidationError(
-      "Internal error: Missing or invalid data for bid validation.",
-    );
+  requireArgs({ gameState, playerRole, decision }, 'bid validation');
+  if (!PLAYER_ROLES.includes(playerRole)) {
+    throw new ValidationError(`Invalid playerRole '${playerRole}' for bid validation.`);
   }
 
   const { gamePhase, currentPlayer, turnCard, dealer, bids } = gameState; // Removed roundNumber as it's not used directly
@@ -271,7 +149,7 @@ function validateBid(gameState, playerRole, decision, suit = null) {
 
   // Round 1 Bidding
   if (gamePhase === GAME_PHASES.ORDER_UP_ROUND1) {
-    if (decision !== "orderUp" && decision !== "pass") {
+    if (decision !== BID_DECISIONS.ORDER_UP && decision !== BID_DECISIONS.PASS) {
       throw new InvalidBidError(
         `Invalid decision '${decision}' for ${GAME_PHASES.ORDER_UP_ROUND1}.`,
       );
@@ -283,12 +161,12 @@ function validateBid(gameState, playerRole, decision, suit = null) {
   }
   // Round 2 Bidding
   else if (gamePhase === GAME_PHASES.ORDER_UP_ROUND2) {
-    if (decision !== "callTrump" && decision !== "pass") {
+    if (decision !== BID_DECISIONS.CALL_TRUMP && decision !== BID_DECISIONS.PASS) {
       throw new InvalidBidError(
         `Invalid decision '${decision}' for ${GAME_PHASES.ORDER_UP_ROUND2}.`,
       );
     }
-    if (decision === "callTrump") {
+    if (decision === BID_DECISIONS.CALL_TRUMP) {
       if (!suit || !Object.values(SUITS).includes(suit)) {
         throw new InvalidBidError(
           "Invalid suit provided for callTrump decision.",
@@ -303,9 +181,9 @@ function validateBid(gameState, playerRole, decision, suit = null) {
 
     // "Stick the dealer" rule: if it's dealer's turn in round 2 and all others passed, dealer MUST call.
     // This validation enforces that "pass" is invalid in that specific state.
-    if (decision === "pass" && playerRole === dealer) {
+    if (decision === BID_DECISIONS.PASS && playerRole === dealer) {
       const passesInRound2 = bids.filter(
-        (b) => b.round === 2 && b.decision === "pass",
+        (b) => b.round === 2 && b.decision === BID_DECISIONS.PASS,
       ).length;
       // Check if all other players (PLAYER_ROLES.length - 1) have passed in round 2.
       // This implies it's the dealer's turn and they are the last one to bid in this round.
@@ -324,95 +202,14 @@ function validateBid(gameState, playerRole, decision, suit = null) {
     );
   }
 }
-
-/**
- * Validates if the dealer's discard action is legal according to Euchre rules.
- * This function enforces the dealer's discard rules after they've picked up the turn card.
- *
- * @function validateDealerDiscard
- * @memberof module:validation
- * @param {Object} gameState - The current game state object.
- * @param {string} gameState.gamePhase - The current game phase (must be 'DEALER_DISCARD').
- * @param {string} gameState.currentPlayer - The role of the player whose turn it is (must be the dealer).
- * @param {string} gameState.dealer - The role of the dealer for the current hand.
- * @param {Object} gameState.turnCard - The turn card that was ordered up.
- * @param {string} playerRole - The role ('north', 'south', 'east', 'west') of the player attempting to discard.
- * @param {Object} cardToDiscard - The card the dealer intends to discard.
- * @param {string} cardToDiscard.id - Unique identifier for the card.
- * @param {string} cardToDiscard.suit - The suit of the card.
- * @param {string} cardToDiscard.value - The value of the card.
- * @param {Array<Object>} playerHand - The dealer's current hand (should contain exactly 6 cards including the turn card).
- * @returns {true} Returns true if the discard is valid.
- * @throws {ValidationError} If any required arguments are missing or invalid.
- * @throws {InvalidPhaseError} If discarding is attempted outside of the 'DEALER_DISCARD' phase.
- * @throws {NotPlayersTurnError} If it's not the specified player's turn.
- * @throws {CardNotInHandError} If the card to discard is not found in the player's hand.
- * @throws {InvalidDiscardError} If the discard is otherwise invalid (e.g., non-dealer attempts to discard).
- *
- * @example
- * // Valid discard by dealer
- * const gameState = {
- *   gamePhase: 'DEALER_DISCARD',
- *   currentPlayer: 'east',
- *   dealer: 'east',
- *   turnCard: { suit: 'hearts', value: '9' }
- * };
- * const hand = [
- *   { id: 'JH', suit: 'hearts', value: 'J' },
- *   { id: '9H', suit: 'hearts', value: '9' },
- *   { id: 'AS', suit: 'spades', value: 'A' },
- *   { id: 'KC', suit: 'clubs', value: 'K' },
- *   { id: 'QD', suit: 'diamonds', value: 'Q' },
- *   { id: '10S', suit: 'spades', value: '10' }
- * ];
- * validateDealerDiscard(gameState, 'east', hand[5], hand); // Returns true
- *
- * @example
- * // Invalid - not dealer's turn
- * try {
- *   validateDealerDiscard(gameState, 'north', hand[0], hand);
- * } catch (error) {
- *   console.error(error); // Throws NotPlayersTurnError
- * }
- *
- * @example
- * // Invalid - card not in hand
- * const invalidCard = { id: '2H', suit: 'hearts', value: '2' };
- * try {
- *   validateDealerDiscard(gameState, 'east', invalidCard, hand);
- * } catch (error) {
- *   console.error(error); // Throws CardNotInHandError
- * }
- *
- * @see GAME_PHASES For valid game phases
- * @see PLAYER_ROLES For valid player roles
- */
 function validateDealerDiscard(
   gameState,
   playerRole,
   cardToDiscard,
   playerHand,
 ) {
-  if (
-    !gameState ||
-    !playerRole ||
-    !cardToDiscard ||
-    !cardToDiscard.id ||
-    !playerHand
-  ) {
-    logger.warn(
-      {
-        gameStateProvided: !!gameState,
-        playerRole,
-        cardToDiscardProvided: !!cardToDiscard,
-        playerHandProvided: !!playerHand,
-      },
-      "validateDealerDiscard: Missing or invalid arguments.",
-    );
-    throw new ValidationError(
-      "Internal error: Missing data for discard validation.",
-    );
-  }
+  requireArgs({ gameState, playerRole, cardToDiscard, playerHand }, 'discard validation');
+  requireArgs({ 'cardToDiscard.id': cardToDiscard.id }, 'discard validation');
 
   if (gameState.gamePhase !== GAME_PHASES.DEALER_DISCARD) {
     throw new InvalidPhaseError(
@@ -492,10 +289,7 @@ function validateDealerDiscard(
  */
 function isValidGoAlone(gameState, playerRole) {
   // Input validation
-  if (!gameState || typeof gameState !== 'object') {
-    throw new ValidationError('Invalid arguments for go-alone validation');
-  }
-  
+  requireArgs({ gameState, playerRole }, 'go-alone validation');
   if (!playerRole || !PLAYER_ROLES.includes(playerRole)) {
     throw new ValidationError('Invalid arguments for go-alone validation');
   }

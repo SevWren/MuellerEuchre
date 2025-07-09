@@ -99,6 +99,26 @@ export const CARD_RANKS = Object.freeze({
 });
 
 /**
+ * Player bid decisions during the bidding phases.
+ * @readonly
+ * @enum {string}
+ * @property {string} BID_DECISION_ORDER_UP - Player orders the dealer to pick up the turn card.
+ * @property {string} BID_DECISION_PASS - Player passes their turn to bid.
+ * @property {string} BID_DECISION_CALL_TRUMP - Player calls a suit for trump in the second round.
+ */
+export const BID_DECISIONS = Object.freeze({
+  // Original values for backward compatibility
+  ORDER_UP: 'orderUp',
+  PASS: 'pass',
+  CALL_TRUMP: 'callTrump',
+
+  // New prefixed versions (preferred)
+  BID_DECISION_ORDER_UP: 'orderUp',
+  BID_DECISION_PASS: 'pass',
+  BID_DECISION_CALL_TRUMP: 'callTrump',
+});
+
+/**
  * Logging levels for the application
  * @readonly
  * @enum {string}

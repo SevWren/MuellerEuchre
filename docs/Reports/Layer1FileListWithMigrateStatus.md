@@ -1,0 +1,131 @@
+# Layer 1 Files to Migrate
+
+### Core Configuration
+    1.  `src/config/constants.js` - Pure configuration with game constants and enums
+    2.  `src/config/locales/en.json` - Static localization strings
+
+### Game Logic
+    3.  `src/game/logic/aiLogic.js` - Pure AI decision making (no side effects)
+    4.  `src/game/logic/errors.js` - Error definitions and utilities (pure)
+    5.  `src/game/logic/validation.js` - Game state validation (pure)
+
+### Game Phases
+    6.  `src/game/phases/biddingPhase.js` - Bidding logic (pure)
+    7.  `src/game/phases/endGame.js` - End game logic (pure)
+    8.  `src/game/phases/goAlonePhase.js` - Go alone logic (pure)
+    9.  `src/game/phases/lobbyPhase.js` - Lobby management (mostly pure, but has some stateful operations)
+    10. `src/game/phases/playingPhase.js` - Core game play logic (pure)
+    11. `src/game/phases/scoringPhase.js` - Score calculation (pure)
+    12. `src/game/phases/startNewHandPhase.js` - Hand initialization (pure)
+
+### Utilities
+    13. `src/utils/deck.js` - Deck management (pure)
+    14. `src/utils/errorUtils.js` - Error handling utilities (pure)
+    15. `src/utils/historyUtils.js` - Game history management (pure)
+    16. `src/utils/i18n.js` - Internationalization (mostly pure, but may cache)
+    17. `src/utils/idGenerator.js` - ID generation (pure)
+    18. `src/utils/lobbyUtils.js` - Lobby utilities (mostly pure)
+    19. `src/utils/players.js` - Player management (pure)
+    20. `src/utils/settingsUtils.js` - Settings validation (pure)
+    21. `src/utils/statsUtils.js` - Statistics calculation (pure)
+    22. `src/utils/path-resolver.js` - Path resolution (pure, with caching)
+
+### Files with Caveats
+    # - `src/config/database.js` - NOT Layer 1 (contains database connections)
+    # - `src/utils/logger.js` - NOT Layer 1 (has side effects from logging)
+
+## Unit Tests
+
+### File List
+		
+        1.  `test/game/logic/aiLogic.unit.test.js`
+		2.  `test/game/logic/errors.unit.test.js`
+		3.  `test/game/logic/validation.unit.test.js`
+		4.  `test/game/phases/biddingPhase.unit.test.js`
+		5.  `test/game/phases/endGame.unit.test.js`
+		6.  `test/game/phases/goAlonePhase.unit.test.js`
+		7.  `test/game/phases/lobbyPhase.unit.test.js`
+		8.  `test/game/phases/playingPhase.unit.test.js`
+		9.  `test/game/phases/scoringPhase.unit.test.js`
+		10. `test/game/phases/startNewHandPhase.unit.test.js`
+		11. `test/utils/deck.unit.test.js`
+		12. `test/utils/errorUtils.unit.test.js`
+		13. `test/utils/idGenerator.unit.test.js`
+		14. `test/utils/lobbyUtils.unit.test.js`
+		15. `test/utils/players.unit.test.js`
+		16. `test/utils/historyUtils.unit.test.js`
+		17. `test/utils/settingsUtils.unit.test.js`
+		18. `test/utils/statsUtils.unit.test.js`
+		19. `test/utils/path-resolver.unit.test.js`
+
+### Unit Tests Needing Refactoring As of 7/9/2025
+
+		1. `test/game/logic/aiLogic.unit.test.js`:
+		   - Uses Chai (`expect`) and Sinon (`stub`)
+		   - Uses esmockWithPaths for module mocking
+		   - Needs migration to `node:test` and `node:assert`
+
+		2. `test/game/logic/errors.unit.test.js`:
+		   - Already uses `node:test` and `node:assert`
+		   - No migration needed
+
+		3. `test/game/phases/biddingPhase.unit.test.js`:
+		   - Uses Chai (`expect`) and Sinon (`stub`, `createSandbox`)
+		   - Uses esmockWithPaths for module mocking
+		   - Needs migration to `node:test` and `node:assert`
+
+		4. `test/game/phases/endGame.unit.test.js`:
+		   - Uses Chai (`expect`) and Sinon (`stub`, `createSandbox`)
+		   - Uses esmockWithPaths for module mocking
+		   - Needs migration to `node:test` and `node:assert`
+
+		5. `test/game/phases/lobbyPhase.unit.test.js`:
+		   - Uses Chai (`expect`) and Sinon (`stub`, `createSandbox`)
+		   - Uses esmockWithPaths for module mocking
+		   - Needs migration to `node:test` and `node:assert`
+
+		6. `test/game/phases/playingPhase.unit.test.js`:
+		   - Already uses `node:test` and `node:assert`
+		   - Uses `node:test/mock` for mocking
+		   - No migration needed
+
+		7. `test/game/phases/scoringPhase.unit.test.js`:
+		   - Uses Chai (`expect`) and Sinon (`stub`)
+		   - Uses esmockWithPaths for module mocking
+		   - Needs migration to `node:test` and `node:assert`
+
+		8. `test/game/phases/startNewHandPhase.unit.test.js`:
+		   - Uses Chai (`expect`) and Sinon (`stub`)
+		   - Uses esmockWithPaths for module mocking
+		   - Needs migration to `node:test` and `node:assert`
+
+		9. `test/utils/deck.unit.test.js`:
+		   - Already uses `node:test` and `node:assert`
+		   - No migration needed
+
+		10. `test/utils/errorUtils.unit.test.js`:
+		    - Uses Chai (`expect`)
+		    - Needs migration to `node:test` and `node:assert`
+
+		11. `test/utils/idGenerator.unit.test.js`:
+		    - Uses Chai (`expect`)
+		    - Needs migration to `node:test` and `node:assert`
+
+		12. `test/utils/lobbyUtils.unit.test.js`:
+		    - Uses Chai (`expect`) and Sinon (`stub`)
+		    - Uses esmockWithPaths for module mocking
+		    - Needs migration to `node:test` and `node:assert`
+
+		13. `test/utils/players.unit.test.js`:
+		    - Uses Chai (`expect`) and Sinon (`stub`)
+		    - Uses esmockWithPaths for module mocking
+		    - Needs migration to `node:test` and `node:assert`
+
+		14. `test/utils/historyUtils.unit.test.js`:
+		    - Uses Chai (`expect`) and Sinon (`stub`)
+		    - Uses esmock for module mocking
+		    - Needs migration to `node:test` and `node:assert`
+
+		15. `test/utils/settingsUtils.unit.test.js`:
+		    - Uses Chai (`expect`)
+		    - Needs migration to `node:test` and `node:assert`

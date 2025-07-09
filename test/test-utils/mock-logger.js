@@ -52,4 +52,6 @@ export function createMockLogger() {
       }
     }
   };
+  
+  return mockLogger;
 }

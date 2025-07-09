@@ -573,8 +573,8 @@ describe('GoAlonePhase Logic', () => {
       
       // Verify other state updates
       assert.strictEqual(newState.goingAlone, false, 'Should set goingAlone to false');
-      assert.strictEqual(newState.playerGoingAlone, undefined, 'Should not set playerGoingAlone');
-      assert.strictEqual(newState.partnerSittingOut, undefined, 'Should not set partnerSittingOut');
+      assert.strictEqual(newState.playerGoingAlone, null, 'Should set playerGoingAlone to null');
+      assert.strictEqual(newState.partnerSittingOut, null, 'Should set partnerSittingOut to null');
       assert.strictEqual(newState.gamePhase, GAME_PHASES.GAME_PHASE_PLAYING, 'Should advance to PLAYING phase');
     });
 

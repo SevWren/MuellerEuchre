@@ -27,6 +27,15 @@ function createEdgeCaseState(dealer, trumpMaker) {
     };
   }
 
+  // Ensure the trump maker exists in the players object
+  if (trumpMaker && !players[trumpMaker]) {
+    players[trumpMaker] = { 
+      id: trumpMaker, 
+      name: trumpMaker, 
+      teamId: TEAMS.TEAM_NS 
+    };
+  }
+
   return {
     dealer,
     currentPlayer: trumpMaker,
@@ -35,10 +44,8 @@ function createEdgeCaseState(dealer, trumpMaker) {
     playerWhoCalledTrump: trumpMaker, // Alternative way to identify trump maker
     gamePhase: GAME_PHASES.GAME_PHASE_GOING_ALONE_DECISION,
     players,
-    currentTrick: { cards: [] },
-    gameMessages: [],
-    // Add required fields to prevent validation errors
     currentTrick: [],
+    gameMessages: [],
     leadSuit: null,
     trumpSuit: 'hearts',
     goingAlone: false,
@@ -49,17 +56,37 @@ function createEdgeCaseState(dealer, trumpMaker) {
     hands: {},
     kitty: []
   };
-
-  // Ensure the trump maker exists in the players object
-  if (trumpMaker && !state.players[trumpMaker]) {
-    state.players[trumpMaker] = { id: trumpMaker, name: trumpMaker, teamId: TEAMS.TEAM_NS };
-  }
-  
-  return state;
 };
 
 describe('GoAlonePhase Edge Cases', () => {
   describe('Player Object Edge Cases', () => {
+    it('should handle undefined player names when going alone', () => {
+      const [SOUTH, NORTH] = PLAYER_ROLES;
+      const gameState = createEdgeCaseState(SOUTH, SOUTH);
+      
+      // Set up players with undefined names
+      gameState.players[SOUTH].name = undefined;
+      gameState.players[NORTH].name = undefined;
+      
+      const newState = handleGoAloneDecision(gameState, SOUTH, true);
+      const message = newState.gameMessages[0].text;
+      assert.match(message, new RegExp(`${SOUTH} is going alone!`));
+      // The actual message includes the partner's role name
+      assert.match(message, /NORTH sits out/);
+    });
+    
+    it('should handle undefined player names when playing with partner', () => {
+      const [SOUTH] = PLAYER_ROLES;
+      const gameState = createEdgeCaseState(SOUTH, SOUTH);
+      
+      // Set up players with undefined names
+      gameState.players[SOUTH].name = undefined;
+      
+      const newState = handleGoAloneDecision(gameState, SOUTH, false);
+      const message = newState.gameMessages[0].text;
+      assert.match(message, new RegExp(`${SOUTH} chooses to play with a partner`));
+    });
+    
     it('should handle missing player name in players object', () => {
       const [SOUTH] = PLAYER_ROLES;
       const gameState = createEdgeCaseState(SOUTH, SOUTH);

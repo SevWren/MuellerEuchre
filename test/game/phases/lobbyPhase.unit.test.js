@@ -2,9 +2,9 @@
  * Unit tests for the lobby phase logic of the Euchre Multiplayer game.
  * @module test/game/phases/lobbyPhase.unit
  * @description
+ *   TODO: REFACTOR TO NOT USE CHAI SINON OR ESMOCK
  *   Tests validate the logic for starting a game from the lobby,
  *   including player count checks, phase validation, and concurrency handling.
- *
  *   Tests use esmock to mock state management and logger dependencies.
  *   All validation and error scenarios for starting a game are covered.
  *   The file is focused on pure logic, not on network or persistence.

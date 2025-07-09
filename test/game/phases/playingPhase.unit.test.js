@@ -1,34 +1,14 @@
-/**
- * @file test/phases/playingPhase.unit.test.js
- * @module test/phases/playingPhase.unit
- * @description
- *   Unit tests for the playing phase logic of the Euchre Multiplayer game.
- *   These tests cover card play validation, trick resolution, error handling,
- *   and phase transitions for the main play loop.
- *
- *   CURRENT STATE:
- *     - Tests use esmock to mock all dependencies and isolate the pure logic.
- *     - All scenarios for card play, trick completion, and error propagation are covered.
- *     - The file is focused on Layer 1 logic, not on state management or network.
- *
- *   WHEN THE PROJECT IS COMPLETE:
- *     - This file will serve as the definitive test suite for Layer 1 playing phase logic.
- *     - All rules for card play, trick resolution, and phase transitions will be validated here.
- *     - No test will require integration with state, persistence, or network code.
- */
-
-import { expect } from "chai";
-import sinon from "sinon";
-import { esmockWithPaths } from "../../utils/esmock_wrapper.js";
-
-// Import using path constants to ensure consistency
+// filepath: test/game/phases/playingPhase.unit.test.js
+import assert from 'node:assert';
+import { test } from 'node:test';
+import { mock } from 'node:test';
 import {
   GAME_PHASES,
   PLAYER_ROLES,
   SUITS,
   TEAMS,
   VALUES,
-} from "../../../src/config/constants.js";
+} from '../../../src/config/constants.js';
 
 import {
   PhaseLogicError,
@@ -37,23 +17,10 @@ import {
   CardNotInHandError,
   MustFollowSuitError,
   ValidationError,
-} from "../../../src/game/logic/errors.js";
+} from '../../../src/game/logic/errors.js';
 
-// Import test utilities using path constants
-import { createDeck, shuffleDeck } from "../../../src/utils/deck.js";
-import {
-  initializePlayers,
-  getNextPlayer as originalGetNextPlayer,
-} from "../../../src/utils/players.js";
-
-// Mock logger
-const loggerMock = {
-  info: sinon.stub(),
-  warn: sinon.stub(),
-  error: sinon.stub(),
-  debug: sinon.stub(),
-  log: sinon.stub(), // Add log method to match the logger interface
-};
+import { createDeck, shuffleDeck } from '../../../src/utils/deck.js';
+import { initializePlayers } from '../../../src/utils/players.js';
 
 // Helper to create a base game state for playing phase tests
 const createPlayingGameState = () => {
@@ -93,27 +60,11 @@ const createPlayingGameState = () => {
   };
 };
 
-describe("PlayingPhase Logic", () => {
-  let sandbox;
+// Helper function to create a test card
+const createTestCard = (suit, value) => ({ suit, value });
 
-  beforeEach(() => {
-    // Create a fresh sandbox for each test
-    sandbox = sinon.createSandbox();
-
-    // Reset all logger mocks
-    Object.values(loggerMock).forEach((mock) => {
-      if (typeof mock.resetHistory === "function") {
-        mock.resetHistory();
-      }
-    });
-  });
-
-  afterEach(() => {
-    // Restore the sandbox after each test
-    sandbox.restore();
-  });
-
-  describe("handlePlayCard", () => {
+test('PlayingPhase Logic', async (t) => {
+  await t.test('handlePlayCard', async (t) => {
     let handlePlayCard;
     let mockValidation;
     let mockPlayers;
@@ -123,11 +74,11 @@ describe("PlayingPhase Logic", () => {
     beforeEach(async () => {
       // Setup mocks
       mockValidation = {
-        validatePlay: sandbox.stub().returns({ valid: true, errors: [] }),
+      validatePlay: t.mock.fn(() => ({ valid: true, errors: [] })),
       };
 
       mockPlayers = {
-        getNextPlayer: sandbox.stub().callsFake((currentPlayer) => {
+      getNextPlayer: t.mock.fn((currentPlayer) => {
           const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
           return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
         }),

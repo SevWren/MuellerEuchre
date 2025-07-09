@@ -17,9 +17,9 @@
  * @see {@link module:src/game/logic/errors} Custom error types
  */
 
-import { expect } from "chai";
-import sinon from "sinon";
-import { esmockWithPaths } from "../../utils/esmock_wrapper.js";
+import { expect } from "chai"; //TODO: Refactor to use node:test and not chai
+import sinon from "sinon"; //TODO: Refactor to use node:test and not sinon 
+import { esmockWithPaths } from "../../utils/esmock_wrapper.js"; //TODO: Refactor to use node:test and not esmockwithpaths OR esmock 
 import { GAME_PHASES, PLAYER_ROLES } from "../../../src/config/constants.js";
 import {
   ValidationError,
@@ -44,7 +44,7 @@ describe("Validation Logic - isValidGoAlone", () => {
 
     // Base game state for go-alone validation
     baseGameState = {
-      gamePhase: GAME_PHASES.GOING_ALONE,
+      gamePhase: GAME_PHASES.GOING_ALONE_DECISION,
       currentPlayer: PLAYER_ROLES[0], // south
       winningBidder: PLAYER_ROLES[0], // south
       players: {
@@ -147,7 +147,7 @@ describe("Validation Logic - isValidGoAlone", () => {
 
   it("should handle edge case with minimal valid game state", () => {
     const minimalState = {
-      gamePhase: GAME_PHASES.GOING_ALONE,
+      gamePhase: GAME_PHASES.GOING_ALONE_DECISION,
       currentPlayer: PLAYER_ROLES[2],
       winningBidder: PLAYER_ROLES[2],
       players: {
@@ -164,7 +164,7 @@ describe("Validation Logic - isValidGoAlone", () => {
     expect(loggerMock.debug.firstCall.args[0]).to.equal('Go-alone validation successful');
     expect(loggerMock.debug.firstCall.args[1]).to.deep.include({
       playerRole: PLAYER_ROLES[0],
-      gamePhase: GAME_PHASES.GOING_ALONE,
+      gamePhase: GAME_PHASES.GOING_ALONE_DECISION,
     });
   });
 

@@ -1,5 +1,6 @@
 ---
-trigger: always_on
+trigger: model_decision
+description: General rules for node:test
 ---
 
 ### **Node.js Native Testing (`node:test`) and Mocking**

@@ -1,5 +1,6 @@
 ---
-trigger: always_on
+trigger: model_decision
+description: when analyzing code
 ---
 
 #Analysis - Mandatory In-Depth

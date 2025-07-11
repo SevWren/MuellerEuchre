@@ -7,15 +7,14 @@
  *   It ensures that the AI's decision-making processes for bidding and playing cards
  *   are correct and predictable based on the game state and hand composition.
  *
- *   As a Layer 1 test, it uses the project's standard `esmockWithPaths` wrapper
+ *   As a Layer 1 test, it uses the project's standard `node:test` wrapper
  *   to load the module in isolation, without any actual dependencies, verifying its purity.
  *
  * @see {@link module:src/game/logic/aiLogic}
  */
 
-import { describe, it, before } from "mocha";
-import { expect } from "chai";
-import { esmockWithPaths } from "../../utils/esmock_wrapper.js";
+import { describe, it, before, mock } from "node:test";
+import assert from "node:assert";
 
 // --- Test Constants ---
 
@@ -84,13 +83,7 @@ describe("AI Logic Module", () => {
    */
   before(async () => {
     // Use the esmock wrapper to load the module under test.
-    // The wrapper handles path resolution and is the standard for the project.
-    aiLogic = await esmockWithPaths(
-      import.meta.url,
-      "../../../src/game/logic/aiLogic.js",
-      {}, // No module dependencies to mock for this pure logic file
-      {}, // No globals to mock
-    );
+    aiLogic = await import("../../../src/game/logic/aiLogic.js");
   });
 
   /**
@@ -105,7 +98,7 @@ describe("AI Logic Module", () => {
       const trumpSuit = SUITS.HEARTS;
       const result = aiLogic.countTrumpInHand(mockHand, trumpSuit);
       // J of Hearts (RB), J of Diamonds (LB), A of Hearts
-      expect(result).to.equal(3);
+      assert.strictEqual(result, 3);
     });
 
     /**
@@ -114,7 +107,7 @@ describe("AI Logic Module", () => {
      */
     it("should return 0 for an empty hand", () => {
       const result = aiLogic.countTrumpInHand([], SUITS.HEARTS);
-      expect(result).to.equal(0);
+      assert.strictEqual(result, 0);
     });
 
     /**
@@ -123,7 +116,7 @@ describe("AI Logic Module", () => {
      */
     it("should return 0 for a null hand input", () => {
       const result = aiLogic.countTrumpInHand(null, SUITS.HEARTS);
-      expect(result).to.equal(0);
+      assert.strictEqual(result, 0);
     });
 
     /**
@@ -136,7 +129,7 @@ describe("AI Logic Module", () => {
         { suit: "spades", rank: "Q" },
       ];
       const result = aiLogic.countTrumpInHand(handWithoutTrump, SUITS.HEARTS);
-      expect(result).to.equal(0);
+      assert.strictEqual(result, 0);
     });
   });
 
@@ -151,7 +144,7 @@ describe("AI Logic Module", () => {
     it("should identify right and left bowers for the trump suit", () => {
       const trumpSuit = SUITS.HEARTS;
       const result = aiLogic.findBowers(mockHand, trumpSuit);
-      expect(result).to.deep.equal({
+      assert.deepStrictEqual(result, {
         rightBower: true, // J of Hearts
         leftBower: true, // J of Diamonds
       });
@@ -164,7 +157,7 @@ describe("AI Logic Module", () => {
     it("should return false for bowers when the suit is not trump", () => {
       const trumpSuit = SUITS.CLUBS;
       const result = aiLogic.findBowers(mockHand, trumpSuit);
-      expect(result).to.deep.equal({
+      assert.deepStrictEqual(result, {
         rightBower: false,
         leftBower: false,
       });
@@ -176,7 +169,7 @@ describe("AI Logic Module", () => {
      */
     it("should return false for bowers with an empty hand", () => {
       const result = aiLogic.findBowers([], SUITS.HEARTS);
-      expect(result).to.deep.equal({
+      assert.deepStrictEqual(result, {
         rightBower: false,
         leftBower: false,
       });
@@ -188,7 +181,7 @@ describe("AI Logic Module", () => {
      */
     it("should return false for bowers with a null hand", () => {
       const result = aiLogic.findBowers(null, SUITS.HEARTS);
-      expect(result).to.deep.equal({
+      assert.deepStrictEqual(result, {
         rightBower: false,
         leftBower: false,
       });
@@ -207,18 +200,18 @@ describe("AI Logic Module", () => {
       const trumpSuit = SUITS.HEARTS;
       const result = aiLogic.calculatePointsForSuit(mockHand, trumpSuit);
       // Ace of Hearts is the only non-bower trump card in mockHand
-      expect(result).to.equal(POINTS.TRUMP_ACE); // 7 points
+      assert.strictEqual(result, POINTS.TRUMP_ACE); // 7 points
     });
 
     /**
      * @test {calculatePointsForSuit}
-     * @description Verifies that a card of a non-trump suit is still scored correctly if it's in the points map.
+     * @description Verifies that a card of the evaluated suit is scored correctly.
      */
-    it("should return 0 for a non-trump suit", () => {
+    it("should calculate points for a card of the evaluated suit", () => {
       const trumpSuit = SUITS.CLUBS;
       const result = aiLogic.calculatePointsForSuit(mockHand, trumpSuit);
-      // No non-bower trump cards for clubs in mockHand
-      expect(result).to.equal(1); // CORRECTED ASSERTION: '9 of Clubs' scores 1 point.
+      // '9 of Clubs' scores 1 point when Clubs is the suit being evaluated.
+      assert.strictEqual(result, 1);
     });
 
     /**
@@ -227,7 +220,7 @@ describe("AI Logic Module", () => {
      */
     it("should return 0 for an empty hand", () => {
       const result = aiLogic.calculatePointsForSuit([], SUITS.HEARTS);
-      expect(result).to.equal(0);
+      assert.strictEqual(result, 0);
     });
 
     /**
@@ -236,7 +229,7 @@ describe("AI Logic Module", () => {
      */
     it("should return 0 for a null hand", () => {
       const result = aiLogic.calculatePointsForSuit(null, SUITS.HEARTS);
-      expect(result).to.equal(0);
+      assert.strictEqual(result, 0);
     });
   });
 
@@ -252,7 +245,8 @@ describe("AI Logic Module", () => {
       const trumpSuit = SUITS.HEARTS;
       const result = aiLogic._evaluateHand(mockHand, trumpSuit);
       // J of Hearts (RB) + J of Diamonds (LB) + A of Hearts
-      expect(result).to.equal(
+      assert.strictEqual(
+        result,
         POINTS.RIGHT_BOWER + POINTS.LEFT_BOWER + POINTS.TRUMP_ACE,
       ); // 15 + 10 + 7 = 32
     });
@@ -263,7 +257,7 @@ describe("AI Logic Module", () => {
      */
     it("should return 0 for an empty hand", () => {
       const result = aiLogic._evaluateHand([], SUITS.HEARTS);
-      expect(result).to.equal(0);
+      assert.strictEqual(result, 0);
     });
 
     /**
@@ -272,7 +266,7 @@ describe("AI Logic Module", () => {
      */
     it("should return 0 for a null hand", () => {
       const result = aiLogic._evaluateHand(null, SUITS.HEARTS);
-      expect(result).to.equal(0);
+      assert.strictEqual(result, 0);
     });
 
     /**
@@ -286,7 +280,7 @@ describe("AI Logic Module", () => {
         createCard(SUITS.CLUBS, RANKS.KING),
       ];
       const result = aiLogic._evaluateHand(handWithoutTrump, SUITS.HEARTS);
-      expect(result).to.equal(0);
+      assert.strictEqual(result, 0);
     });
   });
 
@@ -312,7 +306,7 @@ describe("AI Logic Module", () => {
         createCard(SUITS.DIAMONDS, RANKS.JACK), // LB: 10
       ]; // Total: 15 + 7 + 5 + 3 + 10 = 40 points
       const result = aiLogic.chooseBid(strongHand, turnCard, false, []);
-      expect(result.decision).to.equal("orderUp");
+      assert.strictEqual(result.decision, "orderUp");
     });
 
     /**
@@ -328,7 +322,7 @@ describe("AI Logic Module", () => {
         createCard(SUITS.SPADES, RANKS.ACE), // 0
       ]; // Total: 0 points
       const result = aiLogic.chooseBid(weakHand, turnCard, false, []);
-      expect(result.decision).to.equal("pass");
+      assert.strictEqual(result.decision, "pass");
     });
 
     /**
@@ -345,8 +339,8 @@ describe("AI Logic Module", () => {
 
       // _evaluateHand(mockHand, 'hearts') = 32. This is > BID_THRESHOLD.
       // AI should call 'hearts' as trump.
-      expect(result.decision).to.equal("callTrump");
-      expect(result.suit).to.equal(SUITS.HEARTS);
+      assert.strictEqual(result.decision, "callTrump");
+      assert.strictEqual(result.suit, SUITS.HEARTS);
     });
 
     /**
@@ -363,7 +357,7 @@ describe("AI Logic Module", () => {
       ]; // 0 points for any suit
       const bids = [{ decision: "pass" }, { decision: "pass" }];
       const result = aiLogic.chooseBid(veryWeakHand, turnCard, false, bids);
-      expect(result.decision).to.equal("pass");
+      assert.strictEqual(result.decision, "pass");
     });
 
     /**
@@ -372,7 +366,7 @@ describe("AI Logic Module", () => {
      */
     it("should handle null hand input gracefully by passing", () => {
       const result = aiLogic.chooseBid(null, turnCard, false, []);
-      expect(result.decision).to.equal("pass");
+      assert.strictEqual(result.decision, "pass");
     });
 
     /**
@@ -381,7 +375,7 @@ describe("AI Logic Module", () => {
      */
     it("should handle empty hand input gracefully by passing", () => {
       const result = aiLogic.chooseBid([], turnCard, false, []);
-      expect(result.decision).to.equal("pass");
+      assert.strictEqual(result.decision, "pass");
     });
   });
 
@@ -408,7 +402,7 @@ describe("AI Logic Module", () => {
         trumpSuit,
         SUITS.HEARTS, // leadSuit is null when leading
       );
-      expect(result).to.deep.equal(createCard(SUITS.HEARTS, RANKS.ACE));
+      assert.deepStrictEqual(result, createCard(SUITS.HEARTS, RANKS.ACE));
     });
 
     /**
@@ -429,7 +423,7 @@ describe("AI Logic Module", () => {
         SUITS.HEARTS, // Lead suit is trump
       );
       // AI has K and A of hearts, both beat the 10. It should play the lowest winning card.
-      expect(result).to.deep.equal(createCard(SUITS.HEARTS, RANKS.KING));
+      assert.deepStrictEqual(result, createCard(SUITS.HEARTS, RANKS.KING));
     });
 
     /**
@@ -450,7 +444,7 @@ describe("AI Logic Module", () => {
         SUITS.SPADES, // Lead suit is spades
       );
       // Can't follow suit. Slough lowest value card. 9 of Clubs is lowest.
-      expect(result).to.deep.equal(createCard(SUITS.CLUBS, RANKS.NINE));
+      assert.deepStrictEqual(result, createCard(SUITS.CLUBS, RANKS.NINE));
     });
 
     /**
@@ -471,7 +465,7 @@ describe("AI Logic Module", () => {
         SUITS.SPADES, // Lead suit is spades
       );
       // Must follow suit. Has 9 and 10 of spades. Neither can win. Play lowest.
-      expect(result).to.deep.equal(createCard(SUITS.SPADES, RANKS.NINE));
+      assert.deepStrictEqual(result, createCard(SUITS.SPADES, RANKS.NINE));
     });
 
     /**
@@ -485,7 +479,7 @@ describe("AI Logic Module", () => {
         SUITS.HEARTS,
         SUITS.HEARTS,
       );
-      expect(result).to.be.null;
+      assert.strictEqual(result, null);
     });
 
     /**
@@ -499,7 +493,7 @@ describe("AI Logic Module", () => {
         SUITS.HEARTS,
         SUITS.HEARTS,
       );
-      expect(result).to.be.null;
+      assert.strictEqual(result, null);
     });
   });
 });

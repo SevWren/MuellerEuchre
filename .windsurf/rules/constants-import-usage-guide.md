@@ -3,10 +3,8 @@ trigger: glob
 globs: src/**/*.js,test/**/*.js
 ---
 
-# title: Proper Usage of Game Constants (constants.js)
-# id: euchre-game-constants-usage
+# Proper Usage of Game Constants (constants.js)
 # tags: javascript, constants, refactor, style, euchre
-# severity: INFO
 
 # description
 This rule enforces the use of the new, prefixed constants from `constants.js` and discourages the use of legacy, non-prefixed aliases. The constants file has been updated to use a consistent naming convention (e.g., `GAME_PHASE_LOBBY` instead of `LOBBY`) to improve clarity and prevent naming collisions across the application.

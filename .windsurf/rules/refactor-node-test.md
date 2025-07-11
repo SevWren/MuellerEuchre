@@ -46,7 +46,7 @@ Next, convert all `expect()` style assertions to the `assert.*` methods from `no
 
 **➡️ Action: Find all `expect()` calls and replace them with the corresponding `assert` method.**
 
-#### Common Assertion Conversions:
+#### Common Assertion Conversions ALWAYS USE NODE: NEVER CHAI NEVER JEST:
 
 | Chai / Jest `expect` (`expect(value)...`)          | `node:assert/strict` (`assert...`)                               | Notes                                                              |
 | -------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ |

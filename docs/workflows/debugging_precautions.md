@@ -6,10 +6,10 @@ This document outlines a systematic approach to debugging within the MuellerEuch
 
 When approaching a bug, always keep the following principles in mind:
 
-- **Understand the Layer:** Identify which architectural layer the file you are debugging belongs to (Layer 1: Core Logic, Layer 2: State Management, Layer 3: Network API, etc.). This context is crucial for understanding its responsibilities and constraints.
+- **Understand the Layer:** Identify which architectural layer the file you are debugging belongs to (Layer 1: Core Logic, Layer 2: State Management, Layer 3: Network API, etc.). This context is crucial for understanding its responsibilities and constraints. **When debugging Layer 1, you must stay within Layer 1. Do not modify files or tests in other layers (State Management, Network API, etc.) to make a Layer 1 test pass.** The fix must be self-contained within the pure logic of Layer 1.
 - **Embrace Test-Driven Debugging (TDD):**
   - **Reproduce the Bug First:** Before making any code changes, write a new unit test that specifically reproduces the bug you are observing. This test should initially fail.
-  - **Isolate with Mocks:** Utilize `esmock` to mock dependencies of the module under test. This ensures you are debugging the module in isolation and not its collaborators.
+  - **Isolate with Mocks:** Utilize the `node:test` runner's built-in mocking capabilities (`test.mock`) to mock dependencies of the module under test. This ensures you are debugging the module in isolation and not its collaborators.
 - **Analyze Dependencies and Impact:**
   - **Dependency Mapping:** Understand which other modules your file depends on and which modules depend on yours.
   - **Cascading Failure Awareness:** Consider how a change in your file might affect downstream tests or modules. A small fix in one area could inadvertently break another if not carefully managed.
@@ -20,7 +20,24 @@ When approaching a bug, always keep the following principles in mind:
 - **Leverage Project Logging:** Use the centralized logger (`src/utils/logger.js`) to add detailed, contextual log messages during debugging. Avoid using `console.log` directly.
 - **Test Environment Setup:** **Upon discovering an incorrect test environment setup, ALWAYS first prompt the user for guidance and WAIT for their response.**
 
-## 2. Step-by-Step Debugging Process
+## 2. Debugging Order of Operations (Layer 1 Focus)
+
+Use this task list as a systematic guide when tackling bugs, particularly within the critical Layer 1.
+
+### Task List
+  - [ ] **Initial Analysis:** Clearly identify the bug and the specific Layer 1 module(s) involved (e.g., `biddingPhase.js`, `cardUtils.js`).
+  - [ ] **Reproduce Failure:** Create a single, failing unit test that specifically reproduces the bug. Run *only* this test to confirm it fails as expected.
+  - [ ] **Verify Mocks and Imports:** In the test file, verify that all external dependencies are correctly mocked using `node:test`'s `mock` API and that all relative import paths are correct. Fix any path or mock setup issues.
+  - [ ] **Implement Minimal Fix:** Apply the smallest possible code change *within the Layer 1 module* to fix the logic and make the new test pass.
+  - [ ] **Verify Single Test Pass:** Rerun the specific test file for the bug. Confirm that it now passes 100%.
+  - [ ] **Check for Module Regressions:** Rerun *all* tests for the module you changed to ensure your fix did not introduce new bugs within that module.
+  - [ ] **Check for Layer Regressions:** Run ALL Layer 1 unit tests one by one, or as a group, until ALL explicitly pass. Use a command like `node --test test/game/logic/**/*.unit.test.js` or `node --test test/phases/**/*.unit.test.js`.
+  - [ ] **Final Verification:** Run the ENTIRE project test suite to ensure no cascading failures were introduced in higher layers.
+  - [ ] **Document Changes:** Add or update JSDoc and/or inline comments to explain any complex or non-obvious logic in your fix.
+
+---
+
+## 3. Step-by-Step Debugging Process
 
 Follow these steps to systematically debug issues:
 
@@ -31,19 +48,19 @@ Follow these steps to systematically debug issues:
 
 2.  **Reproduce the Bug with a Test:**
     - Create a new unit test file (e.g., `test/path/to/your/module.unit.test.js`) or add a new test case to an existing file.
-    - Write a test that triggers the bug. This test should fail when run against the current codebase.
+    - Write a test using the `node:test` runner that triggers the bug. This test should fail when run against the current codebase.
     - Ensure the test is as specific as possible to the bug.
 
 3.  **Analyze the Failing Test:**
     - Run the new test and observe its failure.
     - Determine if the failure is due to:
-      - An `AssertionError` (expected vs. actual values).
+      - An `AssertionError` from the `node:assert/strict` module (expected vs. actual values).
       - An uncaught exception or error.
       - Incorrect mock behavior.
       - Unexpected side effects.
 
 4.  **Isolate the Module Under Test:**
-    - Use `esmock` to mock all external dependencies of the module you are debugging.
+    - Use the built-in `test.mock` API from `node:test` to mock all external dependencies of the module you are debugging. `node:test` mocks are automatically restored after each test, preventing test pollution.
     - Focus your debugging efforts solely on the logic within the target module.
 
 5.  **Inspect Code Execution:**
@@ -64,7 +81,7 @@ Follow these steps to systematically debug issues:
     - Add or update JSDoc comments as necessary.
     - If the fix is complex or non-obvious, add inline comments explaining the solution.
 
-## 3. MuellerEuchre Specific Precautions
+## 4. MuellerEuchre Specific Precautions
 
 - **Layer 1 Purity:** When debugging Layer 1 modules (`src/game/logic/`, `src/utils/`), strictly enforce purity. Ensure no direct state mutations or side effects are introduced. If a bug requires state management, it should be handled by delegating to Layer 2.
 - **Test Directory Structure:** Be mindful of the test organization (`test/game/logic/`, `test/phases/`, `test/socket/handlers/`, etc.) when identifying which tests are relevant to a particular module.
@@ -76,10 +93,34 @@ Follow these steps to systematically debug issues:
 
 When debugging, be aware of these common complexities within the MuellerEuchre codebase:
 
-- **`esmock` Challenges:**
-  - **Complex Dependency Graphs:** Mocking modules with many interdependencies can be challenging. Ensure mocks accurately reflect the expected behavior of dependencies, and that mock implementations themselves don't introduce subtle bugs.
-  - **Mock Implementation Errors:** A common pitfall is an incorrectly implemented mock function that returns unexpected values or throws errors, leading to false positives or negatives in tests. Always verify your mocks.
-  - **Example:** If `src/game/logic/cardUtils.js` depends on `src/utils/deck.js`, and you mock `deck.js` to return a fixed set of cards, ensure the mock correctly simulates card dealing and shuffling if those aspects are relevant to the bug.
+- **`node:test` Mocking Challenges:**
+  - **ESM Import Order:** The `node:test` mocking mechanism works by intercepting the ES module loader. This means you **MUST** define your mocks *before* importing the module that consumes them. Violating this order will result in the original, un-mocked module being used.
+  - **Mock Implementation Errors:** A common pitfall is an incorrectly implemented mock function that returns unexpected values, wrong data types, or throws errors. This can lead to misleading test failures. Always verify your mock's implementation and return values. The `mock.fn()` utility can be used to spy on calls and assert that the mock was used correctly.
+  - **Example:** If `src/game/logic/cardUtils.js` depends on `src/utils/deck.js`, you must mock `deck.js` first.
+
+    ```javascript
+    // test/game/logic/cardUtils.unit.test.js
+    import { test, mock } from 'node:test';
+    import assert from 'node:assert/strict';
+
+    // 1. Mock the dependency's method BEFORE importing the module under test.
+    // Use `await import(...)` for ESM modules.
+    mock.method(
+      await import('../../../src/utils/deck.js'),
+      'createShuffledDeck', // The function to mock
+      () => ['AS', 'KS', 'QS', 'JS'] // The mock implementation returns a fixed array
+    );
+
+    // 2. NOW, import the module you are testing.
+    const { dealInitialHand } = await import('../../../src/game/logic/cardUtils.js');
+
+    test('dealInitialHand should use the mocked deck', () => {
+      const hand = dealInitialHand();
+
+      // 3. Assert against the expected outcome from the mock.
+      assert.deepStrictEqual(hand, ['AS', 'KS', 'QS', 'JS']);
+    });
+    ```
 
 - **Relative Pathing Issues:**
   - **Fragility:** Relative paths (`./`, `../`) are essential for modularity but can be fragile. If a file is moved or refactored without updating its import statements, it can lead to `MODULE_NOT_FOUND` errors or unexpected behavior.
@@ -91,6 +132,6 @@ When debugging, be aware of these common complexities within the MuellerEuchre c
   - **Turn Management:** Ensuring the correct player's turn and handling game flow (bidding, playing cards, scoring) in a 4-player context requires careful logic. Debugging often involves tracing the sequence of actions and state changes.
   - **Rule Variations:** Euchre has specific rules (e.g., Bowers, trump selection, scoring for going alone) that can be complex to implement correctly and thus prone to bugs.
 
-## 4. Handling Test Environment Issues
+## 5. Handling Test Environment Issues
 
 - **User Prompt:** If you encounter issues related to the test environment setup (e.g., missing dependencies, incorrect configurations, test runner errors), **do not attempt to resolve them independently.** Instead, clearly articulate the problem to the user and **prompt them for guidance**. **WAIT for their response** before proceeding.

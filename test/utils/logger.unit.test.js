@@ -243,7 +243,9 @@ const createLoggerModule = async (overrides = {}) => {
 
 describe('Logger Utility', () => {
   let loggerModule;
+  let log, setDebugLevel, logger;
   let pinoMock;
+  let originalEnv;
 
   beforeEach(async () => {
     // Create a mock for the pino library

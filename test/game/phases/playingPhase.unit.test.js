@@ -31,7 +31,6 @@ const createPlayingGameState = () => {
   PLAYER_ROLES.forEach((role) => {
     playerHands[role] = [];
     for (let i = 0; i < 5; i++) {
-      // Deal 5 cards each
       if (deck.length > 0) playerHands[role].push(deck.pop());
     }
   });
@@ -45,7 +44,7 @@ const createPlayingGameState = () => {
   }, {});
 
   return {
-    gameId: "playingPhaseTestGame",
+    gameId: 'playingPhaseTestGame',
     gamePhase: GAME_PHASES.PLAYING,
     players: playersWithHands,
     dealer: PLAYER_ROLES[0], // South
@@ -69,570 +68,486 @@ test('PlayingPhase Logic', async (t) => {
     let mockValidation;
     let mockPlayers;
     let mockDeck;
-    let playingPhaseModule;
+    let loggerMock;
 
-    beforeEach(async () => {
-      // Setup mocks
-      mockValidation = {
+    // Mock logger
+    loggerMock = {
+      info: t.mock.fn(),
+      warn: t.mock.fn(),
+      error: t.mock.fn(),
+      debug: t.mock.fn(),
+      log: t.mock.fn(),
+    };
+
+    mockValidation = {
       validatePlay: t.mock.fn(() => ({ valid: true, errors: [] })),
-      };
+    };
 
-      mockPlayers = {
+    mockPlayers = {
       getNextPlayer: t.mock.fn((currentPlayer) => {
-          const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-          return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-        }),
-        getPartner: sandbox.stub().callsFake((playerRole) => {
-          const partnerMap = {
-            [PLAYER_ROLES[0]]: PLAYER_ROLES[2], // South's partner is North
-            [PLAYER_ROLES[1]]: PLAYER_ROLES[3], // West's partner is East
-            [PLAYER_ROLES[2]]: PLAYER_ROLES[0], // North's partner is South
-            [PLAYER_ROLES[3]]: PLAYER_ROLES[1], // East's partner is West
-          };
-          return partnerMap[playerRole];
-        }),
-      };
+        const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
+        return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
+      }),
+      getPartner: t.mock.fn((playerRole) => {
+        const partnerMap = {
+          [PLAYER_ROLES[0]]: PLAYER_ROLES[2], // South's partner is North
+          [PLAYER_ROLES[1]]: PLAYER_ROLES[3], // West's partner is East
+          [PLAYER_ROLES[2]]: PLAYER_ROLES[0], // North's partner is South
+          [PLAYER_ROLES[3]]: PLAYER_ROLES[1], // East's partner is West
+        };
+        return partnerMap[playerRole];
+      }),
+    };
 
-      mockDeck = {
-        createDeck: sandbox.stub().callsFake(createDeck),
-        shuffleDeck: sandbox.stub().callsFake(shuffleDeck),
-      };
+    mockDeck = {
+      createDeck: t.mock.fn(createDeck),
+      shuffleDeck: t.mock.fn(shuffleDeck),
+      getCardRank: t.mock.fn(), // Will be mocked specifically in relevant tests
+    };
 
-      // Import the module with the mocked dependencies using esmockWithPaths
-      playingPhaseModule = await esmockWithPaths(
-        import.meta.url,
-        '../../../src/game/phases/playingPhase.js',
-        {
-          '@/utils/logger.js': loggerMock,
-          '@/game/logic/validation.js': mockValidation,
-          '@/utils/players.js': mockPlayers,
-          '@/utils/deck.js': mockDeck,
+    // Dynamically import the module with mocks
+    const playingPhaseModule = await import('../../../src/game/phases/playingPhase.js');
+    playingPhaseModule.default.logger = loggerMock;
+    playingPhaseModule.default.validation = mockValidation;
+    playingPhaseModule.default.players = mockPlayers;
+    playingPhaseModule.default.deck = mockDeck;
+    handlePlayCard = playingPhaseModule.handlePlayCard;
+
+    t.test('should throw TypeError if currentGameState is null', (t) => {
+      assert.throws(
+        () => handlePlayCard(null, PLAYER_ROLES[0], createTestCard(SUITS.HEARTS, 'A')),
+        TypeError,
+        /Cannot read propert.*players/
+      );
+    });
+
+    t.test('should throw PhaseLogicError if playerRole is invalid', (t) => {
+      const gameState = createPlayingGameState();
+      mockValidation.validatePlay.mock.mockImplementation(() => ({ valid: true, errors: [] }));
+
+      assert.throws(
+        () => handlePlayCard(gameState, 'INVALID_PLAYER', createTestCard(SUITS.HEARTS, 'A')),
+        (err) => {
+          assert.strictEqual(err.message, 'Player INVALID_PLAYER not found');
+          return err instanceof PhaseLogicError;
         }
       );
-
-      handlePlayCard = playingPhaseModule.handlePlayCard;
     });
 
-    // Helper function to create a test card
-    const createTestCard = (suit, value) => ({ suit, value });
-
-    it("should throw TypeError if currentGameState is null", () => {
-      // Don't mock validatePlay since we expect it to throw before that
-      expect(() =>
-        handlePlayCard(
-          null,
-          PLAYER_ROLES[0],
-          createTestCard(SUITS.HEARTS, "A"),
-        ),
-      ).to.throw(TypeError, /Cannot read propert.*players/);
-    });
-
-    it("should throw PhaseLogicError if playerRole is invalid", () => {
-      const gameState = createPlayingGameState();
-
-      // Mock validation to pass the initial null check but fail on player lookup
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
-
-      expect(() =>
-        handlePlayCard(
-          gameState,
-          "INVALID_PLAYER",
-          createTestCard(SUITS.HEARTS, "A"),
-        ),
-      ).to.throw("Player INVALID_PLAYER not found");
-    });
-
-    it("should throw PhaseLogicError if player is not found", () => {
-      const gameState = createPlayingGameState();
-      const cardPlayed = gameState.players[PLAYER_ROLES[0]].hand[0];
-
-      // Mock the validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
-
-      // Try to play with a non-existent player
-      expect(() =>
-        handlePlayCard(gameState, "nonExistentPlayer", cardPlayed),
-      ).to.throw("Player nonExistentPlayer not found");
-    });
-
-    it("should call validatePlay with correct arguments", () => {
+    t.test('should call validatePlay with correct arguments', (t) => {
       const gameState = createPlayingGameState();
       const playerRole = gameState.currentPlayer; // West
       const cardPlayed = gameState.players[playerRole].hand[0];
 
-      // Reset the mock to track calls
-      mockValidation.validatePlay.resetHistory();
+      mockValidation.validatePlay.mock.mockImplementation(() => ({ valid: true, errors: [] }));
 
-      // Mock validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
-
-      // Call the function
       handlePlayCard(gameState, playerRole, cardPlayed);
 
-      // Verify validatePlay was called with the expected arguments
-      expect(mockValidation.validatePlay.calledOnce).to.be.true;
-      const callArgs = mockValidation.validatePlay.firstCall.args;
+      assert.strictEqual(mockValidation.validatePlay.mock.callCount(), 1);
+      const callArgs = mockValidation.validatePlay.mock.calls[0].arguments;
 
-      expect(callArgs[0]).to.deep.include({
-        gameId: gameState.gameId,
-        gamePhase: gameState.gamePhase,
-        currentPlayer: gameState.currentPlayer,
-      });
-
-      expect(callArgs[1]).to.deep.equal(gameState.players[playerRole].hand);
-      expect(callArgs[2]).to.deep.equal(cardPlayed);
-      expect(callArgs[3]).to.equal(playerRole);
+      assert.deepStrictEqual(callArgs[0], gameState); // validatePlay expects full gameState
+      assert.deepStrictEqual(callArgs[1], gameState.players[playerRole].hand);
+      assert.deepStrictEqual(callArgs[2], cardPlayed);
+      assert.strictEqual(callArgs[3], playerRole);
     });
 
-    it("should propagate CardNotInHandError from validatePlay", () => {
+    t.test('should propagate CardNotInHandError from validatePlay', (t) => {
       const gameState = createPlayingGameState();
       const playerRole = gameState.currentPlayer;
-      const cardPlayed = { id: "XX", suit: SUITS.CLUBS, value: "X" }; // Not in hand
+      const cardPlayed = { id: 'XX', suit: SUITS.CLUBS, value: 'X' };
 
-      // Mock validation to throw CardNotInHandError
-      mockValidation.validatePlay.throws(
-        new CardNotInHandError("Card not in hand."),
-      );
+      mockValidation.validatePlay.mock.mockImplementation(() => {
+        throw new CardNotInHandError('Card not in hand.');
+      });
 
-      expect(() => handlePlayCard(gameState, playerRole, cardPlayed)).to.throw(
-        CardNotInHandError,
+      assert.throws(
+        () => handlePlayCard(gameState, playerRole, cardPlayed),
+        CardNotInHandError
       );
     });
 
-    it("should propagate MustFollowSuitError from validatePlay", () => {
+    t.test('should propagate MustFollowSuitError from validatePlay', (t) => {
       const gameState = createPlayingGameState();
       const playerRole = gameState.currentPlayer;
       const cardPlayed = gameState.players[playerRole].hand[0];
 
-      // Mock validation to throw MustFollowSuitError
-      mockValidation.validatePlay.throws(
-        new MustFollowSuitError("Must follow suit."),
-      );
+      mockValidation.validatePlay.mock.mockImplementation(() => {
+        throw new MustFollowSuitError('Must follow suit.');
+      });
 
-      expect(() => handlePlayCard(gameState, playerRole, cardPlayed)).to.throw(
-        MustFollowSuitError,
+      assert.throws(
+        () => handlePlayCard(gameState, playerRole, cardPlayed),
+        MustFollowSuitError
       );
     });
 
-    it("should play a card, update hand, currentTrick, and currentPlayer if trick is not over", () => {
+    t.test('should play a card, update hand, currentTrick, and currentPlayer if trick is not over', (t) => {
       const gameState = createPlayingGameState();
       const playerRole = gameState.currentPlayer; // West
 
-      // Ensure the card has a value property for the test
       const cardToPlay = { ...gameState.players[playerRole].hand[0] };
       if (!cardToPlay.value) {
-        // If the card doesn't have a value, set a default one based on the ID
-        const valueMap = {
-          A: "Ace",
-          K: "King",
-          Q: "Queen",
-          J: "Jack",
-          10: "10",
-          9: "9",
-        };
+        const valueMap = { A: 'Ace', K: 'King', Q: 'Queen', J: 'Jack', 10: '10', 9: '9' };
         const valueChar = cardToPlay.id[0];
         cardToPlay.value = valueMap[valueChar] || valueChar;
       }
 
       const initialHandSize = gameState.players[playerRole].hand.length;
 
-      // Mock validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
+      mockValidation.validatePlay.mock.mockImplementation(() => ({ valid: true, errors: [] }));
 
-      // Mock getNextPlayer to return the next player
-      const nextPlayer =
-        PLAYER_ROLES[
-          (PLAYER_ROLES.indexOf(playerRole) + 1) % PLAYER_ROLES.length
-        ];
-      mockPlayers.getNextPlayer.returns(nextPlayer);
+      const nextPlayer = PLAYER_ROLES[(PLAYER_ROLES.indexOf(playerRole) + 1) % PLAYER_ROLES.length];
+      mockPlayers.getNextPlayer.mock.mockImplementation(() => nextPlayer);
 
-      // Call the function
       const newState = handlePlayCard(gameState, playerRole, cardToPlay);
 
-      // Verify the card was removed from the player's hand
-      expect(newState.players[playerRole].hand).to.have.length(
-        initialHandSize - 1,
+      assert.strictEqual(newState.players[playerRole].hand.length, initialHandSize - 1);
+      assert.strictEqual(
+        newState.players[playerRole].hand.some((card) => card.id === cardToPlay.id),
+        false
       );
-      expect(
-        newState.players[playerRole].hand.some(
-          (card) => card.id === cardToPlay.id,
-        ),
-      ).to.be.false;
 
-      // Verify the card was added to the current trick
-      expect(newState.currentTrick).to.have.length(1);
-      expect(newState.currentTrick[0]).to.deep.include({
+      assert.strictEqual(newState.currentTrick.length, 1);
+      assert.deepStrictEqual(newState.currentTrick[0], {
         id: cardToPlay.id,
         suit: cardToPlay.suit,
         value: cardToPlay.value,
         playedBy: playerRole,
       });
 
-      // Verify the next player is set
-      expect(newState.currentPlayer).to.equal(nextPlayer);
+      assert.strictEqual(newState.currentPlayer, nextPlayer);
     });
 
-    it("should determine trick winner and update state if trick is over (not last trick)", () => {
+    t.test('should determine trick winner and update state if trick is over (not last trick)', async (t) => {
       const gameState = createPlayingGameState();
       const player1 = gameState.currentPlayer; // West (current)
       const player2 = PLAYER_ROLES[(PLAYER_ROLES.indexOf(player1) + 1) % 4]; // North
       const player3 = PLAYER_ROLES[(PLAYER_ROLES.indexOf(player1) + 2) % 4]; // East
       const player4 = PLAYER_ROLES[(PLAYER_ROLES.indexOf(player1) + 3) % 4]; // South (dealer)
 
-      // Set up a trick with 3 cards already played
       gameState.currentTrick = [
-        {
-          player: player1,
-          card: { id: "TC", suit: SUITS.CLUBS, value: VALUES.TEN },
-        },
-        {
-          player: player2,
-          card: { id: "QC", suit: SUITS.CLUBS, value: VALUES.QUEEN },
-        },
-        {
-          player: player3,
-          card: { id: "KC", suit: SUITS.CLUBS, value: VALUES.KING },
-        },
+        { player: player1, card: { id: 'TC', suit: SUITS.CLUBS, value: VALUES.TEN } },
+        { player: player2, card: { id: 'QC', suit: SUITS.CLUBS, value: VALUES.QUEEN } },
+        { player: player3, card: { id: 'KC', suit: SUITS.CLUBS, value: VALUES.KING } },
       ];
 
-      // Set current player to South (player4)
       gameState.currentPlayer = player4;
 
-      // Create a high card for South to win the trick
-      const aceOfSpades = { id: "AS", suit: SUITS.SPADES, value: VALUES.ACE };
-
-      // Ensure player4 has this card in their hand
+      const aceOfSpades = { id: 'AS', suit: SUITS.SPADES, value: VALUES.ACE };
       gameState.players[player4].hand = [
         aceOfSpades,
-        ...gameState.players[player4].hand
-          .filter((card) => card.id !== "AS")
-          .slice(0, 4),
+        ...gameState.players[player4].hand.filter((card) => card.id !== 'AS').slice(0, 4),
       ];
 
-      // Set trump suit for this test
       gameState.trumpSuit = SUITS.SPADES;
 
-      // Mock validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
+      mockValidation.validatePlay.mock.mockImplementation(() => ({ valid: true, errors: [] }));
+      mockPlayers.getNextPlayer.mock.mockImplementation(() => player4);
+      mockPlayers.getPartner.mock.mockImplementation((role) => {
+        const partnerMap = {
+          [PLAYER_ROLES[0]]: PLAYER_ROLES[2], // South's partner is North
+          [PLAYER_ROLES[1]]: PLAYER_ROLES[3], // West's partner is East
+          [PLAYER_ROLES[2]]: PLAYER_ROLES[0], // North's partner is South
+          [PLAYER_ROLES[3]]: PLAYER_ROLES[1], // East's partner is West
+        };
+        return partnerMap[role];
+      });
 
-      // Mock getNextPlayer to return the winner (South)
-      mockPlayers.getNextPlayer.returns(player4);
+      // Mock getCardRank for this specific test
+      const mockGetCardRank = t.mock.fn((card, trumpSuit, ledSuit) => {
+        if (card.id === 'AS') return 100;
+        return 1;
+      });
 
-      // Mock getPartner to return the partner (North for South)
-      mockPlayers.getPartner.withArgs(player4).returns(player2);
-
-      // Call the function
-      const newState = handlePlayCard(gameState, player4, aceOfSpades);
-
-      // Verify the trick was cleared
-      expect(newState.currentTrick).to.have.length(0);
-
-      // Verify the tricksTaken was updated
-      expect(newState.tricksTaken[TEAMS.TEAM_NS]).to.equal(1);
-
-      // Verify the current player is set to the winner (South)
-      expect(newState.currentPlayer).to.equal(player4);
-    });
-
-    it("should throw PhaseLogicError if winner teamId cannot be determined", () => {
-      const gameState = createPlayingGameState();
-      const player1 = gameState.currentPlayer; // West (current)
-      const player2 = PLAYER_ROLES[(PLAYER_ROLES.indexOf(player1) + 1) % 4]; // North
-      const player3 = PLAYER_ROLES[(PLAYER_ROLES.indexOf(player1) + 2) % 4]; // East
-      const player4 = PLAYER_ROLES[(PLAYER_ROLES.indexOf(player1) + 3) % 4]; // South (dealer)
-
-      // Set up a trick with 3 cards already played
-      gameState.currentTrick = [
-        {
-          player: player1,
-          card: { id: "TC", suit: SUITS.CLUBS, value: VALUES.TEN },
-        },
-        {
-          player: player2,
-          card: { id: "QC", suit: SUITS.CLUBS, value: VALUES.QUEEN },
-        },
-        {
-          player: player3,
-          card: { id: "KC", suit: SUITS.CLUBS, value: VALUES.KING },
-        },
-      ];
-
-      // Set current player to South (player4)
-      gameState.currentPlayer = player4;
-
-      // Create a high card for South to win the trick
-      const aceOfSpades = { id: "AS", suit: SUITS.SPADES, value: VALUES.ACE };
-
-      // Ensure player4 has this card in their hand
-      gameState.players[player4].hand = [
-        aceOfSpades,
-        ...gameState.players[player4].hand
-          .filter((card) => card.id !== "AS")
-          .slice(0, 4),
-      ];
-
-      // Set trump suit for this test
-      gameState.trumpSuit = SUITS.SPADES;
-
-      // Remove teamId from the player to simulate the error condition
-      delete gameState.players[player4].teamId;
-
-      // Mock validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
-
-      // Mock getNextPlayer to return the winner (South)
-      mockPlayers.getNextPlayer.returns(player4);
-
-      // Mock getPartner to return null to simulate the error condition
-      mockPlayers.getPartner.withArgs(player4).returns(null);
-
-      // Call the function and expect an error
-      expect(() => {
-        handlePlayCard(gameState, player4, aceOfSpades);
-      }).to.throw(
-        PhaseLogicError,
-        /Could not determine teamId for trick winner/,
-      );
-    });
-
-    it("should transition to SCORING phase if hand is over (5 tricks played)", async () => {
-      const gameState = createPlayingGameState();
-
-      // Set up a game state where TEAM_NS has 3 tricks and TEAM_EW has 1 (total 4 tricks played)
-      // After this trick, total will be 5 which should trigger SCORING
-      gameState.tricksTaken = { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: 1 };
-
-      // Set up a complete trick with 3 cards already played
-      gameState.currentTrick = [
-        { id: "KC", suit: SUITS.CLUBS, value: "K", playedBy: PLAYER_ROLES[1] }, // West
-        { id: "QC", suit: SUITS.CLUBS, value: "Q", playedBy: PLAYER_ROLES[2] }, // North
-        { id: "JC", suit: SUITS.CLUBS, value: "J", playedBy: PLAYER_ROLES[3] }, // East
-      ];
-
-      // It's South's turn to play the 4th card
-      gameState.currentPlayer = PLAYER_ROLES[0]; // South's turn
-
-      // Give South a card to play
-      const cardToPlay = { id: "AS", suit: SUITS.SPADES, value: "A" };
-      gameState.players[PLAYER_ROLES[0]].hand = [
-        cardToPlay,
-        { id: "2S", suit: SUITS.SPADES, value: "2" },
-        { id: "3S", suit: SUITS.SPADES, value: "3" },
-        { id: "4S", suit: SUITS.SPADES, value: "4" },
-        { id: "5S", suit: SUITS.SPADES, value: "5" },
-      ];
-
-      // Mock validation to pass
-      mockValidation.validatePlay.returns({ valid: true, errors: [] });
-
-      // Mock getNextPlayer to return the next player
-      mockPlayers.getNextPlayer.returns(PLAYER_ROLES[1]);
-
-      // Mock getPartner to return a partner for the trick winner
-      mockPlayers.getPartner.returns(PLAYER_ROLES[2]); // North is South's partner
-
-      // Create a custom mock for deck utils with getCardRank
-      const customMockDeck = {
-        ...mockDeck,
-        getCardRank: (card, trumpSuit, ledSuit) => {
-          // Make the ace of spades the highest card
-          if (card.id === "AS") return 100;
-          // Make all other cards lower
-          return 1;
-        },
-      };
-
-      // Import the module with the mocked getCardRank function using esmockWithPaths
-      const mockedPlayingPhaseModule = await esmockWithPaths(
-        import.meta.url,
+      const mockedPlayingPhaseModule = await mock.module(
         '../../../src/game/phases/playingPhase.js',
         {
-          '@/utils/logger.js': loggerMock,
-          '@/game/logic/validation.js': mockValidation,
-          '@/utils/players.js': mockPlayers,
-          '@/utils/deck.js': customMockDeck,
+          '../../../src/utils/logger.js': loggerMock,
+          '../../../src/game/logic/validation.js': mockValidation,
+          '../../../src/utils/players.js': mockPlayers,
+          '../../../src/utils/deck.js': {
+            ...mockDeck, // Keep other deck functions if needed
+            getCardRank: mockGetCardRank,
+          },
         }
       );
-
-      // Get the handlePlayCard function from the mocked module
       const mockedHandlePlayCard = mockedPlayingPhaseModule.handlePlayCard;
 
-      // Call the function
-      const newState = mockedHandlePlayCard(
-        gameState,
-        PLAYER_ROLES[0],
-        cardToPlay,
+      const newState = mockedHandlePlayCard(gameState, player4, aceOfSpades);
+
+      assert.strictEqual(newState.currentTrick.length, 0);
+      assert.strictEqual(newState.tricksTaken[TEAMS.TEAM_NS], 1);
+      assert.strictEqual(newState.currentPlayer, player4);
+    });
+
+    t.test('should throw PhaseLogicError if winner teamId cannot be determined', async (t) => {
+      const gameState = createPlayingGameState();
+      const player1 = gameState.currentPlayer; // West (current)
+      const player2 = PLAYER_ROLES[(PLAYER_ROLES.indexOf(player1) + 1) % 4]; // North
+      const player3 = PLAYER_ROLES[(PLAYER_ROLES.indexOf(player1) + 2) % 4]; // East
+      const player4 = PLAYER_ROLES[(PLAYER_ROLES.indexOf(player1) + 3) % 4]; // South (dealer)
+
+      gameState.currentTrick = [
+        { player: player1, card: { id: 'TC', suit: SUITS.CLUBS, value: VALUES.TEN } },
+        { player: player2, card: { id: 'QC', suit: SUITS.CLUBS, value: VALUES.QUEEN } },
+        { player: player3, card: { id: 'KC', suit: SUITS.CLUBS, value: VALUES.KING } },
+      ];
+
+      gameState.currentPlayer = player4;
+
+      const aceOfSpades = { id: 'AS', suit: SUITS.SPADES, value: VALUES.ACE };
+      gameState.players[player4].hand = [
+        aceOfSpades,
+        ...gameState.players[player4].hand.filter((card) => card.id !== 'AS').slice(0, 4),
+      ];
+
+      gameState.trumpSuit = SUITS.SPADES;
+      delete gameState.players[player4].teamId; // Simulate error condition
+
+      mockValidation.validatePlay.mock.mockImplementation(() => ({ valid: true, errors: [] }));
+      mockPlayers.getNextPlayer.mock.mockImplementation(() => player4);
+      mockPlayers.getPartner.mock.mockImplementation(() => null); // Simulate error condition
+
+      const mockGetCardRank = t.mock.fn((card, trumpSuit, ledSuit) => {
+        if (card.id === 'AS') return 100;
+        return 1;
+      });
+
+      mockGetCardRank.mockImplementation((card, trumpSuit, ledSuit) => {
+        if (card === 'AS') return 14;
+        if (card === 'KS') return 13;
+        return 0;
+      });
+      
+      const mockedPlayingPhaseModule = await import('../../../src/game/phases/playingPhase.js');
+      mockedPlayingPhaseModule.default.logger = loggerMock;
+      mockedPlayingPhaseModule.default.validation = mockValidation;
+      mockedPlayingPhaseModule.default.players = mockPlayers;
+      mockedPlayingPhaseModule.default.deck = mockDeck;
+      const mockedHandlePlayCard = mockedPlayingPhaseModule.handlePlayCard;
+
+      assert.throws(
+        () => mockedHandlePlayCard(gameState, player4, aceOfSpades),
+        (err) => {
+          assert.ok(err instanceof PhaseLogicError);
+          assert.ok(/Could not determine teamId for trick winner/.test(err.message));
+          return true;
+        }
       );
-
-      // Verify the game transitioned to SCORING phase
-      expect(newState.gamePhase).to.equal(GAME_PHASES.SCORING);
-
-      // Verify the trick was counted for TEAM_NS
-      expect(newState.tricksTaken[TEAMS.TEAM_NS]).to.equal(4); // 3 + 1 new trick
-      expect(newState.tricksTaken[TEAMS.TEAM_EW]).to.equal(1); // Unchanged
     });
 
-    describe("determineTrickWinner", () => {
-      let determineTrickWinner;
-      let mockGetCardRank;
+    t.test('should transition to SCORING phase if hand is over (5 tricks played)', async (t) => {
+      const gameState = createPlayingGameState();
 
-      beforeEach(async () => {
-        // Mock getCardRank to control the trick winner determination
-        mockGetCardRank = sinon.stub();
+      gameState.tricksTaken = { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: 1 };
 
-        // Create a mock for the deck utils that includes our stubbed getCardRank
-        const mockDeckUtils = {
-          ...mockDeck,
-          getCardRank: mockGetCardRank,
-        };
+      gameState.currentTrick = [
+        { id: 'KC', suit: SUITS.CLUBS, value: 'K', playedBy: PLAYER_ROLES[1] }, // West
+        { id: 'QC', suit: SUITS.CLUBS, value: 'Q', playedBy: PLAYER_ROLES[2] }, // North
+        { id: 'JC', suit: SUITS.CLUBS, value: 'J', playedBy: PLAYER_ROLES[3] }, // East
+      ];
 
-        // Import the module with our mocks using esmockWithPaths
-        const playingPhaseModule = await esmockWithPaths(
-          import.meta.url,
-          '../../../src/game/phases/playingPhase.js',
-          {
-            '@/utils/logger.js': loggerMock,
-            '@/game/logic/validation.js': mockValidation,
-            '@/utils/players.js': mockPlayers,
-            '@/utils/deck.js': mockDeckUtils,
-          }
-        );
+      gameState.currentPlayer = PLAYER_ROLES[0]; // South's turn
 
-        determineTrickWinner = playingPhaseModule.determineTrickWinner;
+      const cardToPlay = { id: 'AS', suit: SUITS.SPADES, value: 'A' };
+      gameState.players[PLAYER_ROLES[0]].hand = [
+        cardToPlay,
+        { id: '2S', suit: SUITS.SPADES, value: '2' },
+        { id: '3S', suit: SUITS.SPADES, value: '3' },
+        { id: '4S', suit: SUITS.SPADES, value: '4' },
+        { id: '5S', suit: SUITS.SPADES, value: '5' },
+      ];
+
+      mockValidation.validatePlay.mock.mockImplementation(() => ({ valid: true, errors: [] }));
+      mockPlayers.getNextPlayer.mock.mockImplementation(() => PLAYER_ROLES[1]);
+      mockPlayers.getPartner.mock.mockImplementation(() => PLAYER_ROLES[2]); // North is South's partner
+
+      const mockGetCardRank = t.mock.fn((card, trumpSuit, ledSuit) => {
+        if (card.id === 'AS') return 100;
+        return 1;
       });
 
-      it("should throw PhaseLogicError if trick doesn't have exactly 4 cards", () => {
-        const trick = [
-          { suit: SUITS.HEARTS, value: "A", playedBy: "player1" },
-          { suit: SUITS.HEARTS, value: "K", playedBy: "player2" },
-          { suit: SUITS.HEARTS, value: "Q", playedBy: "player3" },
-          // Missing 4th card
-        ];
-
-        expect(() =>
-          determineTrickWinner(trick, SUITS.SPADES, "player1"),
-        ).to.throw(
-          PhaseLogicError,
-          "Trick must have 4 cards to determine a winner",
-        );
+      mockGetCardRank.mockImplementation((card, trumpSuit, ledSuit) => {
+        if (card === 'AS') return 14;
+        if (card === 'KS') return 13;
+        return 0;
       });
+      
+      const mockedPlayingPhaseModule = await import('../../../src/game/phases/playingPhase.js');
+      mockedPlayingPhaseModule.default.logger = loggerMock;
+      mockedPlayingPhaseModule.default.validation = mockValidation;
+      mockedPlayingPhaseModule.default.players = mockPlayers;
+      mockedPlayingPhaseModule.default.deck = mockDeck;
+      const mockedHandlePlayCard = mockedPlayingPhaseModule.handlePlayCard;
 
-      it("should return the player who played the highest card of the led suit when no trump is played", () => {
-        const trick = [
-          { suit: SUITS.HEARTS, value: "A", playedBy: "player1" },
-          { suit: SUITS.HEARTS, value: "K", playedBy: "player2" },
-          { suit: SUITS.HEARTS, value: "Q", playedBy: "player3" },
-          { suit: SUITS.HEARTS, value: "J", playedBy: "player4" },
-        ];
+      const newState = mockedHandlePlayCard(gameState, PLAYER_ROLES[0], cardToPlay);
 
-        // Mock getCardRank to return higher values for higher cards
-        mockGetCardRank.callsFake((card) => {
-          const values = { J: 11, Q: 12, K: 13, A: 14 };
-          return values[card.value];
-        });
-
-        const winner = determineTrickWinner(trick, SUITS.SPADES, "player1");
-        expect(winner).to.equal("player1"); // Ace is highest
-      });
-
-      it("should return the player who played the highest trump card when trump is played", () => {
-        const trick = [
-          { suit: SUITS.HEARTS, value: "A", playedBy: "player1" }, // Non-trump ace (14)
-          { suit: SUITS.SPADES, value: "J", playedBy: "player2" }, // Right bower (highest)
-          { suit: SUITS.HEARTS, value: "K", playedBy: "player3" }, // Non-trump king (13)
-          { suit: SUITS.SPADES, value: "Q", playedBy: "player4" }, // Trump queen (32)
-        ];
-
-        // Mock getCardRank to handle trump cards and right bower correctly
-        mockGetCardRank.callsFake((card, trumpSuit) => {
-          const baseValues = { 9: 9, 10: 10, J: 11, Q: 12, K: 13, A: 14 };
-
-          // Right bower (J of trump suit) is highest
-          if (card.suit === trumpSuit && card.value === "J") return 40;
-
-          // Regular trump cards (add 20 to make them higher than non-trump)
-          if (card.suit === trumpSuit) return 20 + baseValues[card.value];
-
-          // Non-trump cards
-          return baseValues[card.value];
-        });
-
-        const winner = determineTrickWinner(trick, SUITS.SPADES, "player1");
-        expect(winner).to.equal("player2"); // Right bower (J of spades) should win
-
-        // Verify the values we're using in our mock
-        const values = {
-          player1: 14, // Ace of hearts (non-trump)
-          player2: 40, // Jack of spades (right bower)
-          player3: 13, // King of hearts (non-trump)
-          player4: 32, // Queen of spades (trump)
-        };
-
-        // This is just for debugging - the test will fail if the values aren't as expected
-        expect(values.player2).to.be.greaterThan(values.player4); // Right bower > other trump
-        expect(values.player4).to.be.greaterThan(values.player1); // Trump > non-trump ace
-        expect(values.player1).to.be.greaterThan(values.player3); // Ace > king (both non-trump)
-      });
-
-      it("should handle the left bower as the highest trump card", () => {
-        const trick = [
-          { suit: SUITS.CLUBS, value: "J", playedBy: "player1" }, // Left bower (highest when spades are trump)
-          { suit: SUITS.SPADES, value: "J", playedBy: "player2" }, // Right bower
-          { suit: SUITS.SPADES, value: "A", playedBy: "player3" }, // Trump ace
-          { suit: SUITS.HEARTS, value: "A", playedBy: "player4" }, // Non-trump
-        ];
-
-        // Mock getCardRank to handle bowers correctly
-        mockGetCardRank.callsFake((card, trumpSuit, ledSuit) => {
-          const baseValues = { J: 11, Q: 12, K: 13, A: 14 };
-
-          // Right bower (J of trump suit) is highest
-          if (card.suit === trumpSuit && card.value === "J") return 40;
-
-          // Left bower (J of same color as trump) is next highest
-          const isLeftBower =
-            card.value === "J" &&
-            ((trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS) ||
-              (trumpSuit === SUITS.CLUBS && card.suit === SUITS.SPADES) ||
-              (trumpSuit === SUITS.HEARTS && card.suit === SUITS.DIAMONDS) ||
-              (trumpSuit === SUITS.DIAMONDS && card.suit === SUITS.HEARTS));
-
-          if (isLeftBower) return 39;
-
-          // Regular trump cards
-          if (card.suit === trumpSuit) return 20 + baseValues[card.value];
-
-          // Non-trump cards
-          return baseValues[card.value];
-        });
-
-        const winner = determineTrickWinner(trick, SUITS.SPADES, "player1");
-        expect(winner).to.equal("player2"); // Right bower (J of spades) wins
-
-        // Now test with clubs as trump - left bower should win
-        const winner2 = determineTrickWinner(trick, SUITS.CLUBS, "player1");
-        expect(winner2).to.equal("player1"); // Left bower (J of clubs when spades are trump)
-      });
-
-      it("should handle the case where all cards are of the led suit with no trump", () => {
-        const trick = [
-          { suit: SUITS.HEARTS, value: "10", playedBy: "player1" },
-          { suit: SUITS.HEARTS, value: "K", playedBy: "player2" },
-          { suit: SUITS.HEARTS, value: "Q", playedBy: "player3" },
-          { suit: SUITS.HEARTS, value: "J", playedBy: "player4" },
-        ];
-
-        // Simple ranking where higher face value wins
-        mockGetCardRank.callsFake((card) => {
-          const values = { 9: 9, 10: 10, J: 11, Q: 12, K: 13, A: 14 };
-          return values[card.value];
-        });
-
-        const winner = determineTrickWinner(trick, SUITS.SPADES, "player1");
-        expect(winner).to.equal("player2"); // King is highest
-      });
+      assert.strictEqual(newState.gamePhase, GAME_PHASES.SCORING);
+      assert.strictEqual(newState.tricksTaken[TEAMS.TEAM_NS], 4);
+      assert.strictEqual(newState.tricksTaken[TEAMS.TEAM_EW], 1);
     });
-  }); // End of describe("handlePlayCard")
-}); // End of describe("PlayingPhase Logic")
+  }); // End of handlePlayCard tests
 
-// This empty line ensures the file ends with a newline
+  await t.test('determineTrickWinner', async (t) => {
+    let determineTrickWinner;
+    let mockGetCardRank;
+    let loggerMock;
+    let mockValidation;
+    let mockPlayers;
+    let mockDeck;
+
+    loggerMock = {
+      info: t.mock.fn(),
+      warn: t.mock.fn(),
+      error: t.mock.fn(),
+      debug: t.mock.fn(),
+      log: t.mock.fn(),
+    };
+
+    mockValidation = {
+      validatePlay: t.mock.fn(() => ({ valid: true, errors: [] })),
+    };
+
+    mockPlayers = {
+      getNextPlayer: t.mock.fn((currentPlayer) => {
+        const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
+        return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
+      }),
+      getPartner: t.mock.fn((playerRole) => {
+        const partnerMap = {
+          [PLAYER_ROLES[0]]: PLAYER_ROLES[2], // South's partner is North
+          [PLAYER_ROLES[1]]: PLAYER_ROLES[3], // West's partner is East
+          [PLAYER_ROLES[2]]: PLAYER_ROLES[0], // North's partner is South
+          [PLAYER_ROLES[3]]: PLAYER_ROLES[1], // East's partner is West
+        };
+        return partnerMap[playerRole];
+      }),
+    };
+
+    mockDeck = {
+      createDeck: t.mock.fn(createDeck),
+      shuffleDeck: t.mock.fn(shuffleDeck),
+      getCardRank: t.mock.fn(), // Will be mocked specifically in relevant tests
+    };
+
+    const playingPhaseModule = await import('../../../src/game/phases/playingPhase.js');
+    playingPhaseModule.default.logger = loggerMock;
+    playingPhaseModule.default.validation = mockValidation;
+    playingPhaseModule.default.players = mockPlayers;
+    playingPhaseModule.default.deck = mockDeck;
+    determineTrickWinner = playingPhaseModule.determineTrickWinner;
+
+    t.test('should throw PhaseLogicError if trick doesn\'t have exactly 4 cards', (t) => {
+      const trick = [
+        { suit: SUITS.HEARTS, value: 'A', playedBy: 'player1' },
+        { suit: SUITS.HEARTS, value: 'K', playedBy: 'player2' },
+        { suit: SUITS.HEARTS, value: 'Q', playedBy: 'player3' },
+      ];
+
+      assert.throws(
+        () => determineTrickWinner(trick, SUITS.SPADES, 'player1'),
+        (err) => {
+          assert.ok(err instanceof PhaseLogicError);
+          assert.strictEqual(err.message, 'Trick must have 4 cards to determine a winner');
+          return true;
+        }
+      );
+    });
+
+    t.test('should return the player who played the highest card of the led suit when no trump is played', (t) => {
+      const trick = [
+        { suit: SUITS.HEARTS, value: 'A', playedBy: 'player1' },
+        { suit: SUITS.HEARTS, value: 'K', playedBy: 'player2' },
+        { suit: SUITS.HEARTS, value: 'Q', playedBy: 'player3' },
+        { suit: SUITS.HEARTS, value: 'J', playedBy: 'player4' },
+      ];
+
+      mockDeck.getCardRank.mock.mockImplementation((card) => {
+        const values = { J: 11, Q: 12, K: 13, A: 14 };
+        return values[card.value];
+      });
+
+      const winner = determineTrickWinner(trick, SUITS.SPADES, 'player1');
+      assert.strictEqual(winner, 'player1');
+    });
+
+    t.test('should return the player who played the highest trump card when trump is played', (t) => {
+      const trick = [
+        { suit: SUITS.HEARTS, value: 'A', playedBy: 'player1' }, // Non-trump ace (14)
+        { suit: SUITS.SPADES, value: 'J', playedBy: 'player2' }, // Right bower (highest)
+        { suit: SUITS.HEARTS, value: 'K', playedBy: 'player3' }, // Non-trump king (13)
+        { suit: SUITS.SPADES, value: 'Q', playedBy: 'player4' }, // Trump queen (32)
+      ];
+
+      mockDeck.getCardRank.mock.mockImplementation((card, trumpSuit) => {
+        const baseValues = { 9: 9, 10: 10, J: 11, Q: 12, K: 13, A: 14 };
+        if (card.suit === trumpSuit && card.value === 'J') return 40;
+        if (card.suit === trumpSuit) return 20 + baseValues[card.value];
+        return baseValues[card.value];
+      });
+
+      const winner = determineTrickWinner(trick, SUITS.SPADES, 'player1');
+      assert.strictEqual(winner, 'player2');
+
+      const values = {
+        player1: mockDeck.getCardRank({ suit: SUITS.HEARTS, value: 'A' }, SUITS.SPADES, SUITS.HEARTS),
+        player2: mockDeck.getCardRank({ suit: SUITS.SPADES, value: 'J' }, SUITS.SPADES, SUITS.HEARTS),
+        player3: mockDeck.getCardRank({ suit: SUITS.HEARTS, value: 'K' }, SUITS.SPADES, SUITS.HEARTS),
+        player4: mockDeck.getCardRank({ suit: SUITS.SPADES, value: 'Q' }, SUITS.SPADES, SUITS.HEARTS),
+      };
+
+      assert.ok(values.player2 > values.player4, 'Right bower > other trump');
+      assert.ok(values.player4 > values.player1, 'Trump > non-trump ace');
+      assert.ok(values.player1 > values.player3, 'Ace > king (both non-trump)');
+    });
+
+    t.test('should handle the left bower as the highest trump card', (t) => {
+      const trick = [
+        { suit: SUITS.CLUBS, value: 'J', playedBy: 'player1' }, // Left bower (highest when spades are trump)
+        { suit: SUITS.SPADES, value: 'J', playedBy: 'player2' }, // Right bower
+        { suit: SUITS.SPADES, value: 'A', playedBy: 'player3' }, // Trump ace
+        { suit: SUITS.HEARTS, value: 'A', playedBy: 'player4' }, // Non-trump
+      ];
+
+      mockDeck.getCardRank.mock.mockImplementation((card, trumpSuit, ledSuit) => {
+        const baseValues = { J: 11, Q: 12, K: 13, A: 14 };
+        if (card.suit === trumpSuit && card.value === 'J') return 40;
+
+        const isLeftBower =
+          card.value === 'J' &&
+          ((trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS) ||
+            (trumpSuit === SUITS.CLUBS && card.suit === SUITS.SPADES) ||
+            (trumpSuit === SUITS.HEARTS && card.suit === SUITS.DIAMONDS) ||
+            (trumpSuit === SUITS.DIAMONDS && card.suit === SUITS.HEARTS));
+
+        if (isLeftBower) return 39;
+        if (card.suit === trumpSuit) return 20 + baseValues[card.value];
+        return baseValues[card.value];
+      });
+
+      const winner = determineTrickWinner(trick, SUITS.SPADES, 'player1');
+      assert.strictEqual(winner, 'player2'); // Right bower (J of spades) wins
+
+      const winner2 = determineTrickWinner(trick, SUITS.CLUBS, 'player1');
+      assert.strictEqual(winner2, 'player1'); // Left bower (J of clubs when clubs are trump)
+    });
+
+    t.test('should handle the case where all cards are of the led suit with no trump', (t) => {
+      const trick = [
+        { suit: SUITS.HEARTS, value: '10', playedBy: 'player1' },
+        { suit: SUITS.HEARTS, value: 'K', playedBy: 'player2' },
+        { suit: SUITS.HEARTS, value: 'Q', playedBy: 'player3' },
+        { suit: SUITS.HEARTS, value: 'J', playedBy: 'player4' },
+      ];
+
+      mockDeck.getCardRank.mock.mockImplementation((card) => {
+        const values = { 9: 9, 10: 10, J: 11, Q: 12, K: 13, A: 14 };
+        return values[card.value];
+      });
+
+      const winner = determineTrickWinner(trick, SUITS.SPADES, 'player1');
+      assert.strictEqual(winner, 'player2'); // King is highest
+    });
+  }); // End of determineTrickWinner tests
+}); // End of PlayingPhase Logic tests

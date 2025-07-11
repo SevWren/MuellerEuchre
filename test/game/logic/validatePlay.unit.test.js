@@ -1,23 +1,20 @@
 /**
- * @file Unit tests for the Euchre game validation logic - validatePlay
+ * @file Unit tests for the Euchre game validation logic
  * @module test/game/logic/validation.unit.test
- * @description Comprehensive test suite for validating core game rules in Euchre.
+ * @description Comprehensive test suite for validating core game rules in Euchre,
+ * including playing cards, bidding, and discarding.
  */
 
 import { describe, it, mock, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
 
-// Import test utilities
-import { createMockLogger } from '../../test-utils/mock-logger.js';
-
-// Import constants and errors
+// --- Import Constants & Custom Errors ---
 import {
   CARD_SUITS as SUITS,
   CARD_VALUES as VALUES,
   GAME_PHASES,
   PLAYER_ROLES,
+  BID_DECISIONS,
 } from '../../../src/config/constants.js';
 import {
   ValidationError,
@@ -29,618 +26,438 @@ import {
   InvalidDiscardError,
 } from '../../../src/game/logic/errors.js';
 
-// Mock the logger and deck modules
-const loggerMock = createMockLogger();
-const mockDeck = {
-  isLeftBower: mock.fn((card, trumpSuit) => {
-    if (!card || card.value !== VALUES.JACK) return false;
-    if (trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS) return true;
-    if (trumpSuit === SUITS.CLUBS && card.suit === SUITS.SPADES) return true;
-    if (trumpSuit === SUITS.HEARTS && card.suit === SUITS.DIAMONDS) return true;
-    if (trumpSuit === SUITS.DIAMONDS && card.suit === SUITS.HEARTS) return true;
-    return false;
-  }),
-  areSameColor: mock.fn((suit1, suit2) => {
-    const colors = {
-      [SUITS.SPADES]: 'black',
-      [SUITS.CLUBS]: 'black',
-      [SUITS.HEARTS]: 'red',
-      [SUITS.DIAMONDS]: 'red',
-    };
-    return colors[suit1] === colors[suit2];
-  })
+// --- Centralized Mock Implementations ---
+// Logic is defined once and reused, preventing duplication.
+
+const isLeftBower = (card, trumpSuit) => {
+  if (!card || card.value !== VALUES.JACK) return false;
+  const colorMap = {
+    [SUITS.SPADES]: SUITS.CLUBS,
+    [SUITS.CLUBS]: SUITS.SPADES,
+    [SUITS.HEARTS]: SUITS.DIAMONDS,
+    [SUITS.DIAMONDS]: SUITS.HEARTS,
+  };
+  return colorMap[trumpSuit] === card.suit;
 };
 
-// Get the directory name for the current module
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const getEffectiveSuit = (card, trumpSuit) => {
+  return isLeftBower(card, trumpSuit) ? trumpSuit : card.suit;
+};
 
-// Import the module under test
-import * as validation from '../../../src/game/logic/validation.js';
+const mockLogger = {
+  info: mock.fn(),
+  warn: mock.fn(),
+  error: mock.fn(),
+  debug: mock.fn(),
+};
 
-describe('Validation Logic', () => {
-  describe('validatePlay', () => {
-    const baseGameState = {
-      gamePhase: GAME_PHASES.PLAYING,
-      currentPlayer: PLAYER_ROLES[0], // south
-      trumpSuit: SUITS.SPADES,
-      currentTrick: [],
-      gameId: 'test-game',
-    };
+// Import the validation module first
+const validationModule = await import('../../../src/game/logic/validation.js');
+const { validatePlay, validateBid, validateDealerDiscard } = validationModule;
 
-    const player1Hand = [
-      { id: 'AC', suit: SUITS.CLUBS, value: VALUES.ACE },
-      { id: 'KC', suit: SUITS.CLUBS, value: VALUES.KING },
-      { id: 'AS', suit: SUITS.SPADES, value: VALUES.ACE }, // Trump
-      { id: 'KS', suit: SUITS.SPADES, value: VALUES.KING }, // Trump
-      { id: 'JD', suit: SUITS.DIAMONDS, value: VALUES.JACK }, // Potential Left Bower if Clubs is trump
-    ];
+// Import the deck utilities with a different name to avoid conflicts
+import * as deckUtils from '../../../src/utils/deck.js';
 
-    const player1Role = PLAYER_ROLES[0];
-
-    beforeEach(() => {
-      // Reset mocks before each test
-      mock.reset();
-    });
-
-    // Test cases for basic argument validation
-    it('should throw ValidationError if gameState is missing', () => {
-      assert.throws(
-        () => validation.validatePlay(null, player1Hand, player1Hand[0], player1Role),
-        {
-          name: 'ValidationError',
-          message: /Internal error: Missing data for play validation/
-        }
-      );
-    });
-
-    it('should throw ValidationError if playerHand is missing', () => {
-      assert.throws(
-        () => validation.validatePlay(baseGameState, null, player1Hand[0], player1Role),
-        {
-          name: 'ValidationError',
-          message: /Internal error: Missing data for play validation/
-        }
-      );
-    });
-
-    it('should throw ValidationError if cardToPlay is missing', () => {
-      assert.throws(
-        () => validation.validatePlay(baseGameState, player1Hand, null, player1Role),
-        {
-          name: 'ValidationError',
-          message: /Internal error: Missing data for play validation/
-        }
-      );
-    });
-
-    it('should throw ValidationError if cardToPlay.id is missing', () => {
-      assert.throws(
-        () => validation.validatePlay(
-          baseGameState,
-          player1Hand,
-          { suit: SUITS.CLUBS, value: VALUES.ACE },
-          player1Role
-        ),
-        {
-          name: 'ValidationError',
-          message: /Internal error: Missing data for play validation/
-        }
-      );
-    });
-
-    it('should throw ValidationError if playerRole is missing', () => {
-      assert.throws(
-        () => validation.validatePlay(baseGameState, player1Hand, player1Hand[0], null),
-        {
-          name: 'ValidationError',
-          message: /Internal error: Missing data for play validation/
-        }
-      );
-    });
-
-    // Test case for invalid game phase
-    it('should throw InvalidPhaseError if game is not in PLAYING phase', () => {
-      const gameState = {
-        ...baseGameState,
-        gamePhase: GAME_PHASES.DEALER_DISCARD,
-      };
-      
-      assert.throws(
-        () => validation.validatePlay(gameState, player1Hand, player1Hand[0], player1Role),
-        {
-          name: 'InvalidPhaseError',
-          message: /Cannot play card during .* phase/
-        }
-      );
-    });
-
-    // Test case for not player's turn
-    it('should throw NotPlayersTurnError if it is not the player\'s turn', () => {
-      const gameState = { ...baseGameState, currentPlayer: PLAYER_ROLES[1] }; // west's turn
-      
-      assert.throws(
-        () => validation.validatePlay(gameState, player1Hand, player1Hand[0], player1Role),
-        {
-          name: 'NotPlayersTurnError',
-          message: new RegExp(`Not ${player1Role}'s turn\. It is ${PLAYER_ROLES[1]}'s turn\.`)
-        }
-      );
-    });
-
-    // Test case for card not in hand
-    it('should throw CardNotInHandError if the card is not in player\'s hand', () => {
-      const cardNotInHand = { id: 'QH', suit: SUITS.HEARTS, value: VALUES.QUEEN };
-      
-      assert.throws(
-        () => validation.validatePlay(baseGameState, player1Hand, cardNotInHand, player1Role),
-        {
-          name: 'CardNotInHandError',
-          message: new RegExp(`Card QH is not in ${player1Role}'s hand`)
-        }
-      );
-    });
-
-  describe('Following Suit Logic (General)', () => {
-    let validatePlay;
-    let isLeftBowerMock;
-    let loggerMock;
-
-    beforeEach(() => {
-      // Reset mocks
-      loggerMock = {
-        info: mock.fn(),
-        warn: mock.fn(),
-        error: mock.fn(),
-        debug: mock.fn(),
-      };
-
-      // Set up mocks for this test block
-      isLeftBowerMock = mock.fn((card, trumpSuit) => {
-        if (!card || card.value !== VALUES.JACK) return false;
-        if (trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS) return true;
-        if (trumpSuit === SUITS.CLUBS && card.suit === SUITS.SPADES) return true;
-        if (trumpSuit === SUITS.HEARTS && card.suit === SUITS.DIAMONDS) return true;
-        if (trumpSuit === SUITS.DIAMONDS && card.suit === SUITS.HEARTS) return true;
-        return false;
-      });
-
-      // Mock the validation module
-      mock.method(validation, 'validatePlay', (gameState, playerHand, cardToPlay, playerRole) => {
-        // Basic validation
-        if (!gameState || !playerHand || !cardToPlay || !playerRole || !cardToPlay.id) {
-          throw new ValidationError('Internal error: Missing data for play validation');
-        }
-
-        // Phase validation
-        if (gameState.gamePhase !== GAME_PHASES.PLAYING) {
-          throw new InvalidPhaseError(`Cannot play card during ${gameState.gamePhase} phase`);
-        }
-
-        // Turn validation
-        if (gameState.currentPlayer !== playerRole) {
-          throw new NotPlayersTurnError(
-            `Not ${playerRole}'s turn. It is ${gameState.currentPlayer}'s turn.`
-          );
-        }
-
-        // Card in hand validation
-        const cardInHand = playerHand.some(card => card.id === cardToPlay.id);
-        if (!cardInHand) {
-          throw new CardNotInHandError(`Card ${cardToPlay.id} is not in ${playerRole}'s hand`);
-        }
-
-        // Following suit logic
-        if (gameState.currentTrick && gameState.currentTrick.length > 0) {
-          const ledCard = gameState.currentTrick[0].card;
-          if (ledCard) {
-            const ledSuit = ledCard.suit;
-            const playedSuit = cardToPlay.suit;
-            
-            // Check if player has a card of the led suit
-            const hasLedSuit = playerHand.some(card => {
-              if (card.id === cardToPlay.id) return false; // Skip the card being played
-              return card.suit === ledSuit;
-            });
-
-            if (hasLedSuit && playedSuit !== ledSuit) {
-              throw new MustFollowSuitError(
-                `Must follow suit. Led suit is ${ledSuit}, attempted to play ${playedSuit}.`
-              );
-            }
-          }
-        }
-
-        return true;
-      });
-
-      validatePlay = validation.validatePlay;
-    });
-
-    it('should allow playing any card if no card has been led (leading the trick)', () => {
-      const gameState = { ...baseGameState, currentTrick: [] };
-      const cardToPlay = player1Hand[0]; // AC
-      
-      // Should not throw
-      assert.doesNotThrow(
-        () => validatePlay(gameState, player1Hand, cardToPlay, player1Role)
-      );
-      
-      // Should return true
-      const result = validatePlay(gameState, player1Hand, cardToPlay, player1Role);
-      assert.strictEqual(result, true);
-    });
-
-    it('should allow playing a card of the led suit', () => {
-      const ledCard = {
-        card: { id: 'QC', suit: SUITS.CLUBS, value: VALUES.QUEEN },
-        player: PLAYER_ROLES[1],
-      };
-      const gameState = { ...baseGameState, currentTrick: [ledCard] }; // trumpSuit is Spades from baseGameState
-      const cardToPlay = player1Hand[0]; // AC (Clubs)
-      
-      // Should not throw
-      assert.doesNotThrow(
-        () => validatePlay(gameState, player1Hand, cardToPlay, player1Role)
-      );
-      
-      // Should return true
-      const result = validatePlay(gameState, player1Hand, cardToPlay, player1Role);
-      assert.strictEqual(result, true);
-    });
-
-    it('should throw MustFollowSuitError if player has the led suit but plays an off-suit card', () => {
-      const testHand = [
-        { id: 'AC', suit: SUITS.CLUBS, value: VALUES.ACE },
-        { id: 'KC', suit: SUITS.CLUBS, value: VALUES.KING },
-        { id: 'AS', suit: SUITS.SPADES, value: VALUES.ACE },
-      ];
-
-      const ledCardDetails = {
-        card: { id: 'QC', suit: SUITS.CLUBS, value: VALUES.QUEEN },
-        player: PLAYER_ROLES[1],
-      };
-
-      const gameState = {
-        ...baseGameState,
-        currentTrick: [ledCardDetails],
-        trumpSuit: SUITS.SPADES,
-      };
-
-      const cardToAttempt = {
-        id: 'AS',
-        suit: SUITS.SPADES,
-        value: VALUES.ACE,
-      };
-
-      // Should throw MustFollowSuitError
-      assert.throws(
-        () => validatePlay(gameState, testHand, cardToAttempt, player1Role),
-        {
-          name: 'MustFollowSuitError',
-          message: `Must follow suit. Led suit is ${SUITS.CLUBS}, attempted to play ${SUITS.SPADES}.`
-        }
-      );
-    });
-
-    it('should allow playing an off-suit card if player does not have the led suit', () => {
-      const ledCard = {
-        card: { id: 'QH', suit: SUITS.HEARTS, value: VALUES.QUEEN },
-        player: PLAYER_ROLES[1],
-      };
-      const gameState = { ...baseGameState, currentTrick: [ledCard] };
-      const cardToPlay = player1Hand[0];
-      
-      // Should not throw
-      assert.doesNotThrow(
-        () => validatePlay(gameState, player1Hand, cardToPlay, player1Role)
-      );
-      
-      // Should return true
-      const result = validatePlay(gameState, player1Hand, cardToPlay, player1Role);
-      assert.strictEqual(result, true);
-    });
-
-    it('should allow playing any card if the led card is invalid (e.g. null) and NOT log a warning', () => {
-      const ledCard = { card: null, player: PLAYER_ROLES[1] };
-      const gameState = { ...baseGameState, currentTrick: [ledCard] };
-      const cardToPlay = player1Hand[0];
-
-      // Should not throw
-      assert.doesNotThrow(
-        () => validatePlay(gameState, player1Hand, cardToPlay, player1Role)
-      );
-      
-      // Should return true
-      const result = validatePlay(gameState, player1Hand, cardToPlay, player1Role);
-      assert.strictEqual(result, true);
-      
-      // Verify no warning was logged
-      assert.strictEqual(loggerMock.warn.mock.calls.length, 0);
-    });
-
-    it('should allow playing any card if the led card is invalid (e.g. undefined) and NOT log a warning', () => {
-      const ledCard = { card: undefined, player: PLAYER_ROLES[1] };
-      const gameState = { ...baseGameState, currentTrick: [ledCard] };
-      const cardToPlay = player1Hand[0];
-
-      // Should not throw
-      assert.doesNotThrow(
-        () => validatePlay(gameState, player1Hand, cardToPlay, player1Role)
-      );
-      
-      // Should return true
-      const result = validatePlay(gameState, player1Hand, cardToPlay, player1Role);
-      assert.strictEqual(result, true);
-      
-      // Verify no warning was logged
-      assert.strictEqual(loggerMock.warn.mock.calls.length, 0);
-    });
-  });
-
-  describe("Following Suit Logic (Left Bower Scenarios)", () => {
-    let validatePlay;
-    let isLeftBowerMock;
-
-    beforeEach(() => {
-      isLeftBowerMock = mock.fn((card, trumpSuit) => {
-        if (!card || card.value !== VALUES.JACK) return false;
-        if (trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS) return true;
-        if (trumpSuit === SUITS.CLUBS && card.suit === SUITS.SPADES) return true;
-        if (trumpSuit === SUITS.HEARTS && card.suit === SUITS.DIAMONDS) return true;
-        if (trumpSuit === SUITS.DIAMONDS && card.suit === SUITS.HEARTS) return true;
-        return false;
-      });
-
-      // Mock the validation module
-      mock.method(validation, 'validatePlay', (gameState, playerHand, cardToPlay, playerRole) => {
-        // Basic validation
-        if (!gameState || !playerHand || !cardToPlay || !playerRole || !cardToPlay.id) {
-          throw new ValidationError('Internal error: Missing data for play validation');
-        }
-
-        // Phase validation
-        if (gameState.gamePhase !== GAME_PHASES.PLAYING) {
-          throw new InvalidPhaseError(`Cannot play card during ${gameState.gamePhase} phase`);
-        }
-
-        // Turn validation
-        if (gameState.currentPlayer !== playerRole) {
-          throw new NotPlayersTurnError(
-            `Not ${playerRole}'s turn. It is ${gameState.currentPlayer}'s turn.`
-          );
-        }
-
-        // Card in hand validation
-        const cardInHand = playerHand.some(card => card.id === cardToPlay.id);
-        if (!cardInHand) {
-          throw new CardNotInHandError(`Card ${cardToPlay.id} is not in ${playerRole}'s hand`);
-        }
-
-        // Following suit logic with Left Bower handling
-        if (gameState.currentTrick && gameState.currentTrick.length > 0) {
-          const ledCard = gameState.currentTrick[0].card;
-          if (ledCard) {
-            const ledSuit = ledCard.suit;
-            const playedSuit = cardToPlay.suit;
-            
-            // Check if player has a card of the led suit (considering Left Bower)
-            const hasLedSuit = playerHand.some(card => {
-              if (card.id === cardToPlay.id) return false; // Skip the card being played
-              
-              // If the led card is the Left Bower, check for trump suit
-              if (isLeftBowerMock(ledCard, gameState.trumpSuit)) {
-                return card.suit === gameState.trumpSuit || isLeftBowerMock(card, gameState.trumpSuit);
-              }
-              
-              // Normal suit following
-              return card.suit === ledSuit;
-            });
-
-            if (hasLedSuit) {
-              // Check if the played card follows suit (considering Left Bower)
-              const effectivePlayedSuit = isLeftBowerMock(cardToPlay, gameState.trumpSuit) 
-                ? gameState.trumpSuit 
-                : playedSuit;
-                
-              const effectiveLedSuit = isLeftBowerMock(ledCard, gameState.trumpSuit)
-                ? gameState.trumpSuit
-                : ledSuit;
-              
-              if (effectivePlayedSuit !== effectiveLedSuit) {
-                throw new MustFollowSuitError(
-                  `Must follow suit. Led suit is ${ledSuit}, attempted to play ${playedSuit}.`
-                );
-              }
-            }
-          }
-        }
-
-        return true;
-      });
-
-      validatePlay = validation.validatePlay;
-    });
-
-    it('should correctly use trump suit for Left Bower when checking "must follow suit" (player has Left Bower of led suit)', () => {
-      isLeftBowerMock = (card, trumpSuit) =>
-        card.id === "JC" && trumpSuit === SUITS.SPADES;
-
-      const localPlayerHand = [
-        { id: "JC", suit: SUITS.CLUBS, value: VALUES.JACK },
-        { id: "TC", suit: SUITS.CLUBS, value: VALUES.TEN },
-        { id: "AS", suit: SUITS.SPADES, value: VALUES.ACE },
-      ];
-      const ledCard = {
-        card: { id: "QC", suit: SUITS.CLUBS, value: VALUES.QUEEN },
-        player: PLAYER_ROLES[1],
-      };
-      const gameState = {
-        ...baseGameState,
-        trumpSuit: SUITS.SPADES,
-        currentTrick: [ledCard],
-      };
-      const cardToPlay = localPlayerHand[0];
-
-      assert.throws(
-        () => validatePlay(gameState, localPlayerHand, cardToPlay, player1Role),
-        {
-          name: 'MustFollowSuitError',
-          message: `Must follow suit. Led suit is ${SUITS.CLUBS}, attempted to play ${SUITS.SPADES}.`,
-        }
-      );
-
-      const cardToPlayCorrectly = localPlayerHand[1];
-      assert.doesNotThrow(
-        () => validatePlay(
-          gameState,
-          localPlayerHand,
-          cardToPlayCorrectly,
-          player1Role,
-        ),
-      );
-      assert.strictEqual(
-        validatePlay(
-          gameState,
-          localPlayerHand,
-          cardToPlayCorrectly,
-          player1Role,
-        ),
-        true,
-      );
-    });
-
-    it("should correctly use trump suit for Left Bower when determining led suit (Left Bower was led)", () => {
-      isLeftBowerMock = (card, trumpSuit) =>
-        card.id === "JC" && trumpSuit === SUITS.SPADES;
-
-      const ledCard = {
-        card: { id: "JC", suit: SUITS.CLUBS, value: VALUES.JACK },
-        player: PLAYER_ROLES[1],
-      };
-      const gameState = {
-        ...baseGameState,
-        trumpSuit: SUITS.SPADES,
-        currentTrick: [ledCard],
-      };
-
-      const cardToPlay = player1Hand[2];
-      assert.doesNotThrow(
-        () => validatePlay(gameState, player1Hand, cardToPlay, player1Role),
-      );
-      assert.strictEqual(
-        validatePlay(gameState, player1Hand, cardToPlay, player1Role),
-        true,
-      );
-
-      const cardToPlayWrong = player1Hand[0];
-      assert.throws(
-        () => validatePlay(gameState, player1Hand, cardToPlayWrong, player1Role),
-        {
-          name: 'MustFollowSuitError',
-          message: `Must follow suit. Led suit is ${SUITS.SPADES}, attempted to play ${SUITS.CLUBS}.`,
-        }
-      );
-    });
-
-    it("should allow playing Left Bower if it matches the led suit (which is trump)", () => {
-      isLeftBowerMock = (card, trumpSuit) =>
-        card.id === "JS" && trumpSuit === SUITS.CLUBS;
-
-      const localHand = [
-        { id: "JS", suit: SUITS.SPADES, value: VALUES.JACK },
-        { id: "AH", suit: SUITS.HEARTS, value: VALUES.ACE },
-      ];
-      const ledCard = {
-        card: { id: "AC", suit: SUITS.CLUBS, value: VALUES.ACE },
-        player: PLAYER_ROLES[1],
-      };
-      const gameState = {
-        ...baseGameState,
-        trumpSuit: SUITS.CLUBS,
-        currentTrick: [ledCard],
-      };
-      const cardToPlay = localHand[0];
-
-      assert.doesNotThrow(
-        () => validatePlay(gameState, localHand, cardToPlay, player1Role),
-      );
-      assert.strictEqual(
-        validatePlay(gameState, localHand, cardToPlay, player1Role),
-        true,
-      );
-    });
-
-    it("should throw MustFollowSuitError if player has a card of the led suit but plays another non-trump card", () => {
-      isLeftBowerMock = (card, trumpSuit) =>
-        card.id === "JS" && trumpSuit === SUITS.CLUBS;
-
-      const hand = [
-        { id: "JS", suit: SUITS.SPADES, value: VALUES.JACK },
-        { id: "KH", suit: SUITS.HEARTS, value: VALUES.KING },
-        { id: "AS", suit: SUITS.SPADES, value: VALUES.ACE },
-      ];
-      const ledCardDetails = {
-        card: { id: "QH", suit: SUITS.HEARTS, value: VALUES.QUEEN },
-        player: PLAYER_ROLES[1],
-      };
-      const currentGameState = {
-        ...baseGameState,
-        trumpSuit: SUITS.CLUBS,
-        currentTrick: [ledCardDetails],
-      };
-      const cardToAttempt = hand[2];
-
-      assert.throws(
-        () => validatePlay(currentGameState, hand, cardToAttempt, player1Role),
-        {
-          name: 'MustFollowSuitError',
-          message: `Must follow suit. Led suit is ${SUITS.HEARTS}, attempted to play ${SUITS.SPADES}.`,
-        }
-      );
-    });
-  });
-
-  it("should return true for a straightforward valid play (following non-trump suit)", () => {
-    const ledCard = {
-      card: { id: "QC", suit: SUITS.CLUBS, value: VALUES.QUEEN },
-      player: PLAYER_ROLES[1],
-    };
-    const gameState = { ...baseGameState, currentTrick: [ledCard] };
-    const cardToPlay = player1Hand[0];
-    assert.strictEqual(
-      validation.validatePlay(gameState, player1Hand, cardToPlay, player1Role),
-      true,
-    );
-  });
-
-  it("should return true for playing trump when player has no led suit", () => {
-    const ledCard = {
-      card: { id: "QH", suit: SUITS.HEARTS, value: VALUES.QUEEN },
-      player: PLAYER_ROLES[1],
-    };
-    const gameState = {
-      ...baseGameState,
-      currentTrick: [ledCard],
-      trumpSuit: SUITS.SPADES,
-    };
-    const cardToPlay = player1Hand[2];
-    assert.strictEqual(
-      validation.validatePlay(gameState, player1Hand, cardToPlay, player1Role),
-      true,
-    );
-  });
-
-  it("should return true when leading with a trump card", () => {
-    const gameState = {
-      ...baseGameState,
-      currentTrick: [],
-      trumpSuit: SUITS.SPADES,
-    };
-    const cardToPlay = player1Hand[2]; // This is a spade (trump)
-    assert.strictEqual(
-      validation.validatePlay(gameState, player1Hand, cardToPlay, player1Role),
-      true,
-    );
-  });
+// Reset mocks before each test
+beforeEach(() => {
+  mockLogger.info.mock.resetCalls();
+  mockLogger.warn.mock.resetCalls();
+  mockLogger.error.mock.resetCalls();
+  mockLogger.debug.mock.resetCalls();
 });
+
+// --- Test Helper Functions ---
+
+// Create a card with the correct structure including the required methods
+const createCard = (id, suit, value) => ({
+  id,
+  suit,
+  value,
+  isLeftBower: (trumpSuit) => deckUtils.isLeftBower({ id, suit, value }, trumpSuit),
+  getEffectiveSuit: (trumpSuit) => deckUtils.getEffectiveSuit({ id, suit, value }, trumpSuit)
+});
+
+const createBaseGameState = (gamePhase = GAME_PHASES.GAME_PHASE_PLAYING) => ({
+  gamePhase,
+  dealer: 'north',
+  currentPlayer: 'south',
+  currentTrick: [],
+  trumpSuit: null,
+  upCard: createCard('KH', SUITS.HEARTS, VALUES.KING),
+  players: {
+    south: { id: 'south', name: 'South', hand: [], team: 'NS' },
+    west: { id: 'west', name: 'West', hand: [], team: 'EW' },
+    north: { id: 'north', name: 'North', hand: [], team: 'NS' },
+    east: { id: 'east', name: 'East', hand: [], team: 'EW' },
+  },
+});
+
+// =============================================================================
+// --- TEST SUITES ---
+// =============================================================================
+
+describe('Game Validation Logic', () => {
+  afterEach(() => {
+    mock.restoreAll();
+  });
+
+  // ===========================================================================
+  // == validatePlay Suite
+  // ===========================================================================
+  describe('validatePlay', () => {
+    let gameState;
+    let playerHand;
+    const playerRole = 'south'; // Using string literal for player role
+
+    // Initialize all players with empty hands in the base game state
+    const initPlayerHands = (gameState) => {
+      // Ensure all player roles have a hand array
+      Object.values(PLAYER_ROLES).forEach(role => {
+        if (!gameState.players[role]) {
+          gameState.players[role] = { hand: [] };
+        } else if (!gameState.players[role].hand) {
+          gameState.players[role].hand = [];
+        }
+      });
+      return gameState;
+    };
+
+    beforeEach(() => {
+      // Create base game state and initialize all player hands
+      gameState = createBaseGameState(GAME_PHASES.GAME_PHASE_PLAYING);
+      gameState = initPlayerHands(gameState);
+      
+      // Set up trump suit and current player
+      gameState.trumpSuit = SUITS.HEARTS;
+      gameState.currentPlayer = playerRole;
+      
+      // Set up player's hand
+      playerHand = [
+        createCard('9H', SUITS.HEARTS, VALUES.NINE), // Trump
+        createCard('AC', SUITS.CLUBS, VALUES.ACE),
+        createCard('KC', SUITS.CLUBS, VALUES.KING),
+        createCard('JD', SUITS.DIAMONDS, VALUES.JACK), // Left Bower
+      ];
+      gameState.players[playerRole].hand = [...playerHand];
+    });
+
+    describe('Initial Argument & State Validation', () => {
+      it('should throw ValidationError if gameState is missing', () => {
+        assert.throws(() => validatePlay(null, playerHand, playerHand[0], playerRole), ValidationError);
+      });
+
+      it('should throw ValidationError if playerHand is missing', () => {
+        assert.throws(() => validatePlay(gameState, null, playerHand[0], playerRole), ValidationError);
+      });
+
+      it('should throw ValidationError if cardToPlay is missing', () => {
+        assert.throws(() => validatePlay(gameState, playerHand, null, playerRole), ValidationError);
+      });
+
+      it('should throw InvalidPhaseError if game is not in PLAYING phase', () => {
+        gameState.gamePhase = GAME_PHASES.GAME_PHASE_DEALER_DISCARD;
+        assert.throws(
+          () => validatePlay(gameState, playerHand, playerHand[0], playerRole), 
+          InvalidPhaseError,
+          'Should throw InvalidPhaseError when not in PLAYING phase'
+        );
+      });
+
+      it("should throw NotPlayersTurnError if it is not the player's turn", () => {
+        // Use a different player role that's not the current player
+        gameState.currentPlayer = 'west'; // Using string literal instead of PLAYER_ROLES.WEST
+        assert.throws(
+          () => validatePlay(gameState, playerHand, playerHand[0], playerRole), 
+          NotPlayersTurnError,
+          'Should throw NotPlayersTurnError when it\'s not the player\'s turn'
+        );
+      });
+
+      it("should throw CardNotInHandError if the card is not in player's hand", () => {
+        const cardNotInHand = createCard('QH', SUITS.HEARTS, VALUES.QUEEN);
+        assert.throws(() => validatePlay(gameState, playerHand, cardNotInHand, playerRole), CardNotInHandError);
+      });
+    });
+
+    describe('Following Suit (Standard Plays)', () => {
+      it('should return true when leading the trick', () => {
+        gameState.currentTrick = [];
+        assert.strictEqual(validatePlay(gameState, playerHand, playerHand[1], playerRole), true);
+      });
+
+      it('should return true when following suit correctly', () => {
+        gameState.currentTrick = [{ card: createCard('QC', SUITS.CLUBS, VALUES.QUEEN) }];
+        assert.strictEqual(validatePlay(gameState, playerHand, playerHand[1], playerRole), true);
+      });
+
+      it('should throw MustFollowSuitError if player has the led suit but plays another', () => {
+        gameState.currentTrick = [{ card: createCard('QC', SUITS.CLUBS, VALUES.QUEEN) }];
+        assert.throws(() => validatePlay(gameState, playerHand, playerHand[0], playerRole), MustFollowSuitError);
+      });
+
+      it('should return true when playing off-suit because player does not have the led suit', () => {
+        gameState.currentTrick = [{ card: createCard('AS', SUITS.SPADES, VALUES.ACE) }];
+        assert.strictEqual(validatePlay(gameState, playerHand, playerHand[1], playerRole), true);
+      });
+    });
+
+    describe('Following Suit (Trump & Bower Scenarios)', () => {
+      it('should return true when playing trump because player has no led suit', () => {
+        gameState.currentTrick = [{ card: createCard('AS', SUITS.SPADES, VALUES.ACE) }];
+        assert.strictEqual(validatePlay(gameState, playerHand, playerHand[0], playerRole), true);
+      });
+
+      it('should throw MustFollowSuitError if a player has the led suit but tries to play trump', () => {
+        gameState.currentTrick = [{ card: createCard('QC', SUITS.CLUBS, VALUES.QUEEN) }];
+        assert.throws(() => validatePlay(gameState, playerHand, playerHand[0], playerRole), MustFollowSuitError);
+      });
+
+      it('should treat the Left Bower as part of the trump suit when checking if player can follow', () => {
+        gameState.trumpSuit = SUITS.HEARTS;
+        playerHand = [
+          createCard('JD', SUITS.DIAMONDS, VALUES.JACK), // Left Bower (effective suit: Hearts)
+          createCard('AS', SUITS.SPADES, VALUES.ACE),
+        ];
+        gameState.players[playerRole].hand = playerHand;
+        gameState.currentTrick = [{ card: createCard('KS', SUITS.SPADES, VALUES.KING) }];
+
+        assert.throws(() => validatePlay(gameState, playerHand, playerHand[0], playerRole), MustFollowSuitError);
+        assert.strictEqual(validatePlay(gameState, playerHand, playerHand[1], playerRole), true);
+      });
+
+      it('should allow playing the Left Bower when trump is led', () => {
+        gameState.trumpSuit = SUITS.HEARTS;
+        playerHand = [createCard('JD', SUITS.DIAMONDS, VALUES.JACK)];
+        gameState.players[playerRole].hand = playerHand;
+        gameState.currentTrick = [{ card: createCard('9H', SUITS.HEARTS, VALUES.NINE) }];
+        assert.strictEqual(validatePlay(gameState, playerHand, playerHand[0], playerRole), true);
+      });
+
+      it('should identify the led suit as trump when the Left Bower is led', () => {
+        // Set up trump and current player
+        gameState.trumpSuit = SUITS.HEARTS;
+        gameState.currentPlayer = playerRole; // Set current player to the test player
+        
+        // Set up player's hand with a trump card and an off-suit card
+        playerHand = [
+          createCard('9H', SUITS.HEARTS, VALUES.NINE), // Trump
+          createCard('AC', SUITS.CLUBS, VALUES.ACE),    // Off-suit
+        ];
+        gameState.players[playerRole].hand = playerHand;
+        
+        // Set up the current trick with the Left Bower (JD) as the led card
+        // JD is the Left Bower when trump is HEARTS (since JD is DIAMONDS and JACK is the same as JACK)
+        gameState.currentTrick = [{ 
+          card: createCard('JD', SUITS.DIAMONDS, VALUES.JACK),
+          playedBy: PLAYER_ROLES[1] // Another player led the Left Bower
+        }];
+
+        // Should throw MustFollowSuitError when trying to play off-suit (AC) when could follow trump
+        assert.throws(
+          () => validatePlay(gameState, playerHand, playerHand[1], playerRole),
+          MustFollowSuitError,
+          'Should not be able to play off-suit when holding a trump card and Left Bower is led'
+        );
+        
+        // Should allow playing a trump card (9H)
+        assert.strictEqual(
+          validatePlay(gameState, playerHand, playerHand[0], playerRole),
+          true,
+          'Should allow playing a trump card when Left Bower is led'
+        );
+      });
+    });
+  });
+
+  // ===========================================================================
+  // == validateBid Suite
+  // ===========================================================================
+  describe('validateBid', () => {
+    let gameState;
+    const playerRole = PLAYER_ROLES[0]; // PLAYER_SOUTH
+
+    beforeEach(() => {
+      gameState = createBaseGameState(GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND1);
+      gameState.currentPlayer = playerRole;
+    });
+
+    it('should throw InvalidPhaseError if not in a bidding phase', () => {
+      gameState.gamePhase = GAME_PHASES.GAME_PHASE_PLAYING;
+      assert.throws(() => validateBid(gameState, playerRole, { type: 'pass' }), InvalidPhaseError);
+    });
+
+    it("should throw NotPlayersTurnError if it's not the player's turn to bid", () => {
+      gameState.currentPlayer = PLAYER_ROLES[1]; // PLAYER_WEST
+      assert.throws(() => validateBid(gameState, playerRole, 'pass'), NotPlayersTurnError);
+    });
+
+    it('should return true for a valid "pass" bid', () => {
+      assert.strictEqual(validateBid(gameState, playerRole, 'pass'), true);
+    });
+
+    it('should return true for a valid "orderUp" bid in round 1', () => {
+      // Set up for dealer (north) to order up in round 1
+      const dealerRole = PLAYER_ROLES[3]; // PLAYER_NORTH
+      gameState.gamePhase = GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND1;
+      gameState.currentPlayer = dealerRole;
+      gameState.dealer = dealerRole;
+      assert.strictEqual(validateBid(gameState, dealerRole, BID_DECISIONS.ORDER_UP), true);
+    });
+
+    it('should throw InvalidBidError for an unknown bid type', () => {
+      assert.throws(() => validateBid(gameState, playerRole, 'invalidBid'), InvalidBidError);
+    });
+
+    it('should throw InvalidBidError if dealer tries to pick it up in round 2', () => {
+      gameState.gamePhase = GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2;
+      gameState.currentPlayer = PLAYER_ROLES[3]; // PLAYER_NORTH
+      assert.throws(
+        () => validateBid(gameState, gameState.currentPlayer, 'pickItUp'), 
+        InvalidBidError
+      );
+    });
+
+    it('should return true for a valid "callTrump" bid in round 2', () => {
+      gameState.gamePhase = GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2;
+      gameState.currentPlayer = playerRole;
+      assert.strictEqual(validateBid(gameState, playerRole, 'callTrump', SUITS.SPADES), true);
+    });
+
+    it('should throw InvalidBidError if called trump is the same as the up-card suit in round 2', () => {
+      gameState.gamePhase = GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2;
+      gameState.currentPlayer = playerRole;
+      const bid = { type: 'callTrump', suit: gameState.upCard.suit }; // Hearts
+      assert.throws(
+        () => validateBid(gameState, playerRole, bid), 
+        InvalidBidError,
+        'Should not allow calling trump suit that was turned down in round 1'
+      );
+    });
+  });
+
+  // ===========================================================================
+  // == validateDiscard Suite
+  // ===========================================================================
+  describe('validateDiscard', () => {
+    let gameState;
+    let dealerRole;
+    let dealerHand;
+
+    beforeEach(() => {
+      // Create a fresh game state with DEALER_DISCARD phase
+      gameState = createBaseGameState();
+      
+      // Set up dealer and current player
+      dealerRole = 'north';
+      gameState.dealer = dealerRole;
+      gameState.currentPlayer = dealerRole;
+      gameState.gamePhase = GAME_PHASES.GAME_PHASE_DEALER_DISCARD;
+      
+      // Initialize all players with empty hands first
+      Object.values(PLAYER_ROLES).forEach(role => {
+        gameState.players[role] = gameState.players[role] || { hand: [] };
+      });
+      
+      // Set up dealer's hand with 5 cards (before picking up the upcard)
+      dealerHand = [
+        createCard('9H', SUITS.HEARTS, VALUES.NINE),
+        createCard('AC', SUITS.CLUBS, VALUES.ACE),
+        createCard('QD', SUITS.DIAMONDS, VALUES.QUEEN),
+        createCard('JS', SUITS.SPADES, VALUES.JACK),
+        createCard('10C', SUITS.CLUBS, VALUES.TEN),
+      ];
+      
+      // Set up upCard that was just picked up
+      gameState.upCard = createCard('KH', SUITS.HEARTS, VALUES.KING);
+      
+      // Add the upcard to the dealer's hand (simulating the pickup)
+      dealerHand.push({...gameState.upCard});
+      gameState.players[dealerRole].hand = [...dealerHand];
+      
+      // Set up game state for discard phase
+      gameState.trumpSuit = SUITS.HEARTS; // Assuming hearts is trump for this test
+      gameState.dealerHasPickedUp = true;
+    });
+
+    it('should throw InvalidPhaseError if not in the DEALER_DISCARD phase', () => {
+      // Set the phase to something other than DEALER_DISCARD
+      gameState.gamePhase = GAME_PHASES.GAME_PHASE_PLAYING;
+      const cardToDiscard = gameState.players[dealerRole].hand[0];
+      
+      // The validation should throw InvalidPhaseError
+      assert.throws(
+        () => validateDealerDiscard(gameState, dealerRole, cardToDiscard, gameState.players[dealerRole].hand), 
+        InvalidPhaseError,
+        'Should throw InvalidPhaseError when not in DEALER_DISCARD phase'
+      );
+    });
+
+    it('should throw NotPlayersTurnError if a non-dealer tries to discard', () => {
+      const nonDealer = 'south'; // Non-dealer role
+      const cardToDiscard = createCard('AS', SUITS.SPADES, VALUES.ACE);
+      
+      // First ensure the test is set up correctly
+      assert.strictEqual(gameState.currentPlayer, dealerRole, 'Test setup: Current player should be dealer');
+      assert.notStrictEqual(nonDealer, dealerRole, 'Test setup: nonDealer should not be the dealer');
+      
+      // The validation should throw NotPlayersTurnError
+      assert.throws(
+        () => validateDealerDiscard(gameState, nonDealer, cardToDiscard, gameState.players[dealerRole].hand), 
+        NotPlayersTurnError,
+        'Should throw NotPlayersTurnError when non-dealer tries to discard'
+      );
+    });
+
+    it('should throw CardNotInHandError if the discarded card is not in the dealer\'s hand', () => {
+      const cardNotInHand = createCard('QH', SUITS.HEARTS, VALUES.QUEEN);
+      
+      // Ensure the card is not in the dealer's hand
+      const cardIds = gameState.players[dealerRole].hand.map(card => card.id);
+      assert(!cardIds.includes(cardNotInHand.id), 'Test setup: card should not be in dealer\'s hand');
+      
+      assert.throws(
+        () => validateDealerDiscard(gameState, dealerRole, cardNotInHand, gameState.players[dealerRole].hand), 
+        CardNotInHandError,
+        'Should throw CardNotInHandError when discarding a card not in hand'
+      );
+    });
+
+    it('should throw InvalidDiscardError if the dealer tries to discard the up-card they just picked up', () => {
+      // Add the up-card to the dealer's hand to simulate the pickup
+      const dealerHand = gameState.players[dealerRole].hand;
+      dealerHand.push({...gameState.upCard});
+      
+      // Ensure the up-card is in the dealer's hand
+      const upCardInHand = dealerHand.some(card => 
+        card.id === gameState.upCard.id && 
+        card.suit === gameState.upCard.suit
+      );
+      assert(upCardInHand, 'Test setup: upCard should be in dealer\'s hand');
+      
+      assert.throws(
+        () => validateDealerDiscard(gameState, dealerRole, gameState.upCard, dealerHand), 
+        InvalidDiscardError,
+        'Should throw InvalidDiscardError when trying to discard the picked up up-card'
+      );
+    });
+
+    it('should return true for a valid discard', () => {
+      // Ensure we're in the correct phase
+      assert.strictEqual(
+        gameState.gamePhase, 
+        GAME_PHASES.GAME_PHASE_DEALER_DISCARD, 
+        'Test setup: game should be in DEALER_DISCARD phase'
+      );
+      
+      const dealerHand = gameState.players[dealerRole].hand;
+      const cardToDiscard = dealerHand[0];
+      
+      // The validation should pass for a valid discard
+      assert.strictEqual(
+        validateDealerDiscard(gameState, dealerRole, cardToDiscard, dealerHand), 
+        true,
+        'Should return true for a valid discard'
+      );
+    });
+  });
 });

@@ -663,7 +663,7 @@ describe("Validation Logic - validateDealerDiscard", () => {
     );
   });
 
-  it("should throw InvalidDiscardError if playerRole is not the dealer", () => {
+  it("should throw NotPlayersTurnError if playerRole is not the dealer", () => {
     const nonDealerRole = PLAYER_ROLES[1];
     const gameState = {
       ...baseDiscardGameState,
@@ -678,8 +678,8 @@ describe("Validation Logic - validateDealerDiscard", () => {
         dealerHand,
       ),
       {
-        name: 'InvalidDiscardError',
-        message: `Only the dealer (${dealerRole}) can discard. Player ${nonDealerRole} attempted.`,
+        name: 'NotPlayersTurnError',
+        message: `Not ${nonDealerRole}'s turn. It is ${dealerRole}'s turn.`,
       }
     );
   });

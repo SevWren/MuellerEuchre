@@ -7,8 +7,8 @@
  *   dealer discards, and call trump decisions, including all validation and state transitions.
  *
  *   CURRENT STATE:
- *     - These tests use the standard `createMockedModule` wrapper to isolate and mock dependencies
- *       for each function under test, adhering to the project's testing conventions.
+ *     - These tests use the native `node:test` runner and `node:assert` module. Mocks are
+ *       handled via the `mock.module()` API to ensure test isolation.
  *     - The tests verify correct argument validation, error propagation, and state transitions
  *       for each bidding phase action.
  *     - The test structure is aligned with the layered rewrite plan: all logic under test is pure,
@@ -24,9 +24,8 @@
  *       are enforced at the logic layer, supporting robust and maintainable state management above.
  */
 
-import { expect } from "chai";
-import sinon from "sinon";
-import { createMockedModule } from "../../utils/esmock_wrapper.js";
+import { describe, it, afterEach, mock } from "node:test";
+import assert from "node:assert/strict";
 
 import {
   GAME_PHASES,
@@ -35,17 +34,15 @@ import {
   TEAMS,
   VALUES,
 } from "../../../src/config/constants.js";
-import { createDeck, shuffleDeck, cardToId } from "../../../src/utils/deck.js";
+import { createDeck, shuffleDeck } from "../../../src/utils/deck.js";
 import {
   initializePlayers,
   getNextPlayer as testGetNextPlayer,
 } from "../../../src/utils/players.js";
 import {
   PhaseLogicError,
-  ValidationError,
   NotPlayersTurnError,
   InvalidBidError,
-  InvalidPhaseError,
   CardNotInHandError,
   InvalidDiscardError,
 } from "../../../src/game/logic/errors.js";
@@ -114,7 +111,9 @@ const setupBiddingState = (
 
   gameState.roundNumber = round;
   gameState.gamePhase =
-    round === 1 ? GAME_PHASES.ORDER_UP_ROUND1 : GAME_PHASES.ORDER_UP_ROUND2;
+    round === 1
+      ? GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND1
+      : GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2;
 
   const cardValue = VALUES[VALUES.length - 1]; // Use ACE
   const suit = turnCardSuit || SUITS.HEARTS;
@@ -140,50 +139,51 @@ const setupBiddingState = (
 
 describe("BiddingPhase Logic", () => {
   afterEach(() => {
-    sinon.restore();
+    mock.restoreAll();
   });
 
   describe("handleOrderUpDecision", () => {
-    let gameStateInOrderUpRound1;
-    let validateBidMock;
-    let handleOrderUpDecision;
-
     const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
 
-    beforeEach(async () => {
-      validateBidMock = sinon.stub();
-
-      const { module: biddingPhaseModule } = await createMockedModule(
-        import.meta.url,
-        "../../../src/game/phases/biddingPhase.js",
-        {
-          "../logic/validation.js": {
-            validateBid: validateBidMock,
-            validateDealerDiscard: sinon.stub().returns(true),
-          },
-        },
-      );
-
-      handleOrderUpDecision = biddingPhaseModule.handleOrderUpDecision;
-      gameStateInOrderUpRound1 = setupBiddingState(
+    it("should not modify the input gameState", async () => {
+      const gameStateInOrderUpRound1 = setupBiddingState(
         PLAYER_ROLES[0],
         1,
         SUITS.DIAMONDS,
       );
-    });
-
-    it("should not modify the input gameState", () => {
       const originalState = deepCopy(gameStateInOrderUpRound1);
       const playerRole = gameStateInOrderUpRound1.currentPlayer;
 
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
       handleOrderUpDecision(gameStateInOrderUpRound1, playerRole, true);
 
-      expect(gameStateInOrderUpRound1).to.deep.equal(originalState);
+      assert.deepStrictEqual(gameStateInOrderUpRound1, originalState);
     });
 
-    it("should call validateBid with correct parameters", () => {
+    it("should call validateBid with correct parameters", async () => {
+      const gameStateInOrderUpRound1 = setupBiddingState(
+        PLAYER_ROLES[0],
+        1,
+        SUITS.DIAMONDS,
+      );
       const playerRole = gameStateInOrderUpRound1.currentPlayer;
       const wantsToOrderUp = true;
+
+      const validateBidMock = mock.fn();
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: validateBidMock,
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
 
       handleOrderUpDecision(
         gameStateInOrderUpRound1,
@@ -191,29 +191,59 @@ describe("BiddingPhase Logic", () => {
         wantsToOrderUp,
       );
 
-      expect(validateBidMock.calledOnce).to.be.true;
-      const [state, role, bidType, suit] = validateBidMock.firstCall.args;
-      expect(state).to.equal(gameStateInOrderUpRound1);
-      expect(role).to.equal(playerRole);
-      expect(bidType).to.equal("orderUp");
-      expect(suit).to.be.null;
+      assert.strictEqual(validateBidMock.mock.calls.length, 1);
+      const [state, role, bidType, suit] =
+        validateBidMock.mock.calls[0].arguments;
+      assert.deepStrictEqual(state, gameStateInOrderUpRound1);
+      assert.strictEqual(role, playerRole);
+      assert.strictEqual(bidType, "orderUp");
+      assert.strictEqual(suit, null);
     });
 
-    it("should propagate validation errors", () => {
+    it("should propagate validation errors", async () => {
+      const gameStateInOrderUpRound1 = setupBiddingState(
+        PLAYER_ROLES[0],
+        1,
+        SUITS.DIAMONDS,
+      );
       const playerRole = gameStateInOrderUpRound1.currentPlayer;
       const error = new Error("Validation failed");
-      validateBidMock.throws(error);
 
-      expect(() => {
-        handleOrderUpDecision(gameStateInOrderUpRound1, playerRole, true);
-      }).to.throw(error);
+      const validateBidMock = mock.fn(() => {
+        throw error;
+      });
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: validateBidMock,
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
+      assert.throws(
+        () => handleOrderUpDecision(gameStateInOrderUpRound1, playerRole, true),
+        error,
+      );
     });
 
-    it("should return correct state when player orders up", () => {
+    it("should return correct state when player orders up", async () => {
+      const gameStateInOrderUpRound1 = setupBiddingState(
+        PLAYER_ROLES[0],
+        1,
+        SUITS.DIAMONDS,
+      );
       const playerRole = gameStateInOrderUpRound1.currentPlayer;
       const expectedTrumpSuit = gameStateInOrderUpRound1.turnCard.suit;
       const expectedMakerTeam =
         gameStateInOrderUpRound1.players[playerRole].teamId;
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
 
       const result = handleOrderUpDecision(
         gameStateInOrderUpRound1,
@@ -221,15 +251,31 @@ describe("BiddingPhase Logic", () => {
         true,
       );
 
-      expect(result.trumpSuit).to.equal(expectedTrumpSuit);
-      expect(result.makerTeam).to.equal(expectedMakerTeam);
-      expect(result.gamePhase).to.equal(GAME_PHASES.DEALER_DISCARD);
-      expect(result.currentPlayer).to.equal(gameStateInOrderUpRound1.dealer);
+      assert.strictEqual(result.trumpSuit, expectedTrumpSuit);
+      assert.strictEqual(result.makerTeam, expectedMakerTeam);
+      assert.strictEqual(result.gamePhase, GAME_PHASES.GAME_PHASE_DEALER_DISCARD);
+      assert.strictEqual(
+        result.currentPlayer,
+        gameStateInOrderUpRound1.dealer,
+      );
     });
 
-    it("should advance to next player when player passes", () => {
+    it("should advance to next player when player passes", async () => {
+      const gameStateInOrderUpRound1 = setupBiddingState(
+        PLAYER_ROLES[0],
+        1,
+        SUITS.DIAMONDS,
+      );
       const currentPlayer = gameStateInOrderUpRound1.currentPlayer;
       const nextPlayer = testGetNextPlayer(currentPlayer);
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
 
       const result = handleOrderUpDecision(
         gameStateInOrderUpRound1,
@@ -237,13 +283,21 @@ describe("BiddingPhase Logic", () => {
         false,
       );
 
-      expect(result.currentPlayer).to.equal(nextPlayer);
-      expect(result.trumpSuit).to.be.null;
+      assert.strictEqual(result.currentPlayer, nextPlayer);
+      assert.strictEqual(result.trumpSuit, null);
     });
 
-    it("should advance to round 2 when all players pass in round 1", () => {
-      let currentState = deepCopy(gameStateInOrderUpRound1);
+    it("should advance to round 2 when all players pass in round 1", async () => {
+      let currentState = setupBiddingState(PLAYER_ROLES[0], 1, SUITS.DIAMONDS);
       const firstBidder = currentState.currentPlayer;
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
 
       PLAYER_ROLES.forEach((_, index) => {
         const player =
@@ -251,135 +305,228 @@ describe("BiddingPhase Logic", () => {
         currentState = handleOrderUpDecision(currentState, player, false);
       });
 
-      expect(currentState.gamePhase).to.equal(GAME_PHASES.ORDER_UP_ROUND2);
-      expect(currentState.currentPlayer).to.equal(firstBidder);
+      assert.strictEqual(currentState.gamePhase, GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2);
+      assert.strictEqual(currentState.currentPlayer, firstBidder);
     });
 
-    it("should call validateBid with correct arguments", () => {
+    it("should call validateBid with correct arguments", async () => {
+      const gameStateInOrderUpRound1 = setupBiddingState(
+        PLAYER_ROLES[0],
+        1,
+        SUITS.DIAMONDS,
+      );
       const playerRole = gameStateInOrderUpRound1.currentPlayer;
+
+      const validateBidMock = mock.fn();
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: validateBidMock,
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
       handleOrderUpDecision(gameStateInOrderUpRound1, playerRole, true);
-      expect(
-        validateBidMock.calledOnceWith(
-          gameStateInOrderUpRound1,
-          playerRole,
-          "orderUp",
-          null,
-        ),
-      ).to.be.true;
-      validateBidMock.resetHistory();
+      assert.strictEqual(validateBidMock.mock.calls.length, 1);
+      assert.deepStrictEqual(validateBidMock.mock.calls[0].arguments, [
+        gameStateInOrderUpRound1,
+        playerRole,
+        "orderUp",
+        null,
+      ]);
+
+      validateBidMock.mock.resetCalls();
+
       handleOrderUpDecision(gameStateInOrderUpRound1, playerRole, false);
-      expect(
-        validateBidMock.calledOnceWith(
-          gameStateInOrderUpRound1,
-          playerRole,
-          "pass",
-          null,
-        ),
-      ).to.be.true;
+      assert.strictEqual(validateBidMock.mock.calls.length, 1);
+      assert.deepStrictEqual(validateBidMock.mock.calls[0].arguments, [
+        gameStateInOrderUpRound1,
+        playerRole,
+        "pass",
+        null,
+      ]);
     });
 
-    it("should propagate errors from validateBid", () => {
+    it("should propagate errors from validateBid", async () => {
+      const gameStateInOrderUpRound1 = setupBiddingState(
+        PLAYER_ROLES[0],
+        1,
+        SUITS.DIAMONDS,
+      );
       const playerRole = gameStateInOrderUpRound1.currentPlayer;
       const expectedError = new NotPlayersTurnError(playerRole, "otherPlayer");
-      validateBidMock.throws(expectedError);
-      expect(() =>
-        handleOrderUpDecision(gameStateInOrderUpRound1, playerRole, true),
-      ).to.throw(expectedError);
+
+      const validateBidMock = mock.fn(() => {
+        throw expectedError;
+      });
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: validateBidMock,
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
+      assert.throws(
+        () => handleOrderUpDecision(gameStateInOrderUpRound1, playerRole, true),
+        expectedError,
+      );
     });
 
-    it("should throw PhaseLogicError if turnCard is missing when ordering up", () => {
+    it("should throw PhaseLogicError if turnCard is missing when ordering up", async () => {
+      const gameStateInOrderUpRound1 = setupBiddingState(
+        PLAYER_ROLES[0],
+        1,
+        SUITS.DIAMONDS,
+      );
       const playerRole = gameStateInOrderUpRound1.currentPlayer;
       const stateWithoutTurnCard = {
         ...gameStateInOrderUpRound1,
         turnCard: null,
       };
-      validateBidMock.returns(true); // Assume pre-validation passes to isolate the logic error
-      try {
-        handleOrderUpDecision(stateWithoutTurnCard, playerRole, true);
-        // If the function does not throw, this test should fail.
-        expect.fail(
-          "Expected PhaseLogicError to be thrown but no error was thrown.",
-        );
-      } catch (error) {
-        // Assert on the properties of the caught error.
-        expect(error.name).to.equal("PhaseLogicError");
-        expect(error.message).to.equal(
-          "Cannot order up: turn card is missing.",
-        );
-      }
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(() => true),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
+      assert.throws(
+        () => handleOrderUpDecision(stateWithoutTurnCard, playerRole, true),
+        {
+          name: "PhaseLogicError",
+          message: "Cannot order up: turn card is missing.",
+        },
+      );
     });
 
-    it("should throw PhaseLogicError if player team cannot be determined when ordering up", () => {
+    it("should throw PhaseLogicError if player team cannot be determined when ordering up", async () => {
+      const gameStateInOrderUpRound1 = setupBiddingState(
+        PLAYER_ROLES[0],
+        1,
+        SUITS.DIAMONDS,
+      );
       const playerRole = gameStateInOrderUpRound1.currentPlayer;
       const stateWithoutTeam = JSON.parse(
         JSON.stringify(gameStateInOrderUpRound1),
       );
       delete stateWithoutTeam.players[playerRole].teamId;
-      validateBidMock.returns(true); // Assume pre-validation passes
-      try {
-        handleOrderUpDecision(stateWithoutTeam, playerRole, true);
-        // If the function does not throw, this test should fail.
-        expect.fail("Expected PhaseLogicError to be thrown but it was not.");
-      } catch (error) {
-        // Assert on the properties of the caught error.
-        expect(error.name).to.equal("PhaseLogicError");
-        expect(error.message).to.equal(
-          "Player team could not be determined for ordering up.",
-        );
-      }
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(() => true),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
+      assert.throws(
+        () => handleOrderUpDecision(stateWithoutTeam, playerRole, true),
+        {
+          name: "PhaseLogicError",
+          message: "Player team could not be determined for ordering up.",
+        },
+      );
     });
 
-    it("Round 1: should advance currentPlayer if player passes", () => {
+    it("Round 1: should advance currentPlayer if player passes", async () => {
+      const gameStateInOrderUpRound1 = setupBiddingState(
+        PLAYER_ROLES[0],
+        1,
+        SUITS.DIAMONDS,
+      );
       const playerPassing = gameStateInOrderUpRound1.currentPlayer;
-      validateBidMock.returns(true);
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(() => true),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
       const nextState = handleOrderUpDecision(
         gameStateInOrderUpRound1,
         playerPassing,
         false,
       );
-      expect(nextState.currentPlayer).to.equal(
+      assert.strictEqual(
+        nextState.currentPlayer,
         testGetNextPlayer(playerPassing),
       );
     });
 
-    it("Round 1: should set trump, maker, and transition to DEALER_DISCARD if player orders up", () => {
+    it("Round 1: should set trump, maker, and transition to DEALER_DISCARD if player orders up", async () => {
+      const gameStateInOrderUpRound1 = setupBiddingState(
+        PLAYER_ROLES[0],
+        1,
+        SUITS.DIAMONDS,
+      );
       const orderingPlayer = gameStateInOrderUpRound1.currentPlayer;
-      validateBidMock.returns(true);
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(() => true),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
       const nextState = handleOrderUpDecision(
         gameStateInOrderUpRound1,
         orderingPlayer,
         true,
       );
-      expect(nextState.trumpSuit).to.equal(
+      assert.strictEqual(
+        nextState.trumpSuit,
         gameStateInOrderUpRound1.turnCard.suit,
       );
-      expect(nextState.makerTeam).to.equal(
+      assert.strictEqual(
+        nextState.makerTeam,
         gameStateInOrderUpRound1.players[orderingPlayer].teamId,
       );
-      expect(nextState.gamePhase).to.equal(GAME_PHASES.DEALER_DISCARD);
+      assert.strictEqual(nextState.gamePhase, GAME_PHASES.GAME_PHASE_DEALER_DISCARD);
     });
 
-    it("Round 1: should correctly set makerTeam if dealer partner orders up", () => {
-      validateBidMock.returns(true);
-      let currentState = handleOrderUpDecision(
-        gameStateInOrderUpRound1,
+    it("Round 1: should correctly set makerTeam if dealer partner orders up", async () => {
+      let currentState = setupBiddingState(PLAYER_ROLES[0], 1, SUITS.DIAMONDS);
+      const orderingPartner = PLAYER_ROLES[2];
+      const dealerTeam = currentState.players[currentState.dealer].teamId;
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(() => true),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
+      currentState = handleOrderUpDecision(
+        currentState,
         PLAYER_ROLES[1],
         false,
       );
-      const orderingPartner = PLAYER_ROLES[2];
-      const dealerTeam = currentState.players[currentState.dealer].teamId;
-      validateBidMock.resetHistory();
       const nextState = handleOrderUpDecision(
         currentState,
         orderingPartner,
         true,
       );
-      expect(nextState.makerTeam).to.equal(dealerTeam);
+      assert.strictEqual(nextState.makerTeam, dealerTeam);
     });
 
-    it("Round 1: should transition to ORDER_UP_ROUND2 if all 4 players pass", () => {
+    it("Round 1: should transition to ORDER_UP_ROUND2 if all 4 players pass", async () => {
       let currentState = setupBiddingState(PLAYER_ROLES[0], 1, SUITS.DIAMONDS);
-      validateBidMock.returns(true);
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(() => true),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleOrderUpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
       currentState = handleOrderUpDecision(
         currentState,
         PLAYER_ROLES[1],
@@ -400,14 +547,11 @@ describe("BiddingPhase Logic", () => {
         PLAYER_ROLES[0],
         false,
       );
-      expect(finalState.gamePhase).to.equal(GAME_PHASES.ORDER_UP_ROUND2);
+      assert.strictEqual(finalState.gamePhase, GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2);
     });
   });
 
   describe("handleDealerDiscard", () => {
-    let gameStateForDiscard;
-    let handleDealerDiscard;
-    let validateDealerDiscardMock;
     const dealer = PLAYER_ROLES[0];
     const orderingPlayer = PLAYER_ROLES[1];
     const turnCardData = {
@@ -417,32 +561,21 @@ describe("BiddingPhase Logic", () => {
       name: "Ace of Diamonds",
       rank: 6,
     };
-    let testDealerHand;
 
-    beforeEach(async () => {
-      validateDealerDiscardMock = sinon.stub();
-
-      const { module: biddingPhaseModule } = await createMockedModule(
-        import.meta.url,
-        "../../../src/game/phases/biddingPhase.js",
-        {
-          "../logic/validation.js": {
-            validateDealerDiscard: validateDealerDiscardMock,
-            validateBid: sinon.stub(),
-          },
-        },
+    const createTestState = () => {
+      const gameStateForDiscard = setupBiddingState(
+        dealer,
+        1,
+        turnCardData.suit,
       );
-      handleDealerDiscard = biddingPhaseModule.handleDealerDiscard;
-
-      gameStateForDiscard = setupBiddingState(dealer, 1, turnCardData.suit);
-      gameStateForDiscard.gamePhase = GAME_PHASES.DEALER_DISCARD;
+      gameStateForDiscard.gamePhase = GAME_PHASES.GAME_PHASE_DEALER_DISCARD;
       gameStateForDiscard.currentPlayer = dealer;
       gameStateForDiscard.dealer = dealer;
       gameStateForDiscard.playerWhoOrderedUp = orderingPlayer;
       gameStateForDiscard.trumpSuit = turnCardData.suit;
       gameStateForDiscard.turnCard = { ...turnCardData };
 
-      testDealerHand = [
+      const testDealerHand = [
         {
           id: "TC",
           suit: SUITS.CLUBS,
@@ -485,12 +618,22 @@ describe("BiddingPhase Logic", () => {
       ];
       gameStateForDiscard.makerTeam =
         gameStateForDiscard.players[orderingPlayer].teamId;
-    });
+      return gameStateForDiscard;
+    };
 
-    it("should call validateDealerDiscard with correct arguments (6-card hand)", () => {
+    it("should call validateDealerDiscard with correct arguments (6-card hand)", async () => {
+      const gameStateForDiscard = createTestState();
       const cardToDiscardFrom6CardHand =
         gameStateForDiscard.players[dealer].hand[0];
-      validateDealerDiscardMock.returns(true);
+
+      const validateDealerDiscardMock = mock.fn(() => true);
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateDealerDiscard: validateDealerDiscardMock,
+        validateBid: mock.fn(),
+      }));
+      const { handleDealerDiscard } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
 
       handleDealerDiscard(
         gameStateForDiscard,
@@ -498,64 +641,110 @@ describe("BiddingPhase Logic", () => {
         cardToDiscardFrom6CardHand.id,
       );
 
-      expect(validateDealerDiscardMock.calledOnce).to.be.true;
-      const validationArgs = validateDealerDiscardMock.firstCall.args;
-      expect(validationArgs[0]).to.deep.equal(gameStateForDiscard);
-      expect(validationArgs[1]).to.equal(dealer);
-      expect(validationArgs[2]).to.deep.equal(cardToDiscardFrom6CardHand);
-      expect(validationArgs[3]).to.deep.equal(
+      assert.strictEqual(validateDealerDiscardMock.mock.calls.length, 1);
+      const validationArgs = validateDealerDiscardMock.mock.calls[0].arguments;
+      assert.deepStrictEqual(validationArgs[0], gameStateForDiscard);
+      assert.strictEqual(validationArgs[1], dealer);
+      assert.deepStrictEqual(validationArgs[2], cardToDiscardFrom6CardHand);
+      assert.deepStrictEqual(
+        validationArgs[3],
         gameStateForDiscard.players[dealer].hand,
       );
-      expect(validationArgs[3].length).to.equal(6);
+      assert.strictEqual(validationArgs[3].length, 6);
     });
 
-    it("should throw CardNotInHandError if card ID not in hand (preliminary check on 6-card hand)", () => {
-      expect(() =>
-        handleDealerDiscard(gameStateForDiscard, dealer, "XX"),
-      ).to.throw(CardNotInHandError, "Card XX not found in dealer's hand.");
+    it("should throw CardNotInHandError if card ID not in hand (preliminary check on 6-card hand)", async () => {
+      const gameStateForDiscard = createTestState();
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateDealerDiscard: mock.fn(),
+        validateBid: mock.fn(),
+      }));
+      const { handleDealerDiscard } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
+      assert.throws(
+        () => handleDealerDiscard(gameStateForDiscard, dealer, "XX"),
+        {
+          name: "CardNotInHandError",
+          message: "Card XX not found in dealer's hand.",
+        },
+      );
     });
 
-    it("should propagate errors from validateDealerDiscard (when called with 6-card hand)", () => {
+    it("should propagate errors from validateDealerDiscard (when called with 6-card hand)", async () => {
+      const gameStateForDiscard = createTestState();
       const cardToDiscardFrom6CardHand =
         gameStateForDiscard.players[dealer].hand[0];
       const expectedError = new InvalidDiscardError(
         "Only the dealer can discard.",
       );
-      validateDealerDiscardMock.throws(expectedError);
-      expect(() =>
-        handleDealerDiscard(
-          gameStateForDiscard,
-          dealer,
-          cardToDiscardFrom6CardHand.id,
-        ),
-      ).to.throw(expectedError);
+
+      const validateDealerDiscardMock = mock.fn(() => {
+        throw expectedError;
+      });
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateDealerDiscard: validateDealerDiscardMock,
+        validateBid: mock.fn(),
+      }));
+      const { handleDealerDiscard } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
+      assert.throws(
+        () =>
+          handleDealerDiscard(
+            gameStateForDiscard,
+            dealer,
+            cardToDiscardFrom6CardHand.id,
+          ),
+        expectedError,
+      );
     });
 
-    it("should throw PhaseLogicError if turnCard is missing in gameState (after validation passes)", () => {
+    it("should throw PhaseLogicError if turnCard is missing in gameState (after validation passes)", async () => {
+      const gameStateForDiscard = createTestState();
       const cardToDiscardFrom6CardHand =
         gameStateForDiscard.players[dealer].hand[0];
-      validateDealerDiscardMock.returns(true);
       const stateWithoutTurnCardOnTable = {
         ...gameStateForDiscard,
         turnCard: null,
       };
-      expect(() =>
-        handleDealerDiscard(
-          stateWithoutTurnCardOnTable,
-          dealer,
-          cardToDiscardFrom6CardHand.id,
-        ),
-      ).to.throw(
-        PhaseLogicError,
-        "Cannot discard: turn card is missing from game state.",
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateDealerDiscard: mock.fn(() => true),
+        validateBid: mock.fn(),
+      }));
+      const { handleDealerDiscard } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
+      assert.throws(
+        () =>
+          handleDealerDiscard(
+            stateWithoutTurnCardOnTable,
+            dealer,
+            cardToDiscardFrom6CardHand.id,
+          ),
+        {
+          name: "PhaseLogicError",
+          message: "Cannot discard: turn card is missing from game state.",
+        },
       );
     });
 
-    it("should allow dealer to discard a card, resulting in a 5-card hand (after validation passes)", () => {
+    it("should allow dealer to discard a card, resulting in a 5-card hand (after validation passes)", async () => {
+      const gameStateForDiscard = createTestState();
       const cardToDiscardObj = gameStateForDiscard.players[dealer].hand[0];
       const pickedUpTurnCard = gameStateForDiscard.turnCard;
 
-      validateDealerDiscardMock.returns(true);
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateDealerDiscard: mock.fn(() => true),
+        validateBid: mock.fn(),
+      }));
+      const { handleDealerDiscard } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
 
       const nextState = handleDealerDiscard(
         gameStateForDiscard,
@@ -563,153 +752,203 @@ describe("BiddingPhase Logic", () => {
         cardToDiscardObj.id,
       );
 
-      expect(nextState.players[dealer].hand.length).to.equal(5);
+      assert.strictEqual(nextState.players[dealer].hand.length, 5);
       if (cardToDiscardObj.id !== pickedUpTurnCard.id) {
-        expect(
+        assert.strictEqual(
           nextState.players[dealer].hand.some(
             (c) => c.id === pickedUpTurnCard.id,
           ),
-        ).to.be.true;
+          true,
+        );
       }
-      expect(
+      assert.strictEqual(
         nextState.players[dealer].hand.some(
           (c) => c.id === cardToDiscardObj.id,
         ),
-      ).to.be.false;
+        false,
+      );
     });
   });
 
   describe("handleCallTrumpDecision", () => {
-    let gameStateInCallTrumpRound;
-    let handleCallTrumpDecision;
-    let validateBidMock;
     const originalTurnCardSuit = SUITS.DIAMONDS;
 
-    beforeEach(async () => {
-      validateBidMock = sinon.stub();
-
-      const { module: biddingPhaseModule } = await createMockedModule(
-        import.meta.url,
-        "../../../src/game/phases/biddingPhase.js",
-        {
-          "../logic/validation.js": {
-            validateBid: validateBidMock,
-            validateDealerDiscard: sinon.stub(),
-          },
-        },
-      );
-      handleCallTrumpDecision = biddingPhaseModule.handleCallTrumpDecision;
-
-      gameStateInCallTrumpRound = setupBiddingState(
+    const createTestState = () => {
+      const gameStateInCallTrumpRound = setupBiddingState(
         PLAYER_ROLES[0],
         2,
         originalTurnCardSuit,
       );
-      gameStateInCallTrumpRound.gamePhase = GAME_PHASES.ORDER_UP_ROUND2;
+      gameStateInCallTrumpRound.gamePhase = GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2;
       gameStateInCallTrumpRound.currentPlayer = PLAYER_ROLES[1];
       gameStateInCallTrumpRound.dealer = PLAYER_ROLES[0];
-    });
+      return gameStateInCallTrumpRound;
+    };
 
-    it("should call validateBid with correct arguments", () => {
+    it("should call validateBid with correct arguments", async () => {
+      const gameStateInCallTrumpRound = createTestState();
       const playerRole = gameStateInCallTrumpRound.currentPlayer;
       const suitToCall = SUITS.HEARTS;
+
+      const validateBidMock = mock.fn();
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: validateBidMock,
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleCallTrumpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
       handleCallTrumpDecision(
         gameStateInCallTrumpRound,
         playerRole,
         true,
         suitToCall,
       );
-      expect(
-        validateBidMock.calledOnceWith(
-          gameStateInCallTrumpRound,
-          playerRole,
-          "callTrump",
-          suitToCall,
-        ),
-      ).to.be.true;
+      assert.strictEqual(validateBidMock.mock.calls.length, 1);
+      assert.deepStrictEqual(validateBidMock.mock.calls[0].arguments, [
+        gameStateInCallTrumpRound,
+        playerRole,
+        "callTrump",
+        suitToCall,
+      ]);
 
-      validateBidMock.resetHistory();
+      validateBidMock.mock.resetCalls();
+
       handleCallTrumpDecision(
         gameStateInCallTrumpRound,
         playerRole,
         false,
         null,
       );
-      expect(
-        validateBidMock.calledOnceWith(
-          gameStateInCallTrumpRound,
-          playerRole,
-          "pass",
-          null,
-        ),
-      ).to.be.true;
+      assert.strictEqual(validateBidMock.mock.calls.length, 1);
+      assert.deepStrictEqual(validateBidMock.mock.calls[0].arguments, [
+        gameStateInCallTrumpRound,
+        playerRole,
+        "pass",
+        null,
+      ]);
     });
 
-    it("should propagate errors from validateBid", () => {
+    it("should propagate errors from validateBid", async () => {
+      const gameStateInCallTrumpRound = createTestState();
       const playerRole = gameStateInCallTrumpRound.currentPlayer;
       const suitToCall = SUITS.HEARTS;
       const expectedError = new InvalidBidError("Invalid suit.");
-      validateBidMock.throws(expectedError);
-      expect(() =>
-        handleCallTrumpDecision(
-          gameStateInCallTrumpRound,
-          playerRole,
-          true,
-          suitToCall,
-        ),
-      ).to.throw(expectedError);
+
+      const validateBidMock = mock.fn(() => {
+        throw expectedError;
+      });
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: validateBidMock,
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleCallTrumpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
+      assert.throws(
+        () =>
+          handleCallTrumpDecision(
+            gameStateInCallTrumpRound,
+            playerRole,
+            true,
+            suitToCall,
+          ),
+        expectedError,
+      );
     });
 
-    it("should throw PhaseLogicError if player team cannot be determined when calling trump", () => {
+    it("should throw PhaseLogicError if player team cannot be determined when calling trump", async () => {
+      const gameStateInCallTrumpRound = createTestState();
       const playerRole = gameStateInCallTrumpRound.currentPlayer;
       const suitToCall = SUITS.HEARTS;
       const stateWithoutTeam = JSON.parse(
         JSON.stringify(gameStateInCallTrumpRound),
       );
       delete stateWithoutTeam.players[playerRole].teamId;
-      validateBidMock.returns(true);
 
-      expect(() =>
-        handleCallTrumpDecision(stateWithoutTeam, playerRole, true, suitToCall),
-      ).to.throw(
-        PhaseLogicError,
-        "Player team could not be determined for calling trump.",
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(() => true),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleCallTrumpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
+      assert.throws(
+        () =>
+          handleCallTrumpDecision(stateWithoutTeam, playerRole, true, suitToCall),
+        {
+          name: "PhaseLogicError",
+          message: "Player team could not be determined for calling trump.",
+        },
       );
     });
 
-    it("Round 2: should advance currentPlayer if player passes (after validation passes)", () => {
+    it("Round 2: should advance currentPlayer if player passes (after validation passes)", async () => {
+      const gameStateInCallTrumpRound = createTestState();
       const playerPassing = gameStateInCallTrumpRound.currentPlayer;
-      validateBidMock.returns(true);
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(() => true),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleCallTrumpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
       const nextState = handleCallTrumpDecision(
         gameStateInCallTrumpRound,
         playerPassing,
         false,
       );
-      expect(nextState.currentPlayer).to.equal(
+      assert.strictEqual(
+        nextState.currentPlayer,
         testGetNextPlayer(playerPassing),
       );
     });
 
-    it("Round 2: should set trump, maker, and transition to GOING_ALONE_DECISION if player calls a valid suit (after validation passes)", () => {
+    it("Round 2: should set trump, maker, and transition to GOING_ALONE_DECISION if player calls a valid suit (after validation passes)", async () => {
+      const gameStateInCallTrumpRound = createTestState();
       const callingPlayer = gameStateInCallTrumpRound.currentPlayer;
       const suitToCall = SUITS.HEARTS;
-      validateBidMock.returns(true);
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(() => true),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleCallTrumpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
+
       const nextState = handleCallTrumpDecision(
         gameStateInCallTrumpRound,
         callingPlayer,
         true,
         suitToCall,
       );
-      expect(nextState.trumpSuit).to.equal(suitToCall);
-      expect(nextState.makerTeam).to.equal(
+      assert.strictEqual(nextState.trumpSuit, suitToCall);
+      assert.strictEqual(
+        nextState.makerTeam,
         gameStateInCallTrumpRound.players[callingPlayer].teamId,
       );
-      expect(nextState.gamePhase).to.equal(GAME_PHASES.GOING_ALONE_DECISION);
+      assert.strictEqual(
+        nextState.gamePhase,
+        GAME_PHASES.GAME_PHASE_GOING_ALONE_DECISION,
+      );
     });
 
-    it("Round 2: should transition to DEALING (misdeal) if all 4 players pass (dealer passes last, after validation passes)", () => {
-      let currentState = setupBiddingState(PLAYER_ROLES[0], 2, SUITS.DIAMONDS);
-      validateBidMock.returns(true);
+    it("Round 2: should transition to DEALING (misdeal) if all 4 players pass (dealer passes last, after validation passes)", async () => {
+      let currentState = createTestState();
+
+      mock.module("../../../src/game/logic/validation.js", () => ({
+        validateBid: mock.fn(() => true),
+        validateDealerDiscard: mock.fn(),
+      }));
+      const { handleCallTrumpDecision } = await import(
+        "../../../src/game/phases/biddingPhase.js"
+      );
 
       currentState = handleCallTrumpDecision(
         currentState,
@@ -731,7 +970,7 @@ describe("BiddingPhase Logic", () => {
         PLAYER_ROLES[0],
         false,
       );
-      expect(finalState.gamePhase).to.equal(GAME_PHASES.DEALING);
+      assert.strictEqual(finalState.gamePhase, GAME_PHASES.DEALING);
     });
   });
 });

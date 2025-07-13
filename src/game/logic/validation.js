@@ -218,9 +218,7 @@ function validateDealerDiscard(
   }
 
   if (gameState.dealer !== playerRole) {
-    throw new InvalidDiscardError(
-      `Only the dealer (${gameState.dealer}) can discard. Player ${playerRole} attempted.`,
-    );
+    throw new NotPlayersTurnError(playerRole, gameState.dealer);
   }
 
   if (gameState.currentPlayer !== playerRole) {

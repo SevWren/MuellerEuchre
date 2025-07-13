@@ -123,7 +123,6 @@ docs\Project_Development_Plan.md
 docs\Supplemental_Layer1_Plan_Improvements.md
 docs\TEST_FILE_RESTRUCTURING_PLAN.md
 docs\TEST_STRUCTURE_IMPLEMENTATION.md
-#git-ingest-files
 mueller_euchre_repo_llm.txt
 digest.txt
 
@@ -140,6 +139,7 @@ docs/log_analysis_ESWrapper_Cause.txt
 docs/esmock_wrapper.unit.test_documentation.md
 docs/Reports/filetree.txt
 filetree.txt
-.gitignore
 MIGRATION_GUIDE.md
 test-is-left-bower.js
+test.txt
+.gitingest

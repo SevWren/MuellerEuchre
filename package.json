@@ -7,11 +7,6 @@
   "engines": {
     "node": ">=v20.1.0"
   },
-  "imports": {
-  "#/*": "./src/*",
-  "#test/*": "./test/*",
-  "#public/*": "./public/*"
-},
   "scripts": {
     "test": "node --test --test-reporter spec",
     "start": "node src/server.js",
@@ -20,12 +15,12 @@
     "test:watch": "node --test --watch --timeout 10000",
     "test:debug": "node --inspect node --test --timeout 10000",
     "test:coverage:file": "node Scripts/run-coverage-on-file.js",
-    "test:coverage": "c8 --clean node --test",
-    "test:coverage_old": "c8 mocha test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --timeout 10000",
-    "test:coverage:ci": "npm run clean:coverage && c8 --reporter=lcov --all mocha --loader=esm test/server/**/*.test.js test/phases/**/*.test.js test/client/services/**/*.test.js test/utils/**/*.test.js test/game/**/*.test.js --recursive --timeout 10000",
-    "test:coverage_layer1": "npm run clean:coverage && c8 mocha test/game/**/*.test.js test/utils/**/*.test.js --recursive --timeout 10000",
+    "test:coverage": "c8 --clean node --test --test-reporter spec",
+    "test:coverage_layer1_depreciated": "npm run clean:coverage && c8 mocha test/game/**/*.test.js test/utils/**/*.test.js --recursive --timeout 10000",
     "coverage:report": "npx c8 report --reporter=text-lcov | npx coveralls",
     "test:coverage:goalone": "npx c8 --clean --reporter=text --reporter=html --include \"src/game/phases/goAlonePhase.js\" node --test test/game/phases/goAlonePhase.unit.test.js test/game/phases/goAlonePhase.edge.unit.test.js",
+    "test:coverage:validation": "node Scripts/run.validation.coverage.report.js",
+    "test:coverage:validate_goalone": "npx c8 --clean --reporter=text --reporter=html --include \"src/game/logic/validation.js\" node --test test/game/logic/validation.GoAlone.unit.test.js",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js,.jsx --fix",
     "prettier": "prettier --write .",

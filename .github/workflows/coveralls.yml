@@ -34,7 +34,7 @@ jobs:
       # 4. Run the tests and generate the coverage report
       # This command comes directly from your package.json
       - name: Generate coverage report
-        run: npm run test:coverage:ci
+        run: npm run test:coverage
 
       # 5. Upload the coverage report to Coveralls
       - name: Upload coverage to Coveralls

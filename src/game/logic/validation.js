@@ -242,6 +242,11 @@ function validateDealerDiscard(
     );
   }
 
+  // Prevent discarding the turn card (upcard)
+  if (gameState.turnCard && cardToDiscard.id === gameState.turnCard.id) {
+    throw new InvalidDiscardError('Cannot discard the turn card (upcard).');
+  }
+
   return true; // If no errors were thrown, the discard is valid.
 }
 

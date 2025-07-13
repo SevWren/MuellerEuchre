@@ -425,7 +425,11 @@ describe('Game Validation Logic', () => {
     it('should throw InvalidDiscardError if the dealer tries to discard the up-card they just picked up', () => {
       // Add the up-card to the dealer's hand to simulate the pickup
       const dealerHand = gameState.players[dealerRole].hand;
-      dealerHand.push({...gameState.upCard});
+      const upCardCopy = {...gameState.upCard};
+      dealerHand.push(upCardCopy);
+      
+      // Set the turnCard in gameState to be the same as upCard
+      gameState.turnCard = {...gameState.upCard};
       
       // Ensure the up-card is in the dealer's hand
       const upCardInHand = dealerHand.some(card => 
@@ -434,11 +438,20 @@ describe('Game Validation Logic', () => {
       );
       assert(upCardInHand, 'Test setup: upCard should be in dealer\'s hand');
       
+      // The validation should throw InvalidDiscardError
       assert.throws(
-        () => validateDealerDiscard(gameState, dealerRole, gameState.upCard, dealerHand), 
+        () => validateDealerDiscard(gameState, dealerRole, upCardCopy, dealerHand), 
         InvalidDiscardError,
         'Should throw InvalidDiscardError when trying to discard the picked up up-card'
       );
+      
+      // Verify the error message is correct
+      try {
+        validateDealerDiscard(gameState, dealerRole, upCardCopy, dealerHand);
+        assert.fail('Expected InvalidDiscardError to be thrown');
+      } catch (error) {
+        assert.strictEqual(error.message, 'Cannot discard the turn card (upcard).', 'Error message should match');
+      }
     });
 
     it('should return true for a valid discard', () => {

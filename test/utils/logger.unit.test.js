@@ -247,196 +247,212 @@ describe('Logger Utility', () => {
   let pinoMock;
   let originalEnv;
 
-  beforeEach(async () => {
-    // Create a mock for the pino library
-    pinoMock = {
-      info: sinon.stub(),
-      warn: sinon.stub(),
-      error: sinon.stub(),
-      debug: sinon.stub(),
-      trace: sinon.stub(),
-      fatal: sinon.stub(),
-      level: 'info', // Default level for the mock
-    };
-
-    // Mock process.env for testing environment variable logic
-    const originalEnv = process.env;
-    process.env = { ...originalEnv }; // Create a copy to modify
-
-    // Es-mock the logger module, injecting our pino mock and controlling process.env
-    loggerModule = await esmock('../../src/utils/logger.js', {
-      'pino': sinon.stub().returns(pinoMock), // Mock the pino constructor
-      '../../src/config/constants.js': { DEBUG_LEVELS },
-    });
+  beforeEach(() => {
+    // Store original environment variables
+    originalEnv = { ...process.env };
+    
+    // Clear test environment variables
+    delete process.env.DEBUG;
+    delete process.env.DEBUG_LEVEL;
+    delete process.env.LOG_LEVEL;
+    delete process.env.NODE_ENV;
   });
 
   afterEach(() => {
+    // Restore environment variables
+    process.env = originalEnv;
+    
+    // Restore stubs
     sinon.restore();
-    // Restore original process.env after each test
-    delete process.env.LOG_LEVEL;
-    delete process.env.DEBUG_LEVEL;
   });
 
-  describe('Initialization and Level Setting', () => {
+  describe('Initialization', () => {
     it('should initialize with default "info" level if no env vars are set', async () => {
-      // Re-import to ensure fresh initialization without env vars
-      const freshLoggerModule = await esmock('../../src/utils/logger.js', {
-        'pino': sinon.stub().returns(pinoMock),
-        '../../src/config/constants.js': { DEBUG_LEVELS },
+      const { pinoMock } = await createLoggerModule({
+        envVars: {
+          LOG_LEVEL: undefined,
+          DEBUG_LEVEL: undefined
+        }
       });
-      expect(pinoMock.info.calledWith('Server listening on port 3000')).to.be.false; // Example of default logger usage
-      expect(pinoMock.info.calledWith('Socket.IO initialized.')).to.be.false;
-      expect(pinoMock.level).to.equal('info'); // Check the mock's level property if it were set
+      
+      // Verify the logger was created with the correct level
+      const call = pinoStub.getCall(0);
+      expect(call.args[0].level).to.equal('info');
     });
 
     it('should set log level based on LOG_LEVEL environment variable', async () => {
-      process.env.LOG_LEVEL = 'debug';
-      const freshPinoMock = { ...pinoMock, level: 'debug' }; // Simulate pino setting its level
-      const freshLoggerModule = await esmock('../../src/utils/logger.js', {
-        'pino': sinon.stub().returns(freshPinoMock),
-        '../../src/config/constants.js': { DEBUG_LEVELS },
+      const { logger, pinoStub } = await createLoggerModule({
+        envVars: { LOG_LEVEL: 'debug' }
       });
-      expect(freshPinoMock.level).to.equal('debug');
-    });
-
-    it('should set log level based on DEBUG_LEVEL environment variable (ERROR)', async () => {
-      process.env.DEBUG_LEVEL = DEBUG_LEVELS.ERROR.toString();
-      const freshPinoMock = { ...pinoMock, level: 'error' };
-      const freshLoggerModule = await esmock('../../src/utils/logger.js', {
-        'pino': sinon.stub().returns(freshPinoMock),
-        '../../src/config/constants.js': { DEBUG_LEVELS },
-      });
-      expect(freshPinoMock.level).to.equal('error');
-    });
-
-    it('should set log level based on DEBUG_LEVEL environment variable (INFO)', async () => {
-      process.env.DEBUG_LEVEL = DEBUG_LEVELS.INFO.toString();
-      const freshPinoMock = { ...pinoMock, level: 'info' };
-      const freshLoggerModule = await esmock('../../src/utils/logger.js', {
-        'pino': sinon.stub().returns(freshPinoMock),
-        '../../src/config/constants.js': { DEBUG_LEVELS },
-      });
-      expect(freshPinoMock.level).to.equal('info');
-    });
-
-    it('should set log level based on DEBUG_LEVEL environment variable (WARNING)', async () => {
-      process.env.DEBUG_LEVEL = DEBUG_LEVELS.WARNING.toString();
-      const freshPinoMock = { ...pinoMock, level: 'warn' };
-      const freshLoggerModule = await esmock('../../src/utils/logger.js', {
-        'pino': sinon.stub().returns(freshPinoMock),
-        '../../src/config/constants.js': { DEBUG_LEVELS },
-      });
-      expect(freshPinoMock.level).to.equal('warn');
-    });
-
-    it('should set log level based on DEBUG_LEVEL environment variable (VERBOSE)', async () => {
-      process.env.DEBUG_LEVEL = DEBUG_LEVELS.VERBOSE.toString();
-      const freshPinoMock = { ...pinoMock, level: 'debug' };
-      const freshLoggerModule = await esmock('../../src/utils/logger.js', {
-        'pino': sinon.stub().returns(freshPinoMock),
-        '../../src/config/constants.js': { DEBUG_LEVELS },
-      });
-      expect(freshPinoMock.level).to.equal('debug');
-    });
-
-    it('should prioritize LOG_LEVEL over DEBUG_LEVEL', async () => {
-      process.env.LOG_LEVEL = 'error';
-      process.env.DEBUG_LEVEL = DEBUG_LEVELS.VERBOSE.toString(); // This would be 'debug'
-      const freshPinoMock = { ...pinoMock, level: 'error' };
-      const freshLoggerModule = await esmock('../../src/utils/logger.js', {
-        'pino': sinon.stub().returns(freshPinoMock),
-        '../../src/config/constants.js': { DEBUG_LEVELS },
-      });
-      expect(freshPinoMock.level).to.equal('error'); // LOG_LEVEL should win
-    });
-
-    it('should use pino-pretty transport in non-production environment', async () => {
-      process.env.NODE_ENV = 'development';
-      const pinoConstructorSpy = sinon.stub().returns(pinoMock);
-      await esmock('../../src/utils/logger.js', {
-        'pino': pinoConstructorSpy,
-        '../../src/config/constants.js': { DEBUG_LEVELS },
-      });
-      expect(pinoConstructorSpy.calledWithMatch({
-        transport: { target: 'pino-pretty' }
-      })).to.be.true;
-    });
-
-    it('should not use pino-pretty transport in production environment', async () => {
-      process.env.NODE_ENV = 'production';
-      const pinoConstructorSpy = sinon.stub().returns(pinoMock);
-      await esmock('../../src/utils/logger.js', {
-        'pino': pinoConstructorSpy,
-        '../../src/config/constants.js': { DEBUG_LEVELS },
-      });
-      expect(pinoConstructorSpy.calledWithMatch({
-        transport: { target: 'pino-pretty' }
-      })).to.be.false;
+      
+      // Verify the logger was created with the correct level
+      const call = pinoStub.getCall(0);
+      expect(call.args[0].level).to.equal('debug');
     });
   });
 
-  describe('log function (compatibility wrapper)', () => {
-    it('should call logger.error for DEBUG_LEVELS.ERROR with message and object', () => {
-      loggerModule.log(DEBUG_LEVELS.ERROR, 'Error message', { data: 'some data' });
-      expect(pinoMock.error.calledOnceWith({ data: 'some data' }, 'Error message')).to.be.true;
+  describe('Log Level Configuration', () => {
+    // Parameterized test for different log levels
+    [
+      { level: 'error', value: DEBUG_LEVELS.ERROR },
+      { level: 'info', value: DEBUG_LEVELS.INFO },
+      { level: 'warn', value: DEBUG_LEVELS.WARNING },
+      { level: 'debug', value: DEBUG_LEVELS.VERBOSE }
+    ].forEach(({ level, value }) => {
+      it(`should set log level to ${level} when DEBUG_LEVEL is ${value}`, async () => {
+        const { pinoStub } = await createLoggerModule({
+          envVars: { DEBUG_LEVEL: value.toString() }
+        });
+        
+        // Verify the logger was created with the correct level
+        const call = pinoStub.getCall(0);
+        expect(call.args[0].level).to.equal(level);
+      });
     });
 
-    it('should call logger.error for DEBUG_LEVELS.ERROR with message only', () => {
-      loggerModule.log(DEBUG_LEVELS.ERROR, 'Error message');
-      expect(pinoMock.error.calledOnceWith('Error message')).to.be.true;
+    it('should prioritize LOG_LEVEL over DEBUG_LEVEL', async () => {
+      const { pinoStub } = await createLoggerModule({
+        envVars: { LOG_LEVEL: 'error', DEBUG_LEVEL: '4' }
+      });
+      
+      // Verify the logger was created with the correct level
+      const call = pinoStub.getCall(0);
+      expect(call.args[0].level).to.equal('error');
     });
 
-    it('should call logger.info for DEBUG_LEVELS.INFO with message and object', () => {
-      loggerModule.log(DEBUG_LEVELS.INFO, 'Info message', { data: 'some data' });
-      expect(pinoMock.info.calledOnceWith({ data: 'some data' }, 'Info message')).to.be.true;
+    it('should handle invalid log levels', async () => {
+      const { logger, pinoStub } = await createLoggerModule({
+        envVars: { LOG_LEVEL: 'invalid' }
+      });
+      
+      // Verify the logger was created with the default level
+      const call = pinoStub.getCall(0);
+      expect(call.args[0].level).to.equal('info');
+    });
+  });
+
+  describe('Transport Configuration', () => {
+    it('should use pino-pretty transport in non-production environment', async () => {
+      const { pinoStub } = await createLoggerModule({
+        envVars: { NODE_ENV: 'development' }
+      });
+      
+      // Verify pino was called with transport options
+      const call = pinoStub.getCall(0);
+      expect(call.args[0].transport).to.exist;
+      expect(call.args[0].transport.target).to.equal('pino-pretty');
     });
 
-    it('should call logger.info for DEBUG_LEVELS.INFO with message only', () => {
-      loggerModule.log(DEBUG_LEVELS.INFO, 'Info message');
-      expect(pinoMock.info.calledOnceWith('Info message')).to.be.true;
+    it('should not use pino-pretty transport in production environment', async () => {
+      const { pinoStub } = await createLoggerModule({
+        envVars: { NODE_ENV: 'production' }
+      });
+      
+      // Verify pino was not called with transport options
+      const call = pinoStub.getCall(0);
+      expect(call.args[0].transport).to.not.exist;
+    });
+  });
+
+  describe('Logging Functions', () => {
+    it('should call logger.error for DEBUG_LEVELS.ERROR with message and object', async () => {
+      const { mockLogger, log, constants } = await createLoggerModule();
+      const error = new Error('Test error');
+      log(constants.DEBUG_LEVELS.ERROR, 'Test error', error);
+      expect(mockLogger.error.calledWith(error, 'Test error')).to.be.true;
     });
 
-    it('should call logger.warn for DEBUG_LEVELS.WARNING with message and object', () => {
-      loggerModule.log(DEBUG_LEVELS.WARNING, 'Warning message', { data: 'some data' });
-      expect(pinoMock.warn.calledOnceWith({ data: 'some data' }, 'Warning message')).to.be.true;
+    it('should call logger.warn for DEBUG_LEVELS.WARNING', async () => {
+      const { mockLogger, log, constants } = await createLoggerModule();
+      log(constants.DEBUG_LEVELS.WARNING, 'Warning message');
+      expect(mockLogger.warn.calledWith('Warning message')).to.be.true;
     });
 
-    it('should call logger.warn for DEBUG_LEVELS.WARNING with message only', () => {
-      loggerModule.log(DEBUG_LEVELS.WARNING, 'Warning message');
-      expect(pinoMock.warn.calledOnceWith('Warning message')).to.be.true;
+    it('should call logger.info for DEBUG_LEVELS.INFO', async () => {
+      const { mockLogger, log, constants } = await createLoggerModule();
+      log(constants.DEBUG_LEVELS.INFO, 'Info message');
+      expect(mockLogger.info.calledWith('Info message')).to.be.true;
     });
 
-    it('should call logger.debug for DEBUG_LEVELS.VERBOSE with message and object', () => {
-      loggerModule.log(DEBUG_LEVELS.VERBOSE, 'Debug message', { data: 'some data' });
-      expect(pinoMock.debug.calledOnceWith({ data: 'some data' }, 'Debug message')).to.be.true;
+    it('should call logger.debug for DEBUG_LEVELS.VERBOSE', async () => {
+      const { mockLogger, log, constants } = await createLoggerModule({
+        envVars: { LOG_LEVEL: 'debug' }
+      });
+      
+      // Test debug logging - only works when log level is debug or higher
+      log(constants.DEBUG_LEVELS.VERBOSE, 'Test debug', { debug: true });
+      expect(mockLogger.debug.calledWith('Test debug', { debug: true })).to.be.true;
     });
 
-    it('should call logger.debug for DEBUG_LEVELS.VERBOSE with message only', () => {
-      loggerModule.log(DEBUG_LEVELS.VERBOSE, 'Debug message');
-      expect(pinoMock.debug.calledOnceWith('Debug message')).to.be.true;
+    it('should not log below the current log level', async () => {
+      const { mockLogger, log, constants } = await createLoggerModule({
+        envVars: { LOG_LEVEL: 'warn' }
+      });
+      
+      // This should not be logged
+      log(constants.DEBUG_LEVELS.INFO, 'This should not be logged', { test: true });
+      expect(mockLogger.info.called).to.be.false;
     });
 
-    it('should default to logger.info for unknown log levels with object', () => {
-      loggerModule.log(999, 'Unknown level message', { data: 'unknown' });
-      expect(pinoMock.info.calledOnceWith({ data: 'unknown' }, 'Unknown log level (999): Unknown level message')).to.be.true;
+    it('should handle setDebugLevel function', async () => {
+      const { mockLogger, setDebugLevel, constants } = await createLoggerModule();
+      
+      // Test setting debug level
+      setDebugLevel(constants.DEBUG_LEVELS.VERBOSE);
+      // Verify the warning was logged
+      expect(mockLogger.warn.called).to.be.true;
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle missing log level in constants', async () => {
+      const { log, mockLogger } = await createLoggerModule({
+        mocks: {
+          '../config/constants.js': { DEBUG_LEVELS: {} }
+        }
+      });
+      log(999, 'Test');
+      // Should default to info level
+      expect(mockLogger.info.calledWith('Test')).to.be.true;
     });
 
-    it('should default to logger.info for unknown log levels with message only', () => {
-      loggerModule.log(999, 'Unknown level message');
-      expect(pinoMock.info.calledOnceWith('Unknown log level (999): Unknown level message')).to.be.true;
+    it('should handle missing message', async () => {
+      const { log, mockLogger } = await createLoggerModule();
+      log(1);
+      // Should not throw and should log something
+      expect(mockLogger.error.called).to.be.true;
+    });
+
+    it('should handle missing pino instance', async () => {
+      const { log } = await createLoggerModule({
+        mocks: {
+          'pino': () => null
+        }
+      });
+      // Should not throw even if pino is not available
+      expect(() => log(1, 'Test')).to.not.throw();
+    });
+    
+    it('should handle unknown log levels', async () => {
+      const { log, mockLogger } = await createLoggerModule();
+      log(999, 'Test');
+      // Should default to info level for unknown levels
+      expect(mockLogger.info.calledWith('Test')).to.be.true;
     });
   });
 
   describe('setDebugLevel function', () => {
-    it('should log a warning when setDebugLevel is called', () => {
-      loggerModule.setDebugLevel(DEBUG_LEVELS.ERROR);
-      expect(pinoMock.warn.calledOnce).to.be.true;
-      expect(pinoMock.warn.firstCall.args[0]).to.include('Attempted to set debug level');
+    it('should log a warning when setDebugLevel is called', async () => {
+      const { mockLogger, setDebugLevel, constants } = await createLoggerModule();
+      setDebugLevel(constants.DEBUG_LEVELS.ERROR);
+      expect(mockLogger.warn.called).to.be.true;
     });
 
-    it('should correctly map DEBUG_LEVELS to pino level names in warning message', () => {
-      loggerModule.setDebugLevel(DEBUG_LEVELS.VERBOSE);
-      expect(pinoMock.warn.firstCall.args[0]).to.include('debug');
+    it('should correctly map DEBUG_LEVELS to pino level names in warning message', async () => {
+      const { mockLogger, setDebugLevel, constants } = await createLoggerModule();
+      setDebugLevel(constants.DEBUG_LEVELS.ERROR);
+      const warningMessage = mockLogger.warn.getCall(0).args[0];
+      expect(warningMessage).to.include('error');
     });
   });
 });

@@ -14,6 +14,7 @@
  * @since 1.0.0
  * 
  *TODO:   
+ *TODO: REFACTOR TO NOT USE CHAI SINON OR ESMOCK
  *Missing Test Cases:
  *No test for when playerSlots contains duplicate roles
  *No test for non-array playerSlots (only tests null/empty/incorrect length)

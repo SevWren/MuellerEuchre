@@ -106,7 +106,6 @@ docs/File Reviews/gemini_review-scoringPhase.js-startNewHandPhase.js-lobbyPhase.
 docs/File Reviews/validation.unit.test.js.review.md
 findfiles.bat
 find_files_report.txt
-package-lock.json
 npm_test.txt
 log.txt
 archived_for_later_development/test/game/state.unit.test.js

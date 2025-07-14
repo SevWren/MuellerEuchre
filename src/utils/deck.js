@@ -512,21 +512,35 @@ function getCardRank(card, trumpSuit, ledSuit = null) {
   // Handle invalid inputs gracefully to match test expectations
   if (!card || typeof card !== 'object' || !card.suit || !card.value || !trumpSuit) {
     logger.warn('Invalid arguments for getCardRank');
-    return 0;
+    return CARD_RANKS.INVALID; // Use INVALID constant instead of 0
   }
 
   try {
     // Normalize inputs for consistent case handling
     const cardValue = String(card.value).toUpperCase();
     
+    // Map card values to their corresponding CARD_RANKS keys
+    const valueToRankKey = {
+      '9': 'CARD_RANK_NINE',
+      '10': 'CARD_RANK_TEN',
+      'J': 'CARD_RANK_JACK',
+      'Q': 'CARD_RANK_QUEEN',
+      'K': 'CARD_RANK_KING',
+      'A': 'CARD_RANK_ACE'
+    };
+    
+    // Validate card value exists in our mapping
+    if (!(cardValue in valueToRankKey)) {
+      logger.warn(`Invalid card value: ${card.value}`);
+      return CARD_RANKS.INVALID;
+    }
+    
+    // Get the rank key for this card value
+    const rankKey = valueToRankKey[cardValue];
+    
     // Normalize and validate inputs with case-insensitive handling
     let normalizedCardSuit, normalizedTrumpSuit, normalizedLedSuit;
     try {
-      // Validate card value exists in CARD_RANKS (case-insensitive)
-      if (!(cardValue in CARD_RANKS)) {
-        throw new Error(`Invalid card value: ${card.value}`);
-      }
-      
       // Normalize the card suit (case-insensitive)
       normalizedCardSuit = normalizeSuit(card.suit);
       
@@ -538,7 +552,7 @@ function getCardRank(card, trumpSuit, ledSuit = null) {
       
     } catch (error) {
       logger.warn('Error normalizing card input:', error);
-      return 0;
+      return CARD_RANKS.INVALID;
     }
     
     // Debug log the normalization results
@@ -547,38 +561,39 @@ function getCardRank(card, trumpSuit, ledSuit = null) {
       trumpSuit: normalizedTrumpSuit,
       ledSuit: normalizedLedSuit,
       cardValue,
+      rankKey,
       isRightBower: isRightBower(card, normalizedTrumpSuit),
       isLeftBower: isLeftBower(card, normalizedTrumpSuit)
     });
     
     // 1. Check for Right Bower (Jack of trump suit) - highest rank (150)
     if (isRightBower(card, normalizedTrumpSuit)) {
-      logger.debug('Card is Right Bower, returning', CARD_RANKS.RIGHT_BOWER);
-      return CARD_RANKS.RIGHT_BOWER;
+      logger.debug('Card is Right Bower, returning', CARD_RANKS.CARD_RANK_RIGHT_BOWER);
+      return CARD_RANKS.CARD_RANK_RIGHT_BOWER;
     }
     
     // 2. Check for Left Bower (Jack of same color as trump) - second highest (100)
     if (isLeftBower(card, normalizedTrumpSuit)) {
-      logger.debug('Card is Left Bower, returning', CARD_RANKS.LEFT_BOWER);
-      return CARD_RANKS.LEFT_BOWER;
+      logger.debug('Card is Left Bower, returning', CARD_RANKS.CARD_RANK_LEFT_BOWER);
+      return CARD_RANKS.CARD_RANK_LEFT_BOWER;
     }
     
-    // Get base rank from CARD_RANKS (should be defined since we validated cardValue)
-    const baseRank = CARD_RANKS[cardValue];
+    // Get base rank from CARD_RANKS using the mapped key
+    const baseRank = CARD_RANKS[rankKey] || CARD_RANKS.INVALID;
     
     // 3. Check for other trump cards (suit matches trump suit, and it's not a bower)
     const isTrump = normalizedCardSuit === normalizedTrumpSuit;
     
     if (isTrump) {
       // For trump cards, add the TRUMP_OFFSET (100) to the base rank
-      // This ensures they're higher than non-trump cards
       const trumpRank = baseRank + CARD_RANKS.TRUMP_OFFSET;
       logger.debug('Trump card rank:', { 
         baseRank, 
         offset: CARD_RANKS.TRUMP_OFFSET, 
         trumpRank,
         cardValue,
-        rankValue: CARD_RANKS[cardValue]
+        rankKey,
+        rankValue: CARD_RANKS[rankKey]
       });
       return trumpRank;
     }
@@ -586,7 +601,6 @@ function getCardRank(card, trumpSuit, ledSuit = null) {
     // 4. Check for led suit cards (if a suit was led)
     if (normalizedLedSuit && normalizedCardSuit === normalizedLedSuit) {
       // For led suit cards, add the LED_OFFSET (50) to the base rank
-      // This makes them higher than non-led, non-trump cards but lower than trump cards
       const ledRank = baseRank + CARD_RANKS.LED_OFFSET;
       logger.debug('Led suit card rank:', { 
         baseRank, 
@@ -597,16 +611,16 @@ function getCardRank(card, trumpSuit, ledSuit = null) {
     }
     
     // 5. For all other cards, just return the base rank
-    // This includes off-suit cards that weren't led
     logger.debug('Base rank (non-trump, non-led):', { 
       baseRank, 
       cardValue,
-      rankValue: CARD_RANKS[cardValue] 
+      rankKey,
+      rankValue: CARD_RANKS[rankKey] 
     });
     return baseRank;
   } catch (error) {
     logger.warn("Error in getCardRank:", error);
-    return 0; // Return 0 for any errors to match test expectations
+    return CARD_RANKS.INVALID; // Return INVALID for any errors
   }
 }
 
@@ -729,7 +743,7 @@ function sortHand(hand, trumpSuit) {
 // Bundle all the named exports into a single object for a default export.
 // This allows consumers to import either the entire utility set or individual functions.
 // e.g., `import deckUtils from './deck.js';` or `import { createDeck } from './deck.js';`
-const deckUtils = {
+const deckUtils = Object.freeze({
   areSameColor,
   createDeck,
   shuffleDeck,
@@ -738,7 +752,9 @@ const deckUtils = {
   isLeftBower,
   getCardRank,
   sortHand,
-};
+  normalizeSuit,
+  // Add any other utility functions that should be publicly available
+});
 
 // Named exports for individual imports
 export {
@@ -749,7 +765,9 @@ export {
   isRightBower,
   isLeftBower,
   getCardRank,
-  sortHand
+  sortHand,
+  normalizeSuit
 };
 
+// Default export for backward compatibility
 export default deckUtils;

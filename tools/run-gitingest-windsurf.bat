@@ -43,5 +43,5 @@ echo Copying GitIngest file to clipboard:
 powershell -ExecutionPolicy Bypass -Command "Set-Clipboard -Path '%OUTPUT_FILE%'"
 
 echo.
-pause
+start "" "https://aistudio.google.com/prompts/new_chat"
 endlocal

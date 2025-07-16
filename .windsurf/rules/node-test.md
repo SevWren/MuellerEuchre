@@ -11,6 +11,8 @@ description: General rules for node:test
 
 -   **Auto-Restoring Mocks (Best Practice)**: The primary pattern for mocking is to use the test context object (`t`). `t.mock.method(module, 'methodName', implementation)` is the preferred approach as it **automatically restores the original method** after the test completes, ensuring perfect test isolation.
 
+-   ** We can't modify the imported module's properties directly because ES modules are read-only. Tests should to use dependency injection instead.
+
     ```javascript
     import { test } from 'node:test';
     import assert from 'node:assert';

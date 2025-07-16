@@ -77,9 +77,9 @@ bower_components
 ehthumbs.db
 Thumbs.db
 
-#misc txt files
-index - Copy.html
-*copy*.*
+#misc
+.gitingest
+.nvmrc
 
 #Misc code editor files
 ENVIRONMENT_INSTABILITY.MD
@@ -112,6 +112,7 @@ archived_for_later_development/test/game/state.unit.test.js
 archived_for_later_development/**/*
 archived_for_later_development
 7_3_2025.txt
+*copy*.*
 docs\Project_Epics.md
 docs\Project_FR_NFR_Functional_Requirements.md
 docs\Project_Technical_Assumptions.md
@@ -141,4 +142,3 @@ filetree.txt
 MIGRATION_GUIDE.md
 test-is-left-bower.js
 test.txt
-.gitingest

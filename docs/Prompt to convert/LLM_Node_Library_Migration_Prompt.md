@@ -13,7 +13,7 @@ You are an expert software engineer specializing in modernizing Node.js codebase
 You will follow these tasks in order for any given test file.
 
 #### **Task 1: Code Analysis & Legacy Code Removal**
-Your first pass on any file is to perform a comprehensive search and identify all legacy code and verify file paths *before* refactoring.
+Your first pass on any file is to perform a comprehensive search and identify all legacy code e.g. any code relate to the libraries esmock, sinon, chai,jest. Also verify file paths *before* refactoring.
 
 1.  **Analyze and Verify File Paths:**
     *   Determine the location of the test file (e.g., `test/game/phases/dealerDiscard.unit.test.js`).

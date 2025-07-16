@@ -14,6 +14,7 @@
     "test:file": "node --test --timeout 15000",
     "test:watch": "node --test --watch --timeout 10000",
     "test:debug": "node --inspect node --test --timeout 10000",
+    "test:decktests": "node Scripts/run-deck-dependent-tests.js",
     "test:coverage:file": "node Scripts/run-coverage-on-file.js",
     "test:coverage": "c8 --clean node --test --test-reporter spec",
     "test:coverage_layer1_depreciated": "npm run clean:coverage && c8 mocha test/game/**/*.test.js test/utils/**/*.test.js --recursive --timeout 10000",

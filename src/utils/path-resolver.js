@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
+import { promises as fsPromises } from 'node:fs'; // Renamed to fsPromises
+import fs from 'node:fs'; // Added for fs.existsSync
 import { createRequire } from 'node:module';
 import os from 'node:os';
 
@@ -107,7 +108,7 @@ function findProjectRoot(startDir) {
   
   while (current !== path.dirname(current)) {
     const packagePath = path.join(current, 'package.json');
-    if (fs.existsSync(packagePath)) {
+    if (fs.existsSync(packagePath)) { // Correctly uses fs.existsSync
       return current;
     }
     current = path.dirname(current);
@@ -174,7 +175,7 @@ async function loadJsConfig() {
       }
     } else {
       // Use real file system
-      content = await fs.readFile(jsconfigPath, 'utf-8');
+      content = await fsPromises.readFile(jsconfigPath, 'utf-8'); // Uses fsPromises
     }
     
     console.log(`[PATH-RESOLVER] Successfully read jsconfig.json`);
@@ -272,7 +273,7 @@ async function initAliasCache() {
             }
           } else {
             // Use real file system
-            await fs.access(resolvedPath, fs.constants.R_OK);
+            await fsPromises.access(resolvedPath, fs.constants.R_OK); // Uses fsPromises
           }
           
           aliasCache.set(cleanAlias, resolvedPath);
@@ -406,7 +407,7 @@ export async function resolvePath(specifier, basePath = process.cwd()) {
     // In production/development, check the actual filesystem
     else {
       try {
-        await fs.promises.access(jsPath);
+        await fsPromises.access(jsPath); // Uses fsPromises
         fullPath = jsPath;
       } catch (e) {
         // If .js version doesn't exist, keep the original path

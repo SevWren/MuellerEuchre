@@ -10,8 +10,8 @@
  *   - Hand sorting and suit evaluation
  *
  * @example
- * import { createDeck, shuffleDeck, sortHand } from '@/utils/deck';
- * import { CARD_SUITS } from '@/config/constants';
+ * import { createDeck, shuffleDeck, sortHand } from "./deck";
+ * import { CARD_SUITS } from "../config/constants";
  *
  * // Create and shuffle a deck
  * const deck = createDeck();
@@ -21,8 +21,13 @@
  * const hand = [/* cards *\/];
  * const sortedHand = sortHand(hand, CARD_SUITS.CARD_SUIT_HEARTS);
  *
+ * @see src/game/phases/startNewHandPhase.js For deck creation during hand initialization
+ * @see src/game/phases/playingPhase.js For card playing logic and validation
+ * @see src/game/logic/aiLogic.js For AI decision making with cards
+ * @see src/utils/logger.js For card-related logging
  * @since 1.0.0
  */
+
 import { CARD_SUITS, CARD_VALUES, CARD_RANKS } from "../config/constants.js";
 import { InvalidCardError } from "../game/logic/errors.js";
 import logger from "./logger.js";
@@ -85,7 +90,7 @@ const SUIT_CONSTANT_TO_NAME_MAP = {
  * @see isLeftBower
  * @see getCardRank
  * @see sortHand
- * @see src/game/logic/validation.js
+ 
  */
 function normalizeSuit(suit) {
   if (!suit || typeof suit !== 'string') {
@@ -193,7 +198,7 @@ function getSuitColor(suit) {
  * @see getSuitColor
  * @see isLeftBower
  * @see src/game/logic/validation.js
- * @see src/game/logic/aiLogic.js
+ 
  */
 function areSameColor(suitA, suitB) {
   try {
@@ -220,7 +225,7 @@ function areSameColor(suitA, suitB) {
  *
  * @returns {Array<import('./deck.js').Card>} A new array containing 24 card objects.
  * @see src/game/phases/startNewHandPhase.js
- * @see scripts/setupTestData.js
+ 
  */
 function createDeck() {
   const uniqueSuits = [...new Set(Object.values(CARD_SUITS))].filter(s => s.startsWith('CARD_SUIT_'));
@@ -247,7 +252,7 @@ function createDeck() {
  * @returns {Array<import('./deck.js').Card>} A new array containing the same cards in random order.
  * @throws {InvalidCardError} If the input is not an array.
  * @see src/game/phases/startNewHandPhase.js
- * @see src/game/logic/aiLogic.js
+ 
  */
 function shuffleDeck(deck) {
   if (!Array.isArray(deck)) {

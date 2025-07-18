@@ -6,7 +6,7 @@
  * reduce boilerplate code, aligning with modern testing best practices.
  */
 
-import { mock } from 'node:test';
+import { mock, beforeEach, afterEach } from 'node:test';
 import {
   PLAYER_ROLES as APP_PLAYER_ROLES,
   PLAYER_POSITIONS,
@@ -14,7 +14,7 @@ import {
   VALUES,
   TEAMS,
   GAME_PHASES,
-} from '../../src/config/constants.js';
+} from '../config/constants.js';
 
 // --- JSDoc Type Definitions ---
 
@@ -62,6 +62,113 @@ import {
  * @property {object} tricksTaken - A map of team IDs to the number of tricks they have won.
  * @property {object} teamScores - A map of team IDs to their total game score.
  */
+
+
+// --- Test Environment Setup and Cleanup ---
+const cleanupCallbacks = [];
+const mockTracker = new WeakMap(); // Maps mock functions to their original implementations or reset logic
+
+/**
+ * Registers a cleanup function to be called after each test.
+ * @param {Function} fn - The cleanup function.
+ * @returns {Function} A function to unregister this specific cleanup.
+ */
+function onCleanup(fn) {
+  cleanupCallbacks.push(fn);
+  return () => {
+    const index = cleanupCallbacks.indexOf(fn);
+    if (index > -1) {
+      cleanupCallbacks.splice(index, 1);
+    }
+  };
+}
+
+/**
+ * Tracks a mock for automatic reset after each test.
+ * @param {Function} mockFn - The mock function to track.
+ * @returns {Function} The tracked mock function.
+ */
+function trackMock(mockFn) {
+  if (typeof mockFn.mock === 'object' && typeof mockFn.mock.resetCalls === 'function') {
+    onCleanup(() => mockFn.mock.resetCalls());
+  } else {
+    console.warn('trackMock received a function that does not appear to be a node:test mock. It will not be automatically reset.');
+  }
+  return mockFn;
+}
+
+/**
+ * Creates a test context for managing related mocks and cleanup.
+ * @returns {{track: Function, onCleanup: Function}} A context object with `track` and `onCleanup` methods.
+ */
+function createTestContext() {
+  const contextCleanups = [];
+  const contextMocks = [];
+
+  onCleanup(() => {
+    contextCleanups.forEach(fn => fn());
+    contextMocks.forEach(mockFn => {
+      if (typeof mockFn.mock === 'object' && typeof mockFn.mock.resetCalls === 'function') {
+        mockFn.mock.resetCalls();
+      }
+    });
+  });
+
+  return {
+    /**
+     * Tracks a mock within this context for automatic reset.
+     * @param {Function} mockFn - The mock function to track.
+     * @returns {Function} The tracked mock function.
+     */
+    track: (mockFn) => {
+      contextMocks.push(mockFn);
+      return mockFn;
+    },
+    /**
+     * Registers a cleanup function specific to this context.
+     * @param {Function} fn - The cleanup function.
+     */
+    onCleanup: (fn) => {
+      contextCleanups.push(fn);
+    }
+  };
+}
+
+/**
+ * Sets up the test environment with automatic cleanup for mocks and registered callbacks.
+ * Should be called once per test file or in a global setup file.
+ */
+function setupTestEnvironment() {
+  beforeEach(() => {
+    // Reset deterministic ID counter for each test
+    resetTestIdCounter();
+  });
+
+  afterEach(() => {
+    // Execute all registered cleanup callbacks
+    while (cleanupCallbacks.length > 0) {
+      const cleanup = cleanupCallbacks.pop();
+      try {
+        cleanup();
+      } catch (error) {
+        console.error('Error during test cleanup:', error);
+      }
+    }
+  });
+}
+
+/**
+ * Creates and manages a test game state with automatic cleanup.
+ * @param {object} [options={}] - Configuration for the test state, passed to `setupTestState`.
+ * @returns {{gameState: GameState, cleanup: Function}} An object containing the game state and a cleanup function.
+ */
+function withTestState(options = {}) {
+  const { gameState, playerHand } = setupTestState(options);
+  // No explicit cleanup needed here as setupTestState returns a new object
+  // and we rely on the immutability for state management.
+  // The cleanup function returned is a no-op for now, but kept for API consistency.
+  return { gameState, playerHand, cleanup: () => {} };
+}
 
 
 // --- ID Generation for Deterministic Tests ---
@@ -326,4 +433,9 @@ export {
   PLAYER_ROLES,
   getTestId,
   resetTestIdCounter,
+  setupTestEnvironment,
+  trackMock,
+  createTestContext,
+  withTestState,
+  onCleanup,
 };

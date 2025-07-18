@@ -22,17 +22,13 @@ pids
 
 # VS Code
 .vscode/
-.vscode/settings.json
-.vscode/tasks.json
-.vscode/launch.json
-.vscode/extensions.json
 .idea/
 
 #backup files
 *.backup
 *.bak
-
 *.orig
+*.original
 *.temp
 *.swp
 
@@ -113,16 +109,16 @@ archived_for_later_development/**/*
 archived_for_later_development
 7_3_2025.txt
 *copy*.*
-docs\Project_Epics.md
-docs\Project_FR_NFR_Functional_Requirements.md
-docs\Project_Technical_Assumptions.md
-docs\Project_User_Interface_Design_Goals.md
-docs\Project_Brief_Euchre_Multiplayer.md
-docs\Project_Architectural_Mandate_for_Layer_1.md
-docs\Project_Development_Plan.md
-docs\Supplemental_Layer1_Plan_Improvements.md
-docs\TEST_FILE_RESTRUCTURING_PLAN.md
-docs\TEST_STRUCTURE_IMPLEMENTATION.md
+docs/Project_Epics.md
+docs/Project_FR_NFR_Functional_Requirements.md
+docs/Project_Technical_Assumptions.md
+docs/Project_User_Interface_Design_Goals.md
+docs/Project_Brief_Euchre_Multiplayer.md
+docs/Project_Architectural_Mandate_for_Layer_1.md
+docs/Project_Development_Plan.md
+docs/Supplemental_Layer1_Plan_Improvements.md
+docs/TEST_FILE_RESTRUCTURING_PLAN.md
+docs/TEST_STRUCTURE_IMPLEMENTATION.md
 mueller_euchre_repo_llm.txt
 digest.txt
 
@@ -143,3 +139,9 @@ MIGRATION_GUIDE.md
 test-is-left-bower.js
 test.txt
 7_18_2025.txt
+MuellerEuchre-Windsurf.code-workspace
+
+#protection against indexing
+docs/Front_End_Docs
+MuellerEuchre-Windsurf.code-workspace
+MuellerEuchre-Windsurf.code-workspace

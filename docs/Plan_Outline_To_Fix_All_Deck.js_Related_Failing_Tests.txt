@@ -1,0 +1,132 @@
+Use the following to  fix failing tests from `npm run test:decktests`   @run-deck-dependent-tests.js  Which includes ALL tests for ALL files that reference @deck.js 
+
+We recently updated @errors.js  to be more robust so we need to fix resulting tests that are failing.  Generate a plan to fix all failing tests using the following information:
+
+```
+The failures stem from two primary root causes:
+1.  **Brittle Test Assertions:** The tests for `validation.js` were asserting against specific error message strings. The recent improvements to `errors.js` made these messages more descriptive and dynamic, which correctly broke the fragile tests. The fix is to make the tests more robust.
+2.  **Legacy Mocking of ES Modules:** The tests for the `phases` and `server` modules are using an outdated mocking strategy (like `esmock` or invasive `sinon` patching) that is incompatible with the project's ES Module (`"type": "module"`) setup. This causes the `TypeError: Cannot redefine property` errors. The fix is to migrate these tests to use the native `node:test` mocking mechanism, as outlined in the project's own documentation.
+
+---
+
+### Task List to Fix All Failing Tests
+
+#### 1. File: `test/game/logic/validation.unit.test.js` & `test/game/logic/validatePlay.edge.unit.test.js`
+
+*   **Goal:** Fix the `AssertionError` failures by updating the tests to validate against the new, more robust error class properties instead of hardcoded message strings.
+
+*   **Task List:**
+    1.  **Locate Failing Assertions:** In both files, find all `assert.throws(...)` calls that are failing. The logs point specifically to the tests named "should identify the led suit as trump when the Left Bower is led" and "should treat the Left Bower as part of the trump suit when checking if player can follow".
+    2.  **Modify the Assertion Logic:** Change the assertion from checking the `message` property to checking the error's `name` and its contextual properties (`ledSuit`, `playedSuit`, etc.). This makes the test more resilient to changes in the error message text.
+
+    **Example - How to fix the `MustFollowSuitError` assertion:**
+
+    **BEFORE (Brittle):**
+    ```javascript
+    assert.throws(
+      () => validatePlay(gameState, playerHand, offSuitCard, playerRole),
+      {
+        name: 'MustFollowSuitError',
+        // This regex is fragile and the cause of the failure.
+        message: /Must follow suit. Led suit is CARD_SUIT_HEARTS/
+      },
+      'Should require following trump suit when Left Bower is led'
+    );
+    ```
+
+    **AFTER (Robust):**
+    ```javascript
+    assert.throws(
+      () => validatePlay(gameState, playerHand, offSuitCard, playerRole),
+      (err) => {
+        assert.strictEqual(err.name, 'MustFollowSuitError');
+        assert.strictEqual(err.code, 'E_MUST_FOLLOW_SUIT'); // Assert on the unique code
+        assert.strictEqual(err.ledSuit, 'hearts'); // Assert on the actual led suit
+        return true; // Return true to confirm the thrown error is the one we expected
+      },
+      'Should throw MustFollowSuitError with the correct ledSuit property'
+    );
+    ```
+    3.  **Apply to All Similar Failures:** Repeat this pattern for the failing tests in both `validatePlay.unit.test.js` and `validatePlay.edge.unit.test.js` that check for `InvalidPhaseError` and `CardNotInHandError`, updating them to assert on the new error `code` and contextual properties.
+
+---
+
+#### 2. File: `test/game/phases/startNewHandPhase.unit.test.js`
+
+*   **Goal:** Fix the `ERR_MODULE_NOT_FOUND` error by migrating the test away from the `chai` assertion library to the native `node:assert` module.
+
+*   **Task List:**
+    1.  **Remove Chai Import:** Delete the line `import { expect } from "chai";`.
+    2.  **Add Node Assert Import:** Add `import assert from 'node:assert/strict';` at the top of the file.
+    3.  **Convert Assertions:** Replace all `expect(...)` style assertions with their `assert` equivalents.
+        *   `expect(value).to.equal(expected);` becomes `assert.strictEqual(value, expected);`
+        *   `expect(obj).to.deep.equal(expected);` becomes `assert.deepStrictEqual(obj, expected);`
+        *   `expect(array).to.have.lengthOf(num);` becomes `assert.strictEqual(array.length, num);`
+        *   `expect(value).to.be.true;` becomes `assert.strictEqual(value, true);`
+        *   `expect(() => fn()).to.throw(ErrorType, /message/);` becomes `assert.throws(() => fn(), { name: 'ErrorType', message: /message/ });`
+
+---
+
+#### 3. Files: `test/game/phases/biddingPhase.unit.test.js`, `test/game/phases/playingPhase.unit.test.js`, and `test/server/dealerDiscard.unit.test.js`
+
+*   **Goal:** Fix the `TypeError: Cannot redefine property` errors by completely refactoring the tests to use the modern `node:test` mocking pattern instead of the legacy `esmock` approach.
+
+*   **Task List (Follow for each file):**
+    1.  **Reference the Project's Guide:** Adhere strictly to the workflow outlined in `docs/Prompt to convert/LLM_Node_Library_Migration_Prompt.md`.
+    2.  **Remove Legacy Imports:** Delete all `import` statements for `esmock`, `sinon`, and `chai`.
+    3.  **Add Native Test Imports:**
+        ```javascript
+        import { describe, it, beforeEach, afterEach, mock } from 'node:test';
+        import assert from 'node:assert/strict';
+        ```
+    4.  **Implement the Dynamic Import Pattern for Mocking:** This is the critical step to replace `esmock`.
+        *   **Statically Import the Dependency:** At the top of your test file, add a static import for the module whose functions you need to mock (e.g., `import * as validation from '../../../src/game/logic/validation.js';`).
+        *   **Patch the Dependency in the Test:** Inside your `it(...)` block, use `mock.method()` to temporarily patch the function you need to control.
+        *   **Dynamically Import the Module-Under-Test:** *After* the mock is applied, use a dynamic `await import(...)` to load the module you are testing (e.g., `const { handlePlayCard } = await import('../../../src/game/phases/playingPhase.js');`). This ensures it receives the mocked version of its dependency.
+
+    **Example - Refactoring a Test with the Dynamic Import Pattern:**
+
+    **BEFORE (Legacy `esmock`):**
+    ```javascript
+    // test/game/phases/biddingPhase.unit.test.js (OLD)
+    import esmock from 'esmock';
+    // ...
+    const { handleOrderUpDecision } = await esmock(
+      '../../../src/game/phases/biddingPhase.js', {
+      '../../../src/game/logic/validation.js': {
+        validateBid: () => true // Mock implementation
+      }
+    });
+    // ... test logic ...
+    ```
+
+    **AFTER (Native `node:test`):**
+    ```javascript
+    // test/game/phases/biddingPhase.unit.test.js (NEW)
+    import { describe, it, afterEach, mock } from 'node:test';
+    import assert from 'node:assert/strict';
+    // 1. Statically import the real dependency
+    import * as validation from '../../../src/game/logic/validation.js';
+
+    describe('handleOrderUpDecision', () => {
+      // 4. Ensure mocks are restored after each test
+      afterEach(() => mock.restoreAll());
+
+      it('should process a valid bid', async () => {
+        // 2. Patch the dependency's function for this specific test
+        mock.method(validation, 'validateBid', () => true);
+
+        // 3. Dynamically import the module being tested
+        const { handleOrderUpDecision } = await import('../../../src/game/phases/biddingPhase.js');
+
+        // ... rest of your test logic and assertions using assert ...
+        const result = handleOrderUpDecision(...);
+        assert.strictEqual(result.gamePhase, 'DEALER_DISCARD');
+      });
+    });
+    ```
+    5.  **Convert All Assertions:** Rewrite all `expect` assertions to use `assert`.
+    6.  **Add Cleanup:** Ensure an `afterEach(() => { mock.restoreAll(); });` hook is present to maintain test isolation.
+```
+
+@Rules_Overall.md 

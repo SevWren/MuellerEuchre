@@ -4,11 +4,11 @@ trigger: always_on
 
 # Mueller Euchre Project-Specific AI Rules
 
-This document contains the custom rules and architectural mandates for the Kilo Code AI agent working on the MuellerEuchre project. All AI contributions **MUST** strictly adhere to these principles.
+This document contains the custom rules and architectural mandates for the AI agent working on the MuellerEuchre project. All AI contributions **MUST** strictly adhere to these principles.
 
 ## 1. Core Mission & Guiding Documents
 
-Your primary mission is to execute the **layered rewrite** of the Euchre Multiplayer codebase. You are to function as an expert software architect, implementing, refactoring, and testing features with precision.
+Your primary mission is to adhered to the coding standards of the Euchre Multiplayer codebase. You are to function as an expert software architect, implementing, refactoring, and testing features with precision.
 
 -   **Project Configuration (`package.json`):** This is the "how." It defines the project's dependencies, scripts, and its use of **ES Modules (`"type": "module"`)**.
 
@@ -42,10 +42,23 @@ This protocol governs how all tasks are executed.
 
 ### A. Foundational Rules
 -   **Immutability First:** Never mutate shared state directly. All state updates must be atomic and produce a new state object.
--   **Test-Driven Development:** Write unit tests for all new logic using **node:test**. DO NOT USE `esmock`, `sinon`, `chai`, or `jest` as those are FORBIDDEN.  
+-   **Test-Driven Development:** Write unit tests for all new logic using **node:test**. DO NOT USE `esmock`, `sinon`, `chai`, or `jest` as those are FORBIDDEN.
+-   **ESM-Compatible Dependency Injection for Tests:** For testing pure functions (Layer 1) that have dependencies, the project uses a specific, mandatory dependency injection pattern. This avoids legacy mocking libraries and ensures testability within the ESM environment.
+    -   **Pattern:** A factory function (e.g., `createModuleWithDeps`) is defined in a corresponding `test/__mocks__/` directory. This factory accepts an object of mocked dependencies and returns a testable instance of the module.
+    -   **Implementation:**
+        ```javascript
+        // In test/__mocks__/moduleName.js
+        export function createModuleWithDeps({ dependency1, dependency2 }) {
+          return function actualFunction(params) {
+            // Implementation uses injected dependency1, dependency2
+          };
+        }
+        ```
+    -   **Mandate:** This is the **only** approved pattern for mocking dependencies in unit tests. For a detailed guide, refer to `RULES_DEPENDENCY_INJECTION.md`.
 -   **ESM Only:** All code **MUST** use ES Modules (`import`/`export`). Do not introduce CommonJS (`require`/`module.exports`).
 -   **Robust Error Handling:** Use the project's async logger (`src/utils/logger.js`) and custom error classes (`src/game/logic/errors.js`). Validate all inputs at module boundaries.
 -   **CHANGE VERIFICATION:** You MUST run the test for a file after ANY MODIFICATIONS. NEVER assume your modifications were correct.
+
 ### B. Banned Anti-Patterns
 You must actively avoid and refactor any code that exhibits these patterns from the archived codebase:
 -   **NO** direct mutation of shared state objects.
@@ -58,6 +71,7 @@ You must actively avoid and refactor any code that exhibits these patterns from 
 ## 4. Code Output & Documentation Standards
 
 -   **JSDoc:** All new or modified functions, classes, and complex code blocks **MUST** be documented with JSDoc comments.
+    -   **Reference Tracking Mandate:** For any given function, its JSDoc block **MUST** include a list of all files that call or reference it. This is critical for maintaining an accurate dependency map and understanding the impact of changes. Use the `@see` tag for each file path to list every reference.
 -   **Contextual Awareness:** Your generated code and comments must demonstrate a deep understanding of the existing codebase. Reference other modules and their functions.
 -   **Clarity:** For large files, add high-level comments explaining the responsibility of each major code block.
 

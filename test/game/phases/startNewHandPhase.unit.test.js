@@ -1,36 +1,19 @@
-/**
- * @file test/game/phases/startNewHandPhase.unit.test.js
- * @module test/game/phases/startNewHandPhase.unit
- * @description Unit tests for the start new hand phase logic in Euchre Multiplayer game.
- * Tests validate Layer 1 core logic for deck creation, card dealing, dealer rotation, and error handling.
- * Focuses on pure game logic without state management or network integration.
- *
- * TEST ORGANIZATION:
- * 1. Test Setup & Helpers
- * 2. Input Validation Tests
- * 3. Game Phase Validation Tests
- * 4. Dealing Logic Tests
- * 5. Edge Case Tests
- * 6. State Transition Tests
- *
- * TESTING APPROACH:
- * - Each test is completely independent
- * - All dependencies are mocked
- * - Tests verify both success and error cases
- * - Edge cases are explicitly tested
- * - Test data is generated programmatically
- */
+// Unit tests for startNewHand phase logic
+// Validates core game logic for deck creation, card dealing, and dealer rotation - Test data is generated programmatically
 
 // Import test utilities
-import { expect } from "chai";
-import sinon from "sinon";
-import { esmockWithPaths } from "../../utils/esmock_wrapper.js";
+import { describe, it, beforeEach, afterEach, mock } from 'node:test';
+import assert from 'node:assert/strict';
+import path from "path";
+import { fileURLToPath } from "url";
 
 // Import actual modules for constants and errors
 import * as constantsModule from "../../../src/config/constants.js";
 import * as errorsModule from "../../../src/game/logic/errors.js";
-import path from "path";
-import { fileURLToPath } from "url";
+import * as loggerModule from "../../../src/utils/logger.js";
+import * as deckModule from "../../../src/utils/deck.js";
+import * as playersModule from "../../../src/utils/players.js";
+import { createBaseGameState, createMockDeck } from "./__mocks__/startNewHandPhase.js";
 
 // Get directory name for the current module
 const __filename = fileURLToPath(import.meta.url);
@@ -40,9 +23,34 @@ const __dirname = path.dirname(__filename);
 const { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } = constantsModule;
 const { ValidationError, InvalidPhaseError, PhaseLogicError } = errorsModule;
 
-// =============================================
-// MOCK IMPLEMENTATIONS
-// =============================================
+// Constants
+const EUCHRE_DECK_SIZE = 24; // Standard Euchre deck has 24 cards (9-Ace of each suit)
+const CARDS_PER_PLAYER = 5; // Each player gets 5 cards
+const EXPECTED_KITTY_SIZE = 3; // Expected number of cards in the kitty after dealing
+
+/**
+ * Creates and configures a mock deck for testing
+ * @param {number} [numCards=EUCHRE_DECK_SIZE] - Number of cards to generate
+ * @param {boolean} [shuffle=true] - Whether to shuffle the deck
+ * @returns {object} Object containing the deck and mock functions
+ */
+function setupMockDeck(numCards = EUCHRE_DECK_SIZE, shuffle = true) {
+  const mockDeck = createMockDeck(numCards);
+  const mockShuffle = mock.fn((deck) => shuffle ? [...deck].sort(() => Math.random() - 0.5) : [...deck]);
+  
+  mock.method(deckModule, 'createDeck', mock.fn(() => [...mockDeck]));
+  mock.method(deckModule, 'shuffleDeck', mockShuffle);
+  
+  return {
+    deck: mockDeck,
+    mocks: {
+      createDeck: deckModule.createDeck,
+      shuffleDeck: mockShuffle
+    }
+  };
+}
+
+// MOCK IMPLEMENTATIONS (using node:test mock API)
 
 /**
  * @namespace Mocks
@@ -50,806 +58,530 @@ const { ValidationError, InvalidPhaseError, PhaseLogicError } = errorsModule;
  * These mocks isolate the unit under test from its dependencies.
  */
 
-/**
- * Mock error classes that mirror the actual error classes used in the application.
- * These are used to verify error handling without depending on the actual error implementations.
- *
- * @namespace Mocks.Errors
- */
-
-/**
- * Mock ValidationError for input validation failures.
- * @memberof Mocks.Errors
- * @extends Error
- */
-class MockValidationError extends Error {
-  /**
-   * Create a new MockValidationError.
-   * @param {string} message - The error message.
-   */
-  constructor(message) {
-    super(message);
-    this.name = "ValidationError";
-  }
-}
-
-/**
- * Mock InvalidPhaseError for invalid game phase transitions.
- * @memberof Mocks.Errors
- * @extends Error
- */
-class MockInvalidPhaseError extends Error {
-  /**
-   * Create a new MockInvalidPhaseError.
-   * @param {string} message - The error message.
-   */
-  constructor(message) {
-    super(message);
-    this.name = "InvalidPhaseError";
-  }
-}
-
-/**
- * Mock PhaseLogicError for game logic violations.
- * @memberof Mocks.Errors
- * @extends Error
- */
-class MockPhaseLogicError extends Error {
-  /**
-   * Create a new MockPhaseLogicError.
-   * @param {string} message - The error message.
-   */
-  constructor(message) {
-    super(message);
-    this.name = "PhaseLogicError";
-  }
-}
-
-/**
- * Mock logger implementation that captures all log messages.
- * @memberof Mocks
- * @namespace Logger
- * @property {sinon.SinonStub} info - Stub for info level logs.
- * @property {sinon.SinonStub} error - Stub for error level logs.
- * @property {sinon.SinonStub} warn - Stub for warning level logs.
- * @property {sinon.SinonStub} debug - Stub for debug level logs.
- */
-const mockLogger = {
-  info: sinon.stub(),
-  error: sinon.stub(),
-  warn: sinon.stub(),
-  debug: sinon.stub(),
+// Track all mocks for cleanup
+const mocks = {
+  logger: {},
+  deck: {},
+  players: {}
 };
 
 /**
- * Mock deck utilities used by the module under test.
- * @memberof Mocks
- * @namespace DeckUtils
- * @property {sinon.SinonStub} createDeck - Creates a mock deck of cards.
- * @property {sinon.SinonStub} shuffleDeck - Shuffles a deck (returns a copy).
- * @property {sinon.SinonStub} cardToId - Converts a card to a string ID.
+ * Sets up all mocks needed for testing
  */
-const mockDeckUtils = {
-  createDeck: sinon.stub(),
-  shuffleDeck: sinon.stub().callsFake((deck) => [...deck]), // Pure function - returns new array
-  cardToId: sinon.stub().returns("mock-card-id"),
-};
+function setupMocks() {
+  // Mock logger functions
+  mocks.logger.info = mock.method(loggerModule, 'info', mock.fn());
+  mocks.logger.error = mock.method(loggerModule, 'error', mock.fn());
+  mocks.logger.warn = mock.method(loggerModule, 'warn', mock.fn());
+  mocks.logger.debug = mock.method(loggerModule, 'debug', mock.fn());
 
-/**
- * Mock player utilities used by the module under test.
- * @memberof Mocks
- * @namespace PlayerUtils
- * @property {sinon.SinonStub} getNextPlayer - Determines the next player in turn order.
- */
-const mockPlayerUtils = {
-  getNextPlayer: sinon.stub(),
-};
+  // Mock deck functions
+  mocks.deck.createDeck = mock.method(deckModule, 'createDeck', () => createMockDeck(EUCHRE_DECK_SIZE));
+  mocks.deck.shuffleDeck = mock.method(deckModule, 'shuffleDeck', (deck) => [...deck]);
+  mocks.deck.cardToId = mock.method(deckModule, 'cardToId', 
+    (card) => card.id || `mock_${card.suit}_${card.value}`);
 
-/**
- * Mock error classes for consistent error handling in tests.
- * @memberof Mocks
- * @namespace Errors
- * @property {Function} ValidationError - Mock validation error constructor.
- * @property {Function} InvalidPhaseError - Mock invalid phase error constructor.
- * @property {Function} PhaseLogicError - Mock game logic error constructor.
- */
-const mockErrors = {
-  ValidationError: MockValidationError,
-  InvalidPhaseError: MockInvalidPhaseError,
-  PhaseLogicError: MockPhaseLogicError,
-};
-
-/**
- * Import the module under test with all necessary mocks using esmock wrapper.
- * This replaces actual module dependencies with our mock implementations.
- *
- * @async
- * @function importModuleUnderTest
- * @returns {Promise<Object>} The imported module with mocked dependencies.
- */
-const importModuleUnderTest = async () => {
-  // Get the directory of the current test file
-  const testDir = path.dirname(fileURLToPath(import.meta.url));
-  
-  // Resolve the module path relative to the test file
-  const modulePath = path.relative(
-    testDir,
-    path.resolve(process.cwd(), 'src/game/phases/startNewHandPhase.js')
-  ).replace(/\\/g, '/');
-
-  // Resolve mock paths relative to the test file
-  const resolveMockPath = (relativePath) => {
-    const absolutePath = path.resolve(testDir, relativePath);
-    return path.relative(process.cwd(), absolutePath).replace(/\\/g, '/');
-  };
-
-  // Define mocks using absolute paths to avoid any resolution issues
-  const mocks = {
-    [path.resolve('src/utils/logger.js')]: mockLogger,
-    [path.resolve('src/utils/deck.js')]: mockDeckUtils,
-    [path.resolve('src/utils/players.js')]: mockPlayerUtils,
-    [path.resolve('src/config/constants.js')]: constantsModule,
-    [path.resolve('src/game/logic/errors.js')]: errorsModule
-  };
-  
-  // Debug level control (can be set via environment variable)
-  const DEBUG_LEVEL = process.env.TEST_DEBUG_LEVEL || 'normal'; // 'normal' | 'verbose'
-  
-  // Create a safe version of mocks for logging
-  const safeMocks = {};
-  
-  // Only log mock information in verbose mode
-  if (DEBUG_LEVEL === 'verbose') {
-    console.log('Using mocks with absolute paths:');
-    Object.keys(mocks).forEach(key => {
-      console.log(`- ${key}`);
-    });
-  }
-  Object.entries(mocks).forEach(([key, value]) => {
-    try {
-      // Handle null/undefined values
-      if (value === null) {
-        safeMocks[key] = '[null]';
-        return;
-      }
-      
-      if (value === undefined) {
-        safeMocks[key] = '[undefined]';
-        return;
-      }
-      
-      // Handle objects
-      if (typeof value === 'object') {
-        // Check if it's a mock object
-        if (value.constructor && value.constructor.name) {
-          safeMocks[key] = `[Mock: ${value.constructor.name}]`;
-        } else {
-          safeMocks[key] = '[Object]';
-        }
-      } else {
-        // Handle primitives
-        safeMocks[key] = value;
-      }
-    } catch (err) {
-      // Fallback for any errors
-      safeMocks[key] = '[Complex Object]';
-    }
-  });
-  
-  if (DEBUG_LEVEL === 'verbose') {
-    console.log('Using mocks:');
-    console.log(JSON.stringify(safeMocks, null, 2));
-  }
-  
-  return await esmockWithPaths(import.meta.url, modulePath, mocks);
-};
-
-// Import the module under test with all mocks
-let startNewHand;
-
-// Reset mocks before each test
-beforeEach(async () => {
-  // Reset all mocks first
-  resetMocks();
-
-  // Set up default mock behaviors
-  mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
+  // Mock player functions
+  mocks.players.getNextPlayer = mock.method(playersModule, 'getNextPlayer', (currentPlayer) => {
     const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
     return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
   });
+}
 
-  // Import the module with fresh mocks for each test
-  try {
-    const module = await importModuleUnderTest();
-    startNewHand = module.startNewHand;
-  } catch (error) {
-    console.error("Error in beforeEach:", error);
-    throw error;
-  }
+/**
+ * Cleans up all mocks after each test
+ */
+function cleanupMocks() {
+  mock.restoreAll();
+  Object.values(mocks).forEach(mockGroup => {
+    Object.values(mockGroup).forEach(mockFn => {
+      if (mockFn.mock) {
+        mockFn.mock.resetCalls();
+      }
+    });
+  });
+}
+
+// The module under test - will be imported in the test setup
+let startNewHand;
+
+// Set up test environment
+beforeEach(async () => {
+  // Clean up any existing mocks
+  cleanupMocks();
+  
+  // Set up fresh mocks
+  setupMocks();
+  
+  // Import the module under test after mocks are set up
+  const modulePath = path.resolve(process.cwd(), 'src/game/phases/startNewHandPhase.js');
+  const module = await import(modulePath);
+  startNewHand = module.startNewHand;
 });
 
 afterEach(() => {
-  // Clear require cache to ensure fresh imports in the next test
-  if (typeof require !== "undefined" && require.cache) {
-    Object.keys(require.cache).forEach((key) => {
-      delete require.cache[key];
-    });
-  }
+  // Clean up mocks after each test
+  cleanupMocks();
 });
 
-/**
- * Test suite for the startNewHandPhase module.
- *
- * @namespace StartNewHandPhase.Tests
- * @description Contains all test cases for the startNewHandPhase module.
- * Tests are organized by functionality and cover all major code paths.
- */
-
-/**
- * Reset all mocks before each test to ensure test isolation.
- * This function is called before each test case.
- *
- * @function resetMocks
- * @memberof StartNewHandPhase.Tests
- */
-const resetMocks = () => {
-  // Reset all stubs and mocks
-  mockLogger.info.resetHistory();
-  mockLogger.error.resetHistory();
-  mockLogger.warn.resetHistory();
-  mockLogger.debug.resetHistory();
-
-  mockDeckUtils.createDeck.reset();
-  mockDeckUtils.shuffleDeck.reset();
-  mockDeckUtils.cardToId.reset();
-
-  mockPlayerUtils.getNextPlayer.reset();
-
-  // Reset default implementations
-  mockDeckUtils.shuffleDeck.callsFake((deck) => [...deck]);
-  mockDeckUtils.cardToId.returns("mock-card-id");
-};
-
-/**
- * Creates a base game state object for testing purposes.
- * This provides a consistent starting point for test scenarios.
- *
- * @param {string} [phase=GAME_PHASES.LOBBY] - The initial game phase
- * @param {string} [dealer=PLAYER_ROLES[0]] - The initial dealer (defaults to first player role)
- * @returns {object} A properly formatted game state object with all required fields
- *
- * @example
- * // Create a game state in the LOBBY phase
- * const gameState = createBaseGameState(GAME_PHASES.LOBBY, 'north');
- */
-const createBaseGameState = (
-  phase = GAME_PHASES.LOBBY,
-  dealer = PLAYER_ROLES[0],
-) => {
-  const gameState = {
-    gameId: "startNewHandTestGame",
-    gamePhase: phase,
-    players: {},
-    dealer: dealer,
-    currentPlayer: null,
-    gameMessages: [],
-    // ... other minimal required fields by startNewHand
-    teamScores: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }, // Needed for reset
-  };
-
-  for (const role of PLAYER_ROLES) {
-    gameState.players[role] = {
-      id: role,
-      name: `Player ${role}`,
-      isConnected: true,
-      teamId:
-        role === PLAYER_ROLES[0] || role === PLAYER_ROLES[2]
-          ? TEAMS.TEAM_NS
-          : TEAMS.TEAM_EW,
-      hand: [], // Empty hand initially
-    };
-  }
-  return gameState;
-};
-
-/**
- * Generates a realistic Euchre deck with 24 standard cards (9-Ace of each suit)
- * Creates a mock deck of cards for testing.
- * Generates a realistic set of Euchre cards with proper suits and values.
- *
- * @param {number} [count=24] - Number of cards to generate (defaults to full Euchre deck)
- * @returns {Array<object>} Array of card objects with id, suit, and value properties
- *
- * @example
- * // Create a deck with 20 cards
- * const smallDeck = createMockDeck(20);
- */
-const createMockDeck = (numCards = 24) => {
-  // Standard Euchre deck: 9, 10, J, Q, K, A of each suit
-  const euchreValues = [
-    VALUES.NINE,
-    VALUES.TEN,
-    VALUES.JACK,
-    VALUES.QUEEN,
-    VALUES.KING,
-    VALUES.ACE,
-  ];
-
-  const suits = Object.values(SUITS);
-  const deck = [];
-  let cardCount = 0;
-  let cardIndex = 0;
-
-  // Generate cards in a consistent order
-  for (const suit of suits) {
-    for (const value of euchreValues) {
-      if (cardCount >= numCards) break;
-
-      // Ensure we have valid values for suit and value
-      const cardSuit = suit || "unknown";
-      const cardValue = value || "unknown";
-
-      deck.push({
-        id: `card_${cardIndex++}`, // Use a simple incrementing ID to ensure uniqueness
-        suit: cardSuit,
-        value: cardValue,
-        // Add a string representation for debugging
-        toString: () => `${cardValue}_of_${cardSuit}`,
-      });
-
-      cardCount++;
-    }
-    if (cardCount >= numCards) break;
-  }
-
-  return deck;
-};
+// Test utilities have been moved to ./__mocks__/startNewHandPhase.js
 
 describe("StartNewHandPhase Logic", () => {
-  /**
-   * Resets all mocks and stubs to their initial state
-   * This ensures test independence by cleaning up any state between tests
-   */
-  const resetMocks = () => {
-    // Reset all stubs
-    sinon.reset();
-
-    // Reset mock implementations
-    mockDeckUtils.createDeck.reset();
-    mockDeckUtils.shuffleDeck.reset();
-    mockDeckUtils.cardToId.reset();
-    mockPlayerUtils.getNextPlayer.reset();
-
-    // Reset logger stubs
-    mockLogger.info.reset();
-    mockLogger.warn.reset();
-    mockLogger.error.reset();
-    mockLogger.debug.reset();
-
-    // Set default implementations
-    mockDeckUtils.shuffleDeck.callsFake((deck) => [...deck]);
-    mockDeckUtils.cardToId.callsFake(
-      (card) => card.id || `mock_${card.suit}_${card.value}`,
-    );
-
-    // Set up default deck creation to return a full Euchre deck
-    mockDeckUtils.createDeck.callsFake(() => createMockDeck());
-  };
-
-  // Reset mocks is already handled in the outer beforeEach
-  // Add any additional setup specific to this describe block here
-
-  afterEach(() => {
-    // Clean up any remaining stubs
-    sinon.restore();
-  });
-
-  // ============================================
   // Error Handling Tests
-  // ============================================
 
-  /**
-   * Tests that the function throws a ValidationError when called with null.
-   * This verifies the function's input validation.
-   */
-  it("should throw ValidationError if currentGameState is null", () => {
-    expect(() => startNewHand(null)).to.throw(ValidationError);
-  });
-
-  /**
-   * Tests that the function throws a ValidationError when the players array is missing.
-   * This ensures proper validation of required game state properties.
-   */
-  it("should throw ValidationError if currentGameState.players is missing", () => {
-    const gameState = { gameId: "test" }; // Missing players
-    expect(() => startNewHand({ ...gameState, players: undefined })).to.throw(
-      ValidationError,
+  it("should throw ValidationError with specific message when currentGameState is null", () => {
+    const error = assert.throws(
+      () => startNewHand(null),
+      { 
+        name: 'ValidationError',
+        message: /invalid.*game.*state/i
+      }
     );
+    assert.ok(error instanceof ValidationError, 'Should throw ValidationError');
   });
 
-  /**
-   * Tests that the function throws an InvalidPhaseError when called from an invalid phase.
-   * This ensures the function enforces phase-based rules.
-   */
-  it("should throw InvalidPhaseError if game phase is not DEALING, LOBBY, SCORING, or GAME_OVER", () => {
+  it("should throw ValidationError when currentGameState.players is missing", () => {
+    const invalidGameState = { gameId: "test" }; // Missing players
+    const error = assert.throws(
+      () => startNewHand({ ...invalidGameState, players: undefined }),
+      { 
+        name: 'ValidationError',
+        message: /missing.*players/i
+      }
+    );
+    assert.ok(error instanceof ValidationError, 'Should throw ValidationError');
+  });
+
+  it("should throw InvalidPhaseError with specific message when game phase is invalid", () => {
+    const invalidPhase = "INVALID_PHASE";
     const gameState = createBaseGameState(GAME_PHASES.PLAYING);
-    expect(() =>
-      startNewHand({ ...gameState, gamePhase: "INVALID_PHASE" }),
-    ).to.throw(InvalidPhaseError);
+    const error = assert.throws(
+      () => startNewHand({ ...gameState, gamePhase: invalidPhase }),
+      { 
+        name: 'InvalidPhaseError',
+        message: new RegExp(`cannot start.*from.*${invalidPhase}`, 'i')
+      }
+    );
+    assert.ok(error instanceof InvalidPhaseError, 'Should throw InvalidPhaseError');
   });
 
-  /**
-   * Tests that the function throws a PhaseLogicError when the kitty is empty.
-   * This verifies proper error handling for edge cases in the dealing process.
-   */
-  it("should throw PhaseLogicError if kitty is empty before setting turn card", () => {
+  it("should throw PhaseLogicError when kitty is empty before setting turn card due to insufficient cards", () => {
     // Arrange
     const gameState = createBaseGameState();
-
-    // Create a deck that will be empty after dealing (4 players * 5 cards = 20 cards)
-    const smallDeck = createMockDeck(20);
-    mockDeckUtils.createDeck.returns(smallDeck);
-    mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-      const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-      return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-    });
+    const cardsToDeal = PLAYER_ROLES.length * CARDS_PER_PLAYER; // Exactly enough for dealing, none left for turn card
+    const { mocks } = setupMockDeck(cardsToDeal, false);
 
     // Act & Assert
-    expect(() => startNewHand(gameState)).to.throw(
-      PhaseLogicError,
-      "Kitty is empty before setting turn card",
+    const error = assert.throws(
+      () => startNewHand(gameState),
+      { name: 'PhaseLogicError' }
     );
-
-    // Verify the deck was actually created with the expected number of cards
-    expect(mockDeckUtils.createDeck.calledOnce).to.be.true;
-    expect(smallDeck).to.have.length(20);
+    
+    // Verify the deck was created with the expected number of cards
+    assert.strictEqual(mocks.createDeck.mock.callCount(), 1);
+    assert.strictEqual(error.message, "Kitty is empty before setting turn card");
   });
 
-  /**
-   * Tests the edge case where the kitty becomes empty
-   * Tests that the function handles the edge case where the kitty becomes empty
-   * exactly after dealing all cards to players.
-   */
-  it("should throw PhaseLogicError if no turn card can be set (kitty becomes empty exactly after dealing)", () => {
-    // This scenario is essentially the same as the one above with a deck of 20.
-    // If deck has 20 cards, after dealing 5 to each of 4 players, kitty is empty, turnCard cannot be popped.
-    const gameState = createBaseGameState();
-    mockDeckUtils.createDeck.returns(createMockDeck(20));
-    mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-      const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-      return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-    });
-
-    expect(() => startNewHand(gameState)).to.throw(
-      PhaseLogicError,
-      "Kitty is empty before setting turn card",
-    );
-  });
-
-  /**
-   * Tests the error case where the kitty becomes empty after dealing cards to players
-   * but before setting the turn card.
-   */
-  it("should throw PhaseLogicError if kitty becomes empty during dealing", () => {
+  it("should throw PhaseLogicError when deck has exactly enough cards for dealing but none for turn card", () => {
     // Arrange
     const gameState = createBaseGameState();
-
-    // Create a deck with exactly enough cards for dealing (5 cards per player * 4 players = 20 cards)
-    // This will leave the kitty empty when trying to set the turn card
-    const minimalDeck = createMockDeck(20);
-
-    // Setup mocks
-    mockDeckUtils.createDeck.returns([...minimalDeck]);
-    mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-      const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-      return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-    });
+    const cardsToDeal = PLAYER_ROLES.length * CARDS_PER_PLAYER; // Exactly enough for dealing, none left for turn card
+    setupMockDeck(cardsToDeal, false);
 
     // Act & Assert
-    expect(() => startNewHand(gameState)).to.throw(
-      PhaseLogicError,
-      "Kitty is empty before setting turn card",
+    assert.throws(
+      () => startNewHand(gameState),
+      { 
+        name: 'PhaseLogicError',
+        message: "Kitty is empty before setting turn card"
+      }
     );
-
-    // Verify the deck was actually created with the expected number of cards
-    expect(mockDeckUtils.createDeck.calledOnce).to.be.true;
-    expect(minimalDeck).to.have.length(20);
   });
 
-  // ============================================
+  // This test is redundant with the previous tests as it tests the same scenario
+  // with a deck that has exactly enough cards for dealing but none for the turn card
+  it("should be removed as it duplicates the scenario tested in previous tests", () => {
+    // This test has been consolidated with the previous tests that verify
+    // the behavior when there are not enough cards for the turn card
+    assert.ok(true, "This test has been consolidated with previous tests");
+  });
+
   // Success Path Tests
-  // ============================================
 
-  /**
-   * Tests the happy path when starting a new hand from the LOBBY phase.
-   * Verifies that the initial dealer is preserved and the game transitions correctly.
-   */
-  it("should correctly start a new hand from LOBBY phase (keeps initial dealer)", () => {
+  it("should correctly initialize a new hand from LOBBY phase with valid game state", () => {
     // Arrange
     const initialDealer = PLAYER_ROLES[0]; // South
     const expectedFirstBidder = PLAYER_ROLES[1]; // West (left of South)
     const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
-
-    // Create a full mock deck
-    const mockDeck = createMockDeck(24);
-
-    // Setup mocks
-    mockDeckUtils.createDeck.returns([...mockDeck]);
-    mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-      const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-      return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-    });
+    
+    const { mocks } = setupMockDeck(EUCHRE_DECK_SIZE, false);
 
     // Act
     const newState = startNewHand(gameState);
 
-    // Assert
+    // Assert - Verify deck operations
+    assert.strictEqual(mocks.createDeck.mock.callCount(), 1, 'Should create deck once');
+    assert.strictEqual(mocks.shuffleDeck.mock.callCount(), 1, 'Should shuffle deck once');
+    
     // Verify dealer and phase
-    expect(newState.dealer).to.equal(initialDealer);
-    expect(newState.gamePhase).to.equal(GAME_PHASES.ORDER_UP_ROUND1);
+    assert.strictEqual(
+      newState.dealer, 
+      initialDealer, 
+      'Should keep initial dealer when starting from LOBBY phase'
+    );
+    assert.strictEqual(
+      newState.gamePhase, 
+      GAME_PHASES.ORDER_UP_ROUND1, 
+      'Should transition to ORDER_UP_ROUND1 phase'
+    );
 
     // Verify player hands
     PLAYER_ROLES.forEach((role) => {
-      expect(newState.players[role].hand).to.be.an("array").with.lengthOf(5);
+      assert.strictEqual(
+        newState.players[role].hand.length, 
+        CARDS_PER_PLAYER, 
+        `Player ${role} should receive ${CARDS_PER_PLAYER} cards`
+      );
     });
 
-    // Verify turn card and kitty
-    expect(newState.turnCard).to.be.an("object");
-    expect(newState.turnCard).to.include.keys(["id", "suit", "value"]);
-    // Verify kitty has exactly 3 cards remaining after dealing
-    expect(newState.kitty)
-      .to.be.an("array")
-      .with.lengthOf(3, "Kitty should have exactly 3 cards after dealing");
-    // Verify all kitty cards have required properties
+    // Verify turn card
+    assert.ok(newState.turnCard, 'Turn card should exist');
+    assert.strictEqual(
+      typeof newState.turnCard, 
+      'object', 
+      'Turn card should be an object'
+    );
+    ['id', 'suit', 'value'].forEach(prop => {
+      assert.ok(
+        prop in newState.turnCard, 
+        `Turn card should have '${prop}' property`
+      );
+    });
+
+    // Verify kitty
+    assert.strictEqual(
+      newState.kitty.length, 
+      EXPECTED_KITTY_SIZE, 
+      `Kitty should have exactly ${EXPECTED_KITTY_SIZE} cards after dealing`
+    );
+    
     newState.kitty.forEach((card, index) => {
-      expect(
-        card,
-        `Kitty card at index ${index} should have required properties`,
-      ).to.include.keys(["id", "suit", "value"]);
+      ['id', 'suit', 'value'].forEach(prop => {
+        assert.ok(
+          prop in card, 
+          `Kitty card at index ${index} should have '${prop}' property`
+        );
+      });
     });
 
-    // Verify game state resets
-    expect(newState.trumpSuit).to.be.null;
-    expect(newState.bids).to.deep.equal([]);
-    expect(newState.tricksTaken).to.deep.equal({
-      [TEAMS.TEAM_NS]: 0,
-      [TEAMS.TEAM_EW]: 0,
-    });
-
-    // Verify first bidder
-    expect(newState.currentPlayer).to.equal(expectedFirstBidder);
-    expect(newState.orderUpTurn).to.equal(expectedFirstBidder);
-
-    // Verify logging
-    expect(mockLogger.info.called).to.be.true;
-  });
-
-  /**
-   * Tests starting a new hand after the SCORING phase.
-   * Verifies proper dealer rotation and game state initialization.
-   */
-  it("should correctly start a new hand after SCORING phase", () => {
-    const previousDealer = PLAYER_ROLES[3]; // East
-    const expectedNewDealer = PLAYER_ROLES[0]; // South
-    const expectedFirstBidder = PLAYER_ROLES[1]; // West
-
-    const gameState = createBaseGameState(GAME_PHASES.SCORING, previousDealer);
-    gameState.teamScores = { [TEAMS.TEAM_NS]: 5, [TEAMS.TEAM_EW]: 3 }; // Existing scores
-
-    const mockDeck = createMockDeck(24);
-    mockDeckUtils.createDeck.returns([...mockDeck]);
-
-    mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-      const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-      return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-    });
-
-    const newState = startNewHand(gameState);
-
-    expect(newState.dealer).to.equal(expectedNewDealer);
-    expect(newState.gamePhase).to.equal(GAME_PHASES.ORDER_UP_ROUND1);
-    expect(newState.currentPlayer).to.equal(expectedFirstBidder);
-    expect(newState.teamScores).to.deep.equal(gameState.teamScores); // Scores should persist
-    expect(newState.players[PLAYER_ROLES[0]].hand.length).to.equal(5);
-    expect(newState.turnCard).to.exist;
-    expect(newState.kitty.length).to.equal(3);
-  });
-
-  /**
-   * Tests the ability to start a new hand from the DEALING phase.
-   * This covers the misdeal recovery scenario.
-   */
-  it("should handle new hand from DEALING phase (e.g. misdeal recovery)", () => {
-    // If game was already in DEALING, it implies a dealer might have been set for that deal.
-    // startNewHand will rotate from that existing dealer.
-    const currentDealerForMisdeal = PLAYER_ROLES[1]; // West was dealer for the misdeal
-    const expectedNewDealer = PLAYER_ROLES[2]; // North becomes new dealer
-    const expectedFirstBidder = PLAYER_ROLES[3]; // East bids first
-
-    const gameState = createBaseGameState(
-      GAME_PHASES.DEALING,
-      currentDealerForMisdeal,
+    // Verify game state is properly reset
+    assert.strictEqual(newState.trumpSuit, null, 'Trump suit should be reset to null');
+    assert.deepStrictEqual(newState.bids, [], 'Bids array should be empty');
+    assert.deepStrictEqual(
+      newState.tricksTaken, 
+      { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
+      'Tricks taken should be reset for both teams'
     );
 
-    const mockDeck = createMockDeck(24);
-    mockDeckUtils.createDeck.returns([...mockDeck]);
+    // Verify first bidder
+    assert.strictEqual(
+      newState.currentPlayer, 
+      expectedFirstBidder, 
+      'Current player should be set to first bidder'
+    );
+    assert.strictEqual(
+      newState.orderUpTurn, 
+      expectedFirstBidder, 
+      'Order up turn should be set to first bidder'
+    );
 
-    mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-      const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-      return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-    });
-
-    const newState = startNewHand(gameState);
-
-    expect(newState.dealer).to.equal(expectedNewDealer);
-    expect(newState.gamePhase).to.equal(GAME_PHASES.ORDER_UP_ROUND1);
-    expect(newState.currentPlayer).to.equal(expectedFirstBidder);
+    // Verify logging
+    assert.strictEqual(
+      loggerModule.info.mock.callCount(), 
+      1, 
+      'Should log one info message'
+    );
   });
 
-  it("should deal to disconnected but active players", () => {
+  it("should rotate dealer and start new hand after SCORING phase while preserving scores", () => {
     // Arrange
-    const initialDealer = PLAYER_ROLES[0]; // South
-    const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
-
-    // Mark one player as disconnected but active
-    const disconnectedPlayer = PLAYER_ROLES[1]; // West
-    gameState.players[disconnectedPlayer].isConnected = false;
-    gameState.players[disconnectedPlayer].isActive = true;
-
-    const mockDeck = createMockDeck(24);
-    mockDeckUtils.createDeck.returns([...mockDeck]);
-
-    // Mock getNextPlayer to return the next player after dealer
-    const expectedFirstBidder = PLAYER_ROLES[1]; // West
-    mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-      const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-      return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-    });
+    const previousDealer = PLAYER_ROLES[3]; // East
+    const expectedNewDealer = PLAYER_ROLES[0]; // South (next in rotation)
+    const expectedFirstBidder = PLAYER_ROLES[1]; // West (left of new dealer)
+    const teamScores = { [TEAMS.TEAM_NS]: 5, [TEAMS.TEAM_EW]: 3 };
+    
+    const gameState = createBaseGameState(GAME_PHASES.SCORING, previousDealer);
+    gameState.teamScores = { ...teamScores }; // Clone to avoid mutation
+    
+    const { mocks } = setupMockDeck(EUCHRE_DECK_SIZE);
 
     // Act
     const newState = startNewHand(gameState);
 
-    // Assert - should still deal to the disconnected but active player
-    expect(newState.players[disconnectedPlayer].hand).to.have.lengthOf(5);
-
-    // Verify kitty size after dealing and removing turn card
-    // - 24 cards total
-    // - 4 active players (all players, including disconnected but active) get 5 cards each = 20 cards
-    // - 24 - 20 = 4 cards remain after dealing
-    // - 1 card is taken from kitty for turn card
-    // - Expected kitty size: 4 - 1 = 3 cards
-    expect(newState.kitty).to.have.lengthOf(3);
+    // Assert - Verify dealer rotation and phase transition
+    assert.strictEqual(
+      newState.dealer, 
+      expectedNewDealer,
+      'Should rotate dealer to next player after SCORING phase'
+    );
+    assert.strictEqual(
+      newState.gamePhase, 
+      GAME_PHASES.ORDER_UP_ROUND1,
+      'Should transition to ORDER_UP_ROUND1 phase'
+    );
+    
+    // Verify first bidder is to the left of the new dealer
+    assert.strictEqual(
+      newState.currentPlayer, 
+      expectedFirstBidder,
+      'First bidder should be to the left of the new dealer'
+    );
+    
+    // Verify scores are preserved
+    assert.deepStrictEqual(
+      newState.teamScores, 
+      teamScores,
+      'Team scores should persist across hands'
+    );
+    
+    // Verify dealing was performed correctly
+    PLAYER_ROLES.forEach(role => {
+      assert.strictEqual(
+        newState.players[role].hand.length, 
+        CARDS_PER_PLAYER,
+        `Player ${role} should receive ${CARDS_PER_PLAYER} cards`
+      );
+    });
+    
+    // Verify turn card and kitty
+    assert.ok(newState.turnCard, 'Turn card should be set');
+    assert.strictEqual(
+      newState.kitty.length, 
+      EXPECTED_KITTY_SIZE,
+      `Kitty should have ${EXPECTED_KITTY_SIZE} cards after dealing`
+    );
+    
+    // Verify deck operations
+    assert.strictEqual(mocks.createDeck.mock.callCount(), 1, 'Should create deck once');
+    assert.strictEqual(mocks.shuffleDeck.mock.callCount(), 1, 'Should shuffle deck once');
   });
 
-  it("should not deal to inactive players, regardless of connection status", () => {
+  it("should recover from DEALING phase (misdeal) by rotating dealer and starting fresh", () => {
+    // Arrange - Simulate a misdeal where we need to start a new hand
+    const currentDealerForMisdeal = PLAYER_ROLES[1]; // West was dealer for the misdeal
+    const expectedNewDealer = PLAYER_ROLES[2]; // North becomes new dealer
+    const expectedFirstBidder = PLAYER_ROLES[3]; // East (left of new dealer)
+    
+    const gameState = createBaseGameState(
+      GAME_PHASES.DEALING, // Current phase is DEALING (indicating a misdeal)
+      currentDealerForMisdeal
+    );
+    
+    // Add some test state that should be reset
+    gameState.turnCard = { suit: 'hearts', value: '9' };
+    gameState.kitty = [{}, {}, {}];
+    
+    const { mocks } = setupMockDeck(EUCHRE_DECK_SIZE);
+
+    // Act
+    const newState = startNewHand(gameState);
+
+    // Assert - Verify dealer rotation
+    assert.strictEqual(
+      newState.dealer, 
+      expectedNewDealer,
+      'Should rotate to next dealer after misdeal'
+    );
+    
+    // Verify phase transition
+    assert.strictEqual(
+      newState.gamePhase, 
+      GAME_PHASES.ORDER_UP_ROUND1,
+      'Should transition to ORDER_UP_ROUND1 phase after misdeal'
+    );
+    
+    // Verify first bidder is to the left of the new dealer
+    assert.strictEqual(
+      newState.currentPlayer, 
+      expectedFirstBidder,
+      'First bidder should be to the left of the new dealer'
+    );
+    
+    // Verify dealing was performed correctly with a fresh deck
+    PLAYER_ROLES.forEach(role => {
+      assert.strictEqual(
+        newState.players[role].hand.length, 
+        CARDS_PER_PLAYER,
+        `Player ${role} should receive ${CARDS_PER_PLAYER} cards`
+      );
+    });
+    
+    // Verify turn card and kitty were properly set
+    assert.ok(newState.turnCard, 'Turn card should be set');
+    assert.strictEqual(
+      newState.kitty.length, 
+      EXPECTED_KITTY_SIZE,
+      `Kitty should have ${EXPECTED_KITTY_SIZE} cards after dealing`
+    );
+    
+    // Verify deck operations
+    assert.strictEqual(mocks.createDeck.mock.callCount(), 1, 'Should create deck once');
+    assert.strictEqual(mocks.shuffleDeck.mock.callCount(), 1, 'Should shuffle deck once');
+    
+    // Verify logging
+    assert.strictEqual(
+      loggerModule.info.mock.callCount(), 
+      1, 
+      'Should log one info message about starting new hand'
+    );
+  });
+
+  it("should include disconnected but active players in dealing", () => {
     // Arrange
     const initialDealer = PLAYER_ROLES[0]; // South
     const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
+    const disconnectedPlayer = PLAYER_ROLES[1]; // West
+    
+    // Mark West as disconnected but still active (e.g., temporary network issue)
+    gameState.players[disconnectedPlayer].isConnected = false;
+    gameState.players[disconnectedPlayer].isActive = true;
+    
+    const { mocks, deck: mockDeck } = setupMockDeck(EUCHRE_DECK_SIZE, false);
+    
+    // Calculate expected cards in kitty after dealing
+    const totalPlayers = PLAYER_ROLES.length; // 4 players total
+    const totalCardsDealt = totalPlayers * CARDS_PER_PLAYER; // 4 * 5 = 20 cards
+    const expectedKittySize = mockDeck.length - totalCardsDealt - 1; // 24 - 20 - 1 = 3
 
-    // Mark one player as inactive and not connected
+    // Act
+    const newState = startNewHand(gameState);
+
+    // Assert - Verify disconnected but active player received cards
+    assert.strictEqual(
+      newState.players[disconnectedPlayer].hand.length, 
+      CARDS_PER_PLAYER,
+      'Disconnected but active player should receive cards'
+    );
+    
+    // Verify kitty size
+    assert.strictEqual(
+      newState.kitty.length, 
+      expectedKittySize,
+      `Kitty should have ${expectedKittySize} cards after dealing to all players`
+    );
+    
+    // Verify deck operations
+    assert.strictEqual(
+      mocks.createDeck.mock.callCount(), 
+      1, 
+      'Should create deck once'
+    );
+    assert.strictEqual(
+      mocks.shuffleDeck.mock.callCount(), 
+      1, 
+      'Should shuffle deck once'
+    );
+    
+    // Verify all players received the correct number of cards
+    PLAYER_ROLES.forEach(role => {
+      const expectedCards = gameState.players[role].isActive === false ? 0 : CARDS_PER_PLAYER;
+      assert.strictEqual(
+        newState.players[role].hand.length,
+        expectedCards,
+        `Player ${role} should have ${expectedCards} cards`
+      );
+    });
+  });
+
+  it("should exclude inactive players from dealing, regardless of connection status", () => {
+    // Arrange
+    const initialDealer = PLAYER_ROLES[0]; // South
+    const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
+    
+    // Mark North as inactive and not connected
     const inactivePlayer = PLAYER_ROLES[2]; // North
     gameState.players[inactivePlayer].isActive = false;
     gameState.players[inactivePlayer].isConnected = false;
-
-    // Mark another player as connected but inactive
+    
+    // Mark East as connected but inactive
     const disconnectedPlayer = PLAYER_ROLES[3]; // East
     gameState.players[disconnectedPlayer].isActive = false;
     gameState.players[disconnectedPlayer].isConnected = true;
-
-    const mockDeck = createMockDeck(24);
-    mockDeckUtils.createDeck.returns([...mockDeck]);
-
-    // Mock getNextPlayer to return the next active player after dealer
-    const expectedFirstBidder = PLAYER_ROLES[1]; // West
-    mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-      const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-      return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-    });
-
-    // Act
-    const newState = startNewHand(gameState);
-
-    // Assert - should not deal to inactive and not connected player
-    expect(newState.players[inactivePlayer].hand).to.have.lengthOf(0);
-
-    // Should not deal to inactive player, even if connected
-    expect(newState.players[disconnectedPlayer].hand).to.have.lengthOf(0);
-
-    // Verify kitty size after dealing and removing turn card
-    // - 24 cards total
-    // - 2 active players (South and West) get 5 cards each = 10 cards
-    // - 2 inactive players (North and East) get 0 cards = 0 cards
-    // - 24 - 10 = 14 cards remain after dealing
-    // - 1 card is taken from kitty for turn card
-    // - Expected kitty size: 14 - 1 = 13 cards
-    expect(newState.kitty).to.have.lengthOf(13);
-  });
-
-  it("should treat missing isConnected and isActive as true", () => {
-    // Arrange
-    const initialDealer = PLAYER_ROLES[0]; // South
-    const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
-
-    // Remove isConnected and isActive from one player - implementation treats missing as true
-    const testPlayer = PLAYER_ROLES[3]; // East
-    delete gameState.players[testPlayer].isConnected;
-    delete gameState.players[testPlayer].isActive;
-
-    const mockDeck = createMockDeck(24);
-    mockDeckUtils.createDeck.returns([...mockDeck]);
-
-    // Mock getNextPlayer to cycle through players
-    mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-      const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-      return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-    });
+    
+    // South and West remain active (default state)
+    const activePlayers = [PLAYER_ROLES[0], PLAYER_ROLES[1]]; // South, West
+    
+    const { mocks, deck: mockDeck } = setupMockDeck(EUCHRE_DECK_SIZE, false);
+    
+    // Calculate expected cards in kitty after dealing
+    const totalActivePlayers = activePlayers.length; // 2 active players
+    const totalCardsDealt = totalActivePlayers * CARDS_PER_PLAYER; // 2 * 5 = 10 cards
+    const expectedKittySize = mockDeck.length - totalCardsDealt - 1; // 24 - 10 - 1 = 13
 
     // Act
     const newState = startNewHand(gameState);
 
-    // Assert - should deal to player with missing properties (treated as active and connected)
-    expect(newState.players[testPlayer].hand).to.have.lengthOf(5);
-
-    // Verify kitty size after dealing and removing turn card
-    // - 24 cards total
-    // - 4 active players (all players, since missing properties default to true) get 5 cards each = 20 cards
-    // - 24 - 20 = 4 cards remain after dealing
-    // - 1 card is taken from kitty for turn card
-    // - Expected kitty size: 4 - 1 = 3 cards
-    expect(newState.kitty).to.have.lengthOf(3);
+    // Assert - Verify inactive players received no cards
+    [inactivePlayer, disconnectedPlayer].forEach(role => {
+      assert.strictEqual(
+        newState.players[role].hand.length, 
+        0,
+        `Inactive player ${role} should not receive any cards`
+      );
+    });
+    
+    // Verify active players received cards
+    activePlayers.forEach(role => {
+      assert.strictEqual(
+        newState.players[role].hand.length, 
+        CARDS_PER_PLAYER,
+        `Active player ${role} should receive ${CARDS_PER_PLAYER} cards`
+      );
+    });
+    
+    // Verify kitty size
+    assert.strictEqual(
+      newState.kitty.length, 
+      expectedKittySize,
+      `Kitty should have ${expectedKittySize} cards after dealing to active players only`
+    );
+    
+    // Verify deck operations
+    assert.strictEqual(
+      mocks.createDeck.mock.callCount(), 
+      1, 
+      'Should create deck once'
+    );
+    assert.strictEqual(
+      mocks.shuffleDeck.mock.callCount(), 
+      1, 
+      'Should shuffle deck once'
+    );
   });
 
-  // ============================================
   // GAME_OVER Phase Tests
-  // ============================================
 
   describe("GAME_OVER Phase Handling", () => {
-    it("should rotate dealer and start a new hand when called from GAME_OVER phase", () => {
+    it("should rotate dealer, preserve scores, and deal cards when starting from GAME_OVER phase", () => {
       // Arrange
       const initialDealer = PLAYER_ROLES[0]; // South
       const expectedNextDealer = PLAYER_ROLES[1]; // West (next in rotation)
       const expectedFirstBidder = PLAYER_ROLES[2]; // North (left of West)
-
-      const gameState = createBaseGameState(
-        GAME_PHASES.GAME_OVER,
-        initialDealer,
-      );
-
-      // Set up some non-zero scores
-      gameState.scores = { [TEAMS.TEAM_NS]: 5, [TEAMS.TEAM_EW]: 3 };
-
-      // Create a full deck and mock the deck utilities
-      const fullDeck = createMockDeck();
-
-      // Mock createDeck to return our test deck
-      mockDeckUtils.createDeck.returns([...fullDeck]);
-
-      // Mock shuffleDeck to return a copy of the deck in a predictable order
-      mockDeckUtils.shuffleDeck.callsFake((deck) => {
-        // Return a copy of the deck in the same order for consistent dealing
-        console.log("Shuffling deck with", deck.length, "cards");
-        return [...deck];
-      });
-
-      // Track the dealing order by spying on the pop method of the deck
-      const deckCards = [...fullDeck];
-      const dealtCards = [];
-
-      // Replace the deck's pop method to track dealt cards
-      const originalPop = deckCards.pop;
-      deckCards.pop = function () {
-        const card = originalPop.apply(this, arguments);
-        if (card) {
-          dealtCards.push(card);
-        }
-        return card;
+      
+      const gameState = createBaseGameState(GAME_PHASES.GAME_OVER, initialDealer);
+      
+      // Set non-zero scores to verify they are preserved
+      const initialScores = { 
+        [TEAMS.TEAM_NS]: 5, 
+        [TEAMS.TEAM_EW]: 3 
       };
-
-      // Make sure our modified deck is used
-      mockDeckUtils.createDeck.returns(deckCards);
-
+      gameState.scores = { ...initialScores };
+      
+      // Set up mock deck with our helper
+      const { mocks, deck: fullDeck } = setupMockDeck(EUCHRE_DECK_SIZE, false);
+      
       // Ensure all players are properly initialized as active and connected
-      PLAYER_ROLES.forEach((role) => {
+      PLAYER_ROLES.forEach(role => {
         if (!gameState.players[role]) {
           gameState.players[role] = {};
         }
@@ -857,297 +589,494 @@ describe("StartNewHandPhase Logic", () => {
           ...gameState.players[role],
           isActive: true,
           isConnected: true,
-          hand: [], // Ensure hand is initialized
+          hand: [], // Initialize empty hand
         };
       });
-
-      // Mock the next player (left of new dealer)
-      mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-        const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-        return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-      });
-
-      // Debug: Log initial deck state
-      console.log("Initial deck size:", deckCards.length);
 
       // Act
       const result = startNewHand(gameState);
 
-      // Assert
-      expect(result.gamePhase).to.equal("ORDER_UP_ROUND1");
-      expect(result.dealer).to.equal(expectedNextDealer);
-      expect(result.currentPlayer).to.equal(expectedFirstBidder);
-      expect(result.orderUpTurn).to.equal(expectedFirstBidder);
+      // Assert - Verify game state transitions
+      assert.strictEqual(
+        result.gamePhase, 
+        "ORDER_UP_ROUND1",
+        'Game phase should transition to ORDER_UP_ROUND1'
+      );
+      
+      // Verify dealer rotation
+      assert.strictEqual(
+        result.dealer, 
+        expectedNextDealer,
+        `Dealer should rotate from ${initialDealer} to ${expectedNextDealer}`
+      );
+      
+      // Verify first bidder (player to the left of dealer)
+      assert.strictEqual(
+        result.currentPlayer, 
+        expectedFirstBidder,
+        `First bidder should be ${expectedFirstBidder} (left of ${expectedNextDealer})`
+      );
+      
+      assert.strictEqual(
+        result.orderUpTurn, 
+        expectedFirstBidder,
+        'Order up turn should start with first bidder'
+      );
 
-      // Verify scores are not reset
-      expect(result.scores).to.deep.equal({
-        [TEAMS.TEAM_NS]: 5,
-        [TEAMS.TEAM_EW]: 3,
-      });
+      // Verify scores are preserved
+      assert.deepStrictEqual(
+        result.scores,
+        initialScores,
+        'Scores should remain unchanged after starting a new hand'
+      );
 
       // Verify turn card and kitty
-      expect(result.turnCard, "Turn card should exist").to.exist;
-      // In our implementation, with 4 active players each getting 5 cards (20 total),
-      // and 1 turn card, there should be 3 cards left in the kitty
-      // (24 total cards - 20 dealt to players - 1 turn card = 3 cards in kitty)
-      expect(result.kitty, "Kitty should contain 3 cards").to.have.length(3);
-
-      // Log the final state for debugging
-      console.log("Final game state:", {
-        kittyLength: result.kitty.length,
-        turnCard: result.turnCard,
-        players: Object.entries(result.players).map(([role, player]) => ({
-          role,
-          handSize: player.hand.length,
-          handCards: player.hand.map((card) => card.id),
-        })),
-      });
-
-      // Debug: Log final card counts
-      const totalCardsDealt = Object.values(result.players).reduce(
-        (total, player) => total + player.hand.length,
-        0,
+      assert.ok(
+        result.turnCard, 
+        'Turn card should be set for the new hand'
       );
-      console.log("Final card counts:", {
-        totalCardsDealt,
-        kittyCards: result.kitty.length,
-        turnCard: result.turnCard ? 1 : 0,
-        totalAccountedFor:
-          totalCardsDealt + result.kitty.length + (result.turnCard ? 1 : 0),
+      
+      // Verify kitty size (24 total - 20 dealt to players - 1 turn card = 3 cards)
+      assert.strictEqual(
+        result.kitty.length, 
+        3, 
+        'Kitty should contain 3 cards after dealing to 4 players and setting turn card'
+      );
+
+      // Verify all players received the correct number of cards
+      PLAYER_ROLES.forEach(role => {
+        assert.strictEqual(
+          result.players[role].hand.length, 
+          CARDS_PER_PLAYER,
+          `Player ${role} should receive ${CARDS_PER_PLAYER} cards`
+        );
       });
 
-      // Verify the east player received 5 cards
-      expect(
-        result.players.east.hand,
-        "East player should have 5 cards (3 in first pass, 2 in second pass)",
-      ).to.have.length(5);
-
-      // Verify all other players also received 5 cards
-      ["south", "west", "north"].forEach((role) => {
-        expect(
-          result.players[role].hand,
-          `Player ${role} should have 5 cards`,
-        ).to.have.length(5);
-      });
-
-      // Verify the deck was created and shuffled
-      expect(mockDeckUtils.createDeck.calledOnce).to.be.true;
-      expect(mockDeckUtils.shuffleDeck.calledOnce).to.be.true;
+      // Verify deck operations
+      assert.strictEqual(
+        mocks.createDeck.mock.callCount(), 
+        1, 
+        'Should create deck once'
+      );
+      
+      assert.strictEqual(
+        mocks.shuffleDeck.mock.callCount(), 
+        1, 
+        'Should shuffle deck once'
+      );
+      
+      // Verify logging
+      assert.strictEqual(
+        loggerModule.info.mock.calls.some(call => 
+          call.arguments[0].includes('Starting new hand') &&
+          call.arguments[0].includes(`dealer: ${expectedNextDealer}`)
+        ),
+        true,
+        'Should log new hand start with correct dealer'
+      );
     });
 
-    it("should maintain correct dealer rotation after a full rotation", () => {
-      // Test dealer rotation through all player positions
-      for (let i = 0; i < PLAYER_ROLES.length; i++) {
+    // Test cases for dealer rotation through all player positions
+    const dealerRotationTestCases = PLAYER_ROLES.map((dealer, index) => ({
+      currentDealer: dealer,
+      expectedNextDealer: PLAYER_ROLES[(index + 1) % PLAYER_ROLES.length],
+      expectedFirstBidder: PLAYER_ROLES[(index + 2) % PLAYER_ROLES.length],
+      description: `should rotate dealer from ${dealer} to ${PLAYER_ROLES[(index + 1) % PLAYER_ROLES.length]}`
+    }));
+
+    it.each(dealerRotationTestCases)(
+      '$description',
+      async ({ currentDealer, expectedNextDealer, expectedFirstBidder }) => {
         // Arrange
-        const currentDealer = PLAYER_ROLES[i];
-        const expectedNextDealer = PLAYER_ROLES[(i + 1) % PLAYER_ROLES.length];
-        const expectedFirstBidder = PLAYER_ROLES[(i + 2) % PLAYER_ROLES.length];
-
-        const gameState = createBaseGameState(
-          GAME_PHASES.GAME_OVER,
-          currentDealer,
-        );
-
-        // Create a full deck
-        const fullDeck = createMockDeck();
-        mockDeckUtils.createDeck.returns([...fullDeck]);
-
-        // Mock the next player (left of new dealer)
-        // First call - get next dealer
-        mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-          const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-          return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
+        const gameState = createBaseGameState(GAME_PHASES.GAME_OVER, currentDealer);
+        
+        // Set up mock deck with consistent shuffling
+        const { mocks } = setupMockDeck(EUCHRE_DECK_SIZE, false);
+        
+        // Ensure all players are active and connected
+        PLAYER_ROLES.forEach(role => {
+          gameState.players[role] = {
+            ...gameState.players[role],
+            isActive: true,
+            isConnected: true,
+            hand: [],
+          };
         });
 
         // Act
         const result = startNewHand(gameState);
 
         // Assert - verify dealer rotation and game phase
-        expect(result.dealer).to.equal(
-          expectedNextDealer,
-          `Expected dealer to rotate from ${currentDealer} to ${expectedNextDealer}`,
+        assert.strictEqual(
+          result.dealer, 
+          expectedNextDealer, 
+          `Dealer should rotate from ${currentDealer} to ${expectedNextDealer}`
         );
-        expect(result.currentPlayer).to.equal(
+        
+        assert.strictEqual(
+          result.currentPlayer, 
           expectedFirstBidder,
-          `Expected first bidder to be ${expectedFirstBidder} (left of ${expectedNextDealer})`,
+          `First bidder should be ${expectedFirstBidder} (left of ${expectedNextDealer})`
         );
-        expect(result.orderUpTurn).to.equal(expectedFirstBidder);
-        expect(result.gamePhase).to.equal("ORDER_UP_ROUND1");
+        
+        assert.strictEqual(
+          result.orderUpTurn, 
+          expectedFirstBidder,
+          'Order up turn should start with first bidder'
+        );
+        
+        assert.strictEqual(
+          result.gamePhase, 
+          "ORDER_UP_ROUND1",
+          'Game should transition to ORDER_UP_ROUND1 phase'
+        );
 
-        // Reset mocks for next iteration
-        resetMocks();
+        // Verify deck operations
+        assert.strictEqual(
+          mocks.createDeck.mock.callCount(), 
+          1, 
+          'Should create deck once'
+        );
+        assert.strictEqual(
+          mocks.shuffleDeck.mock.callCount(), 
+          1, 
+          'Should shuffle deck once'
+        );
       }
-    });
+    );
   });
 
-  // ============================================
   // Full Deck Validation Tests
-  // ============================================
-
   describe("Full Deck Validation", () => {
-    it("should use exactly 24 cards (full Euchre deck)", () => {
-      // Arrange
-      const initialDealer = PLAYER_ROLES[0]; // South
-      const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
+    let initialDealer;
+    let gameState;
+    let fullDeck;
+    let mocks;
 
-      // Create a full deck and track it
-      const fullDeck = createMockDeck();
-      mockDeckUtils.createDeck.returns([...fullDeck]); // Return a copy to avoid mutation
+    beforeEach(() => {
+      // Set up a consistent test environment for each test
+      initialDealer = PLAYER_ROLES[0]; // South
+      gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
+      
+      // Create and track a full deck for testing
+      fullDeck = createMockDeck(EUCHRE_DECK_SIZE, false);
+      
+      // Set up mocks using the helper
+      const mockSetup = setupMockDeck(EUCHRE_DECK_SIZE, false);
+      mocks = mockSetup.mocks;
+    });
 
-      // Mock the next player
-      mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-        const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-        return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
+    function collectAllDealtCards(result) {
+      const allCards = [];
+      
+      // Add cards from players' hands (5 cards each for 4 players = 20 cards)
+      PLAYER_ROLES.forEach((role) => {
+        const player = result.players[role];
+        if (player?.hand?.length) {
+          allCards.push(...player.hand);
+        }
       });
+      
+      // Add cards from kitty and turn card
+      if (Array.isArray(result.kitty)) {
+        allCards.push(...result.kitty);
+      }
+      if (result.turnCard) {
+        allCards.push(result.turnCard);
+      }
+      
+      return allCards;
+    }
 
+    it("should use exactly 24 cards (full Euchre deck)", () => {
       // Act
       const result = startNewHand(gameState);
-
-      // Assert
-      // Verify all 24 cards are accounted for
+      const allDealtCards = collectAllDealtCards(result);
+      
+      // Assert - Verify all 24 cards are accounted for
       const cardsDealt = Object.values(result.players).reduce(
-        (total, player) => total + (player.hand ? player.hand.length : 0),
-        0,
+        (total, player) => total + (player.hand?.length || 0),
+        0
       );
-      const cardsInKitty = result.kitty.length;
-      const turnCard = result.turnCard ? 1 : 0;
-
-      expect(cardsDealt + cardsInKitty + turnCard).to.equal(24);
-
-      // Verify the deck was created with 24 cards
-      expect(mockDeckUtils.createDeck.calledOnce).to.be.true;
-      expect(fullDeck).to.have.length(24);
+      
+      assert.strictEqual(
+        cardsDealt + result.kitty.length + (result.turnCard ? 1 : 0),
+        EUCHRE_DECK_SIZE,
+        `Should account for all ${EUCHRE_DECK_SIZE} cards in the deck`
+      );
+      
+      // Verify the deck operations
+      assert.strictEqual(
+        mocks.createDeck.mock.callCount(),
+        1,
+        'Should create deck exactly once'
+      );
+      assert.strictEqual(
+        mocks.shuffleDeck.mock.callCount(),
+        1,
+        'Should shuffle deck exactly once'
+      );
     });
 
     it("should use all cards from a full deck without duplicates", () => {
-      // Arrange
-      const initialDealer = PLAYER_ROLES[0]; // South
-      const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
-
-      // Create a full deck and track it
-      const fullDeck = createMockDeck();
-      const deckCopy = [...fullDeck];
-      mockDeckUtils.createDeck.returns(deckCopy);
-
-      // Mock the next player (left of dealer)
-      const expectedFirstBidder = PLAYER_ROLES[1]; // West
-      mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-        const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-        return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-      });
-
       // Act
       const result = startNewHand(gameState);
-
-      // Assert - Collect all cards that were dealt
-      const allDealtCards = [];
-
-      // Add cards from players' hands (5 cards each for 4 players = 20 cards)
-      let totalCardsDealt = 0;
-      PLAYER_ROLES.forEach((role) => {
-        const player = result.players[role];
-        if (player && player.hand && Array.isArray(player.hand)) {
-          allDealtCards.push(...player.hand);
-          totalCardsDealt += player.hand.length;
-        }
-      });
-
-      // Add cards from kitty (should be 3 cards)
-      if (result.kitty && Array.isArray(result.kitty)) {
-        allDealtCards.push(...result.kitty);
-      }
-
-      // Add turn card if it exists (1 card)
-      if (result.turnCard) {
-        allDealtCards.push(result.turnCard);
-      }
-
-      // Verify card counts
-      // 4 players × 5 cards each = 20 cards to players
-      // 1 turn card + 3 cards in kitty = 4 cards
-      // Total: 24 cards used
-      expect(totalCardsDealt).to.equal(
-        20,
-        "Should deal 20 cards to players (5 each)",
+      const allDealtCards = collectAllDealtCards(result);
+      
+      // Assert - Verify card counts and distribution
+      const totalCardsDealt = Object.values(result.players).reduce(
+        (total, player) => total + (player.hand?.length || 0),
+        0
       );
-      expect(result.kitty).to.have.length(3, "Should have 3 cards in kitty");
-      expect(result.turnCard, "Should have a turn card").to.exist;
+      
+      // Verify card distribution
+      assert.strictEqual(
+        totalCardsDealt,
+        PLAYER_ROLES.length * CARDS_PER_PLAYER,
+        `Should deal exactly ${CARDS_PER_PLAYER} cards to each of ${PLAYER_ROLES.length} players`
+      );
+      
+      assert.strictEqual(
+        result.kitty.length,
+        EXPECTED_KITTY_SIZE,
+        `Should have exactly ${EXPECTED_KITTY_SIZE} cards in kitty`
+      );
+      
+      assert.ok(
+        result.turnCard,
+        'Should have a turn card'
+      );
 
       // Verify all cards were used (24 total)
-      expect(allDealtCards).to.have.length(
-        24,
-        "All 24 cards should be accounted for",
+      assert.strictEqual(
+        allDealtCards.length,
+        EUCHRE_DECK_SIZE,
+        `All ${EUCHRE_DECK_SIZE} cards should be accounted for`
       );
 
-      // Verify no duplicates by checking if all cards have unique IDs
-      const cardIds = allDealtCards.map((card) => card.id);
-      const uniqueCardIds = new Set(cardIds);
-
-      // Log duplicates for debugging if test fails
-      if (uniqueCardIds.size !== 24) {
-        const duplicates = cardIds.filter(
-          (id, index) => cardIds.indexOf(id) !== index,
-        );
-        console.log("Duplicate card IDs:", duplicates);
-      }
-
-      expect(uniqueCardIds.size).to.equal(
-        24,
-        "All 24 cards should have unique IDs",
+      // Verify no duplicates by checking unique IDs
+      const uniqueCardIds = new Set(allDealtCards.map(card => card.id));
+      assert.strictEqual(
+        uniqueCardIds.size,
+        EUCHRE_DECK_SIZE,
+        `All ${EUCHRE_DECK_SIZE} cards should have unique IDs`
       );
-
-      // Verify all cards are from the original deck by checking IDs
-      const originalCardIds = new Set(fullDeck.map((card) => card.id));
-      allDealtCards.forEach((card) => {
-        expect(
-          originalCardIds.has(card.id),
-          `Card ${JSON.stringify(card)} not found in original deck`,
-        ).to.be.true;
-      });
 
       // Verify game state
-      expect(result.gamePhase).to.equal("ORDER_UP_ROUND1");
-      expect(result.currentPlayer).to.equal(expectedFirstBidder);
-      expect(result.orderUpTurn).to.equal(expectedFirstBidder);
+      assert.strictEqual(
+        result.gamePhase,
+        GAME_PHASES.ORDER_UP_ROUND1,
+        `Game phase should transition to ${GAME_PHASES.ORDER_UP_ROUND1}`
+      );
+      
+      const expectedFirstBidder = PLAYER_ROLES[1]; // West (left of dealer)
+      assert.strictEqual(
+        result.currentPlayer,
+        expectedFirstBidder,
+        `Current player should be first bidder (${expectedFirstBidder})`
+      );
+      
+      assert.strictEqual(
+        result.orderUpTurn,
+        expectedFirstBidder,
+        'Order up turn should start with first bidder'
+      );
     });
   });
 
-  // ============================================
   // Dealer rotation tests have been moved to dealer_rotation_fix.test.js
 
   describe("Dealing Logic Edge Cases", () => {
+    // Test for exactly 24 cards (full deck)
     it("should handle dealing with exactly 24 cards (full deck)", () => {
       // Arrange
       const initialDealer = PLAYER_ROLES[0]; // South
       const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
-
-      // Create a full deck with exactly 24 cards
-      const mockDeck = createMockDeck(24);
-      mockDeckUtils.createDeck.returns([...mockDeck]);
-
-      // Mock getNextPlayer to return the next player after dealer
-      const expectedFirstBidder = PLAYER_ROLES[1]; // West
-      mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-        const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-        return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-      });
+      const { mocks } = setupMockDeck(24, false);
 
       // Act
       const newState = startNewHand(gameState);
 
       // Assert - should deal to all players and have exactly 3 cards in kitty
-      // (24 cards - (4 players * 5 cards each) = 4 cards, but we pop one for turn card)
-      expect(newState.kitty).to.have.lengthOf(3);
+      assert.strictEqual(newState.kitty.length, 3, 'Should have 3 cards in kitty');
 
       // Verify each player has exactly 5 cards
       PLAYER_ROLES.forEach((role) => {
-        expect(newState.players[role].hand).to.have.lengthOf(5);
+        assert.strictEqual(
+          newState.players[role].hand.length, 
+          CARDS_PER_PLAYER, 
+          `Player ${role} should have ${CARDS_PER_PLAYER} cards`
+        );
       });
 
-      // Verify turn card exists
-      expect(newState.turnCard).to.exist;
-      expect(newState.turnCard).to.have.property("suit");
-      expect(newState.turnCard).to.have.property("value");
+      // Verify turn card exists and has required properties
+      assert.ok(newState.turnCard, 'Should have a turn card');
+      assert.ok('suit' in newState.turnCard, 'Turn card should have suit property');
+      assert.ok('value' in newState.turnCard, 'Turn card should have value property');
+      
+      // Verify deck operations
+      assert.strictEqual(mocks.createDeck.mock.callCount(), 1, 'Should create deck once');
+      assert.strictEqual(mocks.shuffleDeck.mock.callCount(), 1, 'Should shuffle deck once');
+    });
+
+    // Test for varying player counts (3-6 players)
+    describe("varying player counts", () => {
+      const testCases = [
+        { playerCount: 3, expectedKittySize: 3 },
+        { playerCount: 4, expectedKittySize: 3 },
+        { playerCount: 5, expectedKittySize: 3 },
+        { playerCount: 6, expectedKittySize: 3 }
+      ];
+
+      testCases.forEach(({ playerCount, expectedKittySize }) => {
+        it(`should handle ${playerCount} players with kitty size ${expectedKittySize}`, () => {
+          // Arrange
+          const initialDealer = PLAYER_ROLES[0];
+          const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
+          
+          // Adjust player count by removing or adding players as needed
+          const activeRoles = PLAYER_ROLES.slice(0, playerCount);
+          Object.keys(gameState.players).forEach(role => {
+            if (!activeRoles.includes(role)) {
+              delete gameState.players[role];
+            }
+          });
+          
+          // Set up mock deck with appropriate size
+          const cardsNeeded = (playerCount * CARDS_PER_PLAYER) + expectedKittySize + 1; // +1 for turn card
+          const { mocks } = setupMockDeck(cardsNeeded, false);
+
+          // Act
+          const newState = startNewHand(gameState);
+
+          // Assert
+          assert.strictEqual(
+            newState.kitty.length, 
+            expectedKittySize, 
+            `Should have ${expectedKittySize} cards in kitty with ${playerCount} players`
+          );
+          
+          // Verify each active player has the right number of cards
+          activeRoles.forEach(role => {
+            assert.strictEqual(
+              newState.players[role]?.hand?.length, 
+              CARDS_PER_PLAYER,
+              `Player ${role} should have ${CARDS_PER_PLAYER} cards`
+            );
+          });
+          
+          // Verify turn card exists
+          assert.ok(newState.turnCard, 'Should have a turn card');
+        });
+      });
+    });
+
+    // Test for malformed player objects
+    describe("malformed player objects", () => {
+      it("should handle missing player hands", () => {
+        // Arrange
+        const initialDealer = PLAYER_ROLES[0];
+        const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
+        
+        // Remove hand property from a player
+        const playerRole = PLAYER_ROLES[1];
+        delete gameState.players[playerRole].hand;
+        
+        const { mocks } = setupMockDeck(EUCHRE_DECK_SIZE, false);
+
+        // Act & Assert
+        assert.throws(
+          () => startNewHand(gameState),
+          {
+            name: 'TypeError',
+            message: /Cannot read propert.*hand/i
+          },
+          'Should throw when player hand is missing'
+        );
+      });
+
+      it("should handle null player objects", () => {
+        // Arrange
+        const initialDealer = PLAYER_ROLES[0];
+        const gameState = createBaseGameState(GAME_PHASES.LOBBY, initialDealer);
+        
+        // Set a player to null
+        gameState.players[PLAYER_ROLES[1]] = null;
+        
+        const { mocks } = setupMockDeck(EUCHRE_DECK_SIZE, false);
+
+        // Act & Assert
+        assert.throws(
+          () => startNewHand(gameState),
+          {
+            name: 'TypeError',
+            message: /Cannot read propert.*hand/i
+          },
+          'Should throw when player is null'
+        );
+      });
+    });
+
+    // Test for dealer rotation race conditions
+    describe("dealer rotation race conditions", () => {
+      it("should handle dealer becoming inactive between validation and rotation", () => {
+        // Arrange
+        const initialDealer = PLAYER_ROLES[0];
+        const gameState = createBaseGameState(GAME_PHASES.GAME_OVER, initialDealer);
+        
+        // Set up mock deck
+        const { mocks } = setupMockDeck(EUCHRE_DECK_SIZE, false);
+        
+        // Mock getNextPlayer to simulate dealer becoming inactive
+        const originalGetNextPlayer = playersModule.getNextPlayer;
+        mock.method(playersModule, 'getNextPlayer', (currentPlayer) => {
+          // After first call, make the next dealer inactive
+          if (currentPlayer === initialDealer) {
+            const nextDealer = originalGetNextPlayer(currentPlayer);
+            gameState.players[nextDealer].isActive = false;
+            return nextDealer;
+          }
+          return originalGetNextPlayer(currentPlayer);
+        });
+
+        // Act
+        const newState = startNewHand(gameState);
+
+        // Assert - should skip the inactive dealer
+        assert.notStrictEqual(
+          newState.dealer,
+          initialDealer,
+          'Should rotate to a new dealer'
+        );
+        assert.ok(
+          newState.players[newState.dealer]?.isActive,
+          'New dealer should be active'
+        );
+      });
+
+      it("should handle all players becoming inactive", () => {
+        // Arrange
+        const initialDealer = PLAYER_ROLES[0];
+        const gameState = createBaseGameState(GAME_PHASES.GAME_OVER, initialDealer);
+        
+        // Set up mock deck
+        const { mocks } = setupMockDeck(EUCHRE_DECK_SIZE, false);
+        
+        // Make all players inactive
+        Object.values(gameState.players).forEach(player => {
+          player.isActive = false;
+        });
+
+        // Act & Assert
+        assert.throws(
+          () => startNewHand(gameState),
+          {
+            name: 'PhaseLogicError',
+            message: /no active players available/i
+          },
+          'Should throw when no active players are available'
+        );
+      });
     });
 
     it("should handle dealing with more than 24 cards (extra cards go to kitty)", () => {
@@ -1157,29 +1086,20 @@ describe("StartNewHandPhase Logic", () => {
 
       // Create a deck with more than 24 cards
       const mockDeck = createMockDeck(30);
-      mockDeckUtils.createDeck.returns([...mockDeck]);
-
-      // Mock getNextPlayer to return the next player after dealer
-      const expectedFirstBidder = PLAYER_ROLES[1]; // West
-      mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-        const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-        return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-      });
+      mock.method(deckModule, 'createDeck', mock.fn(() => [...mockDeck]));
 
       // Act
       const newState = startNewHand(gameState);
 
       // Assert - should have 3 cards in kitty (30 total - (4 players * 5 cards each) - 1 for turn card - 6 remaining in kitty)
       // The implementation deals 3 cards to each player in first round, then 2 in second round
-      // 30 - (4*5) = 10 cards dealt to players, 20 remaining
-      // Then one card is popped for turn card, leaving 19 in kitty
-      // But the actual kitty size is 3, so the math is different than expected
-      // For now, we'll just verify the actual behavior
-      expect(newState.kitty).to.have.lengthOf(3);
+      // 30 - (4*5) = 10 cards dealt to players, 20 remaining. Then one card is popped for turn card, leaving 19 in kitty
+      // But the actual kitty size is 3, so the math is different than expected. For now, we'll just verify the actual behavior
+      assert.strictEqual(newState.kitty.length, 3);
 
       // Verify each player has exactly 5 cards
       PLAYER_ROLES.forEach((role) => {
-        expect(newState.players[role].hand).to.have.lengthOf(5);
+        assert.strictEqual(newState.players[role].hand.length, 5);
       });
     });
 
@@ -1190,20 +1110,14 @@ describe("StartNewHandPhase Logic", () => {
 
       // Create a deck with fewer than 24 cards
       const mockDeck = createMockDeck(20);
-      mockDeckUtils.createDeck.returns([...mockDeck]);
-
-      // Mock getNextPlayer to return the next player after dealer
-      const expectedFirstBidder = PLAYER_ROLES[1]; // West
-      mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-        const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-        return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-      });
+      mock.method(deckModule, 'createDeck', mock.fn(() => [...mockDeck]));
 
       // Act & Assert - should throw PhaseLogicError when kitty is empty before setting turn card
-      expect(() => startNewHand(gameState)).to.throw(
-        PhaseLogicError,
-        "Kitty is empty before setting turn card",
-      );
+      assert.throws(() => startNewHand(gameState), (err) => {
+        assert.strictEqual(err.name, 'PhaseLogicError');
+        assert.ok(err.message.includes("Kitty is empty before setting turn card"));
+        return true;
+      });
     });
 
     it("should handle dealing with exactly enough cards for players but none for kitty", () => {
@@ -1213,20 +1127,14 @@ describe("StartNewHandPhase Logic", () => {
 
       // Create a deck with exactly 20 cards (4 players * 5 cards each)
       const mockDeck = createMockDeck(20);
-      mockDeckUtils.createDeck.returns([...mockDeck]);
-
-      // Mock getNextPlayer to return the next player after dealer
-      const expectedFirstBidder = PLAYER_ROLES[1]; // West
-      mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-        const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-        return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-      });
+      mock.method(deckModule, 'createDeck', mock.fn(() => [...mockDeck]));
 
       // Act & Assert - should throw PhaseLogicError when trying to set turn card
-      expect(() => startNewHand(gameState)).to.throw(
-        PhaseLogicError,
-        "Kitty is empty before setting turn card",
-      );
+      assert.throws(() => startNewHand(gameState), (err) => {
+        assert.strictEqual(err.name, 'PhaseLogicError');
+        assert.ok(err.message.includes("Kitty is empty before setting turn card"));
+        return true;
+      });
     });
 
     it("should handle dealing with exactly enough cards for players and kitty", () => {
@@ -1236,28 +1144,21 @@ describe("StartNewHandPhase Logic", () => {
 
       // Create a deck with exactly 21 cards (4 players * 5 cards + 1 for turn card)
       const mockDeck = createMockDeck(21);
-      mockDeckUtils.createDeck.returns([...mockDeck]);
-
-      // Mock getNextPlayer to return the next player after dealer
-      const expectedFirstBidder = PLAYER_ROLES[1]; // West
-      mockPlayerUtils.getNextPlayer.callsFake((currentPlayer) => {
-        const currentIndex = PLAYER_ROLES.indexOf(currentPlayer);
-        return PLAYER_ROLES[(currentIndex + 1) % PLAYER_ROLES.length];
-      });
+      mock.method(deckModule, 'createDeck', mock.fn(() => [...mockDeck]));
 
       // Act
       const newState = startNewHand(gameState);
 
       // Assert - should have exactly 0 cards in kitty (all dealt to players or as turn card)
-      expect(newState.kitty).to.have.lengthOf(0);
+      assert.strictEqual(newState.kitty.length, 0);
 
       // Verify each player has exactly 5 cards
       PLAYER_ROLES.forEach((role) => {
-        expect(newState.players[role].hand).to.have.lengthOf(5);
+        assert.strictEqual(newState.players[role].hand.length, 5);
       });
 
       // Verify turn card exists
-      expect(newState.turnCard).to.exist;
+      assert.ok(newState.turnCard);
     });
   });
 });

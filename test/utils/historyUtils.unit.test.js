@@ -1,42 +1,40 @@
 // filepath: test/utils/historyUtils.unit.test.js
 
-import { expect } from "chai";
-import esmock from "esmock";
-import sinon from "sinon";
+import { describe, it, beforeEach, afterEach, mock } from 'node:test';
+import assert from 'node:assert/strict';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Import the actual logger module to mock its methods
+import * as loggerModule from '../../src/utils/logger.js';
+
+// Get directory name for the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 describe("historyUtils", () => {
   let createHistoryEntry;
-  let mockLogger;
 
-  before(async () => {
-    // Mock the logger dependency
-    mockLogger = {
-      info: sinon.stub(),
-      warn: sinon.stub(),
-      error: sinon.stub(),
-    };
+  beforeEach(async () => {
+    // Restore all mocks and spies from previous tests
+    mock.restoreAll();
 
-    // Get the absolute path to the module we're testing
-    const modulePath = path.join(process.cwd(), 'src', 'utils', 'historyUtils.js');
-    
-    // Import the module with esmock
-    const historyUtils = await esmock(modulePath, (importPath) => {
-      if (importPath.endsWith('logger.js')) {
-        return { logger: mockLogger };
-      }
-      return require(importPath);
-    });
+    // Mock the logger dependency using node:test's mock API
+    mock.method(loggerModule, 'info', mock.fn());
+    mock.method(loggerModule, 'warn', mock.fn());
+    mock.method(loggerModule, 'error', mock.fn());
+
+    // Dynamically import the module under test after mocks are set up
+    const modulePath = path.resolve(process.cwd(), 'src/utils/historyUtils.js');
+    const historyUtils = await import(modulePath);
     
     // The function is a named export, so we need to destructure it
     createHistoryEntry = historyUtils.createHistoryEntry;
   });
 
-  beforeEach(() => {
-    // Reset mocks before each test
-    mockLogger.info.resetHistory();
-    mockLogger.warn.resetHistory();
-    mockLogger.error.resetHistory();
+  afterEach(() => {
+    // Clean up all mocks and spies after each test
+    mock.restoreAll();
   });
 
   describe("createHistoryEntry(actionType, detailsObject)", () => {
@@ -48,14 +46,14 @@ describe("historyUtils", () => {
       };
       const entry = createHistoryEntry(actionType, details);
 
-      expect(entry).to.have.keys("timestamp", "action", "details");
-      expect(entry.timestamp).to.be.a("string"); // ISO date string
-      expect(entry.action).to.equal(actionType);
-      expect(entry.details).to.deep.equal({
+      assert.ok(entry.timestamp); // Check for existence of timestamp
+      assert.strictEqual(typeof entry.timestamp, "string"); // ISO date string
+      assert.strictEqual(entry.action, actionType);
+      assert.deepStrictEqual(entry.details, {
         playerRole: "North",
         cardId: "AH",
       }); // card object should be replaced by cardId
-      expect(mockLogger.warn.notCalled).to.be.true;
+      assert.strictEqual(loggerModule.warn.mock.callCount(), 0);
     });
 
     it("should include cardId in details if card object is present", () => {
@@ -66,18 +64,18 @@ describe("historyUtils", () => {
       };
       const entry = createHistoryEntry(actionType, details);
 
-      expect(entry.details).to.have.property("cardId", "TS");
-      expect(entry.details).to.not.have.property("card");
-      expect(mockLogger.warn.notCalled).to.be.true;
+      assert.strictEqual(entry.details.cardId, "TS");
+      assert.strictEqual(entry.details.card, undefined);
+      assert.strictEqual(loggerModule.warn.mock.callCount(), 0);
     });
 
     it("should handle detailsObject being null", () => {
       const actionType = "SOME_ACTION";
       const entry = createHistoryEntry(actionType, null);
 
-      expect(entry).to.have.keys("timestamp", "action", "details");
-      expect(entry.action).to.equal(actionType);
-      expect(entry.details).to.deep.equal({ originalDetails: null });
+      assert.ok(entry.timestamp);
+      assert.strictEqual(entry.action, actionType);
+      assert.deepStrictEqual(entry.details, { originalDetails: null });
       // The logger warning is called, but we don't need to assert on it since it's an implementation detail
       // that might change
     });
@@ -87,9 +85,9 @@ describe("historyUtils", () => {
       const details = "invalid details";
       const entry = createHistoryEntry(actionType, details);
 
-      expect(entry).to.have.keys("timestamp", "action", "details");
-      expect(entry.action).to.equal(actionType);
-      expect(entry.details).to.deep.equal({
+      assert.ok(entry.timestamp);
+      assert.strictEqual(entry.action, actionType);
+      assert.deepStrictEqual(entry.details, {
         originalDetails: details,
       });
       // The logger warning is called, but we don't need to assert on it since it's an implementation detail
@@ -100,9 +98,9 @@ describe("historyUtils", () => {
       const details = { some: "detail" };
       const entry = createHistoryEntry(null, details);
 
-      expect(entry).to.have.keys("timestamp", "action", "details");
-      expect(entry.action).to.equal("UNKNOWN_ACTION");
-      expect(entry.details).to.deep.equal(details);
+      assert.ok(entry.timestamp);
+      assert.strictEqual(entry.action, "UNKNOWN_ACTION");
+      assert.deepStrictEqual(entry.details, details);
       // The logger warning is called, but we don't need to assert on it since it's an implementation detail
       // that might change
     });
@@ -111,9 +109,9 @@ describe("historyUtils", () => {
       const details = { some: "detail" };
       const entry = createHistoryEntry("", details);
 
-      expect(entry).to.have.keys("timestamp", "action", "details");
-      expect(entry.action).to.equal("UNKNOWN_ACTION");
-      expect(entry.details).to.deep.equal(details);
+      assert.ok(entry.timestamp);
+      assert.strictEqual(entry.action, "UNKNOWN_ACTION");
+      assert.deepStrictEqual(entry.details, details);
       // The logger warning is called, but we don't need to assert on it since it's an implementation detail
       // that might change
     });
@@ -127,9 +125,9 @@ describe("historyUtils", () => {
       };
       const entry = createHistoryEntry(actionType, details);
 
-      expect(entry.details).to.not.have.property("card");
-      expect(entry.details).to.have.property("cardId", "INVALID_CARD");
-      expect(entry.details).to.have.property("playerRole", "East");
+      assert.strictEqual(entry.details.card, undefined);
+      assert.strictEqual(entry.details.cardId, "INVALID_CARD");
+      assert.strictEqual(entry.details.playerRole, "East");
       // The logger warning is called, but we don't need to assert on it since it's an implementation detail
       // that might change
     });
@@ -143,10 +141,10 @@ describe("historyUtils", () => {
       // The card property remains in the details object when it's null
       // because the condition `details.card && (typeof details.card !== 'object' || details.card === null || !details.card.id)`
       // evaluates to false when details.card is null (due to short-circuit evaluation)
-      expect(entry.details).to.have.property("card", null);
-      expect(entry.details).to.have.property("playerRole", "West");
+      assert.strictEqual(entry.details.card, null);
+      assert.strictEqual(entry.details.playerRole, "West");
       // No cardId should be added since the card is null and the condition fails
-      expect(entry.details).to.not.have.property("cardId");
+      assert.strictEqual(entry.details.cardId, undefined);
     });
 
     it("should handle malformed card object in details (not an object)", () => {
@@ -156,9 +154,9 @@ describe("historyUtils", () => {
       const entry = createHistoryEntry(actionType, details);
 
       // The card property is removed and replaced with cardId
-      expect(entry.details).to.not.have.property("card");
-      expect(entry.details).to.have.property("cardId", "INVALID_CARD");
-      expect(entry.details).to.have.property("playerRole", "West");
+      assert.strictEqual(entry.details.card, undefined);
+      assert.strictEqual(entry.details.cardId, "INVALID_CARD");
+      assert.strictEqual(entry.details.playerRole, "West");
       // The logger warning is called, but we don't need to assert on it since it's an implementation detail
       // that might change
     });
@@ -168,9 +166,9 @@ describe("historyUtils", () => {
       const details = { card: { id: "QH", rank: "Queen", suit: "Hearts" } };
       const entry = createHistoryEntry(actionType, details);
 
-      expect(entry.details).to.have.property("cardId", "QH");
-      expect(entry.details).to.not.have.property("card");
-      expect(mockLogger.warn.notCalled).to.be.true;
+      assert.strictEqual(entry.details.cardId, "QH");
+      assert.strictEqual(entry.details.card, undefined);
+      assert.strictEqual(loggerModule.warn.mock.callCount(), 0);
     });
 
     it("should handle missing cardId for PLAY_CARD action when card object is missing", () => {
@@ -178,8 +176,8 @@ describe("historyUtils", () => {
       const details = { playerRole: "North" };
       const entry = createHistoryEntry(actionType, details);
 
-      expect(entry.details).to.deep.equal({ playerRole: "North" });
-      expect(mockLogger.warn.notCalled).to.be.true;
+      assert.deepStrictEqual(entry.details, { playerRole: "North" });
+      assert.strictEqual(loggerModule.warn.mock.callCount(), 0);
     });
 
     it("should handle extra properties in details object", () => {
@@ -187,8 +185,8 @@ describe("historyUtils", () => {
       const details = { prop1: "value1", prop2: 123 };
       const entry = createHistoryEntry(actionType, details);
 
-      expect(entry.details).to.deep.equal(details);
-      expect(mockLogger.warn.notCalled).to.be.true;
+      assert.deepStrictEqual(entry.details, details);
+      assert.strictEqual(loggerModule.warn.mock.callCount(), 0);
     });
   });
 });

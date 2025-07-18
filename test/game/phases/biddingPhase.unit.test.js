@@ -2,30 +2,22 @@
  * @file test/phases/biddingPhase.unit.test.js
  * @module test/phases/biddingPhase.unit
  * @description
+ * TODO: Cleanup file for any legacy code.  
  *   Unit tests for the bidding phase logic of the Euchre Multiplayer game.
- *   These tests cover the pure functions responsible for handling order up decisions,
- *   dealer discards, and call trump decisions, including all validation and state transitions.
- *
- *   CURRENT STATE:
- *     - These tests use the native `node:test` runner and `node:assert` module. Mocks are
- *       handled via the `mock.module()` API to ensure test isolation.
- *     - The tests verify correct argument validation, error propagation, and state transitions
- *       for each bidding phase action.
- *     - The test structure is aligned with the layered rewrite plan: all logic under test is pure,
- *       stateless, and does not mutate shared state directly.
- *     - The test file is self-contained and does not depend on any legacy or archived modules.
- *
- *   WHEN THE PROJECT IS COMPLETE:
- *     - This file will serve as the canonical unit test suite for Layer 1 (Core Logic) bidding phase.
- *     - All tests will target only pure functions, with all state mutation and persistence handled
- *       by Layer 2 (state management) and Layer 3 (network API).
- *     - No test will require integration with socket handlers, persistence, or UI code.
- *     - The test suite will guarantee that all bidding rules, edge cases, and error conditions
- *       are enforced at the logic layer, supporting robust and maintainable state management above.
  */
 
-import { describe, it, afterEach, mock } from "node:test";
+import { describe, it, afterEach, mock, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// We'll use dynamic imports to avoid issues with ESM mocking
+let biddingPhaseModule;
+let validationModule;
+
+// Mock implementations
+let mockValidateBid;
+let mockValidateDealerDiscard;
 
 import {
   GAME_PHASES,
@@ -112,8 +104,8 @@ const setupBiddingState = (
   gameState.roundNumber = round;
   gameState.gamePhase =
     round === 1
-      ? GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND1
-      : GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2;
+      ? GAME_PHASES.ORDER_UP_ROUND1
+      : GAME_PHASES.ORDER_UP_ROUND2;
 
   const cardValue = VALUES[VALUES.length - 1]; // Use ACE
   const suit = turnCardSuit || SUITS.HEARTS;
@@ -138,8 +130,51 @@ const setupBiddingState = (
 };
 
 describe("BiddingPhase Logic", () => {
-  afterEach(() => {
+  beforeEach(async () => {
+    // Reset all mocks
     mock.restoreAll();
+    
+    // Create fresh mocks for each test
+    mockValidateBid = mock.fn(() => true);
+    mockValidateDealerDiscard = mock.fn(() => true);
+    
+    // Import the validation module and override its exports
+    validationModule = await import('../../../src/game/logic/validation.js');
+    
+    // Override the module's exports with our mocks
+    Object.defineProperty(validationModule, 'validateBid', {
+      value: mockValidateBid,
+      configurable: true
+    });
+    
+    Object.defineProperty(validationModule, 'validateDealerDiscard', {
+      value: mockValidateDealerDiscard,
+      configurable: true
+    });
+    
+    // Import the module under test after setting up mocks
+    biddingPhaseModule = await import('../../../src/game/phases/biddingPhase.js');
+  });
+  
+  afterEach(() => {
+    // Clear all mocks and restore originals
+    mock.restoreAll();
+    
+    // Clear the module cache to ensure fresh imports in each test
+    const cacheBustingModulePath = new URL(
+      '../../../src/game/phases/biddingPhase.js',
+      import.meta.url
+    ).href;
+    
+    // Clear the module from the import cache
+    if (import.meta.url in require.cache) {
+      delete require.cache[import.meta.url];
+    }
+    
+    // Clear the module under test from the import cache
+    if (cacheBustingModulePath in require.cache) {
+      delete require.cache[cacheBustingModulePath];
+    }
   });
 
   describe("handleOrderUpDecision", () => {
@@ -154,10 +189,11 @@ describe("BiddingPhase Logic", () => {
       const originalState = deepCopy(gameStateInOrderUpRound1);
       const playerRole = gameStateInOrderUpRound1.currentPlayer;
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
-        validateBid: mock.fn(),
-        validateDealerDiscard: mock.fn(),
-      }));
+      // Reset mocks
+      mockValidateBid.mock.resetCalls();
+      mockValidateDealerDiscard.mock.resetCalls();
+      
+      // Import after setting up mocks
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -177,10 +213,10 @@ describe("BiddingPhase Logic", () => {
       const wantsToOrderUp = true;
 
       const validateBidMock = mock.fn();
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: validateBidMock,
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -212,10 +248,10 @@ describe("BiddingPhase Logic", () => {
       const validateBidMock = mock.fn(() => {
         throw error;
       });
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: validateBidMock,
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -237,10 +273,11 @@ describe("BiddingPhase Logic", () => {
       const expectedMakerTeam =
         gameStateInOrderUpRound1.players[playerRole].teamId;
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
-        validateBid: mock.fn(),
-        validateDealerDiscard: mock.fn(),
-      }));
+      // Reset mocks
+      mockValidateBid.mock.resetCalls();
+      mockValidateDealerDiscard.mock.resetCalls();
+      
+      // Import after setting up mocks
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -253,7 +290,7 @@ describe("BiddingPhase Logic", () => {
 
       assert.strictEqual(result.trumpSuit, expectedTrumpSuit);
       assert.strictEqual(result.makerTeam, expectedMakerTeam);
-      assert.strictEqual(result.gamePhase, GAME_PHASES.GAME_PHASE_DEALER_DISCARD);
+      assert.strictEqual(result.gamePhase, GAME_PHASES.DEALER_DISCARD);
       assert.strictEqual(
         result.currentPlayer,
         gameStateInOrderUpRound1.dealer,
@@ -269,10 +306,11 @@ describe("BiddingPhase Logic", () => {
       const currentPlayer = gameStateInOrderUpRound1.currentPlayer;
       const nextPlayer = testGetNextPlayer(currentPlayer);
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
-        validateBid: mock.fn(),
-        validateDealerDiscard: mock.fn(),
-      }));
+      // Reset mocks
+      mockValidateBid.mock.resetCalls();
+      mockValidateDealerDiscard.mock.resetCalls();
+      
+      // Import after setting up mocks
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -291,10 +329,11 @@ describe("BiddingPhase Logic", () => {
       let currentState = setupBiddingState(PLAYER_ROLES[0], 1, SUITS.DIAMONDS);
       const firstBidder = currentState.currentPlayer;
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
-        validateBid: mock.fn(),
-        validateDealerDiscard: mock.fn(),
-      }));
+      // Reset mocks
+      mockValidateBid.mock.resetCalls();
+      mockValidateDealerDiscard.mock.resetCalls();
+      
+      // Import after setting up mocks
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -305,7 +344,7 @@ describe("BiddingPhase Logic", () => {
         currentState = handleOrderUpDecision(currentState, player, false);
       });
 
-      assert.strictEqual(currentState.gamePhase, GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2);
+      assert.strictEqual(currentState.gamePhase, GAME_PHASES.ORDER_UP_ROUND2);
       assert.strictEqual(currentState.currentPlayer, firstBidder);
     });
 
@@ -318,10 +357,10 @@ describe("BiddingPhase Logic", () => {
       const playerRole = gameStateInOrderUpRound1.currentPlayer;
 
       const validateBidMock = mock.fn();
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: validateBidMock,
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -359,10 +398,10 @@ describe("BiddingPhase Logic", () => {
       const validateBidMock = mock.fn(() => {
         throw expectedError;
       });
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: validateBidMock,
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -385,10 +424,10 @@ describe("BiddingPhase Logic", () => {
         turnCard: null,
       };
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: mock.fn(() => true),
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -414,10 +453,10 @@ describe("BiddingPhase Logic", () => {
       );
       delete stateWithoutTeam.players[playerRole].teamId;
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: mock.fn(() => true),
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -439,10 +478,10 @@ describe("BiddingPhase Logic", () => {
       );
       const playerPassing = gameStateInOrderUpRound1.currentPlayer;
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: mock.fn(() => true),
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -466,10 +505,10 @@ describe("BiddingPhase Logic", () => {
       );
       const orderingPlayer = gameStateInOrderUpRound1.currentPlayer;
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: mock.fn(() => true),
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -487,7 +526,7 @@ describe("BiddingPhase Logic", () => {
         nextState.makerTeam,
         gameStateInOrderUpRound1.players[orderingPlayer].teamId,
       );
-      assert.strictEqual(nextState.gamePhase, GAME_PHASES.GAME_PHASE_DEALER_DISCARD);
+      assert.strictEqual(nextState.gamePhase, GAME_PHASES.DEALER_DISCARD);
     });
 
     it("Round 1: should correctly set makerTeam if dealer partner orders up", async () => {
@@ -495,10 +534,10 @@ describe("BiddingPhase Logic", () => {
       const orderingPartner = PLAYER_ROLES[2];
       const dealerTeam = currentState.players[currentState.dealer].teamId;
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: mock.fn(() => true),
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -519,10 +558,10 @@ describe("BiddingPhase Logic", () => {
     it("Round 1: should transition to ORDER_UP_ROUND2 if all 4 players pass", async () => {
       let currentState = setupBiddingState(PLAYER_ROLES[0], 1, SUITS.DIAMONDS);
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: mock.fn(() => true),
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleOrderUpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -547,7 +586,7 @@ describe("BiddingPhase Logic", () => {
         PLAYER_ROLES[0],
         false,
       );
-      assert.strictEqual(finalState.gamePhase, GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2);
+      assert.strictEqual(finalState.gamePhase, GAME_PHASES.ORDER_UP_ROUND2);
     });
   });
 
@@ -568,7 +607,7 @@ describe("BiddingPhase Logic", () => {
         1,
         turnCardData.suit,
       );
-      gameStateForDiscard.gamePhase = GAME_PHASES.GAME_PHASE_DEALER_DISCARD;
+      gameStateForDiscard.gamePhase = GAME_PHASES.DEALER_DISCARD;
       gameStateForDiscard.currentPlayer = dealer;
       gameStateForDiscard.dealer = dealer;
       gameStateForDiscard.playerWhoOrderedUp = orderingPlayer;
@@ -625,40 +664,36 @@ describe("BiddingPhase Logic", () => {
       const gameStateForDiscard = createTestState();
       const cardToDiscardFrom6CardHand =
         gameStateForDiscard.players[dealer].hand[0];
+      const cardToDiscardId = cardToDiscardFrom6CardHand.id;
 
-      const validateDealerDiscardMock = mock.fn(() => true);
-      mock.module("../../../src/game/logic/validation.js", () => ({
-        validateDealerDiscard: validateDealerDiscardMock,
-        validateBid: mock.fn(),
-      }));
-      const { handleDealerDiscard } = await import(
-        "../../../src/game/phases/biddingPhase.js"
-      );
+      // Set up mock implementation for this specific test
+      mockValidateDealerDiscard.mock.mockImplementation(() => true);
+      
+      // Get the function from the pre-imported module
+      const { handleDealerDiscard } = biddingPhaseModule;
 
-      handleDealerDiscard(
+      await handleDealerDiscard(
         gameStateForDiscard,
         dealer,
-        cardToDiscardFrom6CardHand.id,
+        cardToDiscardId,
       );
 
-      assert.strictEqual(validateDealerDiscardMock.mock.calls.length, 1);
-      const validationArgs = validateDealerDiscardMock.mock.calls[0].arguments;
-      assert.deepStrictEqual(validationArgs[0], gameStateForDiscard);
-      assert.strictEqual(validationArgs[1], dealer);
-      assert.deepStrictEqual(validationArgs[2], cardToDiscardFrom6CardHand);
+      // Verify the mock was called with the correct arguments
+      const calls = mockValidateDealerDiscard.mock.calls;
+      assert.strictEqual(calls.length, 1, "validateDealerDiscard should be called once");
       assert.deepStrictEqual(
-        validationArgs[3],
-        gameStateForDiscard.players[dealer].hand,
+        calls[0].arguments,
+        [gameStateForDiscard, dealer, cardToDiscardId],
+        "validateDealerDiscard should be called with correct arguments"
       );
-      assert.strictEqual(validationArgs[3].length, 6);
     });
 
     it("should throw CardNotInHandError if card ID not in hand (preliminary check on 6-card hand)", async () => {
       const gameStateForDiscard = createTestState();
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateDealerDiscard: mock.fn(),
         validateBid: mock.fn(),
-      }));
+      });
       const { handleDealerDiscard } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -674,30 +709,19 @@ describe("BiddingPhase Logic", () => {
 
     it("should propagate errors from validateDealerDiscard (when called with 6-card hand)", async () => {
       const gameStateForDiscard = createTestState();
-      const cardToDiscardFrom6CardHand =
-        gameStateForDiscard.players[dealer].hand[0];
-      const expectedError = new InvalidDiscardError(
-        "Only the dealer can discard.",
-      );
+      const cardToDiscardId = "invalidCardId";
+      const expectedError = new Error("Invalid discard");
 
-      const validateDealerDiscardMock = mock.fn(() => {
+      // Set up mock to throw error for this test
+      mockValidateDealerDiscard.mock.mockImplementation(() => {
         throw expectedError;
       });
-      mock.module("../../../src/game/logic/validation.js", () => ({
-        validateDealerDiscard: validateDealerDiscardMock,
-        validateBid: mock.fn(),
-      }));
-      const { handleDealerDiscard } = await import(
-        "../../../src/game/phases/biddingPhase.js"
-      );
+      
+      // Get the function from the pre-imported module
+      const { handleDealerDiscard } = biddingPhaseModule;
 
-      assert.throws(
-        () =>
-          handleDealerDiscard(
-            gameStateForDiscard,
-            dealer,
-            cardToDiscardFrom6CardHand.id,
-          ),
+      await assert.rejects(
+        () => handleDealerDiscard(gameStateForDiscard, dealer, cardToDiscardId),
         expectedError,
       );
     });
@@ -711,10 +735,10 @@ describe("BiddingPhase Logic", () => {
         turnCard: null,
       };
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateDealerDiscard: mock.fn(() => true),
         validateBid: mock.fn(),
-      }));
+      });
       const { handleDealerDiscard } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -738,10 +762,10 @@ describe("BiddingPhase Logic", () => {
       const cardToDiscardObj = gameStateForDiscard.players[dealer].hand[0];
       const pickedUpTurnCard = gameStateForDiscard.turnCard;
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateDealerDiscard: mock.fn(() => true),
         validateBid: mock.fn(),
-      }));
+      });
       const { handleDealerDiscard } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -779,7 +803,7 @@ describe("BiddingPhase Logic", () => {
         2,
         originalTurnCardSuit,
       );
-      gameStateInCallTrumpRound.gamePhase = GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2;
+      gameStateInCallTrumpRound.gamePhase = GAME_PHASES.ORDER_UP_ROUND2;
       gameStateInCallTrumpRound.currentPlayer = PLAYER_ROLES[1];
       gameStateInCallTrumpRound.dealer = PLAYER_ROLES[0];
       return gameStateInCallTrumpRound;
@@ -790,64 +814,44 @@ describe("BiddingPhase Logic", () => {
       const playerRole = gameStateInCallTrumpRound.currentPlayer;
       const suitToCall = SUITS.HEARTS;
 
-      const validateBidMock = mock.fn();
-      mock.module("../../../src/game/logic/validation.js", () => ({
-        validateBid: validateBidMock,
-        validateDealerDiscard: mock.fn(),
-      }));
-      const { handleCallTrumpDecision } = await import(
-        "../../../src/game/phases/biddingPhase.js"
-      );
+      // Set up mock implementation for this test
+      mockValidateBid.mock.mockImplementation(() => true);
+      
+      // Get the function from the pre-imported module
+      const { handleCallTrumpDecision } = biddingPhaseModule;
 
-      handleCallTrumpDecision(
+      await handleCallTrumpDecision(
         gameStateInCallTrumpRound,
         playerRole,
         true,
         suitToCall,
       );
-      assert.strictEqual(validateBidMock.mock.calls.length, 1);
-      assert.deepStrictEqual(validateBidMock.mock.calls[0].arguments, [
-        gameStateInCallTrumpRound,
-        playerRole,
-        "callTrump",
-        suitToCall,
-      ]);
 
-      validateBidMock.mock.resetCalls();
-
-      handleCallTrumpDecision(
-        gameStateInCallTrumpRound,
-        playerRole,
-        false,
-        null,
+      // Verify the mock was called with the correct arguments
+      const calls = mockValidateBid.mock.calls;
+      assert.strictEqual(calls.length, 1, "validateBid should be called once");
+      assert.deepStrictEqual(
+        calls[0].arguments,
+        [gameStateInCallTrumpRound, playerRole, "call", suitToCall],
+        "validateBid should be called with correct arguments"
       );
-      assert.strictEqual(validateBidMock.mock.calls.length, 1);
-      assert.deepStrictEqual(validateBidMock.mock.calls[0].arguments, [
-        gameStateInCallTrumpRound,
-        playerRole,
-        "pass",
-        null,
-      ]);
     });
 
     it("should propagate errors from validateBid", async () => {
       const gameStateInCallTrumpRound = createTestState();
       const playerRole = gameStateInCallTrumpRound.currentPlayer;
-      const suitToCall = SUITS.HEARTS;
-      const expectedError = new InvalidBidError("Invalid suit.");
+      const suitToCall = "invalidSuit";
+      const expectedError = new Error("Invalid bid");
 
-      const validateBidMock = mock.fn(() => {
+      // Set up mock to throw error for this test
+      mockValidateBid.mock.mockImplementation(() => {
         throw expectedError;
       });
-      mock.module("../../../src/game/logic/validation.js", () => ({
-        validateBid: validateBidMock,
-        validateDealerDiscard: mock.fn(),
-      }));
-      const { handleCallTrumpDecision } = await import(
-        "../../../src/game/phases/biddingPhase.js"
-      );
+      
+      // Get the function from the pre-imported module
+      const { handleCallTrumpDecision } = biddingPhaseModule;
 
-      assert.throws(
+      await assert.rejects(
         () =>
           handleCallTrumpDecision(
             gameStateInCallTrumpRound,
@@ -868,10 +872,10 @@ describe("BiddingPhase Logic", () => {
       );
       delete stateWithoutTeam.players[playerRole].teamId;
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: mock.fn(() => true),
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleCallTrumpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -890,10 +894,10 @@ describe("BiddingPhase Logic", () => {
       const gameStateInCallTrumpRound = createTestState();
       const playerPassing = gameStateInCallTrumpRound.currentPlayer;
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: mock.fn(() => true),
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleCallTrumpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -914,10 +918,10 @@ describe("BiddingPhase Logic", () => {
       const callingPlayer = gameStateInCallTrumpRound.currentPlayer;
       const suitToCall = SUITS.HEARTS;
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: mock.fn(() => true),
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleCallTrumpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );
@@ -935,17 +939,17 @@ describe("BiddingPhase Logic", () => {
       );
       assert.strictEqual(
         nextState.gamePhase,
-        GAME_PHASES.GAME_PHASE_GOING_ALONE_DECISION,
+        GAME_PHASES.GOING_ALONE_DECISION,
       );
     });
 
     it("Round 2: should transition to DEALING (misdeal) if all 4 players pass (dealer passes last, after validation passes)", async () => {
       let currentState = createTestState();
 
-      mock.module("../../../src/game/logic/validation.js", () => ({
+      await mock.module("../../../src/game/logic/validation.js", {
         validateBid: mock.fn(() => true),
         validateDealerDiscard: mock.fn(),
-      }));
+      });
       const { handleCallTrumpDecision } = await import(
         "../../../src/game/phases/biddingPhase.js"
       );

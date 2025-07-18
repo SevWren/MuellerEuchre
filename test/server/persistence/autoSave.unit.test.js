@@ -8,123 +8,69 @@
  *   and its dependencies, ensuring test isolation and reliability.
  */
 
-import { expect } from "chai";
-import sinon from "sinon";
-import { esmockWithPaths } from "../../utils/esmock_wrapper.js";
-
-// Path to the module under test
-const MOCK_SERVER_PATH = "../../server/test-utils.js";
+import { describe, it, beforeEach, afterEach, mock } from 'node:test';
+import assert from 'node:assert/strict';
+import { MockServer } from '../test-utils.js'; // Import MockServer directly
 
 describe("Auto-Save Functionality", () => {
-  let MockServer;
   let server;
-  let writeFileSyncStub;
+  let writeFileSyncMock;
   let clock;
+  let loggerErrorMock;
 
-  before(async () => {
-    // Create a stub for the file system's write method
-    writeFileSyncStub = sinon.stub();
+  beforeEach(async () => {
+    mock.restoreAll(); // Restore all mocks from previous tests
 
-    // Import the MockServer class with mocks using esmockWithPaths
-    const mockFs = {
-      writeFileSync: writeFileSyncStub,
-      existsSync: sinon.stub().returns(false),
-      readFileSync: sinon.stub().returns("{}"),
-    };
+    // Mock fs methods
+    writeFileSyncMock = mock.method(MockServer.prototype, 'fs', 'writeFileSync', mock.fn());
+    mock.method(MockServer.prototype, 'fs', 'existsSync', mock.fn(() => false));
+    mock.method(MockServer.prototype, 'fs', 'readFileSync', mock.fn(() => '{}'));
 
-    // Mock the logger
-    const mockLogger = {
-      info: sinon.stub(),
-      error: sinon.stub(),
-      debug: sinon.stub(),
-    };
+    // Mock logger.error
+    loggerErrorMock = mock.method(MockServer.prototype, 'logger', 'error', mock.fn());
 
-    // Import the module with mocks
-    const module = await esmockWithPaths(import.meta.url, MOCK_SERVER_PATH, {
-      fs: mockFs,
-      "fs/promises": {
-        readFile: sinon.stub().resolves("{}"),
-        writeFile: sinon.stub().resolves(),
-      },
-      "@/utils/logger.js": { logger: mockLogger },
-    });
-
-    MockServer = module.MockServer;
-  });
-
-  beforeEach(() => {
-    // Reset stubs before each test
-    writeFileSyncStub.resetHistory();
-
-    // Use fake timers to control setInterval and setTimeout
-    clock = sinon.useFakeTimers();
-
-    // Instantiate the MockServer with the stubbed file system
-    // and enable AUTO_SAVE for testing this feature.
+    // Instantiate the MockServer with auto-save enabled for testing this feature.
     server = new MockServer({
-      fs: {
-        writeFileSync: writeFileSyncStub,
-        existsSync: sinon.stub().returns(false),
-      },
       config: {
         AUTO_SAVE: true,
         SAVE_FILE: "./test-save.json",
       },
-      logger: {
-        error: sinon.stub(),
-      },
     });
+
+    // Use node:test's fake timers
+    clock = mock.timers.install();
+
+    await server.initialize();
   });
 
   afterEach(() => {
-    // Restore the real timers
-    clock.restore();
-    // Clean up the interval timer if it exists to prevent test leakage
-    if (server?.autoSaveInterval) {
-      clearInterval(server.autoSaveInterval);
-    }
-    // Reset all stubs
-    sinon.reset();
+    clock.reset(); // Reset the real timers
+    mock.restoreAll(); // Clean up all mocks and spies
   });
 
   it("should auto-save at regular intervals when enabled", async () => {
-    // Initialize the server, which starts the auto-save interval
-    await server.initialize();
-    writeFileSyncStub.resetHistory();
+    writeFileSyncMock.mock.resetCalls(); // Reset calls after initialize
 
     // Advance time just before the first auto-save should trigger (30s interval)
     clock.tick(29999);
-    expect(
-      writeFileSyncStub.called,
-      "Should not have saved before the interval elapsed",
-    ).to.be.false;
+    assert.strictEqual(writeFileSyncMock.mock.callCount(), 0, "Should not have saved before the interval elapsed");
 
     // Advance time past the 30-second mark
     clock.tick(1);
 
     // Verify the save was called with the expected arguments
-    expect(
-      writeFileSyncStub.calledOnce,
-      "Should have auto-saved exactly once after the interval",
-    ).to.be.true;
-    const [filePath, data] = writeFileSyncStub.firstCall.args;
-    expect(filePath).to.include("test-save.json");
-    expect(JSON.parse(data)).to.have.property("version", "1.0.0");
+    assert.strictEqual(writeFileSyncMock.mock.callCount(), 1, "Should have auto-saved exactly once after the interval");
+    const [filePath, data] = writeFileSyncMock.mock.calls[0].arguments;
+    assert.ok(filePath.includes("test-save.json"));
+    assert.deepStrictEqual(JSON.parse(data), { gamePhase: 'LOBBY', players: {}, team1Score: 0, team2Score: 0, version: '1.0.0' });
   });
 
   it("should not auto-save when disabled", async () => {
     // Create a new server instance with auto-save disabled
     const disabledServer = new MockServer({
-      fs: {
-        writeFileSync: writeFileSyncStub,
-        existsSync: sinon.stub().returns(false),
-      },
       config: {
         AUTO_SAVE: false,
         SAVE_FILE: "./test-save.json",
-      },
-      logger: {
-        error: sinon.stub(),
       },
     });
 
@@ -135,47 +81,18 @@ describe("Auto-Save Functionality", () => {
     clock.tick(60000);
 
     // Verify that the file system was never written to
-    expect(
-      writeFileSyncStub.called,
-      "Should not auto-save when the feature is disabled",
-    ).to.be.false;
-
-    // Clean up
-    if (disabledServer.autoSaveInterval) {
-      clearInterval(disabledServer.autoSaveInterval);
-    }
+    assert.strictEqual(writeFileSyncMock.mock.callCount(), 0, "Should not auto-save when the feature is disabled");
   });
 
   it("should handle file system errors gracefully", async () => {
-    // Create a new server instance with a failing file system
-    const errorStub = sinon.stub().throws(new Error("File system error"));
-    const errorServer = new MockServer({
-      fs: {
-        writeFileSync: errorStub,
-        existsSync: sinon.stub().returns(false),
-      },
-      config: {
-        AUTO_SAVE: true,
-        SAVE_FILE: "./test-save.json",
-      },
-      logger: {
-        error: sinon.stub(),
-      },
-    });
-
-    // Initialize the server
-    await errorServer.initialize();
+    // Make writeFileSync throw an error
+    writeFileSyncMock.mock.mockImplementation(() => { throw new Error("File system error"); });
 
     // Trigger auto-save
     clock.tick(30000);
 
     // Verify the error was handled
-    expect(errorServer.logger.error.called, "Should log the file system error")
-      .to.be.true;
-
-    // Clean up
-    if (errorServer.autoSaveInterval) {
-      clearInterval(errorServer.autoSaveInterval);
-    }
+    assert.strictEqual(loggerErrorMock.mock.callCount(), 1, "Should log the file system error");
+    assert.ok(loggerErrorMock.mock.calls[0].arguments[0].includes("Error saving game state"), "Error message should contain 'Error saving game state'");
   });
 });

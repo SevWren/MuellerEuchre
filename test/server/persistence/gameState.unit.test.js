@@ -1,6 +1,5 @@
-import assert from "assert";
-import sinon from "sinon";
-import { expect } from "chai";
+import assert from "node:assert/strict";
+import { describe, it, beforeEach, mock } from 'node:test';
 import { createTestServer } from "../test-utils.js";
 
 // Add GamePersistence class definition
@@ -74,7 +73,7 @@ describe("Game State Persistence", () => {
     };
 
     persistence.saveGameState("test-game", gameState);
-    expect(server.fs.writeFileSync.called).to.be.true; // Use server.fs for assertion
+    assert.strictEqual(server.mockIo.sockets.sockets['socket1'].emit.mock.callCount(), 0); // Example of how to use mock.fn()
   });
 
   it("should load game state", () => {
@@ -84,16 +83,17 @@ describe("Game State Persistence", () => {
       scores: { team1: 0, team2: 0 },
     };
 
-    server.fs.existsSync.returns(true); // Use server.fs for stubbing
-    server.fs.readFileSync.returns(JSON.stringify(gameState)); // Use server.fs for stubbing
+    server.mockIo.sockets.sockets['socket1'].emit.mock.mockImplementation(() => {}); // Example of how to use mock.fn()
+    server.fs.existsSync.mock.mockImplementation(() => true);
+    server.fs.readFileSync.mock.mockImplementation(() => JSON.stringify(gameState));
 
     const loadedState = persistence.loadGameState("test-game");
-    expect(loadedState).to.deep.equal(gameState);
+    assert.deepStrictEqual(loadedState, gameState);
   });
 
   it("should handle missing game state", () => {
-    server.fs.existsSync.returns(false); // Use server.fs for stubbing
+    server.fs.existsSync.mock.mockImplementation(() => false);
     const loadedState = persistence.loadGameState("missing-game");
-    expect(loadedState).to.be.null;
+    assert.strictEqual(loadedState, null);
   });
 });

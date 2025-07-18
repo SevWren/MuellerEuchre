@@ -1,4 +1,6 @@
-import sinon from "sinon";
+// filepath: test/server/test-utils.js
+
+import { mock } from 'node:test';
 
 const config = {
     SAVE_ON_EXIT: false,
@@ -6,6 +8,7 @@ const config = {
     SAVE_FILE: './game_state.json'
 };
 
+// The logger is now mocked using node:test's mock.fn() in createTestServer
 const logger = {
     info: () => {},
     error: () => {},
@@ -126,20 +129,21 @@ export class MockServer {
 
 // Modify createTestServer to use MockServer
 export function createTestServer(options = {}) {
-    console.log('Creating test server with options:', Object.keys(options));
+    // Removed console.log statements as per rules.
+    // Use logger.debug if specific debugging output is needed.
 
-    // Create a custom logger that also logs to console
-    const logStub = (...args) => {
-        console.log('[Test Logger]', ...args);
+    // Create a custom logger that also logs to debug
+    const logDebug = (...args) => {
+        if (options.logger && options.logger.debug) {
+            options.logger.debug('[Test Logger]', ...args);
+        }
     };
 
     // Create a mock file system
     const fsMock = createFsMock();
-    console.log('Created fsMock');
 
     // Create mock IO
     const ioMock = createMockIo();
-    console.log('Created ioMock');
 
     // Create the mock server
     const mockServer = new MockServer({
@@ -147,23 +151,20 @@ export function createTestServer(options = {}) {
         fs: fsMock,
         io: ioMock,
         logger: {
-            info: logStub,
-            error: logStub,
-            debug: logStub
+            info: mock.fn(logDebug),
+            error: mock.fn(logDebug),
+            debug: mock.fn(logDebug)
         }
     });
-
-    console.log('Created MockServer instance');
 
     const result = {
         server: mockServer,
         gameState: mockServer.gameState,
         mockIo: mockServer.io,
-        logStub,
+        logDebug, // Keep this for external debugging if needed
         mockSockets: mockServer.io.sockets.sockets
     };
 
-    console.log('Returning from createTestServer with keys:', Object.keys(result));
     return result;
 }
 
@@ -185,34 +186,34 @@ function createMockIo() {
             }
         },
         connectionHandler: null,
-        on: function(event, handler) {
+        on: mock.fn(function(event, handler) {
             if (event === 'connection') {
                 this.connectionHandler = handler;
             }
-        }
+        })
     };
 }
 
 function createMockSocket(id) {
     return {
         id,
-        emit: sinon.stub(),
-        disconnect: sinon.stub(),
+        emit: mock.fn(),
+        disconnect: mock.fn(),
         eventHandlers: {},
-        on: function(event, handler) {
+        on: mock.fn(function(event, handler) {
             this.eventHandlers[event] = handler;
             return this;
-        },
+        }),
         handshake: {}
     };
 }
 
 function createFsMock() {
     return {
-        appendFileSync: sinon.stub(),
-        readFileSync: sinon.stub().returns(''),
-        existsSync: sinon.stub().returns(false),
-        writeFileSync: sinon.stub()
+        appendFileSync: mock.fn(),
+        readFileSync: mock.fn().mock.mockImplementation(() => ''),
+        existsSync: mock.fn().mock.mockImplementation(() => false),
+        writeFileSync: mock.fn()
     };
 }
 

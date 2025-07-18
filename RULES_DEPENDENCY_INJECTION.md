@@ -93,7 +93,7 @@ export default createModuleWithDeps({
    - Avoid duplicating complex logic
 
 2. **Document Dependencies**
-   - Use JSDoc to document all dependencies
+   - Use JSDoc to document all dependencies using the `.windsurf\rules\jsdoc.md` guide
    - Include type information
 
 3. **Maintain Consistency**

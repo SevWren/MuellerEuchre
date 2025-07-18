@@ -43,7 +43,7 @@ This protocol governs how all tasks are executed.
 ### A. Foundational Rules
 -   **Immutability First:** Never mutate shared state directly. All state updates must be atomic and produce a new state object.
 -   **Test-Driven Development:** Write unit tests for all new logic using **node:test**. DO NOT USE `esmock`, `sinon`, `chai`, or `jest` as those are FORBIDDEN.
--   **ESM-Compatible Dependency Injection for Tests:** For testing pure functions (Layer 1) that have dependencies, the project uses a specific, mandatory dependency injection pattern. This avoids legacy mocking libraries and ensures testability within the ESM environment.
+-   **ESM-Compatible Dependency Injection for Tests (Layer 1):** For testing pure functions (Layer 1) that have dependencies, the project uses a specific, mandatory dependency injection pattern. This avoids legacy mocking libraries and ensures testability within the ESM environment.
     -   **Pattern:** A factory function (e.g., `createModuleWithDeps`) is defined in a corresponding `test/__mocks__/` directory. This factory accepts an object of mocked dependencies and returns a testable instance of the module.
     -   **Implementation:**
         ```javascript
@@ -54,13 +54,13 @@ This protocol governs how all tasks are executed.
           };
         }
         ```
-    -   **Mandate:** This is the **only** approved pattern for mocking dependencies in unit tests. For a detailed guide, refer to `RULES_DEPENDENCY_INJECTION.md`.
+    -   **Mandate:** This is the **mandated** pattern for mocking dependencies in **Layer 1 (pure function)** unit tests. For higher-level modules like socket handlers, the native `node:test` "Dynamic Import Pattern" should be used. For a detailed guide, refer to `RULES_DEPENDENCY_INJECTION.md`.
 -   **ESM Only:** All code **MUST** use ES Modules (`import`/`export`). Do not introduce CommonJS (`require`/`module.exports`).
 -   **Robust Error Handling:** Use the project's async logger (`src/utils/logger.js`) and custom error classes (`src/game/logic/errors.js`). Validate all inputs at module boundaries.
 -   **CHANGE VERIFICATION:** You MUST run the test for a file after ANY MODIFICATIONS. NEVER assume your modifications were correct.
 
 ### B. Banned Anti-Patterns
-You must actively avoid and refactor any code that exhibits these patterns from the archived codebase:
+You must actively avoid and refactor any code that exhibits these patterns:
 -   **NO** direct mutation of shared state objects.
 -   **NO** game logic located outside of Layer 1 (Core Logic).
 -   **NO** synchronous file I/O in the main event loop (e.g., for logging).

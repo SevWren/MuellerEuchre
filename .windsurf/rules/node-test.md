@@ -119,6 +119,12 @@ it('should use a one-time override for a specific test', () => {
 });
 ```
 
+### 2.4. Note on Testing Layer 1 (Pure Functions)
+
+The "Dynamic Import" patterns described above are ideal for testing modules with side effects (e.g., Layer 3 socket handlers that perform network or database interactions).
+
+For testing **Layer 1 (Pure) functions**, such as those in `src/game/phases/` and `src/game/logic/`, the project mandates a specific **Dependency Injection Factory** pattern. This architectural choice enforces purity and is the required method for those specific modules. For details, see `dependency-injection.md`.
+
 ## 3. Forbidden Libraries
 
 The use of `esmock`, `sinon`, `chai`, `jest`, `proxyquire`, or any other third-party mocking, stubbing, or assertion library is **strictly forbidden** for new code. Existing tests using these libraries are considered technical debt and **MUST be refactored** to use the native `node:test` and `node:assert` APIs upon discovery or when the file is otherwise modified.

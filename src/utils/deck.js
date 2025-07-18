@@ -51,10 +51,10 @@ import logger from "./logger.js";
  * Checks if a card is a Jack based on its properties.
  * This is a private helper function used internally for bower logic.
  * @private
- * @param {import('../utils/deck').Card} card - The card object to check.
+ * @param {import('./deck.js').Card} card - The card object to check.
  * @returns {boolean} True if the card's value is 'J', false otherwise.
- * @see isRightBower - Used to determine if a card is the Right Bower.
- * @see isLeftBower - Used to determine if a card is the Left Bower.
+ * @see isRightBower
+ * @see isLeftBower
  */
 function isJack(card) {
   if (!card) return false;
@@ -79,12 +79,13 @@ const SUIT_CONSTANT_TO_NAME_MAP = {
  * @param {string} suit - The suit string to normalize.
  * @returns {SuitConstant} The normalized suit string, which will be one of the `CARD_SUITS` constants (e.g., 'CARD_SUIT_HEARTS').
  * @throws {InvalidCardError} If the provided suit is `null`, `undefined`, not a string, or does not correspond to a valid `CARD_SUITS` value.
- * @see CARD_SUITS - The source of truth for valid suit constants.
- * @see SUIT_CONSTANT_TO_NAME_MAP - Used internally for mapping suit constants to simple names.
- * @referencedBy
- * - src/utils/deck.js - Used by `getSuitColor`, `cardToId`, `isRightBower`, `isLeftBower`, `getCardRank`, `sortHand`.
- * - src/game/logic/validation.js - Used for validating suit inputs in game logic.
- * - test/utils/deck.unit.test.js - Comprehensive test cases for suit normalization.
+ * @see getSuitColor
+ * @see cardToId
+ * @see isRightBower
+ * @see isLeftBower
+ * @see getCardRank
+ * @see sortHand
+ * @see src/game/logic/validation.js
  */
 function normalizeSuit(suit) {
   if (!suit || typeof suit !== 'string') {
@@ -113,15 +114,6 @@ function normalizeSuit(suit) {
  * @private
  * @readonly
  * @enum {string}
- * @property {string} hearts - Single character for Hearts.
- * @property {string} diamonds - Single character for Diamonds.
- * @property {string} clubs - Single character for Clubs.
- * @property {string} spades - Single character for Spades.
- * @see createDeck - Uses this map to generate card IDs.
- * @see cardToId - Uses this map to convert card objects to IDs.
- * @referencedBy
- * - src/utils/deck.js - Used internally by `createDeck` and `cardToId`.
- * - test/utils/deck.unit.test.js - Used in tests for card ID generation.
  */
 const SUIT_CHAR_MAP = {
   hearts: "H",
@@ -136,17 +128,6 @@ const SUIT_CHAR_MAP = {
  * @private
  * @readonly
  * @enum {string}
- * @property {string} 9 - Full name for the value '9'.
- * @property {string} 10 - Full name for the value '10'.
- * @property {string} J - Full name for the value 'J'.
- * @property {string} Q - Full name for the value 'Q'.
- * @property {string} K - Full name for the value 'K'.
- * @property {string} A - Full name for the value 'A'.
- * @see createDeck - Uses this map to generate card names.
- * @see sortHand - Uses this map to get rank names for sorting.
- * @referencedBy
- * - src/utils/deck.js - Used internally by `createDeck` and `sortHand`.
- * - test/utils/deck.unit.test.js - Used in tests for card name generation and sorting.
  */
 const VALUE_NAME_MAP = {
   9: "Nine",
@@ -163,25 +144,10 @@ const VALUE_NAME_MAP = {
  * @property {CardValue} value - The face value of the card. Must be one of `CARD_VALUES` (e.g., '9', '10', 'J', 'Q', 'K', 'A').
  * @property {string} id - A unique, compact identifier for the card (e.g., 'AH' for Ace of Hearts, '9C' for Nine of Clubs).
  * @property {string} name - A human-readable name for the card (e.g., 'Ace of Hearts', 'Nine of Clubs').
- * @example
- * // Example of a Card object
- * {
- *   suit: 'CARD_SUIT_HEARTS',
- *   value: 'A',
- *   id: 'AH',
- *   name: 'Ace of Hearts'
- * }
- * @see CARD_SUITS - Defines the valid suit constants.
- * @see CARD_VALUES - Defines the valid card value constants.
- * @see createDeck - The function responsible for creating `Card` objects.
- * @see cardToId - Converts a `Card` object to its compact ID string.
- * @referencedBy
- * - src/utils/deck.js - Used throughout this module for card representation.
- * - src/game/phases/startNewHandPhase.js - Deals `Card` objects to players.
- * - src/game/phases/playingPhase.js - Handles `Card` objects played during a trick.
- * - src/game/logic/validation.js - Validates `Card` objects in game actions.
- * - src/game/logic/aiLogic.js - AI processes `Card` objects for decision making.
- * - test/utils/deck.unit.test.js - Tests functions that operate on `Card` objects.
+ * @see src/game/phases/startNewHandPhase.js
+ * @see src/game/phases/playingPhase.js
+ * @see src/game/logic/validation.js
+ * @see src/game/logic/aiLogic.js
  */
 
 /**
@@ -195,29 +161,8 @@ const VALUE_NAME_MAP = {
  * @param {string} suit - The suit string to evaluate (e.g., 'HEARTS', 'spades', `CARD_SUIT_CLUBS`).
  * @returns {'red'|'black'} 'red' for Hearts/Diamonds, 'black' for Clubs/Spades.
  * @throws {InvalidCardError} If the provided suit is `null`, `undefined`, not a string, or does not correspond to a valid `CARD_SUITS` value.
- * @example
- * // Returns 'red' for red suits
- * getSuitColor('hearts');
- * getSuitColor('DIAMONDS');
- * @example
- * // Returns 'black' for black suits
- * getSuitColor('CLUBS');
- * getSuitColor('SPADES');
- * @example
- * // Throws InvalidCardError for invalid input
- * try {
- *   getSuitColor('invalid');
- * } catch (error) {
- *   console.error(error.message); // Logs "Invalid suit"
- * }
- * @see normalizeSuit - Used to standardize the suit input.
- * @see SUIT_CONSTANT_TO_NAME_MAP - Provides mapping from suit constants to simple names.
- * @see areSameColor - Leverages this function to compare colors of two suits.
- * @referencedBy
- * - src/utils/deck.js - Used by `areSameColor`.
- * - test/utils/deck.unit.test.js - Contains unit tests for this function.
- * @modifies None - This is a pure function.
- * @throws {InvalidCardError} If `suit` cannot be normalized or mapped.
+ * @see normalizeSuit
+ * @see areSameColor
  */
 function getSuitColor(suit) {
   const normalizedSuit = normalizeSuit(suit);
@@ -245,29 +190,10 @@ function getSuitColor(suit) {
  * @param {string} suitA - The first suit to compare (e.g., 'HEARTS', 'spades').
  * @param {string} suitB - The second suit to compare (e.g., 'DIAMONDS', 'clubs').
  * @returns {boolean} True if both suits are the same color, false otherwise.
- * 
- * @example
- * // Basic usage
- * areSameColor('hearts', 'diamonds'); // true (both red)
- * areSameColor('HEARTS', 'SPADES');   // false (red vs black)
- *
- * // Case-insensitive comparison
- * areSameColor('Clubs', 'SPADES');    // true (both black)
- *
- * // With invalid input
- * areSameColor('hearts', 'invalid');  // false (with warning logged)
- *
- * @see getSuitColor - Used internally to determine suit colors
- * @see isLeftBower - Uses this function to determine Left Bower status
- * 
- * @referencedBy
- * - test/utils/deck.unit.test.js
- * - src/game/logic/validation.js
- * - src/game/logic/aiLogic.js
- * - src/utils/deck.js
- * 
- * @modifies None - Pure function with no side effects (except logging on error)
- * @throws {InvalidCardError} If `suitA` or `suitB` cannot be normalized or mapped.
+ * @see getSuitColor
+ * @see isLeftBower
+ * @see src/game/logic/validation.js
+ * @see src/game/logic/aiLogic.js
  */
 function areSameColor(suitA, suitB) {
   try {
@@ -292,40 +218,9 @@ function areSameColor(suitA, suitB) {
  * - id: A compact string ID (e.g., '9H' for 9 of Hearts)
  * - name: A human-readable name (e.g., 'Nine of Hearts')
  *
- * @returns {Array<import('../utils/deck').Card>} A new array containing 24 card objects.
- * 
- * @example
- * // Basic usage
- * const deck = createDeck();
- * console.log(deck.length); // 24
- * console.log(deck[0]);
- * // Output: {
- * //   suit: 'CARD_SUIT_HEARTS',
- * //   value: '9',
- * //   id: '9H',
- * //   name: 'Nine of Hearts'
- * // }
- *
- * @example
- * // Creating and shuffling a new deck
- * import { createDeck, shuffleDeck } from '@/utils/deck';
- * const freshDeck = createDeck();
- * const shuffledDeck = shuffleDeck(freshDeck);
- *
- * @see CARD_SUITS - Used to determine valid suits for the deck
- * @see CARD_VALUES - Used to determine valid card values (9-A)
- * @see SUIT_CONSTANT_TO_NAME_MAP - Maps suit constants to display names
- * @see SUIT_CHAR_MAP - Maps suit names to single-character symbols
- * @see VALUE_NAME_MAP - Maps card values to display names
- * 
- * @referencedBy
- * - test/utils/deck.unit.test.js
- * - src/game/phases/startNewHandPhase.js
- * - src/utils/__tests__/deck.test.js
- * - scripts/setupTestData.js
- * 
- * @modifies None - Pure function that creates a new array
- * @throws None - No exceptions thrown, always returns a valid deck
+ * @returns {Array<import('./deck.js').Card>} A new array containing 24 card objects.
+ * @see src/game/phases/startNewHandPhase.js
+ * @see scripts/setupTestData.js
  */
 function createDeck() {
   const uniqueSuits = [...new Set(Object.values(CARD_SUITS))].filter(s => s.startsWith('CARD_SUIT_'));
@@ -348,35 +243,11 @@ function createDeck() {
  * Creates a new array with the same cards in random order. The original deck
  * remains unmodified. This is a pure function that returns a new array.
  * 
- * @param {Array<import('../utils/deck').Card>} deck - The deck of cards to shuffle. Each card should be a valid card object.
- * @returns {Array<import('../utils/deck').Card>} A new array containing the same cards in random order.
+ * @param {Array<import('./deck.js').Card>} deck - The deck of cards to shuffle. Each card should be a valid card object.
+ * @returns {Array<import('./deck.js').Card>} A new array containing the same cards in random order.
  * @throws {InvalidCardError} If the input is not an array.
- * 
- * @example
- * // Basic usage
- * const deck = createDeck();
- * const shuffled = shuffleDeck(deck);
- * console.log(shuffled.length); // 24 (for a standard Euchre deck)
- * console.log(deck === shuffled); // false (new array is created)
- *
- * @example
- * // Error handling
- * try {
- *   shuffleDeck(null); // Throws InvalidCardError
- * } catch (error) {
- *   console.error(error.message);
- * }
- *
- * @see createDeck - Used to create a standard deck before shuffling
- * @see sortHand - Used to sort a hand after dealing
- * 
- * @referencedBy
- * - test/utils/deck.unit.test.js
- * - src/game/phases/startNewHandPhase.js
- * - src/game/logic/aiLogic.js
- * 
- * @modifies None - Pure function that returns a new array
- * @throws {InvalidCardError} When input is not an array
+ * @see src/game/phases/startNewHandPhase.js
+ * @see src/game/logic/aiLogic.js
  */
 function shuffleDeck(deck) {
   if (!Array.isArray(deck)) {
@@ -402,38 +273,11 @@ function shuffleDeck(deck) {
  * 
  * Handles various input formats and gracefully degrades to '??' for invalid cards.
  * 
- * @param {import('../utils/deck').Card | object} card - The card object to convert. Can have different property names.
- * @param {CardValue} [card.value] - The card value (e.g., '9', '10', 'J', 'Q', 'K', 'A').
- * @param {string} [card.suit] - The card suit (case-insensitive).
- * @param {string} [card.name] - Alternative way to specify card name (e.g., 'ace of spades').
+ * @param {import('./deck.js').Card | object} card - The card object to convert. Can have different property names.
  * @returns {string} A compact string ID (e.g., 'JH' for Jack of Hearts) or '??' if invalid.
- * 
- * @example
- * // Basic usage with value and suit
- * const card1 = { value: 'J', suit: 'HEARTS' };
- * console.log(cardToId(card1)); // 'JH'
- *
- * // Alternative usage with name
- * const card2 = { name: 'ace of spades' };
- * console.log(cardToId(card2)); // 'AS'
- *
- * // Invalid card
- * console.log(cardToId({})); // '??'
- *
- * @see normalizeSuit - Used for consistent suit handling
- * @see SUIT_CHAR_MAP - Maps suit names to their symbol characters
- * @see SUIT_CONSTANT_TO_NAME_MAP - Normalizes suit constants to names
- * 
- * @referencedBy
- * - test/utils/deck.unit.test.js
- * - src/game/phases/playingPhase.js
- * - src/game/logic/aiLogic.js
- * - src/game/phases/startNewHandPhase.js
- * - src/game/phases/biddingPhase.js
- * - src/utils/logger.js
- * 
- * @modifies None - Pure function with no side effects
- * @throws None - Gracefully handles all invalid inputs by returning '??'
+ * @see src/game/phases/startNewHandPhase.js
+ * @see src/game/phases/biddingPhase.js
+ * @see src/utils/logger.js
  */
 function cardToId(card) {
   if (!card) { return '??'; }
@@ -490,36 +334,17 @@ function cardToId(card) {
  * The Right Bower is the highest-ranking card in Euchre, being the Jack of the trump suit.
  * This function validates the input and checks if the card meets the Right Bower criteria.
  * 
- * @param {import('../utils/deck').Card} card - The card to check. Must be a valid card object with 'suit' and 'value' properties.
+ * @param {import('./deck.js').Card} card - The card to check. Must be a valid card object with 'suit' and 'value' properties.
  * @param {string} trumpSuit - The current trump suit (case-insensitive).
  * @returns {boolean} True if the card is the Right Bower, false otherwise.
  * @throws {InvalidCardError} If the card has an invalid or missing suit.
- * 
- * @example
- * // Returns true - Jack of Hearts is Right Bower when Hearts is trump
- * isRightBower({ suit: 'HEARTS', value: 'J' }, 'hearts');
- * 
- * @example
- * // Returns false - Not a Jack
- * isRightBower({ suit: 'HEARTS', value: 'Q' }, 'hearts');
- * 
- * @example
- * // Returns false - Jack of wrong suit
- * isRightBower({ suit: 'DIAMONDS', value: 'J' }, 'hearts');
- * 
- * @see isLeftBower - Used in conjunction for Bower checks
- * @see getCardRank - Uses this function for card ranking
- * @see sortHand - Uses this function for sorting logic
- * 
- * @referencedBy
- * - test/utils/deck.unit.test.js
- * - src/game/logic/validation.js
- * - src/game/logic/aiLogic.js
- * - src/game/phases/playingPhase.js
- * - src/game/phases/biddingPhase.js
- * 
- * @modifies None - Pure function with no side effects
- * @throws {InvalidCardError} When card has invalid or missing suit
+ * @see isLeftBower
+ * @see getCardRank
+ * @see sortHand
+ * @see src/game/logic/validation.js
+ * @see src/game/logic/aiLogic.js
+ * @see src/game/phases/playingPhase.js
+ * @see src/game/phases/biddingPhase.js
  */
 function isRightBower(card, trumpSuit) {
   // Handle null/undefined card or non-object
@@ -551,8 +376,8 @@ function isRightBower(card, trumpSuit) {
     throw new InvalidCardError('Suit is required');
   }
   
-  // If the card has no value or the value is not 'J', return false
-  if (!('value' in card) || card.value !== 'J') {
+  // If the card is not a Jack, return false
+  if (!isJack(card)) {
     return false;
   }
   
@@ -580,37 +405,17 @@ function isRightBower(card, trumpSuit) {
  * color as the trump suit. For example, if Hearts is trump, the Jack of Diamonds
  * is the Left Bower (both are red).
  * 
- * @param {import('../utils/deck').Card} card - The card to check. Must be a valid card object with 'suit' and 'value' properties.
+ * @param {import('./deck.js').Card} card - The card to check. Must be a valid card object with 'suit' and 'value' properties.
  * @param {string} trumpSuit - The current trump suit (case-insensitive).
  * @returns {boolean} True if the card is the Left Bower, false otherwise.
  * @throws {InvalidCardError} If the card or trump suit is invalid.
- * 
- * @example
- * // Returns true - Jack of Diamonds is Left Bower when Hearts is trump (both red)
- * isLeftBower({ suit: 'DIAMONDS', value: 'J' }, 'hearts');
- * 
- * @example
- * // Returns false - Not a Jack
- * isLeftBower({ suit: 'DIAMONDS', value: 'Q' }, 'hearts');
- * 
- * @example
- * // Returns false - Jack of wrong color
- * isLeftBower({ suit: 'CLUBS', value: 'J' }, 'hearts');
- * 
- * @see isRightBower - Complementary function for Right Bower checks
- * @see getCardRank - Uses this function for card ranking
- * @see areSameColor - Used internally to determine suit colors
- * @see sortHand - Uses this function for sorting logic
- * 
- * @referencedBy
- * - test/utils/deck.unit.test.js
- * - src/game/logic/validation.js
- * - src/game/logic/aiLogic.js
- * - src/game/phases/playingPhase.js
- * - test/game/logic/validatePlay.edge.unit.test.js
- * 
- * @modifies None - Pure function with no side effects
- * @throws {InvalidCardError} When card or trump suit is invalid
+ * @see isRightBower
+ * @see getCardRank
+ * @see areSameColor
+ * @see sortHand
+ * @see src/game/logic/validation.js
+ * @see src/game/logic/aiLogic.js
+ * @see src/game/phases/playingPhase.js
  */
 function isLeftBower(card, trumpSuit) {
     // Handle null/undefined card
@@ -635,7 +440,7 @@ function isLeftBower(card, trumpSuit) {
     const normalizedTrumpSuit = normalizeSuit(trumpSuit);
     
     // Check if it's a Jack
-    if (card.value !== 'J') return false;
+    if (!isJack(card)) return false;
     
     // Normalize the card suit (will throw if invalid)
     const normalizedCardSuit = normalizeSuit(card.suit);
@@ -658,33 +463,18 @@ function isLeftBower(card, trumpSuit) {
  * 4. Cards of the led suit follow (with LED_OFFSET added)
  * 5. All other cards are ranked by their face value
  * 
- * @param {import('../utils/deck').Card} card - The card to rank. Must have 'suit' and 'value' properties.
+ * @param {import('./deck.js').Card} card - The card to rank. Must have 'suit' and 'value' properties.
  * @param {string} trumpSuit - The current trump suit (case-insensitive).
  * @param {string} [ledSuit=null] - The currently led suit (if any, case-insensitive).
  * @returns {number} The rank of the card (higher is better)
  * @throws {InvalidCardError} When card has invalid suit or value, or if trumpSuit is invalid.
- * 
- * @example
- * // Returns highest rank (Right Bower)
- * getCardRank({ suit: 'HEARTS', value: 'J' }, 'HEARTS', 'DIAMONDS');
- * 
- * @example
- * // Returns second highest rank (Left Bower)
- * getCardRank({ suit: 'DIAMONDS', value: 'J' }, 'HEARTS', 'CLUBS');
- * 
- * @see isRightBower - Used to identify the Right Bower
- * @see isLeftBower - Used to identify the Left Bower
- * @see sortHand - Uses this function for card ordering
- * 
- * @referencedBy
- * - test/utils/deck.unit.test.js
- * - src/game/logic/aiLogic.js
- * - src/game/phases/playingPhase.js
- * - src/game/logic/validation.js
- * - src/config/constants.js
- * 
- * @modifies None - Pure function with no side effects
- * @throws {InvalidCardError} When card has invalid suit or value
+ * @see isRightBower
+ * @see isLeftBower
+ * @see sortHand
+ * @see src/game/logic/aiLogic.js
+ * @see src/game/phases/playingPhase.js
+ * @see src/game/logic/validation.js
+ * @see src/config/constants.js
  */
 function getCardRank(card, trumpSuit, ledSuit = null) {
   if (!card || typeof card !== 'object' || !card.suit || !card.value || !trumpSuit) {
@@ -754,39 +544,16 @@ function getCardRank(card, trumpSuit, ledSuit = null) {
  * 4. Non-trump cards by suit order (Clubs, Diamonds, Spades, Hearts)
  * 5. Cards of the same suit by rank (A, K, Q, J, 10, 9)
  * 
- * @param {Array<import('../utils/deck').Card>} hand - Array of card objects to sort. Each card must have 'suit' and 'value' properties.
+ * @param {Array<import('./deck.js').Card>} hand - Array of card objects to sort. Each card must have 'suit' and 'value' properties.
  * @param {string} [trumpSuit] - The current trump suit (case-insensitive). If not provided, sorts by natural order.
- * @returns {Array<import('../utils/deck').Card>} A new array containing the sorted cards.
- * 
- * @example
- * // Basic usage with trump suit
- * const hand = [
- *   { suit: 'HEARTS', value: 'J' },  // Right Bower if trump is HEARTS
- *   { suit: 'DIAMONDS', value: 'J' }, // Left Bower if trump is HEARTS
- *   { suit: 'HEARTS', value: 'A' },
- *   { suit: 'CLUBS', value: '9' }
- * ];
- * const sorted = sortHand(hand, 'HEARTS');
- * // Returns: [
- * //   { suit: 'HEARTS', value: 'J' },    // Right Bower first
- * //   { suit: 'DIAMONDS', value: 'J' },   // Left Bower second
- * //   { suit: 'HEARTS', value: 'A' },     // Other trump cards
- * //   { suit: 'CLUBS', value: '9' }       // Non-trump cards
- * // ]
- *
- * @see isRightBower - Used to identify the Right Bower
- * @see isLeftBower - Used to identify the Left Bower
- * @see getCardRank - Used for determining card rankings
- * @see normalizeSuit - Used for consistent suit comparison
- * 
- * @referencedBy
- * - test/utils/deck.unit.test.js
- * - src/game/phases/playingPhase.js
- * - src/game/logic/aiLogic.js
- * - src/game/logic/validation.js
- * 
- * @modifies None - Pure function that returns a new array
- * @throws None - Handles errors gracefully, returns empty array for invalid input
+ * @returns {Array<import('./deck.js').Card>} A new array containing the sorted cards.
+ * @see isRightBower
+ * @see isLeftBower
+ * @see getCardRank
+ * @see normalizeSuit
+ * @see src/game/phases/playingPhase.js
+ * @see src/game/logic/aiLogic.js
+ * @see src/game/logic/validation.js
  */
 function sortHand(hand, trumpSuit) {
   if (!Array.isArray(hand)) {
@@ -815,7 +582,7 @@ function sortHand(hand, trumpSuit) {
 
   /**
    * Generates a sort key for a given card based on Euchre rules.
-   * @param {import('../utils/deck').Card} card - The card to generate the sort key for.
+   * @param {import('./deck.js').Card} card - The card to generate the sort key for.
    * @returns {SortKey} The sort key object.
    */
   const getSortKey = (card) => {

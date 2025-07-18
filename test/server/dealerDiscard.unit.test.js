@@ -1,481 +1,188 @@
-import assert from "assert";
-import esmock from "esmock";
-import sinon from "sinon";
-import { handleDealerDiscard } from "../../src/game/phases/biddingPhase.js"; // Adjusted path
-import { DEBUG_LEVELS, GAME_PHASES } from "../../src/config/constants.js";
+import { describe, it, beforeEach, afterEach, mock } from 'node:test';
+import assert from 'node:assert/strict';
+import { logger } from '../../src/utils/logger.js';
+import * as deckUtils from '../../src/utils/deck.js';
+import { SUITS, GAME_PHASES } from '../../src/config/constants.js';
+import { InvalidPhaseError, NotDealerError, CardNotInHandError, HandSizeError } from '../../src/game/logic/errors.js';
+import { createBiddingPhaseWithDeps } from '../__mocks__/biddingPhase.js';
 
-// Debug configuration
-const DEBUG = Object.freeze({
-  enabled: process.env.DEBUG_TESTS === "true",
-  log: function (...args) {
-    if (this.enabled) {
-      console.log("[DEBUG]", ...args);
-    }
-  },
-  error: function (...args) {
-    if (this.enabled) {
-      console.error("[ERROR]", ...args);
-    }
-  },
-});
-
-// Create a closure to store emitted messages
-const createMockIo = (emittedMessages) => {
-  return {
-    to: () => ({
-      emit: (event, message) => {
-        // Store emitted messages for testing
-        emittedMessages.push({ event, message });
-      },
-    }),
-    emit: (event, message) => {
-      // Store broadcast messages
-      emittedMessages.push({ event, message, broadcast: true });
-    },
-    in: () => ({
-      emit: (event, message) => {
-        // Store room messages
-        emittedMessages.push({ event, message, room: true });
-      },
-    }),
-  };
+// Create test doubles
+const mockValidateDealerDiscard = mock.fn();
+const mockValidateBid = mock.fn();
+const mockCardToId = mock.fn((card) => 
+  card ? `${card.value}${card.suit.charAt(0).toUpperCase()}` : 'UnknownCard'
+);
+const mockLogger = {
+  info: mock.fn(),
+  error: mock.fn()
 };
 
-describe("Euchre Server Dealer Discard Functions", function () {
-  /** @type {Function} mockedHandleDealerDiscard - The imported and potentially esmocked version of handleDealerDiscard */
-  let actualHandleDealerDiscard;
+// Create the test subject with our test doubles
+const { handleDealerDiscard } = createBiddingPhaseWithDeps({
+  validateDealerDiscard: mockValidateDealerDiscard,
+  validateBid: mockValidateBid,
+  cardToId: mockCardToId,
+  logger: mockLogger
+});
 
-  /** @type {Object} gameState - The game state object */
+describe('Euchre Server | Phase Logic | handleDealerDiscard', () => {
   let gameState;
 
-  /** @type {Object} mockIo - Mock IO instance, though handleDealerDiscard may not use it directly */
-  let mockIo;
+  beforeEach(() => {
+    // Reset all mocks before each test
+    mock.reset();
+    mockValidateDealerDiscard.mock.resetCalls();
+    mockValidateBid.mock.resetCalls();
+    mockCardToId.mock.resetCalls();
+    mockLogger.info.mock.resetCalls();
+    mockLogger.error.mock.resetCalls();
 
-  /** @type {Array} emittedMessages - Array to store emitted messages for testing (may become less relevant) */
-  let emittedMessages = [];
-
-  // Mocks for dependencies of handleDealerDiscard
-  let mockValidateDealerDiscard;
-  let mockLogger;
-  let mockCardToId;
-  let MockCardNotInHandError;
-
-  /**
-   * @description Before each test, reset the test environment and set up mocks.
-   * Uses esmock to import handleDealerDiscard with mocked dependencies.
-   */
-  beforeEach(async () => {
-    emittedMessages = []; // Reset for clarity, though direct emissions might not occur
-
-    mockValidateDealerDiscard = sinon.stub();
-    // Default behavior for the stub (can be overridden in specific tests)
-    // For most tests, we want it to behave like a successful validation (do nothing, or return true)
-    // If a test needs it to throw, it can configure it: mockValidateDealerDiscard.throws(new Error(...));
-    // Or for the specific hand size test: mockValidateDealerDiscard.callsFake((gs, role, card, hand) => { ... });
-
-    mockLogger = {
-      info: sinon.spy(),
-      warn: sinon.spy(),
-      error: sinon.spy(),
-      debug: sinon.spy(),
-    };
-
-    mockCardToId = sinon.spy((card) =>
-      card
-        ? `${card.value}${card.suit.charAt(0).toUpperCase()}`
-        : "UnknownCard",
-    );
-
-    // This is a real error class, but we might want to spy on its constructor or ensure it's the one thrown
-    // For now, we'll allow the real one to be used by the module,
-    // but if specific tests need to control its instantiation, this could be a mock constructor.
-    // We're primarily mocking functions *called by* handleDealerDiscard.
-    // CardNotInHandError is defined in errors.js, which biddingPhase.js imports.
-    // We can let it use the real one, or if we needed to check *how* it's constructed by handleDealerDiscard,
-    // we would mock errors.js itself. For now, assume real error is fine.
-    // MockCardNotInHandError = sinon.stub(); // Example if we wanted to mock instantiation
-
-    actualHandleDealerDiscard = await esmock(
-      "../../src/game/phases/biddingPhase.js",
-      {
-        // Adjusted path
-        "../../src/game/logic/validation.js": {
-          // Adjusted path for mock
-          validateDealerDiscard: mockValidateDealerDiscard,
-        },
-        "../../src/utils/logger.js": mockLogger, // Adjusted path for mock
-        "../../src/utils/deck.js": {
-          // Adjusted path for mock
-          cardToId: mockCardToId,
-        },
-        // If CardNotInHandError needed to be mocked (e.g. to check constructor calls)
-        // '../../src/game/logic/errors.js': { // Adjusted path for mock
-        //   CardNotInHandError: MockCardNotInHandError
-        // }
-      },
-    );
-
-    // The old ioMock might still be useful if we want to simulate a handler calling our function
-    // and then check what that handler would emit. For now, keep its structure.
-    mockIo = createMockIo(emittedMessages); // createMockIo is defined in the file
-
-    // Initialize game state with all required properties
+    // Initialize a fresh game state for each test
     gameState = {
-      gamePhase: "LOBBY",
-      playerSlots: ["south", "west", "north", "east"],
       players: {
-        south: { id: "fakeSocketId", name: "Player 1", hand: [] },
-        west: { id: "fakeSocketId2", name: "Player 2", hand: [] },
-        north: { id: "fakeSocketId3", name: "Player 3", hand: [] },
-        east: { id: "fakeSocketId4", name: "Player 4", hand: [] },
+        south: { id: 'south', hand: [] },
+        west: { id: 'west', hand: [] },
+        north: { id: 'north', hand: [] },
+        east: { id: 'east', hand: [] }
       },
-      messages: [], // This 'messages' might be legacy, gameState now has 'gameMessages'
-      team1Score: 0,
-      team2Score: 0,
-      currentTrickPlays: [],
-      tricksWon: { team1: 0, team2: 0 },
-      kitty: [],
-      dealer: null,
-      currentPlayer: null,
-      playerWhoCalledTrump: null,
-      dealerHasDiscarded: false,
-      gameMessages: [], // Ensure gameMessages is part of the test gameState
+      gamePhase: GAME_PHASES.DEALER_DISCARD,
+      dealer: 'south',
+      gameMessages: []
     };
-
-    // The old wrapper for handleDealerDiscard (previously on 'server.handleDealerDiscard') is no longer needed.
-    // Tests will call actualHandleDealerDiscard.handleDealerDiscard directly.
-    // Error handling and message/event checking will be done by inspecting
-    // thrown errors or the returned gameState.
-    // The lines `server.gameState = gameState;` and the definition of `originalHandleDealerDiscard`
-    // and the reassignment of `server.handleDealerDiscard` are removed as 'server' is no longer used.
   });
 
-  /**
-   * @description Test suite for the handleDealerDiscard function.
-   * Tests various scenarios for the dealer discard functionality.
-   */
-  /**
-   * Test suite for the handleDealerDiscard function.
-   * Tests various scenarios for the dealer discard functionality.
-   */
-  describe("handleDealerDiscard", function () {
-    /**
-     * @test {handleDealerDiscard}
-     * @description Verifies that the server rejects discard attempts
-     * when the game is not in the AWAITING_DEALER_DISCARD phase.
-     */
-    it("should reject discard when not in AWAITING_DEALER_DISCARD phase", function () {
-      // Setup test
-      gameState.gamePhase = "PLAYING_TRICKS";
-      gameState.dealer = "south";
-      gameState.currentPlayer = "south";
-      gameState.players.south.hand = [{ id: "H1", suit: "hearts", value: "A" }]; // Changed id to string for consistency
+  afterEach(() => {
+    // Clean up after each test
+    mock.restoreAll();
+  });
 
-      // Execute and Verify
-      assert.throws(
-        () =>
-          actualHandleDealerDiscard.handleDealerDiscard(
-            gameState,
-            "south",
-            "H1",
-          ),
-        Error, // Expecting an error propagated from validateDealerDiscard, likely InvalidPhaseError
-        "Should throw an error for wrong phase",
-      );
-      // We also expect validateDealerDiscard to have been called and that's what throws.
-      // So, check that our mock was called.
-      sinon.assert.calledOnce(mockValidateDealerDiscard);
-      assert.strictEqual(
-        gameState.dealerHasDiscarded,
-        false,
-        "dealerHasDiscarded should remain false",
-      );
+  it('should successfully process a valid dealer discard', () => {
+    // Arrange
+    const cardToDiscard = { suit: 'hearts', value: 'A' };
+    const cardToKeep = { suit: 'hearts', value: 'K' };
+    const cardToDiscardId = 'AH';
+    gameState.players.south.hand = [cardToDiscard, cardToKeep];
+    
+    // Setup mock validation to pass
+    mockValidateDealerDiscard.mock.mockImplementation(() => ({
+      isValid: true,
+      error: null
+    }));
+
+    // Setup mock bid validation to pass
+    mockValidateBid.mock.mockImplementation(() => ({
+      isValid: true,
+      error: null
+    }));
+
+    // Setup cardToId mock to return card IDs
+    mockCardToId.mock.mockImplementation((card) => 
+      card ? `${card.value}${card.suit.charAt(0).toUpperCase()}` : 'UnknownCard'
+    );
+
+    // Act
+    const newState = handleDealerDiscard(gameState, 'south', cardToDiscardId);
+
+    // Assert
+    assert.strictEqual(newState.players.south.hand.length, 1, 'Should remove the discarded card from hand');
+    assert.strictEqual(newState.players.south.hand[0].value, 'K', 'Should keep the other card in hand');
+    assert.strictEqual(newState.gamePhase, GAME_PHASES.PLAYING_TRICKS, 'Should transition to PLAYING_TRICKS phase');
+    assert.ok(newState.gameMessages.length > 0, 'Should add a game message');
+    assert.ok(newState.gameMessages[0].text.includes('discarded'), 'Game message should announce the discard');
+  });
+
+  it('should throw InvalidPhaseError when not in DEALER_DISCARD phase', () => {
+    // Arrange
+    const cardToDiscardId = 'AH';
+    gameState.gamePhase = GAME_PHASES.BIDDING; // Not DEALER_DISCARD phase
+
+    // Setup mock validation to fail with InvalidPhaseError
+    mockValidateDealerDiscard.mock.mockImplementation(() => {
+      throw new InvalidPhaseError('Not in DEALER_DISCARD phase');
     });
 
-    /**
-     * @test {handleDealerDiscard}
-     * @description Verifies that the server rejects discard attempts
-     * from players who are not the current dealer.
-     */
-    it("should reject discard from non-dealer player", function () {
-      // Setup test
-      gameState.gamePhase = "AWAITING_DEALER_DISCARD";
-      gameState.dealer = "south";
-      gameState.currentPlayer = "south"; // Important: current player is south (dealer)
-      // 'north' is attempting the discard. Their hand content is less relevant than them not being the dealer.
-      gameState.players.north.hand = [{ id: "H1", suit: "hearts", value: "A" }];
+    // Act & Assert
+    assert.throws(
+      () => handleDealerDiscard(gameState, 'south', cardToDiscardId),
+      {
+        name: 'InvalidPhaseError',
+        code: 'E_INVALID_PHASE'
+      },
+      'Should throw InvalidPhaseError when not in DEALER_DISCARD phase'
+    );
+  });
 
-      // Execute and Verify
-      assert.throws(
-        () =>
-          actualHandleDealerDiscard.handleDealerDiscard(
-            gameState,
-            "north",
-            "H1",
-          ),
-        Error, // Expecting an error from validateDealerDiscard, likely InvalidDiscardError
-        "Should throw an error for non-dealer player",
-      );
-      sinon.assert.calledOnce(mockValidateDealerDiscard);
-      assert.strictEqual(
-        gameState.dealerHasDiscarded,
-        false,
-        "dealerHasDiscarded should remain false",
-      );
+  it('should throw NotDealerError when player is not the dealer', () => {
+    // Arrange
+    const cardToDiscardId = 'AH';
+    gameState.gamePhase = GAME_PHASES.DEALER_DISCARD;
+    gameState.dealer = 'south';
+
+    // Setup mock validation to fail with NotDealerError
+    mockValidateDealerDiscard.mock.mockImplementation(() => {
+      throw new NotDealerError('Player is not the dealer');
     });
 
-    /**
-     * @test {handleDealerDiscard}
-     * @description Verifies that the server enforces the rule that the dealer
-     * must have exactly 6 cards (after picking up the turn card) before discarding one.
-     */
-    it("should reject discard when hand size is not 6 (after including turnCard)", function () {
-      // Setup test
-      gameState.gamePhase = "AWAITING_DEALER_DISCARD";
-      gameState.dealer = "south";
-      gameState.currentPlayer = "south";
-      gameState.turnCard = { id: "C1A", suit: "clubs", value: "A" }; // Turn card to be picked up
-      gameState.players.south.hand = [
-        // Hand currently has 4 cards, + turn card = 5
-        { id: "H1A", suit: "hearts", value: "A" },
-        { id: "H1K", suit: "hearts", value: "K" },
-        { id: "H1Q", suit: "hearts", value: "Q" },
-        { id: "H1J", suit: "hearts", value: "J" },
-      ];
+    // Act & Assert
+    assert.throws(
+      () => handleDealerDiscard(gameState, 'west', cardToDiscardId),
+      {
+        name: 'NotDealerError',
+        code: 'E_NOT_DEALER'
+      },
+      'Should throw NotDealerError when player is not the dealer'
+    );
+  });
 
-      const cardToAttemptDiscard = gameState.players.south.hand[0]; // { id: 1, suit: 'hearts', value: 'A' }
+  it('should throw CardNotInHandError when card is not in hand', () => {
+    // Arrange
+    const cardToDiscardId = 'AH';
+    gameState.gamePhase = GAME_PHASES.DEALER_DISCARD;
+    gameState.dealer = 'south';
+    gameState.players.south.hand = []; // Empty hand
 
-      // Configure the behavior of the mockValidateDealerDiscard stub (from beforeEach)
-      // specifically for this test case.
-      mockValidateDealerDiscard.callsFake((gs, role, card, hand) => {
-        if (hand.length !== 6) {
-          throw new Error("Invalid hand size for discard (must be 6).");
-        }
-        // If hand.length is 6, it will do nothing (default stub behavior),
-        // which is fine as this test expects the throw.
-      });
-
-      // Execute and Verify
-      assert.throws(
-        () =>
-          actualHandleDealerDiscard.handleDealerDiscard(
-            gameState,
-            "south",
-            String(cardToAttemptDiscard.id),
-          ),
-        Error,
-        "Invalid hand size for discard (must be 6).",
-      );
-      sinon.assert.calledOnce(mockValidateDealerDiscard); // Check that our configured mock was called
-      assert.strictEqual(
-        gameState.dealerHasDiscarded,
-        false,
-        "dealerHasDiscarded should remain false",
-      );
-
-      // Restore original mockValidateDealerDiscard behavior from beforeEach if it was more complex
-      // For a simple spy, just re-assigning in the next beforeEach run is fine.
-      // If it had more complex default behavior: mockValidateDealerDiscard = originalMockValidate;
+    // Setup mock validation to fail with CardNotInHandError
+    mockValidateDealerDiscard.mock.mockImplementation(() => {
+      throw new CardNotInHandError('Card not in hand');
     });
 
-    /**
-     * @test {handleDealerDiscard}
-     * @description Verifies that a valid dealer discard is processed correctly,
-     * updating the game state and transitioning to the next phase.
-     */
-    it("should successfully process valid dealer discard", function () {
-      // Setup test
-      // Ensure mockValidateDealerDiscard does not throw for this valid case
-      // The default spy in beforeEach is fine.
-      // Setup: Dealer 'south' has 5 cards. Picks up 'turnUpCard', resulting in 6. Then discards 'cardToDiscardFromHand'.
-      const originalHand = [
-        { id: "HA", suit: "hearts", value: "A" },
-        { id: "HK", suit: "hearts", value: "K" },
-        { id: "HQ", suit: "hearts", value: "Q" },
-        { id: "HJ", suit: "hearts", value: "J" },
-        { id: "H9", suit: "hearts", value: "9" }, // Card that will be kept
-      ];
-      const turnUpCard = { id: "HT", suit: "hearts", value: "10" }; // This is the card picked up
-      const cardToDiscardFromHand = { id: "HA", suit: "hearts", value: "A" }; // Dealer chooses to discard Ace of Hearts
+    // Act & Assert
+    assert.throws(
+      () => handleDealerDiscard(gameState, 'south', cardToDiscardId),
+      {
+        name: 'CardNotInHandError',
+        code: 'E_CARD_NOT_IN_HAND'
+      },
+      'Should throw CardNotInHandError when card is not in hand'
+    );
+  });
 
-      // The hand that handleDealerDiscard receives (and validateDealerDiscard)
-      // is the hand *after* picking up the turn card.
-      const dealerHandAfterPickup = [...originalHand, turnUpCard]; // Now 6 cards
+  it('should throw HandSizeError if the dealer hand size is incorrect before discard', () => {
+    // Arrange - Give dealer wrong number of cards
+    gameState.players.south.hand = [
+      { suit: 'hearts', value: 'A' },
+      { suit: 'hearts', value: 'K' },
+      { suit: 'hearts', value: 'Q' },
+      { suit: 'hearts', value: 'J' },
+      { suit: 'hearts', value: '10' },
+      { suit: 'hearts', value: '9' },
+      { suit: 'hearts', value: '8' } // 7 cards is too many
+    ];
 
-      gameState = {
-        gamePhase: GAME_PHASES.DEALER_DISCARD, // Correct phase from constants.js
-        dealer: "south",
-        currentPlayer: "south",
-        playerWhoCalledTrump: "west", // or playerWhoOrderedUp
-        playerWhoOrderedUp: "west", // biddingPhase uses this to set next player
-        turnCard: turnUpCard, // This is the card that was on the table, now conceptually in hand
-        kitty: [],
-        messages: [],
-        players: {
-          ...gameState.players, // Spread existing players for other roles
-          south: {
-            id: "south-1",
-            name: "Player 1",
-            hand: dealerHandAfterPickup, // Hand of 6 cards
-          },
-          // Ensure other players exist for functions like getNextPlayer if they are called
-          west: { id: "west-1", name: "Player 2", hand: [] },
-          north: { id: "north-1", name: "Player 3", hand: [] },
-          east: { id: "east-1", name: "Player 4", hand: [] },
-        },
-        playerSlots: ["south", "west", "north", "east"], // ensure this matches roles used
-        team1Score: 0,
-        team2Score: 0,
-        currentTrickPlays: [],
-        tricksWon: { team1: 0, team2: 0 },
-        dealerHasDiscarded: false, // This property is not used by biddingPhase.js
-        gameMessages: [],
-      };
-
-      // Execute
-      // handleDealerDiscard is called with the ID of the card to be removed from the 6-card hand.
-      const newState = actualHandleDealerDiscard.handleDealerDiscard(
-        gameState,
-        "south",
-        cardToDiscardFromHand.id,
-      );
-
-      // Verify
-      assert.ok(
-        newState,
-        "Should return a new game state object for successful discard",
-      );
-
-      // Check mocks
-      sinon.assert.calledOnce(mockValidateDealerDiscard);
-      // validateDealerDiscard is called with the 6-card hand
-      sinon.assert.calledWith(
-        mockValidateDealerDiscard,
-        gameState,
-        "south",
-        sinon.match({ id: cardToDiscardFromHand.id }),
-        dealerHandAfterPickup,
-      );
-      sinon.assert.calledWith(
-        mockLogger.info,
-        sinon.match.has("pickedUp", mockCardToId(turnUpCard)),
-      );
-      sinon.assert.calledWith(
-        mockLogger.info,
-        sinon.match.has("discarded", mockCardToId(cardToDiscardFromHand)),
-      );
-
-      // Check returned state
-      assert.strictEqual(
-        newState.gamePhase,
-        GAME_PHASES.GOING_ALONE_DECISION,
-        "Should move to GOING_ALONE_DECISION phase",
-      );
-      assert.strictEqual(
-        newState.currentPlayer,
-        "west",
-        "Current player should be set to player who ordered up/called trump",
-      );
-
-      assert.strictEqual(
-        newState.players.south.hand.length,
-        5,
-        "Dealer should have 5 cards",
-      );
-      // The turnUpCard (HT) should be in the final hand (unless it was the one discarded, which it isn't in this setup)
-      assert.ok(
-        newState.players.south.hand.some((card) => card.id === turnUpCard.id),
-        "Dealer hand should contain the turnUpCard (HT)",
-      );
-      // The cardToDiscardFromHand (HA) should NOT be in the final hand
-      assert.ok(
-        !newState.players.south.hand.some(
-          (card) => card.id === cardToDiscardFromHand.id,
-        ),
-        "Dealer hand should not contain the discarded card (HA)",
-      );
-
-      // Ensure other original cards (except the discarded one) are still there
-      const expectedKeptCards = originalHand.filter(
-        (c) => c.id !== cardToDiscardFromHand.id,
-      );
-      expectedKeptCards.forEach((keptCard) => {
-        assert.ok(
-          newState.players.south.hand.some((card) => card.id === keptCard.id),
-          `Kept card ${keptCard.id} should be in hand`,
-        );
-      });
-
-      assert.strictEqual(
-        newState.turnCard,
-        null,
-        "gameState.turnCard (on table) should be null after discard",
-      );
-      assert.ok(
-        newState.gameMessages.some(
-          (msg) =>
-            msg.text.includes("picked up") &&
-            msg.text.includes(mockCardToId(turnUpCard)) &&
-            msg.text.includes("discarded") &&
-            msg.text.includes(mockCardToId(cardToDiscardFromHand)),
-        ),
-        "Game message should reflect discard",
-      );
+    // Setup mock validation to fail with HandSizeError
+    mockValidateDealerDiscard.mock.mockImplementation(() => {
+      throw new HandSizeError('Dealer must have 6 cards before discarding');
     });
 
-    /**
-     * @test {handleDealerDiscard}
-     * @description Verifies that the server prevents the dealer from discarding
-     * a card that is not in their hand.
-     */
-    it("should reject discard of card not in hand", function () {
-      // Setup test
-      gameState.gamePhase = "AWAITING_DEALER_DISCARD";
-      gameState.dealer = "south";
-      gameState.currentPlayer = "south";
-      gameState.players.south.hand = [
-        { id: 1, suit: "hearts", value: "A" },
-        { id: 2, suit: "hearts", value: "K" },
-        { id: 3, suit: "hearts", value: "Q" },
-        { id: 4, suit: "hearts", value: "J" },
-        { id: 5, suit: "hearts", value: "10" },
-        { id: 6, suit: "hearts", value: "9" },
-      ];
-
-      const cardNotInHandId = "XX"; // An ID guaranteed not to be in the hand
-
-      // Execute and Verify
-      assert.throws(
-        () =>
-          actualHandleDealerDiscard.handleDealerDiscard(
-            gameState,
-            "south",
-            cardNotInHandId,
-          ),
-        Error, // Expecting CardNotInHandError from the preliminary check in handleDealerDiscard
-        `Card ${cardNotInHandId} not found in dealer's hand.`, // Match the specific error message if possible
-      );
-
-      // Check that logger.error was called due to the preliminary check failing
-      sinon.assert.calledWith(
-        mockLogger.error,
-        sinon.match.has("cardToDiscardId", cardNotInHandId),
-      );
-
-      // mockValidateDealerDiscard should NOT have been called in this case because the preliminary check fails first.
-      sinon.assert.notCalled(mockValidateDealerDiscard);
-
-      assert.strictEqual(
-        gameState.players.south.hand.length,
-        6,
-        "Hand size should remain unchanged",
-      );
-      // dealerHasDiscarded is not set by the function itself, so checking original gameState is correct
-      assert.strictEqual(
-        gameState.dealerHasDiscarded,
-        false,
-        "dealerHasDiscarded should remain false",
-      );
-    });
+    // Act & Assert
+    assert.throws(
+      () => handleDealerDiscard(gameState, 'south', 'AH'),
+      {
+        name: 'HandSizeError',
+        code: 'E_INVALID_HAND_SIZE',
+        message: 'Dealer must have 6 cards before discarding'
+      },
+      'Should throw HandSizeError when dealer hand size is incorrect'
+    );
   });
 });

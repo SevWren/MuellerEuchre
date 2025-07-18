@@ -10,7 +10,16 @@ import { TEAMS } from "../config/constants.js";
 
 /**
  * Default player stats schema
- * @type {Object}
+ * @typedef {object} PlayerStats
+ * @property {number} handsPlayed - Total number of hands played.
+ * @property {number} handsWon - Number of hands won by the player's team.
+ * @property {number} pointsScored - Total points scored by the player's team.
+ * @property {number} euchres - Number of times the opponent's team was euchred.
+ * @property {number} loners - Number of times the player's team went alone.
+ * @property {number} wentAlone - Number of times the player went alone (as maker).
+ * @property {number} aloneHandsWon - Number of hands won while going alone.
+ * @property {number} highestScore - Highest points scored in a single hand.
+ * @property {number} tricksTaken - Total tricks taken by the player's team across all hands.
  */
 const DEFAULT_STATS = {
   handsPlayed: 0,
@@ -25,14 +34,23 @@ const DEFAULT_STATS = {
 };
 
 /**
- * Calculates hand statistics based on the completed game state
- * @param {Object} completedGameState - The completed game state
- * @param {string} completedGameState.makerTeam - The team that made the bid
- * @param {string} [completedGameState.makerPlayerRole] - The player role that went alone (if any)
- * @param {Object} completedGameState.tricksTaken - Object mapping team IDs to number of tricks taken
- * @param {Array} completedGameState.players - Array of player objects
- * @returns {Object} Hand statistics including scoring team and points
- * @throws {PhaseLogicError} If the input is invalid
+ * Represents the completed game state for stats calculation.
+ * @typedef {object} CompletedGameState
+ * @property {string} makerTeam - The team that made the bid.
+ * @property {string} [makerPlayerRole] - The player role that went alone (if any).
+ * @property {object<string, number>} tricksTaken - Object mapping team IDs to number of tricks taken.
+ * @property {Array<object>} players - Array of player objects (each with a 'team' and 'role' property).
+ */
+
+/**
+ * Calculates hand statistics based on the completed game state.
+ * @param {CompletedGameState} completedGameState - The completed game state.
+ * @returns {object} Hand statistics including scoring team and points.
+ * @property {string} scoringTeam - The ID of the team that scored points.
+ * @property {number} pointsScored - The number of points scored.
+ * @property {boolean} wasEuchre - True if the maker team was euchred.
+ * @property {boolean} wentAlone - True if the maker team went alone and won all tricks.
+ * @throws {PhaseLogicError} If the input is invalid or incomplete.
  */
 export function calculateHandStats(completedGameState) {
   if (completedGameState === null || completedGameState === undefined) {
@@ -104,11 +122,15 @@ export function calculateHandStats(completedGameState) {
 }
 
 /**
- * Updates player statistics based on the hand result
- * @param {Object} currentStats - Current player statistics
- * @param {Object} handResult - Result of the hand from calculateHandStats
- * @param {string} playerTeamId - The team ID of the player
- * @returns {Object} Updated player statistics
+ * Updates player statistics based on the hand result.
+ * @param {PlayerStats} currentStats - Current player statistics.
+ * @param {object} handResult - Result of the hand from calculateHandStats.
+ * @property {string} handResult.scoringTeam - The ID of the team that scored points.
+ * @property {number} handResult.pointsScored - The number of points scored.
+ * @property {boolean} handResult.wasEuchre - True if the maker team was euchred.
+ * @property {boolean} handResult.wentAlone - True if the maker team went alone.
+ * @param {string} playerTeamId - The team ID of the player for whom stats are being updated.
+ * @returns {PlayerStats} Updated player statistics.
  */
 export function updatePlayerStats(
   currentStats = {},

@@ -6,10 +6,47 @@ import { PLAYER_ROLES, TEAMS } from "../config/constants.js";
 import logger from "./logger.js"; // Use the new Pino logger
 
 /**
+ * A type representing one of the valid player role strings.
+ * @typedef {'south'|'west'|'north'|'east'} PlayerRole
+ */
+
+/**
+ * Represents the structure of a player object within the game state.
+ * @typedef {object} Player
+ * @property {string} name - The display name of the player.
+ * @property {string|null} socketId - The socket ID of the connected player, or null if disconnected.
+ * @property {Array<object>} hand - An array of card objects in the player's hand.
+ * @property {string} teamId - The ID of the player's team (e.g., 'TEAM_NS', 'TEAM_EW').
+ * @property {number} score - The player's current score (or their team's score).
+ * @property {boolean} isConnected - True if the player is currently connected.
+ * @property {number} tricksWonThisHand - The number of tricks won by this player in the current hand.
+ */
+
+/**
+ * Represents the state of a Euchre game.
+ * @typedef {object} GameState
+ * @property {string} gameId - The unique identifier for the game.
+ * @property {string} phase - The current phase of the game (e.g., 'DEALING', 'BIDDING').
+ * @property {PlayerRole} dealer - The role of the current dealer.
+ * @property {object<PlayerRole, Player>} players - An object mapping player roles to player data.
+ * @property {Array<object>} deck - The array of cards remaining in the deck.
+ * @property {string} trumpSuit - The current trump suit.
+ * @property {Array<object>} currentTrick - An array of cards played in the current trick.
+ * @property {object<string, number>} tricksTaken - An object mapping team IDs to the number of tricks taken by that team.
+ * @property {string|null} makerTeam - The team that made trump, or null.
+ * @property {PlayerRole|null} makerPlayerRole - The player who made trump, or null.
+ * @property {boolean} goingAlone - True if a player is going alone.
+ * @property {PlayerRole|null} partnerSittingOut - The role of the partner sitting out when going alone.
+ * @property {object<string, number>} teamScores - An object mapping team IDs to their current scores.
+ * @property {Array<object>} kitty - Cards in the kitty.
+ * @property {object|null} trumpCard - The card turned up as potential trump.
+ */
+
+/**
  * Gets the team identifier for a given player role.
  * (e.g., 'north' and 'south' are on one team, 'east' and 'west' on another).
- * @param {string} playerRole - The player's role (e.g., 'south', 'west').
- * @returns {string} The team identifier (e.g., 'north+south', 'east+west') or empty string if role is invalid.
+ * @param {PlayerRole} playerRole - The player's role (e.g., 'south', 'west').
+ * @returns {string} The team identifier (e.g., 'south_north', 'west_east').
  * @private // This function is only used internally by isTeammate
  */
 function getTeamForPlayer(playerRole) {
@@ -25,8 +62,8 @@ function getTeamForPlayer(playerRole) {
 
 /**
  * Checks if two players are on the same team.
- * @param {string} player1Role - The first player's role.
- * @param {string} player2Role - The second player's role.
+ * @param {PlayerRole} player1Role - The first player's role.
+ * @param {PlayerRole} player2Role - The second player's role.
  * @returns {boolean} True if the players are on the same team, false otherwise.
  */
 function isTeammate(player1Role, player2Role) {
@@ -52,8 +89,9 @@ function isTeammate(player1Role, player2Role) {
 
 /**
  * Gets the partner's role for a given player role.
- * @param {string} playerRole - The player's role (e.g., 'south', 'west', 'north', 'east').
- * @returns {string|undefined} The partner's role, or undefined if the role is invalid.
+ * @param {PlayerRole} playerRole - The player's role (e.g., 'south', 'west', 'north', 'east').
+ * @returns {PlayerRole|undefined} The partner's role, or undefined if the role is invalid.
+ * @see src/game/phases/goAlonePhase.js
  */
 function getPartner(playerRole) {
   // Assuming PLAYER_ROLES = ['south', 'west', 'north', 'east']
@@ -73,11 +111,13 @@ function getPartner(playerRole) {
 
 /**
  * Gets the next player in turn order, skipping a sitting out partner if applicable.
- * @param {string} currentPlayerRole - The current player's role.
- * @param {Array<string>} [playerSlots=PLAYER_ROLES] - Ordered array of player roles for the current game. Defaults to PLAYER_ROLES.
+ * @param {PlayerRole} currentPlayerRole - The current player's role.
+ * @param {Array<PlayerRole>} [playerSlots=PLAYER_ROLES] - Ordered array of player roles for the current game. Defaults to PLAYER_ROLES.
  * @param {boolean} [goingAlone=false] - Whether a player is "going alone".
- * @param {string} [partnerSittingOut] - The role of the partner who is sitting out (if goingAlone is true).
- * @returns {string|undefined} The next player's role, or undefined if inputs are invalid.
+ * @param {PlayerRole} [partnerSittingOut] - The role of the partner who is sitting out (if goingAlone is true).
+ * @returns {PlayerRole|undefined} The next player's role, or undefined if inputs are invalid.
+ * @see src/game/phases/goAlonePhase.js
+ * @see src/game/phases/biddingPhase.js
  */
 function getNextPlayer(
   currentPlayerRole,
@@ -125,9 +165,9 @@ function getNextPlayer(
 
 /**
  * Gets a player object by their socket ID from the game state.
- * @param {object} gameState - The current game state, containing a `players` object.
+ * @param {GameState} gameState - The current game state, containing a `players` object.
  * @param {string} socketId - The socket ID to look up.
- * @returns {object|null} The player object (value from the gameState.players map) or null if not found or inputs are invalid.
+ * @returns {Player|null} The player object (value from the gameState.players map) or null if not found or inputs are invalid.
  */
 function getPlayerBySocketId(gameState, socketId) {
   if (
@@ -153,9 +193,13 @@ function getPlayerBySocketId(gameState, socketId) {
 
 /**
  * Gets a player's role by their socket ID from the game state.
- * @param {object} gameState - The current game state, containing a `players` object.
+ * @param {GameState} gameState - The current game state, containing a `players` object.
  * @param {string} socketId - The socket ID to look up.
- * @returns {string|null} The player's role (key from the gameState.players map) or null if not found or inputs are invalid.
+ * @returns {PlayerRole|null} The player's role (key from the gameState.players map) or null if not found or inputs are invalid.
+ * @see src/socket/handlers/playerConnectionHandlers.js
+ * @see src/socket/handlers/lobbyHandlers.js
+ * @see src/socket/handlers/goAloneHandlers.js
+ * @see src/socket/handlers/biddingHandlers.js
  */
 function getRoleBySocketId(gameState, socketId) {
   if (
@@ -183,7 +227,7 @@ function getRoleBySocketId(gameState, socketId) {
  * Initializes the players object with default values for a new game.
  * Each player has a team, empty hand, zero score, null socketId, default name,
  * isConnected status, and zero tricksWonThisHand.
- * @returns {object} The initialized players object, mapping roles to player data.
+ * @returns {object<PlayerRole, Player>} The initialized players object, mapping roles to player data.
  */
 function initializePlayers() {
   const players = {};
@@ -207,8 +251,8 @@ function initializePlayers() {
 
 /**
  * Gets the team ID for a given player object.
- * @param {object} player - The player object.
- * @returns {number|undefined} The team ID of the player, or undefined if player is invalid or teamId is not set.
+ * @param {Player} player - The player object.
+ * @returns {string|undefined} The team ID of the player, or undefined if player is invalid or teamId is not set.
  */
 function getPlayerTeam(player) {
   if (!player || typeof player !== "object") {

@@ -1,7 +1,21 @@
 // filepath: src/utils/settingsUtils.js
 import { ValidationError } from "../game/logic/errors.js";
 
-// Schema definition for settings validation
+/**
+ * @module settingsUtils
+ * @description Utility functions for managing and validating game settings.
+ */
+
+/**
+ * Defines the schema for game settings validation.
+ * @typedef {object} SettingsSchema
+ * @property {object} winningScore - Rules for the winning score setting.
+ * @property {string} winningScore.type - Expected data type (e.g., "number").
+ * @property {boolean} winningScore.integer - True if the value must be an integer.
+ * @property {number} winningScore.min - Minimum allowed value.
+ * @property {number} winningScore.max - Maximum allowed value.
+ * @property {boolean} winningScore.required - True if the setting is mandatory.
+ */
 const SETTINGS_SCHEMA = {
   winningScore: {
     type: "number",
@@ -14,16 +28,23 @@ const SETTINGS_SCHEMA = {
 
 /**
  * Returns the default game settings.
- * @returns {object} The default settings object.
+ * @returns {{winningScore: number}} The default settings object.
  */
 export function getDefaultSettings() {
   return { winningScore: 10 };
 }
 
 /**
+ * Represents the result of a settings validation.
+ * @typedef {object} ValidationResult
+ * @property {boolean} isValid - True if the settings are valid, false otherwise.
+ * @property {string[]} errors - An array of error messages if validation fails.
+ */
+
+/**
  * Validates custom game settings against the schema.
  * @param {object} customSettings - The custom settings object to validate.
- * @returns {{isValid: boolean, errors: string[]}} Validation result object.
+ * @returns {ValidationResult} Validation result object.
  */
 export function validateSettings(customSettings) {
   const result = {
@@ -93,7 +114,7 @@ export function validateSettings(customSettings) {
 
 /**
  * Merges custom settings with default settings, filtering out undefined values from custom settings.
- * @param {object} customSettings - The custom settings to merge.
+ * @param {object} [customSettings={}] - The custom settings to merge. Defaults to an empty object.
  * @returns {object} A new object containing the merged settings.
  */
 export function mergeSettings(customSettings = {}) {

@@ -28,7 +28,7 @@ import {
  * @throws {InvalidPhaseError} If bidding is attempted in wrong phase (via validateBid).
  * @throws {PhaseLogicError} If internal logic like missing turnCard or teamId fails.
  */
-export function handleOrderUpDecision(
+function handleOrderUpDecision(
   currentGameState,
   playerRole,
   wantsToOrderUp,
@@ -150,7 +150,7 @@ export function handleOrderUpDecision(
  * @throws {CardNotInHandError} If card to discard not in hand (via validateDealerDiscard or preliminary check).
  * @throws {PhaseLogicError} If internal logic like missing turnCard fails, or preliminary card ID check fails.
  */
-export function handleDealerDiscard(
+function handleDealerDiscard(
   currentGameState,
   dealerRole,
   cardToDiscardId,
@@ -264,7 +264,7 @@ export function handleDealerDiscard(
  * @throws {InvalidPhaseError} If bidding is attempted in wrong phase (via validateBid).
  * @throws {PhaseLogicError} If internal logic like missing makerTeam fails.
  */
-export function handleCallTrumpDecision(
+function handleCallTrumpDecision(
   currentGameState,
   playerRole,
   wantsToCall,
@@ -377,3 +377,9 @@ export function handleCallTrumpDecision(
     ],
   };
 }
+
+export {
+  handleOrderUpDecision,
+  handleDealerDiscard,
+  handleCallTrumpDecision,
+};

@@ -11,7 +11,7 @@
  *
  * @example
  * import { createDeck, shuffleDeck, sortHand } from '@/utils/deck';
- * import { SUITS } from '@/config/constants';
+ * import { CARD_SUITS } from '@/config/constants';
  *
  * // Create and shuffle a deck
  * const deck = createDeck();
@@ -19,13 +19,11 @@
  * 
  * // Sort a player's hand
  * const hand = [/* cards *\/];
- * const sortedHand = sortHand(hand, SUITS.HEARTS);
- * TODO: VERIFY All values are imported correctly from the recently updated Constants.js 
- * 
+ * const sortedHand = sortHand(hand, CARD_SUITS.CARD_SUIT_HEARTS);
  *
  * @since 1.0.0
  */
-import { SUITS, VALUES, CARD_RANKS } from "../config/constants.js";
+import { CARD_SUITS, CARD_VALUES, CARD_RANKS } from "../config/constants.js";
 import { InvalidCardError } from "../game/logic/errors.js";
 import logger from "./logger.js";
 
@@ -46,17 +44,17 @@ function isJack(card) {
 
 // Map from the constant value to the simple name for lookups
 const SUIT_CONSTANT_TO_NAME_MAP = {
-  [SUITS.CARD_SUIT_HEARTS]: 'hearts',
-  [SUITS.CARD_SUIT_DIAMONDS]: 'diamonds',
-  [SUITS.CARD_SUIT_CLUBS]: 'clubs',
-  [SUITS.CARD_SUIT_SPADES]: 'spades',
+  [CARD_SUITS.CARD_SUIT_HEARTS]: 'hearts',
+  [CARD_SUITS.CARD_SUIT_DIAMONDS]: 'diamonds',
+  [CARD_SUITS.CARD_SUIT_CLUBS]: 'clubs',
+  [CARD_SUITS.CARD_SUIT_SPADES]: 'spades',
 };
 
 /**
- * Normalizes a suit string and validates it against SUITS values (case-insensitive).
+ * Normalizes a suit string and validates it against CARD_SUITS values (case-insensitive).
  * @private
  * @param {string} suit - The suit to normalize
- * @returns {string} The normalized suit (using the correct case from SUITS)
+ * @returns {string} The normalized suit (using the correct case from CARD_SUITS)
  * @throws {InvalidCardError} If the suit is invalid
  */
 function normalizeSuit(suit) {
@@ -65,40 +63,19 @@ function normalizeSuit(suit) {
   }
   
   // First, check if the input is one of the canonical values already
-  if (Object.values(SUITS).includes(suit)) {
+  if (Object.values(CARD_SUITS).includes(suit)) {
     return suit;
   }
 
   const normalized = suit.toLowerCase();
-  // Find the matching suit with correct case from SUITS
-  const validSuit = Object.values(SUITS).find(s => s.toLowerCase().endsWith(normalized));
+  // Find the matching suit with correct case from CARD_SUITS
+  const validSuit = Object.values(CARD_SUITS).find(s => s.toLowerCase().endsWith(normalized));
   
   if (!validSuit) {
     throw new InvalidCardError('Invalid suit');
   }
   
   return validSuit; // Return the correctly cased suit
-}
-
-function validateCardInput(card, trumpSuit) {
-  if (!card || typeof card !== "object" || !('suit' in card)) {
-    throw new InvalidCardError("Invalid card object: missing or invalid properties");
-  }
-  
-  if (trumpSuit && typeof trumpSuit !== "string") {
-    throw new Error("Invalid trumpSuit: must be a string");
-  }
-  
-  const normalizedCardSuit = normalizeSuit(card.suit);
-  const normalizedTrumpSuit = trumpSuit ? normalizeSuit(trumpSuit) : null;
-  
-  return {
-    suit: normalizedCardSuit,
-    value: card.value,
-    name: card.name,
-    id: card.id,
-    trumpSuit: normalizedTrumpSuit
-  };
 }
 
 /**
@@ -132,13 +109,13 @@ const VALUE_NAME_MAP = {
 /**
  * Represents a playing card in Euchre.
  * @typedef {Object} Card
- * @property {string} suit - The suit of the card (must be one of SUITS values)
+ * @property {string} suit - The suit of the card (must be one of CARD_SUITS values)
  * @property {string} value - The face value ('9', '10', 'J', 'Q', 'K', 'A')
  * @property {string} id - Unique identifier (e.g., 'AH' for Ace of Hearts)
  * @property {string} name - Human-readable name (e.g., 'Ace of Hearts')
  * @example
  * {
- *   suit: 'hearts',
+ *   suit: 'CARD_SUIT_HEARTS',
  *   value: 'A',
  *   id: 'AH',
  *   name: 'Ace of Hearts'
@@ -275,8 +252,8 @@ function areSameColor(suitA, suitB) {
  * const freshDeck = createDeck();
  * const shuffledDeck = shuffleDeck(freshDeck);
  *
- * @see SUITS - Used to determine valid suits for the deck
- * @see VALUES - Used to determine valid card values (9-A)
+ * @see CARD_SUITS - Used to determine valid suits for the deck
+ * @see CARD_VALUES - Used to determine valid card values (9-A)
  * @see SUIT_CONSTANT_TO_NAME_MAP - Maps suit constants to display names
  * @see SUIT_CHAR_MAP - Maps suit names to single-character symbols
  * @see VALUE_NAME_MAP - Maps card values to display names
@@ -291,9 +268,9 @@ function areSameColor(suitA, suitB) {
  * @throws None - No exceptions thrown, always returns a valid deck
  */
 function createDeck() {
-  const uniqueSuits = [...new Set(Object.values(SUITS))].filter(s => s.startsWith('CARD_SUIT_'));
+  const uniqueSuits = [...new Set(Object.values(CARD_SUITS))].filter(s => s.startsWith('CARD_SUIT_'));
   return uniqueSuits.flatMap((suit) =>
-    VALUES.map((value) => {
+    CARD_VALUES.map((value) => {
         const simpleName = SUIT_CONSTANT_TO_NAME_MAP[suit];
         return {
           suit,
@@ -361,7 +338,7 @@ function shuffleDeck(deck) {
  * 
  * The ID format is a combination of the card's value and a suit character:
  * - Values: '9', '10', 'J', 'Q', 'K', 'A'
- * - Suits: '♣' (Clubs), '♦' (Diamonds), '♠' (Spades), '♥' (Hearts)
+ * - Suits: 'C' (Clubs), 'D' (Diamonds), 'S' (Spades), 'H' (Hearts)
  * 
  * Handles various input formats and gracefully degrades to '??' for invalid cards.
  * 
@@ -369,16 +346,16 @@ function shuffleDeck(deck) {
  * @param {string} [card.value] - The card value (e.g., '9', '10', 'J', 'Q', 'K', 'A').
  * @param {string} [card.suit] - The card suit (case-insensitive).
  * @param {string} [card.name] - Alternative way to specify card name (e.g., 'ace of spades').
- * @returns {string} A compact string ID (e.g., 'J♥' for Jack of Hearts) or '??' if invalid.
+ * @returns {string} A compact string ID (e.g., 'JH' for Jack of Hearts) or '??' if invalid.
  * 
  * @example
  * // Basic usage with value and suit
  * const card1 = { value: 'J', suit: 'HEARTS' };
- * console.log(cardToId(card1)); // 'J♥'
+ * console.log(cardToId(card1)); // 'JH'
  *
  * // Alternative usage with name
  * const card2 = { name: 'ace of spades' };
- * console.log(cardToId(card2)); // 'A♠'
+ * console.log(cardToId(card2)); // 'AS'
  *
  * // Invalid card
  * console.log(cardToId({})); // '??'
@@ -438,7 +415,7 @@ function cardToId(card) {
   const suitChar = SUIT_CHAR_MAP[simpleSuitName];
 
   // Use the uppercased value for the check
-  if (!suitChar || !VALUES.includes(upperValue)) {
+  if (!suitChar || !CARD_VALUES.includes(upperValue)) {
     return '??';
   }
 
@@ -512,13 +489,7 @@ function isRightBower(card, trumpSuit) {
     throw new InvalidCardError('Suit is required');
   }
   
-  // We've already validated the suit if it exists, now check if it's a Jack
   // If the card has no value or the value is not 'J', return false
-  if (!('value' in card) || card.value !== 'J') {
-    return false;
-  }
-  
-  // If we get here, the suit is valid, now check if it's a Jack
   if (!('value' in card) || card.value !== 'J') {
     return false;
   }
@@ -762,10 +733,10 @@ function sortHand(hand, trumpSuit) {
   }
 
   const nonTrumpSuitOrder = [
-    SUITS.CLUBS,
-    SUITS.DIAMONDS,
-    SUITS.SPADES,
-    SUITS.HEARTS,
+    CARD_SUITS.CARD_SUIT_CLUBS,
+    CARD_SUITS.CARD_SUIT_DIAMONDS,
+    CARD_SUITS.CARD_SUIT_SPADES,
+    CARD_SUITS.CARD_SUIT_HEARTS,
   ].filter(suit => !normalizedTrumpSuit || normalizeSuit(suit) !== normalizedTrumpSuit);
 
   const getSortKey = (card) => {
@@ -789,7 +760,8 @@ function sortHand(hand, trumpSuit) {
         if (suitOrder === -1) suitOrder = Infinity;
       }
       
-      const rank = CARD_RANKS[card.value.toUpperCase()] || 0;
+      const rankName = VALUE_NAME_MAP[card.value]?.toUpperCase();
+      const rank = rankName ? (CARD_RANKS[rankName] || 0) : 0;
       
       return { isTrump, isRB, isLB, suitOrder, rank, originalIndex: handCopy.indexOf(card) };
     } catch (e) {

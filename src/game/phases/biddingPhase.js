@@ -1,10 +1,11 @@
+// filepath: src/game/phases/biddingPhase.js
 /**
  * Game logic for the bidding phases of Euchre (Order Up and Call Trump).
  * @module game/phases/biddingPhase
  */
 import logger from "../../utils/logger.js";
-import { GAME_PHASES, PLAYER_ROLES } from "../../config/constants.js";
-import { getNextPlayer } from "../../utils/players.js"; // Removed getPartner, isTeammate as they are not used here
+import { GAME_PHASES, PLAYER_ROLES, CARD_SUITS, CARD_VALUES } from "../../config/constants.js";
+import { getNextPlayer } from "../../utils/players.js";
 import { cardToId } from "../../utils/deck.js";
 import {
   validateBid,
@@ -13,20 +14,66 @@ import {
 import {
   PhaseLogicError,
   CardNotInHandError,
-} from "../../game/logic/errors.js"; // Added CardNotInHandError
-// Removed local getPlayerTeam function. Will use teamId from player objects.
+} from "../../game/logic/errors.js";
+
+/**
+ * Represents a playing card.
+ * @typedef {object} Card
+ * @property {string} suit - The suit of the card (e.g., CARD_SUIT_HEARTS).
+ * @property {string} value - The value of the card (e.g., "A", "K", "Q", "J", "10", "9").
+ * @property {string} id - A unique identifier for the card (e.g., "H-A" for Ace of Hearts).
+ */
+
+/**
+ * Represents the current state of a Euchre game.
+ * @typedef {object} GameState
+ * @property {string} gameId - The unique identifier for the game.
+ * @property {string} gamePhase - The current phase of the game (e.g., GAME_PHASES.GAME_PHASE_DEALING).
+ * @property {object<string, {name: string, hand: Card[], teamId: string}>} players - An object mapping player roles to player data.
+ * @property {Card|null} turnCard - The card turned up for trump selection.
+ * @property {string} dealer - The player role of the current dealer.
+ * @property {string} currentPlayer - The player role whose turn it is.
+ * @property {Array<object>} bids - An array of bid objects made during the current hand.
+ * @property {string|null} trumpSuit - The suit declared as trump for the current hand.
+ * @property {string|null} playerWhoOrderedUp - The player role who ordered up the dealer.
+ * @property {string|null} playerWhoCalledTrump - The player role who called trump in round 2.
+ * @property {string|null} makerTeam - The team that declared trump.
+ * @property {number} roundNumber - The current bidding round number.
+ * @property {Array<object>} gameMessages - An array of messages to be displayed in the game log.
+ */
+
+/**
+ * A type representing one of the valid game phase strings.
+ * This is created directly from the keys of the GAME_PHASES constant object.
+ * @typedef {keyof typeof GAME_PHASES} GamePhase
+ */
+
+/**
+ * A type representing one of the valid player role strings.
+ * This is created directly from the keys of the PLAYER_ROLES constant object.
+ * @typedef {keyof typeof PLAYER_ROLES} PlayerRole
+ */
+
+/**
+ * A type representing one of the valid card suit strings.
+ * This is created directly from the keys of the CARD_SUITS constant object.
+ * @typedef {keyof typeof CARD_SUITS} CardSuit
+ */
 
 /**
  * Handles a player's decision in the first round of bidding (order up or pass).
- * @param {object} currentGameState - The current game state.
- * @param {string} playerRole - The role of the player making the decision.
+ *
+ * @param {GameState} currentGameState - The current, immutable game state.
+ * @param {PlayerRole} playerRole - The role of the player making the decision.
  * @param {boolean} wantsToOrderUp - True if the player wants to order the dealer up, false if passing.
- * @returns {object} The updated game state.
- * @throws {ValidationError} If basic bid validation fails (via validateBid).
- * @throws {NotPlayersTurnError} If it's not the player's turn (via validateBid).
- * @throws {InvalidBidError} If the bid decision is invalid for the phase (via validateBid).
- * @throws {InvalidPhaseError} If bidding is attempted in wrong phase (via validateBid).
+ * @returns {GameState} A new game state object reflecting the bidding decision.
+ * @throws {import("../../game/logic/validation.js").ValidationError} If basic bid validation fails (via validateBid).
+ * @throws {import("../../game/logic/validation.js").NotPlayersTurnError} If it's not the player's turn (via validateBid).
+ * @throws {import("../../game/logic/validation.js").InvalidBidError} If the bid decision is invalid for the phase (via validateBid).
+ * @throws {import("../../game/logic/validation.js").InvalidPhaseError} If bidding is attempted in wrong phase (via validateBid).
  * @throws {PhaseLogicError} If internal logic like missing turnCard or teamId fails.
+ * @see src/socket/handlers/biddingHandlers.js
+ * @see test/game/phases/biddingPhase.unit.test.js
  */
 function handleOrderUpDecision(
   currentGameState,
@@ -96,9 +143,8 @@ function handleOrderUpDecision(
     // Player passed
     messageText += "passed.";
     const nextBidder = getNextPlayer(playerRole, PLAYER_ROLES);
-    const firstBidderOfRound1 = getNextPlayer(prevState.dealer, PLAYER_ROLES);
 
-    if (nextBidder === firstBidderOfRound1) {
+    if (nextBidder === getNextPlayer(prevState.dealer, PLAYER_ROLES)) {
       // All 4 players passed
       messageText +=
         " All players passed in round 1. Moving to round 2 bidding.";
@@ -109,7 +155,7 @@ function handleOrderUpDecision(
       changes = {
         roundNumber: 2,
         gamePhase: GAME_PHASES.ORDER_UP_ROUND2,
-        currentPlayer: firstBidderOfRound1,
+        currentPlayer: getNextPlayer(prevState.dealer, PLAYER_ROLES),
       };
     } else {
       logger.info(
@@ -139,16 +185,19 @@ function handleOrderUpDecision(
 
 /**
  * Handles the dealer's discard after being ordered up.
- * @param {object} currentGameState - The current game state.
- * @param {string} dealerRole - The role of the dealer.
+ *
+ * @param {GameState} currentGameState - The current, immutable game state.
+ * @param {PlayerRole} dealerRole - The role of the dealer.
  * @param {string} cardToDiscardId - The ID of the card the dealer wishes to discard.
- * @returns {object} The updated game state.
- * @throws {ValidationError} If basic discard validation fails (via validateDealerDiscard).
- * @throws {NotPlayersTurnError} If it's not the player's turn (via validateDealerDiscard).
- * @throws {InvalidDiscardError} If the discard is invalid (via validateDealerDiscard).
- * @throws {InvalidPhaseError} If discarding is attempted in wrong phase (via validateDealerDiscard).
+ * @returns {GameState} A new game state object with the dealer's hand updated.
+ * @throws {import("../../game/logic/validation.js").ValidationError} If basic discard validation fails (via validateDealerDiscard).
+ * @throws {import("../../game/logic/validation.js").NotPlayersTurnError} If it's not the player's turn (via validateDealerDiscard).
+ * @throws {import("../../game/logic/validation.js").InvalidDiscardError} If the discard is invalid (via validateDealerDiscard).
+ * @throws {import("../../game/logic/validation.js").InvalidPhaseError} If discarding is attempted in wrong phase (via validateDealerDiscard).
  * @throws {CardNotInHandError} If card to discard not in hand (via validateDealerDiscard or preliminary check).
  * @throws {PhaseLogicError} If internal logic like missing turnCard fails, or preliminary card ID check fails.
+ * @see src/socket/handlers/biddingHandlers.js
+ * @see test/game/phases/biddingPhase.unit.test.js
  */
 function handleDealerDiscard(
   currentGameState,
@@ -253,16 +302,19 @@ function handleDealerDiscard(
 
 /**
  * Handles a player's decision in the second round of bidding (call trump or pass).
- * @param {object} currentGameState - The current game state.
- * @param {string} playerRole - The role of the player making the decision.
+ *
+ * @param {GameState} currentGameState - The current, immutable game state.
+ * @param {PlayerRole} playerRole - The role of the player making the decision.
  * @param {boolean} wantsToCall - True if the player wants to call a suit, false if passing.
- * @param {string} [suitCalled] - The suit called as trump, if wantsToCall is true.
- * @returns {object} The updated game state.
- * @throws {ValidationError} If basic bid validation fails (via validateBid).
- * @throws {NotPlayersTurnError} If it's not the player's turn (via validateBid).
- * @throws {InvalidBidError} If the bid decision is invalid for the phase (via validateBid).
- * @throws {InvalidPhaseError} If bidding is attempted in wrong phase (via validateBid).
+ * @param {CardSuit} [suitCalled] - The suit called as trump, if wantsToCall is true.
+ * @returns {GameState} A new game state object reflecting the bidding decision.
+ * @throws {import("../../game/logic/validation.js").ValidationError} If basic bid validation fails (via validateBid).
+ * @throws {import("../../game/logic/validation.js").NotPlayersTurnError} If it's not the player's turn (via validateBid).
+ * @throws {import("../../game/logic/validation.js").InvalidBidError} If the bid decision is invalid for the phase (via validateBid).
+ * @throws {import("../../game/logic/validation.js").InvalidPhaseError} If bidding is attempted in wrong phase (via validateBid).
  * @throws {PhaseLogicError} If internal logic like missing makerTeam fails.
+ * @see src/socket/handlers/biddingHandlers.js
+ * @see test/game/phases/biddingPhase.unit.test.js
  */
 function handleCallTrumpDecision(
   currentGameState,
@@ -382,4 +434,7 @@ export {
   handleOrderUpDecision,
   handleDealerDiscard,
   handleCallTrumpDecision,
+  // Export constants for testing
+  PLAYER_ROLES,
+  GAME_PHASES,
 };

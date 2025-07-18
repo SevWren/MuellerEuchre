@@ -1,5 +1,5 @@
 ---
-trigger: model_decision
+trigger: manual
 description: when working with mock implementation, Testing Pure Functions (Layer 1), When writing unit tests for pure functions with external dependencies, ESM Module Testing, multiple dependencies that need to be mocked, Edge Case Testing
 ---
 

@@ -4,16 +4,16 @@
  * @description Contains all game-wide constants including card values, suits, game phases,
  * player roles, teams, and socket event names. These constants are used throughout the application
  * to maintain consistency and avoid magic strings/numbers.
- * 
+ *
  * All constants use a prefix pattern (e.g., CARD_, GAME_, PLAYER_) to ensure uniqueness
  * and prevent naming conflicts across the application.
- * 
+ *
  * @example
  * import { CARD_SUITS, CARD_VALUES, GAME_PHASES } from '@/config/constants';
  */
 
 /**
- * Enumeration of card suits in Euchre
+ * Enumeration of card suits in Euchre.
  * @readonly
  * @enum {string}
  * @property {string} CARD_SUIT_HEARTS - Hearts suit (♥)
@@ -27,7 +27,7 @@ export const CARD_SUITS = Object.freeze({
   DIAMONDS: 'CARD_SUIT_DIAMONDS',
   CLUBS: 'CARD_SUIT_CLUBS',
   SPADES: 'CARD_SUIT_SPADES',
-  
+
   // New prefixed versions (preferred)
   CARD_SUIT_HEARTS: 'CARD_SUIT_HEARTS',
   CARD_SUIT_DIAMONDS: 'CARD_SUIT_DIAMONDS',
@@ -39,9 +39,9 @@ export const CARD_SUITS = Object.freeze({
 export const SUITS = CARD_SUITS;
 
 /**
- * Array of card values in ascending order of rank (9 is lowest, A is highest)
+ * Array of card values in ascending order of rank (9 is lowest, A is highest).
  * @readonly
- * @type {Array<'9'|'10'|'J'|'Q'|'K'|'A'>}
+ * @type {ReadonlyArray<'9'|'10'|'J'|'Q'|'K'|'A'>}
  * @example
  * const values = CARD_VALUES; // ['9', '10', 'J', 'Q', 'K', 'A']
  */
@@ -52,21 +52,23 @@ export const CARD_VALUES = ["9", "10", "J", "Q", "K", "A"];
 export const VALUES = CARD_VALUES;
 
 /**
- * Card ranking values for Euchre
+ * Card ranking values for Euchre.
+ * @description Numerical values representing card strength. Higher values indicate stronger cards.
+ * Special values are used for bowers (trump Jacks). These are used by `getCardRank()` for
+ * consistent card comparison.
  * @readonly
  * @enum {number}
- * @description Numerical values representing card strength in Euchre.
- * Higher values indicate stronger cards. Special values for bowers (trump Jacks).
- * These values are used by getCardRank() for consistent card comparison.
- * 
- * @property {number} CARD_RANK_RIGHT_BOWER=150 - Jack of trump suit (highest card)
- * @property {number} CARD_RANK_LEFT_BOWER=100 - Jack of same color as trump (second highest)
- * @property {number} CARD_RANK_ACE=14 - Standard high card
- * @property {number} CARD_RANK_KING=13
- * @property {number} CARD_RANK_QUEEN=12 - Non-Trump
- * @property {number} CARD_RANK_JACK=11 - Non-bower Non-Trump Jack
- * @property {number} CARD_RANK_TEN=10 - Non-Trump 10
- * @property {number} CARD_RANK_NINE=9 - Lowest standard card
+ * @property {number} CARD_RANK_RIGHT_BOWER - Rank for the Jack of the trump suit (highest card).
+ * @property {number} CARD_RANK_LEFT_BOWER - Rank for the Jack of the same color as trump (second highest).
+ * @property {number} CARD_RANK_ACE - Rank for a standard Ace.
+ * @property {number} CARD_RANK_KING - Rank for a standard King.
+ * @property {number} CARD_RANK_QUEEN - Rank for a standard Queen.
+ * @property {number} CARD_RANK_JACK - Rank for a non-bower, non-trump Jack.
+ * @property {number} CARD_RANK_TEN - Rank for a standard 10.
+ * @property {number} CARD_RANK_NINE - Rank for a standard 9 (lowest card).
+ * @property {number} TRUMP_OFFSET - Value added to a card's base rank when it is trump.
+ * @property {number} LED_OFFSET - Value added to a card's base rank when it matches the led suit (and is not trump).
+ * @property {number} INVALID - Rank for an invalid or unrankable card.
  */
 export const CARD_RANKS = Object.freeze({
   // (Do Not Change) Original special rank value exports for backward compatibility
@@ -79,7 +81,7 @@ export const CARD_RANKS = Object.freeze({
   JACK: 11,
   TEN: 10,
   NINE: 9,
-  
+
   // New prefixed versions (preferred)
   CARD_RANK_RIGHT_BOWER: 150, // Jack of trump suit (highest card)
   CARD_RANK_LEFT_BOWER: 100,  // Jack of same color as trump (second highest)
@@ -89,11 +91,11 @@ export const CARD_RANKS = Object.freeze({
   CARD_RANK_JACK: 11,         // Non-bower Non-Trump Jack
   CARD_RANK_TEN: 10,
   CARD_RANK_NINE: 9,          // Lowest standard card
-  
+
   // Card rank offsets
   TRUMP_OFFSET: 100,  // Added to base rank for trump cards
   LED_OFFSET: 50,     // Added to base rank for led suit cards (non-trump)
-  
+
   // Invalid card rank
   INVALID: 0
 });
@@ -119,14 +121,14 @@ export const BID_DECISIONS = Object.freeze({
 });
 
 /**
- * Logging levels for the application
+ * Logging levels for the application.
  * @readonly
  * @enum {string}
- * @property {string} LOG_LEVEL_ERROR - Critical errors that cause the app to fail
- * @property {string} LOG_LEVEL_WARN - Non-critical issues that should be addressed
- * @property {string} LOG_LEVEL_INFO - General information about application flow
- * @property {string} LOG_LEVEL_DEBUG - Detailed debugging information
- * @property {string} LOG_LEVEL_TRACE - Very detailed logging for specific debugging
+ * @property {string} LOG_LEVEL_ERROR - Critical errors that cause the app to fail.
+ * @property {string} LOG_LEVEL_WARN - Non-critical issues that should be addressed.
+ * @property {string} LOG_LEVEL_INFO - General information about application flow.
+ * @property {string} LOG_LEVEL_DEBUG - Detailed debugging information.
+ * @property {string} LOG_LEVEL_TRACE - Very detailed logging for specific debugging.
  */
 export const LOG_LEVELS = Object.freeze({
   // Original exports for backward compatibility
@@ -135,7 +137,7 @@ export const LOG_LEVELS = Object.freeze({
   INFO: 'LOG_LEVEL_INFO',
   DEBUG: 'LOG_LEVEL_DEBUG',
   TRACE: 'LOG_LEVEL_TRACE',
-  
+
   // New prefixed versions (preferred)
   LOG_LEVEL_ERROR: 'LOG_LEVEL_ERROR', // Critical errors that cause the app to fail
   LOG_LEVEL_WARN: 'LOG_LEVEL_WARN',   // Non-critical issues that should be addressed
@@ -148,13 +150,13 @@ export const LOG_LEVELS = Object.freeze({
 export const DEBUG_LEVELS = LOG_LEVELS;
 
 /**
- * Local storage keys for persisting game state
+ * Local storage keys for persisting game state.
  * @readonly
  * @enum {string}
- * @property {string} STORAGE_KEY_GAME_STATE - Current game state
- * @property {string} STORAGE_KEY_PLAYER_ID - Local player ID
- * @property {string} STORAGE_KEY_PLAYER_NAME - Player's chosen name
- * @property {string} STORAGE_KEY_GAME_SETTINGS - Game settings/preferences
+ * @property {string} STORAGE_KEY_GAME_STATE - Key for the current game state.
+ * @property {string} STORAGE_KEY_PLAYER_ID - Key for the local player ID.
+ * @property {string} STORAGE_KEY_PLAYER_NAME - Key for the player's chosen name.
+ * @property {string} STORAGE_KEY_GAME_SETTINGS - Key for game settings/preferences.
  */
 export const STORAGE_KEYS = Object.freeze({
   // Original exports for backward compatibility
@@ -162,7 +164,7 @@ export const STORAGE_KEYS = Object.freeze({
   PLAYER_ID: 'STORAGE_KEY_PLAYER_ID',
   PLAYER_NAME: 'STORAGE_KEY_PLAYER_NAME',
   GAME_SETTINGS: 'STORAGE_KEY_GAME_SETTINGS',
-  
+
   // New prefixed versions (preferred)
   STORAGE_KEY_GAME_STATE: 'STORAGE_KEY_GAME_STATE',    // Current game state
   STORAGE_KEY_PLAYER_ID: 'STORAGE_KEY_PLAYER_ID',      // Local player ID
@@ -171,16 +173,22 @@ export const STORAGE_KEYS = Object.freeze({
 });
 
 /**
- * Socket.io event names used for game communication
+ * Socket.io event names used for game communication.
  * @readonly
  * @enum {string}
- * @property {string} GAME_EVENT_STATE_UPDATE - Full game state update from server
- * @property {string} GAME_EVENT_REQUEST_STATE - Client request for full state
- * @property {string} GAME_EVENT_PLAYER_ACTION - Player action (bid, play card, etc.)
- * @property {string} GAME_EVENT_CHAT_MESSAGE - In-game chat message
- * @property {string} GAME_EVENT_PLAYER_JOIN - New player joins the game
- * @property {string} GAME_EVENT_PLAYER_LEAVE - Player leaves the game
- * @property {string} GAME_EVENT_GAME_OVER - Game has ended
+ * @property {string} GAME_EVENT_STATE_UPDATE - Server sends a full game state update to clients.
+ * @property {string} GAME_EVENT_REQUEST_STATE - Client requests a full game state from the server.
+ * @property {string} GAME_EVENT_PLAYER_ACTION - A generic player action (bid, play card, etc.).
+ * @property {string} GAME_EVENT_PLAYER_JOIN - A new player joins the game.
+ * @property {string} GAME_EVENT_PLAYER_LEAVE - A player leaves the game.
+ * @property {string} GAME_EVENT_GAME_OVER - The game has ended.
+ * @property {string} ACTION_ORDER_UP_DECISION - Client sends their order up/pass decision.
+ * @property {string} ACTION_DEALER_DISCARD - Client (dealer) sends their discard decision.
+ * @property {string} ACTION_CALL_TRUMP_DECISION - Client sends their call trump/pass decision.
+ * @property {string} JOIN_GAME - Client requests to join a game.
+ * @property {string} ACTION_REJOIN_GAME - Client requests to rejoin a game after disconnecting.
+ * @property {string} ASSIGN_ROLE - Server assigns a role (e.g., PLAYER_SOUTH) to a client.
+ * @property {string} PLAYER_DISCONNECTED - Server notifies clients that a player has disconnected.
  */
 export const GAME_EVENTS = Object.freeze({
   // Original exports for backward compatibility
@@ -203,7 +211,7 @@ export const GAME_EVENTS = Object.freeze({
   TRICK_COMPLETED: "trick_completed",
   GAME_OVER: "game_over",
   ERROR: "generic_error",
-  
+
   // New prefixed versions (preferred)
   GAME_EVENT_STATE_UPDATE: 'GAME_EVENT_STATE_UPDATE', // Full game state update from server
   GAME_EVENT_REQUEST_STATE: 'GAME_EVENT_REQUEST_STATE', // Client request for full state
@@ -215,17 +223,17 @@ export const GAME_EVENTS = Object.freeze({
 });
 
 /**
- * Game phase states
+ * Game phase states.
  * @readonly
  * @enum {string}
- * @property {string} GAME_PHASE_LOBBY - Initial phase where players join before the game starts
- * @property {string} GAME_PHASE_DEALING - Phase where cards are being dealt to players
- * @property {string} GAME_PHASE_ORDER_UP_ROUND1 - First bidding round for selecting trump
- * @property {string} GAME_PHASE_ORDER_UP_ROUND2 - Second bidding round if first round passes
- * @property {string} GAME_PHASE_GOING_ALONE_DECISION - Phase where maker decides to play alone
- * @property {string} GAME_PHASE_PLAYING - Main gameplay phase where tricks are played
- * @property {string} GAME_PHASE_SCORING - Phase where hand results are calculated
- * @property {string} GAME_PHASE_GAME_OVER - Final phase when game ends
+ * @property {string} GAME_PHASE_LOBBY - Initial phase where players join before the game starts.
+ * @property {string} GAME_PHASE_DEALING - Phase where cards are being dealt to players.
+ * @property {string} GAME_PHASE_ORDER_UP_ROUND1 - First bidding round for selecting trump.
+ * @property {string} GAME_PHASE_ORDER_UP_ROUND2 - Second bidding round if first round passes.
+ * @property {string} GAME_PHASE_GOING_ALONE_DECISION - Phase where maker decides to play alone.
+ * @property {string} GAME_PHASE_PLAYING - Main gameplay phase where tricks are played.
+ * @property {string} GAME_PHASE_SCORING - Phase where hand results are calculated.
+ * @property {string} GAME_PHASE_GAME_OVER - Final phase when game ends.
  */
 export const GAME_PHASES = Object.freeze({
   // Original exports for backward compatibility
@@ -237,7 +245,7 @@ export const GAME_PHASES = Object.freeze({
   PLAYING: 'GAME_PHASE_PLAYING',
   SCORING: 'GAME_PHASE_SCORING',
   GAME_OVER: 'GAME_PHASE_GAME_OVER',
-  
+
   // New prefixed versions (preferred)
   GAME_PHASE_LOBBY: 'GAME_PHASE_LOBBY', // Initial phase where players join before the game starts
   GAME_PHASE_DEALING: 'GAME_PHASE_DEALING', // Phase where cards are being dealt to players
@@ -250,15 +258,13 @@ export const GAME_PHASES = Object.freeze({
 });
 
 /**
- * Standard Euchre seating positions (North/South vs East/West)
+ * Standard Euchre seating positions (North/South vs East/West).
  * @readonly
- * @type {Array<'south'|'west'|'north'|'east'>}
+ * @type {ReadonlyArray<'PLAYER_SOUTH'|'PLAYER_WEST'|'PLAYER_NORTH'|'PLAYER_EAST'>}
  * @example
- * // Team NS: PLAYER_ROLES[0] and PLAYER_ROLES[2] (south and north)
- * // Team EW: PLAYER_ROLES[1] and PLAYER_ROLES[3] (west and east)
+ * // Team NS: PLAYER_ROLES[0] and PLAYER_ROLES[2] (PLAYER_SOUTH and PLAYER_NORTH)
+ * // Team EW: PLAYER_ROLES[1] and PLAYER_ROLES[3] (PLAYER_WEST and PLAYER_EAST)
  */
-// Note: Arrays are already immutable by default in JavaScript when using const
-// and not using methods that mutate the array
 const PLAYER_ROLES_ARRAY = [
   'PLAYER_SOUTH',
   'PLAYER_WEST',
@@ -269,14 +275,22 @@ const PLAYER_ROLES_ARRAY = [
 // Export as read-only view of the array
 export const PLAYER_ROLES = Object.freeze([...PLAYER_ROLES_ARRAY]);
 
-// Individual player role constants for easier reference
+/**
+ * Individual player position constants for easier reference.
+ * @readonly
+ * @enum {string}
+ * @property {string} PLAYER_SOUTH - The South player position.
+ * @property {string} PLAYER_WEST - The West player position.
+ * @property {string} PLAYER_NORTH - The North player position.
+ * @property {string} PLAYER_EAST - The East player position.
+ */
 export const PLAYER_POSITIONS = Object.freeze({
   // Original values for backward compatibility
   SOUTH: 'PLAYER_SOUTH',
   WEST: 'PLAYER_WEST',
   NORTH: 'PLAYER_NORTH',
   EAST: 'PLAYER_EAST',
-  
+
   // New prefixed versions (preferred)
   PLAYER_SOUTH: 'PLAYER_SOUTH',
   PLAYER_WEST: 'PLAYER_WEST',
@@ -285,24 +299,24 @@ export const PLAYER_POSITIONS = Object.freeze({
 });
 
 /**
- * Team identifiers for Euchre (North/South vs East/West)
+ * Team identifiers for Euchre (North/South vs East/West).
  * @readonly
  * @enum {string}
- * @property {string} TEAM_NS - North/South team
- * @property {string} TEAM_EW - East/West team
+ * @property {string} TEAM_NS - North/South team.
+ * @property {string} TEAM_EW - East/West team.
  */
 export const TEAMS = Object.freeze({
   // Original values for backward compatibility
   NS: 'TEAM_NS',
   EW: 'TEAM_EW',
-  
+
   // New prefixed versions (preferred)
   TEAM_NS: 'TEAM_NS', // North/South team
   TEAM_EW: 'TEAM_EW'  // East/West team
 });
 
 /**
- * Winning score for a Euchre game
+ * Winning score for a Euchre game.
  * @readonly
  * @type {number}
  * @default 10

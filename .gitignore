@@ -144,3 +144,4 @@ MuellerEuchre-Windsurf.code-workspace
 #protection against indexing
 docs/Front_End_Docs
 RULES_DEPENDENCY_INJECTION.md
+/RULES_DEPENDENCY_INJECTION.md

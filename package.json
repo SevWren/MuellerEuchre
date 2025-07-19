@@ -41,6 +41,7 @@
     ],
     "include": [
       "src/game/logic/**/*.js",
+      "src/helpers/**/*.js",
       "src/game/phases/**/*.js",
       "src/utils/**/*.js",
       "src/config/**/*.js"

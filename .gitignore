@@ -138,10 +138,10 @@ filetree.txt
 MIGRATION_GUIDE.md
 test-is-left-bower.js
 test.txt
-7_18_2025.txt
 MuellerEuchre-Windsurf.code-workspace
 
 #protection against indexing
 docs/Front_End_Docs
 RULES_DEPENDENCY_INJECTION.md
-/RULES_DEPENDENCY_INJECTION.md
+7_18_2025.txt
+7_18_2025_Tasks.md

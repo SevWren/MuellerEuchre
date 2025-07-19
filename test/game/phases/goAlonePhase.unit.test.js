@@ -27,7 +27,7 @@ import {
   InvalidPhaseError,
   NotPlayersTurnError,
   PhaseLogicError,
-} from '../../../src/game/logic/errors.js';
+} from '../../../src/game/logic/validation-errors.js';
 
 // Import the module under test
 import { handleGoAloneDecision } from '../../../src/game/phases/goAlonePhase.js';

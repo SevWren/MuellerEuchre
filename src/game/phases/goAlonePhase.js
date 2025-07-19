@@ -13,7 +13,7 @@ import {
   InvalidPhaseError,
   NotPlayersTurnError,
   PhaseLogicError,
-} from "../logic/errors.js";
+} from "../logic/validation-errors.js";
 
 /**
  * Handles the decision of whether the trump-making team wants to "go alone".

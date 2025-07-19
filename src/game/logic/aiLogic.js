@@ -17,7 +17,7 @@
  * @see {@link module:game/phases/biddingPhase} Where AI bidding is integrated
  */
 
-import { getEffectiveSuit } from './validation.js';
+import { getEffectiveSuit } from './validation-core.js';
 import { isLeftBower } from '../../utils/deck.js';
 
 

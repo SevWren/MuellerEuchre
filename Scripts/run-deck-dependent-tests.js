@@ -34,9 +34,8 @@ const deckDependentTestFiles = [
   'test/game/phases/startNewHandPhase.unit.test.js',
   'test/game/phases/biddingPhase.unit.test.js',
   'test/game/phases/playingPhase.unit.test.js',
-  'test/server/dealerDiscard.unit.test.js',
+  'test/game/phases/dealerDiscard.unit.test.js',
 ];
-
 
 // --- Helper Functions ---
 

@@ -24,7 +24,7 @@ import {
   MustFollowSuitError,
   InvalidBidError,
   InvalidDiscardError,
-} from '../../../src/game/logic/errors.js';
+} from '../../../src/game/logic/validation-errors.js';
 
 // --- Centralized Mock Implementations ---
 // Logic is defined once and reused, preventing duplication.
@@ -52,7 +52,7 @@ const mockLogger = {
 };
 
 // Import the validation module first
-const validationModule = await import('../../../src/game/logic/validation.js');
+const validationModule = await import('../../../src/game/logic/validation-core.js');
 const { validatePlay, validateBid, validateDealerDiscard } = validationModule;
 
 // Import the deck utilities with a different name to avoid conflicts

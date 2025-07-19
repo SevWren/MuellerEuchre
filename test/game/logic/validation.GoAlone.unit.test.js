@@ -34,7 +34,7 @@ Object.defineProperties(logger, {
 });
 
 // Now import the module under test
-const validation = await import('../../../src/game/logic/validation.js');
+const validation = await import('../../../src/game/logic/validation-core.js');
 const { isValidGoAlone } = validation;
 
 // Import constants and errors
@@ -44,7 +44,7 @@ import {
   InvalidPhaseError,
   NotPlayersTurnError,
   InvalidGoAloneError
-} from '../../../src/game/logic/errors.js';
+} from '../../../src/game/logic/validation-errors.js';
 
 describe('Validation Logic - isValidGoAlone', () => {
   let baseGameState;

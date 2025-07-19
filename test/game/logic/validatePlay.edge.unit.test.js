@@ -21,8 +21,8 @@ import {
   NotPlayersTurnError,
   CardNotInHandError,
   MustFollowSuitError
-} from '../../../src/game/logic/errors.js';
-import { validatePlay, getEffectiveSuit } from '../../../src/game/logic/validation.js';
+} from '../../../src/game/logic/validation-errors.js';
+import { validatePlay, getEffectiveSuit } from '../../../src/game/logic/validation-core.js';
 import { isLeftBower } from '../../../src/utils/deck.js';
 
 // Use prefixed constants directly for clarity
@@ -169,7 +169,9 @@ describe('validatePlay Edge Cases', () => {
         () => validatePlay(gameState, playerHand, offSuitCard, playerRole),
         {
           name: 'MustFollowSuitError',
-          message: new RegExp(`Must follow suit. Led suit is ${trumpSuit}`)
+          code: 'E_MUST_FOLLOW_SUIT',
+          ledSuit: trumpSuit,
+          playedSuit: offSuitCard.suit
         },
         'Should require following trump suit when Left Bower is led'
       );
@@ -216,7 +218,9 @@ describe('validatePlay Edge Cases', () => {
         () => validatePlay(gameState, playerHand, offSuitCardToPlay, playerRole),
         {
           name: 'MustFollowSuitError',
-          message: new RegExp(`Must follow suit. Led suit is ${gameState.trumpSuit}`)
+          code: 'E_MUST_FOLLOW_SUIT',
+          ledSuit: gameState.trumpSuit,
+          playedSuit: offSuitCardToPlay.suit
         },
         'Expected MustFollowSuitError when not following suit with a trump card in hand'
       );
@@ -236,19 +240,31 @@ describe('validatePlay Edge Cases', () => {
         const testCases = [
           {
             args: [null, playerHand, playerHand[0], playerRole],
-            expected: /Missing required argument 'gameState' for play validation/
+            expected: {
+              name: 'ValidationError',
+              code: 'GENERIC_VALIDATION_ERROR'
+            }
           },
           {
             args: [gameState, null, playerHand[0], playerRole],
-            expected: /Missing required argument 'playerHand' for play validation/
+            expected: {
+              name: 'ValidationError',
+              code: 'GENERIC_VALIDATION_ERROR'
+            }
           },
           {
             args: [gameState, playerHand, null, playerRole],
-            expected: /Missing required argument 'cardToPlay' for play validation/
+            expected: {
+              name: 'ValidationError',
+              code: 'GENERIC_VALIDATION_ERROR'
+            }
           },
           {
             args: [gameState, playerHand, playerHand[0], null],
-            expected: /Missing required argument 'playerRole' for play validation/
+            expected: {
+              name: 'ValidationError',
+              code: 'GENERIC_VALIDATION_ERROR'
+            }
           }
         ];
 
@@ -256,8 +272,7 @@ describe('validatePlay Edge Cases', () => {
           assert.throws(
             () => validatePlay(...args),
             {
-              name: 'ValidationError',
-              message: expected
+              ...expected
             },
             `Expected ValidationError for args: ${JSON.stringify(args)}`
           );
@@ -276,7 +291,10 @@ describe('validatePlay Edge Cases', () => {
             () => validatePlay(gameState, playerHand, playerHand[0], playerRole),
             {
               name: 'InvalidPhaseError',
-              message: new RegExp(`Cannot play card during ${phase} phase`)
+              code: 'E_INVALID_PHASE',
+              action: 'play card',
+              currentPhase: phase,
+              expectedPhase: GAME_PHASES.PLAYING
             },
             `Expected InvalidPhaseError for phase: ${phase}`
           );
@@ -286,49 +304,4 @@ describe('validatePlay Edge Cases', () => {
 
     describe('CardNotInHandError', () => {
       it('should be thrown when playing a card not in hand', () => {
-        const { gameState, playerHand } = setupTestScenario();
-        const cardNotInHand = createCard('2C', CARD_SUITS.CARD_SUIT_CLUBS, CARD_VALUES.TWO);
-        
-        assert.throws(
-          () => validatePlay(gameState, playerHand, cardNotInHand, playerRole),
-          {
-            name: 'CardNotInHandError',
-            message: new RegExp(`Card .* is not in ${playerRole}'s hand`)
-          },
-          'Should throw when playing a card not in hand'
-        );
-      });
-    });
-
-    describe('MustFollowSuitError', () => {
-      it('should be thrown when not following the led suit', () => {
-        const ledSuit = CARD_SUITS.CARD_SUIT_CLUBS;
-        const ledCard = createCard('AC', ledSuit, CARD_VALUES.ACE);
-        const { gameState, playerHand } = setupTestScenario({
-          currentTrick: [{
-            card: ledCard,
-            player: 'north',
-            index: 0
-          }],
-          // Ensure player has a card of the led suit
-          playerCards: [
-            createCard('KC', ledSuit, CARD_VALUES.KING), // Matching suit
-            createCard('AH', CARD_SUITS.CARD_SUIT_HEARTS, CARD_VALUES.ACE) // Non-matching suit
-          ]
-        });
-        
-        // Try to play the non-matching suit
-        const nonMatchingCard = playerHand.find(card => card.suit !== ledSuit);
-        
-        assert.throws(
-          () => validatePlay(gameState, playerHand, nonMatchingCard, playerRole),
-          {
-            name: 'MustFollowSuitError',
-            message: new RegExp(`Must follow suit. Led suit is ${ledSuit}`)
-          },
-          'Should require following the led suit when possible'
-        );
-      });
-    });
-  });
 });

@@ -9,7 +9,7 @@
 import { describe, it, before, after, afterEach, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { GAME_PHASES, PLAYER_POSITIONS } from '../../../src/config/constants.js';
-import * as validation from '../../../src/game/logic/validation.js';
+import * as validation from '../../../src/game/logic/validation-core.js';
 import logger from '../../../src/utils/logger.js';
 
 // Import constants and errors first
@@ -26,7 +26,7 @@ import {
   MustFollowSuitError,
   InvalidBidError,
   InvalidDiscardError,
-} from '../../../src/game/logic/errors.js';
+} from '../../../src/game/logic/validation-errors.js';
 
 // Import the real logger so we can restore it later
 import * as realLogger from '../../../src/utils/logger.js';
@@ -581,7 +581,7 @@ describe("Validation Logic - validateDealerDiscard", () => {
       ),
       {
         name: 'ValidationError',
-        message: "Internal error: Missing required argument 'playerRole' for discard validation."
+        code: 'GENERIC_VALIDATION_ERROR'
       },
       'Should throw when playerRole is missing'
     );
@@ -597,7 +597,7 @@ describe("Validation Logic - validateDealerDiscard", () => {
       ),
       {
         name: 'ValidationError',
-        message: "Internal error: Missing required argument 'cardToDiscard' for discard validation."
+        code: 'GENERIC_VALIDATION_ERROR'
       },
       'Should throw when cardToDiscard is missing'
     );
@@ -613,7 +613,7 @@ describe("Validation Logic - validateDealerDiscard", () => {
       ),
       {
         name: 'ValidationError',
-        message: "Internal error: Missing required argument 'playerHand' for discard validation."
+        code: 'GENERIC_VALIDATION_ERROR'
       },
       'Should throw when dealerHand is missing'
     );
@@ -629,7 +629,7 @@ describe("Validation Logic - validateDealerDiscard", () => {
       ),
       {
         name: 'ValidationError',
-        message: "Internal error: Missing required argument 'cardToDiscard.id' for discard validation."
+        code: 'GENERIC_VALIDATION_ERROR'
       },
       'Should throw when cardToDiscard.id is missing'
     );
@@ -657,7 +657,10 @@ describe("Validation Logic - validateDealerDiscard", () => {
       ),
       {
         name: 'InvalidPhaseError',
-        message: `Cannot discard card during ${GAME_PHASES.ORDER_UP_ROUND1} phase.`
+        code: 'E_INVALID_PHASE',
+        action: 'discard card',
+        currentPhase: GAME_PHASES.ORDER_UP_ROUND1,
+        expectedPhase: GAME_PHASES.DEALER_DISCARD
       },
       'Should throw InvalidPhaseError when not in DEALER_DISCARD phase'
     );
@@ -679,7 +682,9 @@ describe("Validation Logic - validateDealerDiscard", () => {
       ),
       {
         name: 'NotPlayersTurnError',
-        message: `Not ${nonDealerRole}'s turn. It is ${dealerRole}'s turn.`,
+        code: 'E_NOT_YOUR_TURN',
+        playerRole: nonDealerRole,
+        currentPlayer: dealerRole
       }
     );
   });
@@ -693,7 +698,9 @@ describe("Validation Logic - validateDealerDiscard", () => {
       () => validation.validateDealerDiscard(notPlayersTurnState, dealerRole, cardToDiscard, dealerHand),
       {
         name: 'NotPlayersTurnError',
-        message: `Not ${dealerRole}'s turn. It is ${notPlayersTurnState.currentPlayer}'s turn.`
+        code: 'E_NOT_YOUR_TURN',
+        playerRole: dealerRole,
+        currentPlayer: notPlayersTurnState.currentPlayer
       }
     );
   });
@@ -704,7 +711,9 @@ describe("Validation Logic - validateDealerDiscard", () => {
       () => validation.validateDealerDiscard(baseDiscardGameState, dealerRole, cardNotInHand, dealerHand),
       {
         name: 'CardNotInHandError',
-        message: `Card ${cardNotInHand.id} is not in dealer's hand to discard.`
+        code: 'E_CARD_NOT_IN_HAND',
+        cardId: cardNotInHand.id,
+        playerHandIds: dealerHand.map(card => card.id)
       }
     );
   });

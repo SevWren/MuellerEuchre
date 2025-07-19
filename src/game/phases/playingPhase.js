@@ -1,4 +1,4 @@
-import { validatePlay } from "../logic/validation.js"; // Changed from isValidPlay
+import { validatePlay } from "../logic/validation-core.js"; // Changed from isValidPlay
 import { getCardRank } from "../../utils/deck.js";
 import { getNextPlayer } from "../../utils/players.js";
 import { GAME_PHASES } from "../../config/constants.js";
@@ -6,7 +6,7 @@ import {
   PhaseLogicError,
   NotPlayersTurnError,
   InvalidPhaseError,
-} from "../logic/errors.js"; // Added error imports
+} from "../logic/validation-errors.js"; // Added error imports
 
 /**
  * Handles a player playing a card.

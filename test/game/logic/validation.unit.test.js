@@ -256,11 +256,14 @@ describe('Validation Tests', () => {
       gamePhase: GAME_PHASES.PLAYING
     };
     
+    const expectedPhases = [GAME_PHASES.ORDER_UP_ROUND1, GAME_PHASES.ORDER_UP_ROUND2];
+    const expectedMessage = `Cannot make bid decision during the ${GAME_PHASES.PLAYING} phase. Expected ${expectedPhases.join(' or ')}.`;
+    
     assert.throws(
       () => validateBid(gameState, PLAYER_ROLES[0], "pass"),
       {
         name: 'InvalidPhaseError',
-        message: `Cannot make bid decision during ${GAME_PHASES.PLAYING} phase.`
+        message: expectedMessage
       },
       'Should throw InvalidPhaseError when not in a bidding phase'
     );

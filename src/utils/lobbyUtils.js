@@ -1,19 +1,58 @@
 /**
  * Utility functions for lobby management.
  * @module utils/lobbyUtils
+ * @see src/socket/handlers/lobbyHandlers.js
  */
+import { EuchreError } from '../game/logic/validation-errors.js';
 import { PLAYER_ROLES, TEAMS } from "../config/constants.js";
-import logger from "./logger.js";
+/**
+ * A type representing one of the valid player role strings.
+ * This is created directly from the keys of the PLAYER_ROLES constant object.
+ * @typedef {keyof typeof PLAYER_ROLES} PlayerRole
+ */
 
 /**
- * Assigns a role to a player in the game state.
- * Modifies and returns the gameState.
- * @param {object} gameState - The current game state.
- * @param {string} role - The role to assign.
+ * A type representing one of the valid team strings.
+ * This is created directly from the keys of the TEAMS constant object.
+ * @typedef {keyof typeof TEAMS} TeamName
+ */
+import logger from "./logger.js";
+/**
+ * Represents the state of a player within the game.
+ * @typedef {object} PlayerState
+ * @property {string} id - The user's unique ID.
+ * @property {string} name - The player's chosen name.
+ * @property {string} socketId - The player's socket ID.
+ * @property {boolean} isConnected - True if the player is currently connected.
+ * @property {boolean} isActive - True if the player is active in the current game session.
+ * @throws {EuchreError} LOBBY_INVALID_GAME_STATE if gameState or players object is invalid.
+ * @throws {EuchreError} LOBBY_INVALID_ROLE if an invalid role is specified.
+ * @throws {EuchreError} LOBBY_INVALID_GAME_STATE if gameState or players object is invalid.
+ * @throws {EuchreError} LOBBY_INVALID_ROLE if an invalid role is specified.
+ * @property {string} role - The assigned role of the player (e.g., PLAYER_NORTH).
+ * @property {string} teamId - The team ID of the player (e.g., TEAM_NS, TEAM_EW).
+ * @property {number} tricksWonThisHand - The number of tricks won by the player in the current hand.
+ * @property {number} score - The total score of the player across hands.
+ */
+
+/**
+ * Represents the comprehensive state of a Euchre game.
+ * This is a partial definition focusing on properties used in lobbyUtils.
+ * @typedef {object} GameState
+ * @property {string} [gameId] - The unique identifier for the game.
+ * @property {object<string, PlayerState>} players - An object mapping player roles to their PlayerState.
+ */
+
+/**
+ * Assigns a role to a player and updates the game state. This is a pure function.
+ * @param {GameState} gameState - The current game state.
+ * @param {PlayerRole} role - The role to assign.
  * @param {string} userId - The user's unique ID.
  * @param {string} playerName - The player's chosen name.
  * @param {string} socketId - The player's socket ID.
- * @returns {object} The modified game state.
+ * @returns {GameState} The modified game state.
+ * @throws {EuchreError} LOBBY_INVALID_GAME_STATE if gameState or players object is invalid.
+ * @throws {EuchreError} LOBBY_INVALID_ROLE if an invalid role is specified.
  */
 export function assignRoleToPlayer(
   gameState,
@@ -23,18 +62,18 @@ export function assignRoleToPlayer(
   socketId,
 ) {
   if (!gameState || !gameState.players) {
-    logger.error(
+    throw new EuchreError(
+      "LOBBY_INVALID_GAME_STATE",
+      "Invalid gameState or players object.",
       { gameState, role, userId },
-      "assignRoleToPlayer: Invalid gameState or players object.",
     );
-    return gameState;
   }
   if (!PLAYER_ROLES.includes(role)) {
-    logger.warn(
+    throw new EuchreError(
+      "LOBBY_INVALID_ROLE",
+      `Invalid role specified: ${role}`,
       { role },
-      `assignRoleToPlayer: Invalid role specified: ${role}`,
     );
-    return gameState;
   }
 
   const playerTeamId =
@@ -88,7 +127,7 @@ export function assignRoleToPlayer(
 
 /**
  * Checks if the lobby is full (all player roles are taken by connected players).
- * @param {object} gameState - The current game state.
+ * @param {GameState} gameState - The current game state.
  * @returns {boolean} True if the lobby is full, false otherwise.
  */
 export function isLobbyFull(gameState) {
@@ -103,8 +142,8 @@ export function isLobbyFull(gameState) {
 
 /**
  * Gets the next available player role in the lobby.
- * @param {object} gameState - The current game state.
- * @returns {string|null} The next available role, or null if all roles are taken.
+ * @param {GameState} gameState - The current game state.
+ * @returns {string | null} The next available role, or null if all roles are taken.
  */
 export function getNextAvailableRole(gameState) {
   if (!gameState || !gameState.players) return null;

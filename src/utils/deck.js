@@ -29,7 +29,7 @@
  */
 
 import { CARD_SUITS, CARD_VALUES, CARD_RANKS } from "../config/constants.js";
-import { InvalidCardError } from "../game/logic/errors.js";
+import { InvalidCardError } from "../game/logic/validation-errors.js";
 import logger from "./logger.js";
 
 // ===== Helper Functions =====

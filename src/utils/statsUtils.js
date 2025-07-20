@@ -4,7 +4,7 @@
  * @description Contains functions for calculating hand statistics and updating player stats
  */
 
-import { PhaseLogicError } from "../game/logic/errors.js";
+import { PhaseLogicError } from "../game/logic/validation-errors.js";
 import { logger } from "./logger.js";
 import { TEAMS } from "../config/constants.js";
 

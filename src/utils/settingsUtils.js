@@ -1,5 +1,5 @@
 // filepath: src/utils/settingsUtils.js
-import { ValidationError } from "../game/logic/errors.js";
+import { ValidationError } from "../game/logic/validation-errors.js";
 
 /**
  * @module settingsUtils

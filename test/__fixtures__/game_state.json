@@ -1,0 +1,18 @@
+{
+  "gamePhase": "LOBBY",
+  "players": {
+    "south": null,
+    "west": null,
+    "north": null,
+    "east": null
+  },
+  "playerSlots": [
+    "south",
+    "west",
+    "north",
+    "east"
+  ],
+  "team1Score": 0,
+  "team2Score": 0,
+  "version": "1.0.0"
+}

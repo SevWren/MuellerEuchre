@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 
 // Project imports
 import { GAME_PHASES, PLAYER_ROLES } from '../../../src/config/constants.js';
-import { createBaseGameState } from '../../../src/test-utils/test-helpers.js';
+import { createBaseGameState } from '../../helpers/test-helpers.js';
 
 // Import our testable implementation with dependency injection
 import { createStartNewHand } from './__mocks__/startNewHandPhase.js';

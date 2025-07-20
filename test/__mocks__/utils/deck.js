@@ -13,7 +13,7 @@
  */
 
 import { mock } from 'node:test';
-import { CARD_SUITS, CARD_VALUES, CARD_RANKS } from '../../src/config/constants.js';
+import { CARD_SUITS, CARD_VALUES, CARD_RANKS } from '../../../src/config/constants.js';
 
 // A small, predictable, and consistently ordered deck for testing purposes.
 // Tests can rely on the order of these cards when dealing.

@@ -29,7 +29,7 @@ import {
 import * as endGameModule from '../../../src/game/phases/endGame.js';
 
 // Import the mock logger
-import mockLogger, { log, error, warn, info, debug } from '../../../test/__mocks__/logger.js';
+import mockLogger, { log, error, warn, info, debug } from '../../__mocks__/utils/logger.js';
 
 // Mock the logger module
 mock.method(console, 'log', log);

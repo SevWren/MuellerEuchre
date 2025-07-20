@@ -23,7 +23,7 @@ import {
 import {
   InvalidPhaseError,
   PhaseLogicError,
-} from '../../../src/game/logic/errors.js';
+} from '../../../src/game/logic/validation-errors.js'; //file was moved for restructuring and rename to validation-errors.js
 
 // Helper to create a mock logger
 const createMockLogger = () => ({

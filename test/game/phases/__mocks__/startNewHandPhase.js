@@ -10,7 +10,7 @@
  */
 
 import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } from '../../../../src/config/constants.js';
-import { PhaseLogicError } from '../../../../src/game/logic/errors.js';
+import { PhaseLogicError } from '../../../../src/game/logic/validation-errors.js'; //file was moved for restructuring and rename to validation-errors.js
 
 /**
  * A type representing one of the valid game phase strings.

@@ -7,7 +7,7 @@ import {
   ValidationError,
   InvalidPhaseError,
   PhaseLogicError,
-} from "../logic/errors.js";
+} from "../logic/errors.js"; //file was moved for restructuring and rename to validation-errors.js
 import logger from "../../utils/logger.js";
 
 /**

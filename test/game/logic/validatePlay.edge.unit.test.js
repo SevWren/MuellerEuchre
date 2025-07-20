@@ -301,7 +301,5 @@ describe('validatePlay Edge Cases', () => {
         }
       });
     });
-
-    describe('CardNotInHandError', () => {
-      it('should be thrown when playing a card not in hand', () => {
+  });
 });

@@ -12,7 +12,7 @@ import {
   PhaseLogicError,
   InvalidGoAloneError,
   InvalidCardError
-} from '../../../src/game/logic/errors.js';
+} from '../../../src/game/logic/validation-errors.js';
 
 describe('Custom Error Classes', () => {
   it('ValidationError should be instance of Error', () => {

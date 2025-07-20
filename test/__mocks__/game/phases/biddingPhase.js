@@ -4,7 +4,7 @@
 // @see test/game/phases/biddingPhase.unit.test.js - Test usage
 
 import { mock } from 'node:test';
-import { PLAYER_ROLES, GAME_PHASES } from '../../src/config/constants.js';
+import { PLAYER_ROLES, GAME_PHASES } from '../../../../src/config/constants.js';
 
 /**
  * Creates mock implementations of bidding phase functions for testing.

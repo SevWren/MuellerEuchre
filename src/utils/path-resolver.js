@@ -433,3 +433,15 @@ export async function resolvePath(specifier, basePath = process.cwd()) {
 initAliasCache().catch(error => {
   console.error('Failed to initialize path aliases:', error);
 });
+
+// Bundle all exports into a single object for default export
+const pathResolver = {
+  resolvePath,
+  getTestMockPath,
+  clearAliasCache,
+  PathResolutionError,
+  isTestEnvironment
+};
+
+// Default export for backward compatibility
+export default pathResolver;

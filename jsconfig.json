@@ -22,6 +22,7 @@
     "node_modules",
     "**/node_modules/*",
     "**/bower_components/*",
+    "assets",
     "dist",
     "build",
     "out",
@@ -55,6 +56,9 @@
     ".vscode/*",
     "archived_for_later_development/test/db/gameRepository.unit.test.js",
     "Repo_To_LLM",
+    "mueller_euchre_repo_llm.txt",
+    "MuellerEuchre-Windsurf.code-workspace",
+
     "archived_for_later_development"
   ],
   "include": [

@@ -12,7 +12,7 @@ import {
   ValidationError,
   InvalidPhaseError,
   PhaseLogicError,
-} from '../../../src/game/logic/validation-errors.js'; //file was moved for restructuring and rename to validation-errors.js
+} from '../../../src/game/logic/validation-errors.js'; //file was moved for restructuring and merged into validation-errors.js
 
 // Helper to create a base game state for lobby phase tests
 const createLobbyGameState = (

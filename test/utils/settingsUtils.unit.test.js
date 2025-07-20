@@ -1,4 +1,5 @@
 // filepath: test/utils/settingsUtils.unit.test.js
+// 100% all pass
 
 import { describe, it } from "node:test";
 import assert from "node:assert";

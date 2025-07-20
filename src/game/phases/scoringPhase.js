@@ -29,7 +29,7 @@ import {
 } from "../../config/constants.js";
 import { getNextPlayer } from "../../utils/players.js";
 import logger from "../../utils/logger.js";
-import { InvalidPhaseError, PhaseLogicError } from "../logic/errors.js";
+import { InvalidPhaseError, PhaseLogicError } from "../logic/validation-errors.js";
 
 /**
  * Calculates the score for the completed hand and updates the game state.

@@ -45,64 +45,96 @@ This is the most complex scenario and directly addresses your question.
 
 ### JavaScript Implementation (Following `validatePlay.edge.unit.test.js` Style)
 
-Here is how the specific logic for the "must follow suit" rule, with a focus on the Left Bower, would be implemented within a larger validation system like yours.
+Here is how the specific logic for the "must follow suit" rule, with a focus on the Left Bower, is implemented within the project's validation system.
 
-#### 1. Constants and Helpers
+#### 1. Centralized Card Utilities
 
-First, we need the same constants and helper functions to identify the Left Bower, which are essential for clean logic.
+The core logic for identifying Bowers and determining a card's effective suit is encapsulated in a dedicated, robust utility file. This ensures consistency and testability across the entire application.
 
 ```javascript
 /**
- * @file src/game/logic/cardUtils.js (Example file location)
- * @module game/logic/cardUtils
+ * @file src/utils/cardUtils.js (Actual file location)
+ * @module utils/cardUtils
  * @description Utility functions for card logic in Euchre.
  */
 
-// Assuming these constants are imported from a central config file
 import { CARD_SUITS, CARD_VALUES } from '../config/constants.js';
 
 /**
- * Gets the "partner" suit of the same color.
- * @param {string} suit - A suit from CARD_SUITS.
- * @returns {string|null} The partner suit or null if invalid.
+ * Normalizes a suit string to its canonical constant value (e.g., 'hearts' -> 'CARD_SUIT_HEARTS').
+ * @param {string} suit - The suit string to normalize.
+ * @returns {string|null} The canonical suit constant or `null` if the input is invalid.
  */
-export function getPartnerSuit(suit) {
-    if (suit === CARD_SUITS.CARD_SUIT_SPADES) return CARD_SUITS.CARD_SUIT_CLUBS;
-    if (suit === CARD_SUITS.CARD_SUIT_CLUBS) return CARD_SUITS.CARD_SUIT_SPADES;
-    if (suit === CARD_SUITS.CARD_SUIT_HEARTS) return CARD_SUITS.CARD_SUIT_DIAMONDS;
-    if (suit === CARD_SUITS.CARD_SUIT_DIAMONDS) return CARD_SUITS.CARD_SUIT_HEARTS;
-    return null;
+function normalizeSuit(suit) {
+  if (!suit || typeof suit !== 'string') return null;
+  const upperSuit = suit.toUpperCase();
+  if (upperSuit.startsWith('CARD_SUIT_')) {
+    if (Object.values(CARD_SUITS).includes(upperSuit)) return upperSuit;
+  }
+  const suitName = upperSuit.replace(/^CARD_SUIT_/, '');
+  const canonicalSuit = `CARD_SUIT_${suitName}`;
+  if (Object.values(CARD_SUITS).includes(canonicalSuit)) return canonicalSuit;
+  return null;
 }
 
 /**
- * Determines the effective suit of a card, accounting for the Left Bower.
- * @param {Object} card - The card object { suit, value }.
+ * Gets the "partner" suit of the same color (e.g., Spades -> Clubs).
+ * @param {string} suit - A suit constant or string.
+ * @returns {string|null} The partner suit constant or `null` if the input suit is invalid.
+ */
+function getPartnerSuit(suit) {
+  const normalizedSuit = normalizeSuit(suit);
+  if (!normalizedSuit) return null;
+  switch (normalizedSuit) {
+    case CARD_SUITS.CARD_SUIT_SPADES: return CARD_SUITS.CARD_SUIT_CLUBS;
+    case CARD_SUITS.CARD_SUIT_CLUBS: return CARD_SUITS.CARD_SUIT_SPADES;
+    case CARD_SUITS.CARD_SUIT_HEARTS: return CARD_SUITS.CARD_SUIT_DIAMONDS;
+    case CARD_SUITS.CARD_SUIT_DIAMONDS: return CARD_SUITS.CARD_SUIT_HEARTS;
+    default: return null;
+  }
+}
+
+/**
+ * Determines if a card is the Left Bower (the Jack of the same color as trump).
+ * @param {object} card - The card object to check, must have `suit` and `value` properties.
  * @param {string} trumpSuit - The current trump suit.
- * @returns {string} The card's effective suit.
+ * @returns {boolean} `true` if the card is the Left Bower, otherwise `false`.
+ */
+function isLeftBower(card, trumpSuit) {
+  if (!card || card.value !== 'J') return false;
+  const partnerSuit = getPartnerSuit(trumpSuit);
+  const normalizedCardSuit = normalizeSuit(card.suit);
+  if (!partnerSuit || !normalizedCardSuit) return false;
+  return normalizedCardSuit === partnerSuit;
+}
+
+/**
+ * Determines the effective suit of a card for gameplay, accounting for the Left Bower.
+ * @param {object} card - The card object to evaluate.
+ * @param {string} trumpSuit - The current trump suit.
+ * @returns {string|null} The card's effective suit constant, or `null` if the card is invalid.
  */
 export function getEffectiveSuit(card, trumpSuit) {
-    const leftBowerSuit = getPartnerSuit(trumpSuit);
-    if (card.value === CARD_VALUES.JACK && card.suit === leftBowerSuit) {
-        // This is the Left Bower, its effective suit is trump.
-        return trumpSuit;
-    }
-    // Otherwise, its suit is its printed suit.
-    return card.suit;
+  if (!card || !card.suit) return null;
+  if (isLeftBower(card, trumpSuit)) {
+    return normalizeSuit(trumpSuit);
+  }
+  return normalizeSuit(card.suit);
 }
 ```
 
 #### 2. The Core Validation Logic
 
-This function encapsulates the "follow suit" logic. In a real system, it would be called from your main `validatePlay` function after checking for phase, turn, and card-in-hand errors.
+This function, located in `src/game/logic/validation-core.js`, consumes the `cardUtils.js` helpers to enforce the "follow suit" rule.
 
 ```javascript
 /**
- * @file src/game/logic/validation.js (Inside this file)
+ * @file src/game/logic/validation-core.js (Inside this file)
  * @description Contains the core validation logic for game moves.
  */
 
-import { getEffectiveSuit } from './cardUtils.js';
-import { MustFollowSuitError } from './errors.js';
+import { getEffectiveSuit } from '../../utils/cardUtils.js'; // Corrected Path
+import { MustFollowSuitError } from './validation-errors.js';
 
 /**
  * Validates if a card play adheres to the "follow suit" rule,
@@ -117,9 +149,6 @@ import { MustFollowSuitError } from './errors.js';
  */
 function validateFollowSuit(playerHand, cardToPlay, ledSuit, trumpSuit) {
     // Determine the effective suit the player must follow.
-    // This is normally the ledSuit, but could be trump if the lead card was the Left Bower.
-    // (Assuming the parent `validatePlay` function correctly sets `ledSuit` to trump if the
-    // Left Bower was led, as shown in your tests.)
     const suitToFollow = ledSuit;
 
     // Check if the player has any cards of the suit they must follow.

@@ -16,7 +16,7 @@ The core service architecture will be backend-driven, with all authoritative gam
 All development and modifications, especially within the core backend, MUST strictly adhere to the project's layered architectural mandate (as detailed in `docs/Project_Architectural_Mandate_for_Layer_1.md` and NFR6). This includes:
 
 *   **Layer 1 (Core Game Logic & Utilities):**
-    *   **Responsibility:** Contains all pure, stateless game rules and business logic (e.g., `src/game/logic/validation.js`, `src/utils/deck.js`, `src/game/phases/*.js`). Functions take input and return new state/data without side effects.
+    *   **Responsibility:** Contains all pure, stateless game rules and business logic (e.g., `src/game/logic/validation-core.js`, `src/utils/deck.js`, `src/game/phases/*.js`). Functions take input and return new state/data without side effects.
     *   **Purity Mandate:** MUST NOT perform any I/O operations (database calls, file system, network requests) and MUST NOT mutate global or shared state directly. Errors must be *thrown*.
     *   **Interactions:** Can be called by Layer 2/3. Cannot call any other layers (strictly no upward calls).
 

@@ -4,8 +4,9 @@
  * final score calculation, and new game initialization. This module handles the transition
  * from active play to game completion, including winner determination and match statistics.
  *
- * @see {@link module:game/phases/scoringPhase} - Previous phase that triggers end-game checks
- * @see {@link module:config/constants} - For GAME_PHASES and TEAMS constants
+ * @see {@link module:src/game/phases/scoringPhase} - Previous phase that triggers end-game checks
+ * @see {@link module:src/config/constants} - For GAME_PHASES and TEAMS constants
+ * @see {@link module:test/game/phases/endGame.unit.test.js} for test coverage
  *
  * @example
  * // In a game flow controller:
@@ -16,22 +17,86 @@
  *   }
  * }
  *
- * @requires module:config/constants
- * @requires module:utils/logger
+ * @requires module:src/config/constants
+ * @requires module:src/utils/logger
  */
 
 import { GAME_PHASES, WINNING_SCORE, TEAMS } from "../../config/constants.js";
 import { log } from "../../utils/logger.js";
 
 /**
- * Checks if the game has been won and updates the game state accordingly
- * @param {Object} gameState - Current game state
- * @returns {Object} Updated game state with game over status if applicable
+ * @typedef {Object} PlayerState
+ * @property {string} id - The unique ID of the player.
+ * @property {string} name - The display name of the player.
+ * @property {string} teamId - The ID of the team the player belongs to (e.g., 'TEAM_NS', 'TEAM_EW').
+ */
+
+/**
+ * @typedef {Object} TrickResult
+ * @property {string} team - The ID of the team that won the trick (e.g., 'TEAM_NS', 'TEAM_EW').
+ */
+
+/**
+ * @typedef {Object} MatchStats
+ * @property {number} gamesPlayed - Total number of games played in the match.
+ * @property {Object.<keyof typeof TEAMS, number>} teamWins - Number of wins for each team.
+ * @property {string} lastUpdated - ISO timestamp of the last update.
+ */
+
+/**
+ * @typedef {Object} GameMessage
+ * @property {string} type - Message type (e.g., 'game_over', 'score', 'system').
+ * @property {string} text - Message content.
+ * @property {boolean} important - True if the message is important for display.
+ * @property {string} [team] - Optional team ID associated with the message.
+ */
+
+/**
+ * @typedef {Object} GameState
+ * @property {string} gameId - Unique identifier for the game session.
+ * @property {keyof typeof GAME_PHASES} gamePhase - Current phase of the game.
+ * @property {Object.<string, PlayerState>} players - Map of player roles to player data.
+ * @property {string} currentPlayer - Role of the current player.
+ * @property {string} dealer - Role of the current dealer.
+ * @property {keyof typeof TEAMS} makerTeam - The team that made trump for the current hand.
+ * @property {TrickResult[]} tricks - Array of completed trick results for the current hand.
+ * @property {Object.<keyof typeof TEAMS, number>} scores - Current scores for each team.
+ * @property {boolean} [gameOver=false] - True if the game has ended.
+ * @property {keyof typeof TEAMS|null} [winningTeam=null] - The team that won the game.
+ * @property {MatchStats} [matchStats] - Statistics for the current match.
+ * @property {GameMessage[]} messages - Log of game events and messages.
+ * @property {Object.<keyof typeof TEAMS, number>} tricksTaken - Number of tricks taken by each team in the current hand.
+ * @property {boolean} [goingAlone=false] - True if the maker went alone in the current hand.
+ * @property {Object.<keyof typeof TEAMS, number>} [teamScores] - Alias for `scores` for consistency.
+ * @property {Object} [previousTricksTaken] - Tricks taken in the previous hand.
+ * @property {Object|null} [trumpSuit] - The current trump suit.
+ * @property {Object|null} [playerWhoOrderedUp] - The player who ordered up.
+ * @property {Object|null} [playerWhoCalledTrump] - The player who called trump.
+ * @property {Object|null} [playerGoingAlone] - The player who went alone.
+ * @property {Object|null} [partnerSittingOut] - The partner sitting out.
+ * @property {Array} [bids] - History of bids.
+ * @property {Object|null} [orderUpTurn] - The player whose turn it is to order up.
+ * @property {Array} [kitty] - Cards in the kitty.
+ * @property {Object|null} [turnCard] - The turn card.
+ * @property {Object|null} [leadSuit] - The lead suit of the current trick.
+ * @property {Array} [currentTrick] - Cards played in the current trick.
+ */
+
+/**
+ * Checks if the game has been won and updates the game state accordingly.
+ * This function is typically called after scoring a hand to determine if the match
+ * has reached its winning score.
+ *
+ * @param {GameState} gameState - The current game state.
+ * @returns {GameState} Updated game state with game over status if applicable.
+ * @see {@link module:src/game/phases/scoringPhase.calculateAndApplyScore}
+ * @see {@link module:test/game/phases/endGame.unit.test.js}
  */
 function checkGameOver(gameState) {
   log(1, "[checkGameOver] Checking for game over condition");
 
-  const updatedState = JSON.parse(JSON.stringify(gameState)); // Ensure it works on a clone
+  // Ensure it works on a clone to maintain purity
+  const updatedState = JSON.parse(JSON.stringify(gameState));
 
   const currentTeamScores = calculateTeamScores(updatedState);
   const winningTeam = Object.entries(currentTeamScores).find(
@@ -46,11 +111,16 @@ function checkGameOver(gameState) {
 }
 
 /**
- * Handles the end of a game
- * @param {Object} gameState - Current game state
- * @param {string} winningTeam - The team that won the game
- * @param {Object} finalScores - The final scores for each team
- * @returns {Object} Updated game state with game over status
+ * Handles the end of a game, setting the game over flag, winning team,
+ * and updating match statistics.
+ *
+ * @private
+ * @param {GameState} gameState - Current game state (will be mutated as it's a clone from `checkGameOver`).
+ * @param {keyof typeof TEAMS} winningTeam - The team that won the game.
+ * @param {Object.<keyof typeof TEAMS, number>} finalScores - The final scores for each team.
+ * @returns {GameState} Updated game state with game over status.
+ * @see {@link module:src/game/phases/endGame.checkGameOver}
+ * @see {@link module:test/game/phases/endGame.unit.test.js}
  */
 function endGame(gameState, winningTeam, finalScores) {
   const winningTeamDisplay =
@@ -60,7 +130,7 @@ function endGame(gameState, winningTeam, finalScores) {
   // Update game state
   gameState.gameOver = true;
   gameState.winningTeam = winningTeam; // Should be TEAMS.TEAM_NS or TEAMS.TEAM_EW
-  gameState.currentPhase = GAME_PHASES.GAME_OVER;
+  gameState.gamePhase = GAME_PHASES.GAME_OVER;
 
   // Add game message
   gameState.messages = gameState.messages || [];
@@ -97,9 +167,13 @@ function endGame(gameState, winningTeam, finalScores) {
 }
 
 /**
- * Handles a request to start a new game
- * @param {Object} gameState - Current game state
- * @returns {Object} Reset game state for a new game
+ * Handles a request to start a new game, resetting the game state to a lobby phase.
+ * This function is typically called from the `GAME_OVER` phase.
+ *
+ * @param {GameState} gameState - Current game state.
+ * @returns {GameState} Reset game state for a new game, in the `LOBBY` phase.
+ * @see {@link module:src/socket/handlers/gameOverHandlers}
+ * @see {@link module:test/game/phases/endGame.unit.test.js}
  */
 function startNewGame(gameState) {
   log(1, "[startNewGame] Starting a new game");
@@ -110,8 +184,8 @@ function startNewGame(gameState) {
   // Reset game-specific state
   updatedState.gameOver = false;
   updatedState.winningTeam = null;
-  updatedState.currentPhase = GAME_PHASES.LOBBY;
-  updatedState.players = {};
+  updatedState.gamePhase = GAME_PHASES.LOBBY;
+  updatedState.players = {}; // Clear players for a fresh lobby
   updatedState.messages = [];
 
   // Reset player scores
@@ -131,10 +205,13 @@ function startNewGame(gameState) {
 }
 
 /**
- * Calculates the current scores for each team
+ * Calculates the current scores for each team from the game state's `scores` property.
+ *
  * @private
- * @param {Object} gameState - Current game state
- * @returns {Object} Team scores
+ * @param {GameState} gameState - Current game state.
+ * @returns {Object.<keyof typeof TEAMS, number>} An object containing the scores for each team.
+ * @see {@link module:src/game/phases/endGame.checkGameOver}
+ * @see {@link module:src/game/phases/endGame.handleEndOfHand}
  */
 function calculateTeamScores(gameState) {
   // Expects gameState.scores to use TEAMS.TEAM_NS/EW keys
@@ -145,15 +222,21 @@ function calculateTeamScores(gameState) {
 }
 
 /**
- * Handles the end of a hand and updates scores
- * @param {Object} gameState - Current game state
- * @returns {Object} Updated game state with scores and next phase
+ * Handles the end of a hand, calculates points based on tricks won,
+ * updates team scores, and checks for game over conditions.
+ *
+ * @param {GameState} gameState - Current game state.
+ * @returns {GameState} Updated game state with scores and next phase (either `DEALING` or `GAME_OVER`).
+ * @see {@link module:src/game/phases/scoringPhase.calculateAndApplyScore}
+ * @see {@link module:src/game/phases/endGame.checkGameOver}
+ * @see {@link module:src/game/phases/endGame.getOpponentTeam}
+ * @see {@link module:test/game/phases/endGame.unit.test.js}
  */
 function handleEndOfHand(gameState) {
   log(1, "[handleEndOfHand] Processing end of hand");
   log(
     1,
-    `[handleEndOfHand] Initial gameState.scores: NS=${gameState.scores?.["north+south"]}, EW=${gameState.scores?.["east+west"]}`,
+    `[handleEndOfHand] Initial gameState.scores: NS=${gameState.scores?.[TEAMS.TEAM_NS]}, EW=${gameState.scores?.[TEAMS.TEAM_EW]}`,
   );
 
   // Create a deep copy of the game state
@@ -216,7 +299,7 @@ function handleEndOfHand(gameState) {
   } else {
     // Euchred (makers got 0, 1, or 2 tricks)
     scoringTeam = getOpponentTeam(makerTeam);
-    points = 2; // Opponents always get 2 points for a euchre
+    points = 2; // Opponents always get 2 points for 2 points for a euchre
     messageText = `Team ${makerTeam} was euchred! ${points} points for ${scoringTeam}!`;
   }
 
@@ -268,8 +351,9 @@ function handleEndOfHand(gameState) {
  * Gets the opponent team for a given team.
  * Expects team to be TEAMS.TEAM_NS or TEAMS.TEAM_EW.
  * @private
- * @param {string} team - The team to get the opponent for (e.g., TEAMS.TEAM_NS).
- * @returns {string} The opponent team (e.g., TEAMS.TEAM_EW).
+ * @param {keyof typeof TEAMS} team - The team to get the opponent for (e.g., TEAMS.TEAM_NS).
+ * @returns {keyof typeof TEAMS|null} The opponent team (e.g., TEAMS.TEAM_EW), or null if the input team is invalid.
+ * @see {@link module:src/game/phases/endGame.handleEndOfHand}
  */
 function getOpponentTeam(team) {
   if (team === TEAMS.TEAM_NS) return TEAMS.TEAM_EW;

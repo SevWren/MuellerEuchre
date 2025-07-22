@@ -17,7 +17,7 @@
  * @see {@link module:game/phases/biddingPhase} Where AI bidding is integrated
  */
 
-import { isLeftBower, areSameColor } from "../../utils/deck.js";
+import { isLeftBower } from '../../utils/cardUtils.js';
 
 
 /**
@@ -70,7 +70,7 @@ const BID_THRESHOLD = 20;
 function countTrumpInHand(hand, trumpSuit) {
   if (!Array.isArray(hand)) return 0;
   return hand.filter((card) => {
-    if (!card) return false;
+    if (!card || !card.suit || !card.value) return false;
     // A card is trump if its suit matches the trump suit, or if it's the Left Bower.
     return card.suit === trumpSuit || isLeftBower(card, trumpSuit);
   }).length;
@@ -87,7 +87,7 @@ function calculateHandStrength(hand, trumpSuit) {
   if (!Array.isArray(hand)) return 0;
 
   return hand.reduce((total, card) => {
-    if (!card) {
+    if (!card || !card.suit || !card.value) {
       return total;
     }
 
@@ -208,6 +208,9 @@ function chooseBid(hand, turnCard, isDealer, bids = []) {
  * @returns {string} The effective suit of the card.
  */
 function getEffectiveSuit(card, trumpSuit) {
+  if (!card || !card.suit || !card.value) {
+    return null;
+  }
   if (isLeftBower(card, trumpSuit)) {
     return trumpSuit;
   }
@@ -221,6 +224,7 @@ function getEffectiveSuit(card, trumpSuit) {
  * @returns {number} Numeric value of card
  */
 function getCardValue(card, trumpSuit) {
+  if (!card || !card.suit || !card.value) return 0;
   if (card.suit === trumpSuit) {
     if (card.rank === "J") return 100; // Right bower
     if (card.rank === "A") return 80;
@@ -258,6 +262,7 @@ function getWinningCard(trick, trumpSuit, leadSuit) {
   let winningCard = trick[0];
   for (let i = 1; i < trick.length; i++) {
     const currentCard = trick[i];
+    if (!currentCard || !currentCard.suit || !currentCard.value) continue;
     const winningSuit = getEffectiveSuit(winningCard, trumpSuit);
     const currentSuit = getEffectiveSuit(currentCard, trumpSuit);
 
@@ -310,7 +315,7 @@ function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
   if (currentTrick.length === 0) {
     // If only trump cards, play lowest trump
     const trumpCards = hand.filter(
-      (card) => getEffectiveSuit(card, trumpSuit) === trumpSuit
+      (card) => card && card.suit && card.value && getEffectiveSuit(card, trumpSuit) === trumpSuit
     );
 
     if (trumpCards.length === hand.length) {
@@ -318,7 +323,7 @@ function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
     }
     
     // Play highest non-trump card if not all trump
-    const nonTrumpCards = hand.filter(card => getEffectiveSuit(card, trumpSuit) !== trumpSuit);
+    const nonTrumpCards = hand.filter(card => card && card.suit && card.value && getEffectiveSuit(card, trumpSuit) !== trumpSuit);
     if(nonTrumpCards.length > 0) {
         return nonTrumpCards.reduce((highest, card) => getCardValue(card, trumpSuit) > getCardValue(highest, trumpSuit) ? card : highest);
     }
@@ -328,7 +333,10 @@ function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
   }
 
   // If not leading, must follow suit if able
-  const cardsInSuit = hand.filter((card) => getEffectiveSuit(card, trumpSuit) === leadSuit);
+  const cardsInSuit = hand.filter((card) => {
+    if (!card || !card.suit || !card.value) return false;
+    return getEffectiveSuit(card, trumpSuit) === leadSuit;
+  });
 
   if (cardsInSuit.length > 0) {
     // Try to win the trick if possible
@@ -339,6 +347,7 @@ function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
       
       const playableWinningCards = cardsInSuit.filter(
         (card) => {
+            if (!card || !card.suit || !card.value) return false;
             // Must be able to beat the current winning card
             const isTrump = getEffectiveSuit(card, trumpSuit) === trumpSuit;
             if(winningSuit === trumpSuit && !isTrump) return false; // can't beat trump with non-trump

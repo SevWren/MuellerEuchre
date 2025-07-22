@@ -1,6 +1,3 @@
-
-
-// filepath: src/game/logic/validation-errors.js
 /**
  * @module game/logic/errors
  * @description
@@ -237,25 +234,68 @@ class MustFollowSuitError extends ValidationError {
 
 /**
  * Thrown when an invalid bid is made during the Euchre bidding phase.
+ * This error is used to enforce the rules of Euchre bidding, including:
+ * - Valid bid types (orderUp, pickItUp, pass, callTrump, goAlone)
+ * - Valid suits that can be called
+ * - Turn card restrictions
+ * - Bidding round constraints
  *
  * @class InvalidBidError
  * @extends ValidationError
- * @param {string} message - Description of the bidding error.
+ * @param {string} message - Human-readable description of the bidding error.
  * @param {object} [details] - Optional object with more context about the invalid bid.
  * @param {string} [details.decision] - The bid decision made (e.g., 'orderUp', 'pass').
  * @param {string} [details.suit] - The suit that was called, if any.
  * @param {number} [details.round] - The bidding round number (1 or 2).
+ * @param {string} [details.playerRole] - The role of the player making the bid.
  * @property {string} name - The error name ('InvalidBidError').
  * @property {string} code - The error code ('E_INVALID_BID').
  * @property {object} details - Additional context about the bid.
  *
  * @example
- * // Throwing the error
- * if (decision === 'callTrump' && suit === gameState.turnCard.suit) {
- *   throw new InvalidBidError('Cannot call the suit that was turned down.', { decision, suit });
+ * // Example 1: Invalid suit in first round
+ * if (round === 1 && suit === turnCard.suit && decision === 'callTrump') {
+ *   throw new InvalidBidError(
+ *     'Cannot call the suit that was turned down in the first round.',
+ *     { decision, suit, round: 1, playerRole: 'south' }
+ *   );
  * }
  *
- * @see {@link module:validation.validateBid}
+ * @example
+ * // Example 2: Invalid bid type
+ * if (!['orderUp', 'pass', 'callTrump', 'goAlone'].includes(decision)) {
+ *   throw new InvalidBidError(
+ *     `Invalid bid type: ${decision}`,
+ *     { decision, playerRole: 'north' }
+ *   );
+ * }
+ *
+ * @example
+ * // Catching and handling the error
+ * try {
+ *   placeBid(gameState, playerRole, { decision: 'callTrump', suit: 'hearts' });
+ * } catch (error) {
+ *   if (error instanceof InvalidBidError) {
+ *     logger.warn({
+ *       event: 'invalid_bid_attempt',
+ *       player: error.details.playerRole,
+ *       decision: error.details.decision,
+ *       suit: error.details.suit,
+ *       error: error.message
+ *     });
+ *     
+ *     // Notify the client with specific guidance
+ *     socket.emit('bid_error', {
+ *       code: error.code,
+ *       message: error.message,
+ *       details: error.details
+ *     });
+ *   }
+ * }
+ *
+ * @see {@link module:game/logic/validation.validateBid} For bid validation logic
+ * @see {@link module:game/phases/biddingPhase} Where bidding is handled
+ * @see {@link module:config/constants.GAME_PHASES} For valid game phases
  */
 class InvalidBidError extends ValidationError {
   constructor(message, details = {}) {

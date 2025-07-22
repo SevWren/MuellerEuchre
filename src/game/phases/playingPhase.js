@@ -1,12 +1,13 @@
-import { validatePlay } from "../logic/validation-core.js"; // Changed from isValidPlay
-import { getCardRank } from "../../utils/deck.js";
+import { validatePlay } from "../logic/validation-core.js";
 import { getNextPlayer } from "../../utils/players.js";
 import { GAME_PHASES } from "../../config/constants.js";
 import {
   PhaseLogicError,
   NotPlayersTurnError,
   InvalidPhaseError,
-} from "../logic/validation-errors.js"; // Added error imports
+  CardNotInHandError,
+  MustFollowSuitError
+} from "../logic/validation-errors.js";
 
 /**
  * Handles a player playing a card.
@@ -24,18 +25,46 @@ import {
  * @throws {CardNotInHandError} If card not in hand (from validatePlay).
  * @throws {MustFollowSuitError} If player fails to follow suit (from validatePlay).
  */
-function handlePlayCard(gameState, playerRole, cardPlayed) {
-  // Player existence check
-  const player = gameState.players[playerRole];
-  if (!player) {
-    throw new PhaseLogicError(`Player ${playerRole} not found.`);
+function deepCloneState(state) {
+  try {
+    return structuredClone ? structuredClone(state) : JSON.parse(JSON.stringify(state));
+  } catch (error) {
+    throw new Error('Failed to clone game state', { cause: error });
+  }
+}
+
+function validatePlayer(gameState, playerRole) {
+  if (!gameState?.players?.[playerRole]) {
+    throw new PhaseLogicError(`Player ${playerRole} not found`);
+  }
+  return gameState.players[playerRole];
+}
+
+function handlePlayCard(gameState, playerRole, cardPlayed, deckUtils = {}) {
+  if (!gameState || typeof gameState !== 'object') {
+    throw new TypeError('gameState must be an object');
+  }
+  if (!playerRole || typeof playerRole !== 'string') {
+    throw new TypeError('playerRole must be a non-empty string');
+  }
+  if (!cardPlayed || typeof cardPlayed !== 'object') {
+    throw new TypeError('cardPlayed must be an object');
+  }
+  if (typeof deckUtils.getCardRank !== 'function') {
+    throw new TypeError('deckUtils.getCardRank must be a function');
+  }
+  
+  const player = validatePlayer(gameState, playerRole);
+
+  // Validate the play and throw any validation errors
+  const validation = validatePlay(gameState, player.hand, cardPlayed, playerRole);
+  if (!validation.valid) {
+    // Throw the first validation error
+    throw validation.errors[0];
   }
 
-  // Validate the play (this will throw on invalid phase, turn, or play)
-  validatePlay(gameState, player.hand, cardPlayed, playerRole);
-
-  // Start with a deep clone of the input gameState
-  let newGameState = JSON.parse(JSON.stringify(gameState));
+  // Create a deep clone of the game state
+  let newGameState = deepCloneState(gameState);
 
   // Remove card from player's hand
   const newHand = player.hand.filter((card) => card.id !== cardPlayed.id);
@@ -60,18 +89,22 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
       newGameState.currentTrick,
       newGameState.trumpSuit,
       newGameState.currentTrick[0]?.playedBy,
+      deckUtils
     );
+    
     const winningPlayer = newGameState.players[trickWinnerRole];
-
-    if (!winningPlayer || winningPlayer.teamId === undefined) {
+    const winnerTeam = winningPlayer?.teamId;
+    
+    if (winnerTeam === undefined) {
       throw new PhaseLogicError(
-        `Could not determine teamId for trick winner: ${trickWinnerRole}`,
+        `Could not determine teamId for trick winner: ${trickWinnerRole}`
       );
     }
-    const winnerTeam = winningPlayer.teamId;
 
-    const updatedTricksTaken = { ...newGameState.tricksTaken };
-    updatedTricksTaken[winnerTeam]++;
+    const updatedTricksTaken = {
+      ...newGameState.tricksTaken,
+      [winnerTeam]: (newGameState.tricksTaken[winnerTeam] || 0) + 1
+    };
 
     newGameState.tricksTaken = updatedTricksTaken;
     newGameState.currentTrick = [];
@@ -107,23 +140,49 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
 /**
  * Determines the winner of a completed trick.
  *
- * @param {Array<object>} trick Array of cards played in the trick, with {playedBy, suit, rank}.
+ * @param {Array<object>} trick Array of cards played in the trick, with {playedBy, suit, rank} or {card: {suit, value}, playedBy}.
  * @param {string} trumpSuit The trump suit for the current hand.
  * @param {string} leadPlayerRole The role of the player who led the trick.
+ * @param {object} deckUtils The deck utilities object containing getCardRank function.
  * @returns {string} The role of the player who won the trick.
  */
-function determineTrickWinner(trick, trumpSuit, leadPlayerRole) {
-  if (!trick || trick.length !== 4) {
-    throw new PhaseLogicError("Trick must have 4 cards to determine a winner.");
+function validateTrick(trick) {
+  if (!Array.isArray(trick) || trick.length !== 4) {
+    throw new PhaseLogicError('Trick must have 4 cards to determine a winner');
+  }
+}
+
+function determineTrickWinner(trick, trumpSuit, leadPlayerRole, deckUtils = {}) {
+  if (typeof deckUtils.getCardRank !== 'function') {
+    throw new TypeError('deckUtils.getCardRank must be a function');
+  }
+  
+  validateTrick(trick);
+  
+  if (!leadPlayerRole) {
+    throw new PhaseLogicError('leadPlayerRole is required');
   }
 
-  const leadCard = trick[0];
+  // Normalize the trick to handle both formats: {suit, value, playedBy} and {card: {suit, value}, playedBy}
+  const normalizedTrick = trick.map(cardObj => {
+    if (cardObj.card) {
+      // Handle nested card format: {card: {suit, value}, playedBy}
+      return {
+        ...cardObj.card,
+        playedBy: cardObj.playedBy
+      };
+    }
+    // Handle direct format: {suit, value, playedBy}
+    return cardObj;
+  });
+
+  const leadCard = normalizedTrick[0];
   let winningCard = leadCard;
 
-  for (let i = 1; i < trick.length; i++) {
-    const currentCard = trick[i];
-    const winningRank = getCardRank(winningCard, trumpSuit, leadCard.suit);
-    const currentRank = getCardRank(currentCard, trumpSuit, leadCard.suit);
+  for (let i = 1; i < normalizedTrick.length; i++) {
+    const currentCard = normalizedTrick[i];
+    const winningRank = deckUtils.getCardRank(winningCard, trumpSuit, leadCard.suit);
+    const currentRank = deckUtils.getCardRank(currentCard, trumpSuit, leadCard.suit);
 
     if (currentRank > winningRank) {
       winningCard = currentCard;

@@ -21,18 +21,37 @@ import {
  * @returns {Object} A card object with required properties and methods
  */
 function createCard(id, suit, value) {
-  if (!id || !suit || !value) {
-    throw new Error('createCard requires id, suit, and value parameters');
+  console.log('createCard called with:', { id, suit, value });
+  
+  // Check if any required parameter is missing or empty
+  const missingParams = [];
+  if (!id) missingParams.push('id');
+  if (!suit) missingParams.push('suit');
+  if (!value) missingParams.push('value');
+  
+  if (missingParams.length > 0) {
+    const error = new Error(`createCard requires id, suit, and value parameters. Missing: ${missingParams.join(', ')}`);
+    console.error('Error in createCard:', error.message);
+    console.trace('createCard call stack');
+    throw error;
   }
 
-  return {
-    id,
-    suit,
-    value,
-    // These methods will be properly mocked in tests
-    isLeftBower: () => false,
-    getEffectiveSuit: (trumpSuit) => suit
-  };
+  try {
+    const card = {
+      id,
+      suit,
+      value,
+      // These methods will be properly mocked in tests
+      isLeftBower: () => false,
+      getEffectiveSuit: (trumpSuit) => suit
+    };
+    
+    console.log('Successfully created card:', card);
+    return card;
+  } catch (error) {
+    console.error('Error creating card object:', error);
+    throw error;
+  }
 }
 
 /**
@@ -41,21 +60,32 @@ function createCard(id, suit, value) {
  */
 function createStandardDeck() {
   const deck = [];
-  const suits = [SUITS.SPADES, SUITS.HEARTS, SUITS.DIAMONDS, SUITS.CLUBS];
-  const values = VALUES;
+  const suits = [SUITS.CARD_SUIT_SPADES, SUITS.CARD_SUIT_HEARTS, SUITS.CARD_SUIT_DIAMONDS, SUITS.CARD_SUIT_CLUBS];
+  const values = [...VALUES]; // Create a copy of the frozen array
 
-  // Map constant names to their single-character ID representation.
+  // Map constant names to their single-character ID representation
   const suitCharMap = {
-    [SUITS.SPADES]: 'S',
-    [SUITS.HEARTS]: 'H',
-    [SUITS.DIAMONDS]: 'D',
-    [SUITS.CLUBS]: 'C',
+    [SUITS.CARD_SUIT_SPADES]: 'S',
+    [SUITS.CARD_SUIT_HEARTS]: 'H',
+    [SUITS.CARD_SUIT_DIAMONDS]: 'D',
+    [SUITS.CARD_SUIT_CLUBS]: 'C',
+  };
+
+  // Create a mapping of value to display name for card IDs
+  const valueDisplayMap = {
+    '9': '9',
+    '10': '10',
+    'J': 'J',
+    'Q': 'Q',
+    'K': 'K',
+    'A': 'A'
   };
 
   for (const suit of suits) {
     for (const value of values) {
-      // Correctly use the map to generate a unique ID.
-      deck.push(createCard(`${value}${suitCharMap[suit]}`, suit, value));
+      // Create a card ID like 'KH' for King of Hearts
+      const cardId = `${valueDisplayMap[value] || value}${suitCharMap[suit] || '?'}`;
+      deck.push(createCard(cardId, suit, value));
     }
   }
 
@@ -68,50 +98,99 @@ function createStandardDeck() {
  * @returns {Object} A complete game state object
  */
 function createBaseGameState(overrides = {}) {
-  const defaultState = {
-    gamePhase: GAME_PHASES.ORDER_UP_ROUND1,
+  // Debug: Log all available constants at the start
+  console.log('DEBUG: Available constants in validation-test-utils.js:', {
+    'SUITS': SUITS ? Object.keys(SUITS) : 'UNDEFINED',
+    'VALUES': VALUES ? (Array.isArray(VALUES) ? VALUES : 'NOT AN ARRAY') : 'UNDEFINED',
+    'GAME_PHASES': GAME_PHASES ? Object.keys(GAME_PHASES) : 'UNDEFINED',
+    'PLAYER_ROLES': PLAYER_ROLES ? (Array.isArray(PLAYER_ROLES) ? PLAYER_ROLES : 'NOT AN ARRAY') : 'UNDEFINED'
+  });
+
+  // Debug: Log the VALUES before using it
+  console.log('DEBUG: createBaseGameState - VALUES:', {
+    type: typeof VALUES,
+    isArray: Array.isArray(VALUES),
+    length: Array.isArray(VALUES) ? VALUES.length : 'N/A',
+    values: VALUES
+  });
+
+  // Debug: Check if VALUES is defined and accessible
+  if (typeof VALUES === 'undefined') {
+    console.error('ERROR: VALUES is undefined in createBaseGameState');
+    throw new Error('VALUES constant is not defined in validation-test-utils.js');
+  } else if (!Array.isArray(VALUES)) {
+    console.error('ERROR: VALUES is not an array:', VALUES);
+    throw new Error('VALUES constant is not an array in validation-test-utils.js');
+  } else if (VALUES.length === 0) {
+    console.error('ERROR: VALUES array is empty');
+    throw new Error('VALUES array is empty in validation-test-utils.js');
+  } else {
+    console.log('DEBUG: First card value:', VALUES[0]);
+  }
+
+  // Create the base game state
+  const baseGameState = {
+    gamePhase: GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND1,
     dealer: 'north',
     currentPlayer: 'south',
     currentTrick: [],
     tricks: { NS: 0, EW: 0 },
     trumpSuit: null,
-    upCard: createCard('KH', 'HEARTS', 'K'),
-    turnCard: createCard('KH', 'HEARTS', 'K'),
-    players: {
+    upCard: null,  // Will be set below
+    turnCard: null, // Will be set below
+    players: {}
+  };
+
+  try {
+    // Create cards using the VALUES array
+    const upCard = createCard('9H', SUITS.CARD_SUIT_HEARTS, VALUES[0]); // 9 of Hearts
+    baseGameState.upCard = upCard;
+    baseGameState.turnCard = { ...upCard };
+    
+    console.log('DEBUG: Created base game state with upCard:', upCard);
+  } catch (error) {
+    console.error('ERROR creating cards in createBaseGameState:', error.message);
+    throw error;
+  }
+
+  // Initialize players with empty hands if not provided in overrides
+  if (!overrides.players) {
+    baseGameState.players = {
       [PLAYER_ROLES[0]]: {
         id: 'south',
         name: 'South',
         hand: [],
-        team: 'NS',
-        role: PLAYER_ROLES[0]
+        team: 'NS'
       },
       [PLAYER_ROLES[1]]: {
         id: 'west',
         name: 'West',
         hand: [],
-        team: 'EW',
-        role: PLAYER_ROLES[1]
+        team: 'EW'
       },
       [PLAYER_ROLES[2]]: {
         id: 'north',
         name: 'North',
         hand: [],
-        team: 'NS',
-        role: PLAYER_ROLES[2]
+        team: 'NS'
       },
       [PLAYER_ROLES[3]]: {
         id: 'east',
         name: 'East',
         hand: [],
-        team: 'EW',
-        role: PLAYER_ROLES[3]
-      },
-    },
-    // Add any other required fields with default values
-    ...overrides
-  };
+        team: 'EW'
+      }
+    };
+    console.log('DEBUG: Initialized players:', Object.keys(baseGameState.players));
+  }
 
-  return defaultState;
+  // Apply overrides after setting defaults
+  if (overrides) {
+    console.log('DEBUG: Applying overrides:', Object.keys(overrides));
+    Object.assign(baseGameState, overrides);
+  }
+
+  return baseGameState;
 }
 
 /**

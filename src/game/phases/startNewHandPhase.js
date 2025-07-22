@@ -1,9 +1,54 @@
 /**
- * Logic for starting a new hand in Euchre: shuffling, dealing, and setting up for bidding.
  * @module game/phases/startNewHandPhase
+ * @description Logic for starting a new hand in Euchre: shuffling, dealing, and setting up for bidding.
+ * This module handles the initialization of a new hand, including dealer rotation, card dealing, and
+ * game state transition to the bidding phase.
+ * 
+ * @see {@link module:game/phases/playingPhase} For the next phase in the game flow
+ * @see {@link module:game/phases/biddingPhase} For the phase that follows after dealing
+ * @see {@link module:utils/deck} For deck creation and shuffling utilities
+ */
+
+/**
+ * @typedef {Object} Card
+ * @property {string} suit - The suit of the card (e.g., 'hearts', 'diamonds')
+ * @property {string} value - The value of the card (e.g., '9', 'J', 'Q', 'K', 'A')
+ * @property {string} [id] - Optional unique identifier for the card
+ *
+ * @typedef {Object} Player
+ * @property {Card[]} hand - Array of cards in the player's hand
+ * @property {boolean} [isActive=true] - Whether the player is active in the game
+ * @property {number} [tricksWonThisHand=0] - Number of tricks won in the current hand
+ *
+ * @typedef {Object} GameState
+ * @property {string} gameId - Unique identifier for the game
+ * @property {string} gamePhase - Current phase of the game
+ * @property {Object.<string, Player>} players - Map of player roles to player objects
+ * @property {string} dealer - Role of the current dealer
+ * @property {Card} turnCard - The face-up card for the current hand
+ * @property {Card[]} kitty - Array of cards in the kitty (undealt cards)
+ * @property {string} currentPlayer - Role of the player whose turn it is
+ * @property {string} orderUpTurn - Role of the player whose turn it is to order up
+ * @property {string|null} trumpSuit - The current trump suit, or null if not yet determined
+ * @property {Array} bids - Array of bids made in the current hand
+ * @property {number} roundNumber - Current round number
+ * @property {string|null} playerWhoOrderedUp - Role of the player who ordered up the trump
+ * @property {string|null} playerWhoCalledTrump - Role of the player who called trump
+ * @property {string|null} makerTeam - Team that made the trump call
+ * @property {boolean} goingAlone - Whether a player is going alone
+ * @property {string|null} playerGoingAlone - Role of the player going alone, if any
+ * @property {string|null} partnerSittingOut - Role of the sitting out partner, if applicable
+ * @property {Card[]} currentTrick - Cards played in the current trick
+ * @property {string|null} leadSuit - Lead suit of the current trick
+ * @property {Object} tricksTaken - Number of tricks taken by each team
+ * @property {number} tricksTaken.TEAM_NS - Tricks taken by North/South team
+ * @property {number} tricksTaken.TEAM_EW - Tricks taken by East/West team
+ * @property {Array} gameMessages - Array of game messages
+ * @property {number} lastUpdated - Timestamp of last state update
  */
 import logger from "../../utils/logger.js";
-import { createDeck, shuffleDeck, cardToId } from "../../utils/deck.js";
+import { createDeck, shuffleDeck } from "../../utils/deck.js";
+import { cardToId } from "../../utils/cardUtils.js";
 import { getNextPlayer } from "../../utils/players.js";
 import { GAME_PHASES, PLAYER_ROLES, TEAMS } from "../../config/constants.js";
 import {
@@ -17,13 +62,44 @@ import {
  * and transitions the game state to the first round of bidding.
  * This is a PURE FUNCTION. It accepts the current game state and returns the new state.
  *
- * @param {object} currentGameState - The current game state object.
- * @returns {object} The updated game state object.
- * @throws {ValidationError} If `currentGameState` is missing or invalid.
+ * @function startNewHand
+ * @param {GameState} currentGameState - The current game state object. Must include:
+ *   - players: Object mapping player roles to player objects
+ *   - gameId: String identifier for the game
+ *   - gamePhase: Current game phase
+ *   - dealer: (Optional) Current dealer's role
+ * @returns {GameState} A new game state object with:
+ *   - Dealer rotated to the next player
+ *   - Newly shuffled and dealt cards to all active players
+ *   - Turn card and kitty set up
+ *   - Game phase transitioned to ORDER_UP_ROUND1
+ *   - All hand-specific state reset
+ * @throws {ValidationError} If `currentGameState` is missing required properties or is invalid.
  * @throws {InvalidPhaseError} If the game is not in a valid phase to start a new hand.
  * @throws {PhaseLogicError} If dealing encounters a critical error (e.g., empty kitty).
+ * 
+ * @see {@link module:game/phases/startNewHandPhase} For the module documentation
+ * @see {@link module:utils/deck.createDeck} For deck creation logic
+ * @see {@link module:utils/deck.shuffleDeck} For deck shuffling logic
+ * @see {@link module:utils/players.getNextPlayer} For player rotation logic
+ * @see {@link module:game/phases/biddingPhase} For the next phase in the game flow
+ * 
+ * @example
+ * // Start a new hand from the scoring phase
+ * const newState = startNewHand({
+ *   gameId: 'game123',
+ *   gamePhase: 'SCORING',
+ *   players: {
+ *     north: { hand: [], isActive: true },
+ *     east: { hand: [], isActive: true },
+ *     south: { hand: [], isActive: true },
+ *     west: { hand: [], isActive: true }
+ *   },
+ *   dealer: 'north',
+ *   // ... other game state properties
+ * });
  */
-export function startNewHand(currentGameState) {
+function startNewHand(currentGameState) {
   if (
     !currentGameState ||
     !currentGameState.players ||
@@ -58,7 +134,8 @@ export function startNewHand(currentGameState) {
 
   try {
     // 1. Determine the new dealer
-    const currentDealer = newState.dealer || PLAYER_ROLES[3]; // Default to East's left if no dealer
+    // Default to East's left (North) if no dealer is set
+    const currentDealer = newState.dealer || PLAYER_ROLES[3];
     const newDealer = (newState.gamePhase === GAME_PHASES.LOBBY && newState.dealer)
       ? newState.dealer
       : getNextPlayer(currentDealer, PLAYER_ROLES);
@@ -103,6 +180,7 @@ export function startNewHand(currentGameState) {
     dealRound(2);
     
     // 5. Set the kitty and turn card correctly
+    // Remaining cards after dealing become the kitty
     const kitty = deck;
     if (kitty.length === 0) {
         throw new PhaseLogicError("Deck exhausted. No cards left for kitty and turn card.");
@@ -114,9 +192,11 @@ export function startNewHand(currentGameState) {
     logger.debug({ gameId: newState.gameId, turnCard: cardToId(newState.turnCard), kittySize: newState.kitty.length }, "Dealt cards and set turn card.");
 
     // 6. Determine the first bidder (left of dealer)
+    // The player to the left of the dealer bids first
     const firstBidder = getNextPlayer(newDealer, activePlayers);
 
     // 7. Reset state for the new hand and set phase to bidding
+    // This creates a fresh state object with all hand-specific properties reset
     const startHandMessage = {
       type: "system",
       text: `New hand started. Dealer is ${newDealer}. ${cardToId(newState.turnCard)} is up. ${firstBidder} to make the first bid.`,
@@ -144,8 +224,9 @@ export function startNewHand(currentGameState) {
         lastUpdated: Date.now(),
     };
 
+    // Reset tricks won counter for all players
     PLAYER_ROLES.forEach((role) => {
-        if(newState.players[role]) {
+        if (newState.players[role]) {
             newState.players[role].tricksWonThisHand = 0;
         }
     });

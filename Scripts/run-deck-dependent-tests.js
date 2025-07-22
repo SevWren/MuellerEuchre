@@ -5,12 +5,22 @@
 /**
  * @file Scripts/run-deck-dependent-tests.js
  * @description Runs all unit tests for modules that have a dependency on 'src/utils/deck.js'.
- *
+ * @see {@link ./test/utils/deck.unit.test.js}
+ * @see {@link @test/utils/deck.unit.test.js}
+ * @see {@link @test/game/logic/aiLogic.unit.test.js}
+ * 
+ * @see {@link ./test/game/logic/aiLogic.unit.test.js}
+ * @see {@link ./test/game/logic/validation.unit.test.js}
+ * @see {@link ./test/game/logic/validatePlay.unit.test.js}
+ * @see {@link ./test/game/logic/validatePlay.edge.unit.test.js}
+ * @see {@link ./test/game/phases/startNewHandPhase.unit.test.js}
+ * @see {@link ./test/game/phases/biddingPhase.unit.test.js}
+ * @see {@link ./test/game/phases/playingPhase.unit.test.js}
+ * @see {@link ./test/game/phases/dealerDiscard.unit.test.js}
  * This script is designed for regression testing. Whenever 'deck.js' is modified,
  * running this script ensures that all dependent modules continue to function as expected.
  * It executes all test files sequentially, logs the full output of any failures
  * to a log file, and provides a final aggregated summary of all test results.
- *
  * To run from the project root: `node Scripts/run-deck-dependent-tests.js`
  */
 
@@ -92,7 +102,9 @@ function parseTestOutput(output) {
       cancelled: 0, skipped: 0, todo: 0
   };
   // Regex to find lines like "ℹ tests 123" or "✖ fail 2"
-  const regex = /(?:ℹ|✖)\s(tests|suites|pass|fail|cancelled|skipped|todo)\s+(\d+)/g;
+  // FIX: Updated regex to correctly parse the 'Γä╣' prefix observed in the console output.
+  // The original regex (?:ℹ|✖) did not match 'Γä╣', causing counts to be missed.
+  const regex = /Γä╣\s(tests|suites|pass|fail|cancelled|skipped|todo)\s+(\d+)/g;
   let match;
   while ((match = regex.exec(output)) !== null) {
       const key = match[1];

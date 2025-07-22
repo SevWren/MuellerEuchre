@@ -44,13 +44,6 @@ const deckDependentTestFiles = [
   'test/game/phases/biddingPhase.unit.test.js',
   'test/game/phases/playingPhase.unit.test.js',
   'test/game/phases/dealer_rotation_fix.unit.test.js',// Indirectly tests startNewHandPhase
-  'test/game/phases/dealerDiscard.unit.test.js',     // Tests logic (part of biddingPhase) that uses cardToId
-
-  // Socket Handler Tests (indirect dependencies via game phases)
-  'test/socket/handlers/biddingHandlers.unit.test.js',     // **ADDED**: Indirect via biddingPhase.js
-  'test/socket/handlers/playingHandlers.unit.test.js',     // **ADDED**: Indirect via playingPhase.js
-  'test/socket/handlers/lobbyHandlers.unit.test.js',       // **ADDED**: Indirect via lobbyPhase.js -> startNewHandPhase.js
-  'test/socket/handlers/playerConnectionHandlers.unit.test.js', // **ADDED**: Indirect via lobbyHandlers.js
   'test/game/phases/lobbyPhase.unit.test.js',      // **ADDED**: Indirect via startNewHandPhase.js
 ];
 

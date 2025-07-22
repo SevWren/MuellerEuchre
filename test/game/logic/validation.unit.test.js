@@ -314,7 +314,6 @@ describe('Validation Tests', () => {
 
   /**
    * Test case: Should throw ValidationError if `gameState` is missing.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateBid
    * @see src/game/logic/validation-errors.js:ValidationError
    */
@@ -330,7 +329,6 @@ describe('Validation Tests', () => {
 
   /**
    * Test case: Should throw ValidationError if `playerRole` is missing.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateBid
    * @see src/game/logic/validation-errors.js:ValidationError
    */
@@ -346,7 +344,6 @@ describe('Validation Tests', () => {
 
   /**
    * Test case: Should throw ValidationError if `decision` is missing.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateBid
    * @see src/game/logic/validation-errors.js:ValidationError
    */
@@ -362,7 +359,6 @@ describe('Validation Tests', () => {
 
   /**
    * Test case: Should throw ValidationError if `playerRole` is invalid.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateBid
    * @see src/game/logic/validation-errors.js:ValidationError
    */
@@ -378,7 +374,6 @@ describe('Validation Tests', () => {
 
   /**
    * Test case: Should throw NotPlayersTurnError if it is not the current player's turn.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateBid
    * @see src/game/logic/validation-errors.js:NotPlayersTurnError
    */
@@ -398,8 +393,7 @@ describe('Validation Tests', () => {
   });
 
   /**
-   * Test case: Should throw InvalidPhaseError if bidding is attempted outside bidding phases.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
+   * Test case: Should throw InvalidPhaseError if bidding is attempted outside bidding phases
    * @see src/game/logic/validation-core.js:validateBid
    * @see src/game/logic/validation-errors.js:InvalidPhaseError
    */
@@ -437,7 +431,6 @@ describe('Validation Tests', () => {
 
     /**
      * Test case: Should allow "orderUp" decision in Round 1.
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
      * @see src/game/logic/validation-core.js:validateBid
      */
     it('should allow "orderUp" decision', () => {
@@ -452,7 +445,6 @@ describe('Validation Tests', () => {
 
     /**
      * Test case: Should allow "pass" decision in Round 1.
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
      * @see src/game/logic/validation-core.js:validateBid
      */
     it('should allow "pass" decision', () => {
@@ -467,7 +459,6 @@ describe('Validation Tests', () => {
 
     /**
      * Test case: Should throw InvalidBidError for "callTrump" decision in Round 1.
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
      * @see src/game/logic/validation-core.js:validateBid
      * @see src/game/logic/validation-errors.js:InvalidBidError
      */
@@ -483,7 +474,6 @@ describe('Validation Tests', () => {
 
     /**
      * Test case: Should throw InvalidBidError for other invalid decisions in Round 1.
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
      * @see src/game/logic/validation-core.js:validateBid
      * @see src/game/logic/validation-errors.js:InvalidBidError
      */
@@ -499,7 +489,6 @@ describe('Validation Tests', () => {
 
     /**
      * Test case: Should allow dealer to "orderUp" (accept turn card) in Round 1.
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
      * @see src/game/logic/validation-core.js:validateBid
      */
     it('should allow dealer to "orderUp" (accept turn card)', () => {
@@ -515,7 +504,6 @@ describe('Validation Tests', () => {
 
     /**
      * Test case: Should allow dealer to "pass" in Round 1.
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
      * @see src/game/logic/validation-core.js:validateBid
      */
     it('should allow dealer to "pass"', () => {
@@ -555,8 +543,7 @@ describe('Validation Tests', () => {
     });
 
     /**
-     * Test case: Should allow "callTrump" decision with a valid suit (not the turned down suit) in Round 2.
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
+     * Test case: Should allow "callTrump" decision with a valid suit (not the turned down suit) in Round 2.  
      * @see src/game/logic/validation-core.js:validateBid
      */
     it('should allow "callTrump" decision with a valid suit (not the turned down suit)', () => {
@@ -588,7 +575,6 @@ describe('Validation Tests', () => {
 
     /**
      * Test case: Should allow "pass" decision (if not stick the dealer) in Round 2.
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
      * @see src/game/logic/validation-core.js:validateBid
      */
     it('should allow "pass" decision (if not stick the dealer)', () => {
@@ -603,7 +589,6 @@ describe('Validation Tests', () => {
 
     /**
      * Test case: Should throw InvalidBidError for "orderUp" decision in Round 2.
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
      * @see src/game/logic/validation-core.js:validateBid
      * @see src/game/logic/validation-errors.js:InvalidBidError
      */
@@ -633,7 +618,7 @@ describe('Validation Tests', () => {
 
     /**
      * Test case: Should throw InvalidBidError for "callTrump" with an invalid suit string in Round 2.
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
+  
      * @see src/game/logic/validation-core.js:validateBid
      * @see src/game/logic/validation-errors.js:InvalidBidError
      */
@@ -663,7 +648,6 @@ describe('Validation Tests', () => {
 
     /**
      * Test case: Should throw InvalidBidError for "callTrump" with no suit in Round 1 (as it's not allowed).
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
      * @see src/game/logic/validation-core.js:validateBid
      * @see src/game/logic/validation-errors.js:InvalidBidError
      */
@@ -687,7 +671,6 @@ describe('Validation Tests', () => {
 
     /**
      * Test case: Should throw InvalidBidError for "callTrump" with the turned down suit in Round 2.
-     * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
      * @see src/game/logic/validation-core.js:validateBid
      * @see src/game/logic/validation-errors.js:InvalidBidError
      */
@@ -858,7 +841,6 @@ describe("Validation Logic - validateDealerDiscard", () => {
 
   /**
    * Test case: Should throw ValidationError if `gameState` is missing for dealer discard validation.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateDealerDiscard
    * @see src/game/logic/validation-errors.js:ValidationError
    */
@@ -875,7 +857,6 @@ describe("Validation Logic - validateDealerDiscard", () => {
 
   /**
    * Test case: Should throw ValidationError if `playerRole` is missing for dealer discard validation.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateDealerDiscard
    * @see src/game/logic/validation-errors.js:ValidationError
    */
@@ -897,7 +878,6 @@ describe("Validation Logic - validateDealerDiscard", () => {
 
   /**
    * Test case: Should throw ValidationError if `cardToDiscard` is missing for dealer discard validation.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateDealerDiscard
    * @see src/game/logic/validation-errors.js:ValidationError
    */
@@ -919,7 +899,6 @@ describe("Validation Logic - validateDealerDiscard", () => {
 
   /**
    * Test case: Should throw ValidationError if `dealerHand` is missing for dealer discard validation.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateDealerDiscard
    * @see src/game/logic/validation-errors.js:ValidationError
    */
@@ -941,7 +920,6 @@ describe("Validation Logic - validateDealerDiscard", () => {
 
   /**
    * Test case: Should throw ValidationError if `cardToDiscard.id` is missing for dealer discard validation.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateDealerDiscard
    * @see src/game/logic/validation-errors.js:ValidationError
    */
@@ -963,7 +941,6 @@ describe("Validation Logic - validateDealerDiscard", () => {
 
   /**
    * Test case: Should throw InvalidPhaseError if not in `DEALER_DISCARD` phase.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateDealerDiscard
    * @see src/game/logic/validation-errors.js:InvalidPhaseError
    */
@@ -1000,7 +977,6 @@ describe("Validation Logic - validateDealerDiscard", () => {
 
   /**
    * Test case: Should throw NotPlayersTurnError if `playerRole` is not the dealer.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateDealerDiscard
    * @see src/game/logic/validation-errors.js:NotPlayersTurnError
    */
@@ -1029,7 +1005,6 @@ describe("Validation Logic - validateDealerDiscard", () => {
 
   /**
    * Test case: Should throw NotPlayersTurnError if it is not the current player's turn (even if player is dealer).
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateDealerDiscard
    * @see src/game/logic/validation-errors.js:NotPlayersTurnError
    */
@@ -1051,7 +1026,6 @@ describe("Validation Logic - validateDealerDiscard", () => {
 
   /**
    * Test case: Should throw CardNotInHandError if `cardToDiscard` is not in `dealerHand`.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateDealerDiscard
    * @see src/game/logic/validation-errors.js:CardNotInHandError
    */
@@ -1070,7 +1044,6 @@ describe("Validation Logic - validateDealerDiscard", () => {
 
   /**
    * Test case: Should return true for a valid discard scenario.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateDealerDiscard
    */
   it("should return true for a valid discard scenario", () => {
@@ -1081,7 +1054,6 @@ describe("Validation Logic - validateDealerDiscard", () => {
 
   /**
    * Test case: Should log a warning if dealer's hand does not have 6 cards.
-   * @see https://nodejs.org/docs/latest/api/test.html#itname-fn-options
    * @see src/game/logic/validation-core.js:validateDealerDiscard
    * @see src/utils/logger.js
    */

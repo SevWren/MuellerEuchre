@@ -68,6 +68,6 @@
     "test/**/*.jsx",
     "public/js/**/*.js",
     "**/cypress",
-    "**/e2e"
-  ]
+    "**/e2e",
+    "test/game/logic/validatePlay.unit.test.js.on.hold"]
 }

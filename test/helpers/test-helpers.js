@@ -4,6 +4,7 @@
  * @description Provides robust, deterministic utility functions for creating mock game data
  * and test fixtures. These helpers are designed to make tests more maintainable and
  * reduce boilerplate code, aligning with modern testing best practices.
+ * THIS FILE IS A SINGLE SOURCE OF TRUTH. DO NOT MODIFY IT!
  */
 
 import { mock, beforeEach, afterEach } from 'node:test';
@@ -419,23 +420,86 @@ function setupSocketTest(options = {}) {
 const PLAYER_ROLES = APP_PLAYER_ROLES;
 
 // ===== Exports =====
+/**
+ * @typedef {object} GameState - The game state object.
+ * @typedef {string} PlayerRole - A player role (e.g., 'north', 'south', etc.).
+ * @typedef {object} MockSocket - A mock socket object.
+ * @typedef {object} MockIo - A mock io object.
+ * @typedef {object} MockGameRepository - A mock game repository object.
+ * @typedef {array} Card - A card object (e.g., [rank, suit]).
+ */
+
 export {
+  /**
+   * @type {(options: object) => GameState}
+   */
   createBaseGameState,
+  /**
+   * @type {(options: object) => GameState}
+   */
   setupTestState,
+  /**
+   * @type {(options: object) => GameState}
+   */
   setupCompletedHandState,
+  /**
+   * @type {(options: object) => {mockSocket: MockSocket, mockIo: MockIo, mockGameRepository: MockGameRepository, playerRole: PlayerRole, gameState: GameState}}
+   */
   setupSocketTest,
+  /**
+   * @type {(options: object) => Player}
+   */
   createMockPlayer,
+  /**
+   * @type {(suit: string, value: string) => Card}
+   */
   createMockCard,
+  /**
+   * @type {(cards: array) => array<Card>}
+   */
   createCards,
+  /**
+   * @type {(suit: string, value: string) => Card}
+   */
   getCard,
+  /**
+   * @type {() => array<Card>}
+   */
   createDeck,
+  /**
+   * @type {(deck: array<Card>, seed: number) => array<Card>}
+   */
   shuffleDeterministic,
+  /**
+   * @type {array<PlayerRole>}
+   */
   PLAYER_ROLES,
+  /**
+   * @type {(prefix: string) => string}
+   */
   getTestId,
+  /**
+   * @type {() => void}
+   */
   resetTestIdCounter,
+  /**
+   * @type {() => void}
+   */
   setupTestEnvironment,
+  /**
+   * @type {(mockFn: function) => void}
+   */
   trackMock,
+  /**
+   * @type {() => object}
+   */
   createTestContext,
+  /**
+   * @type {(fn: function) => void}
+   */
   withTestState,
+  /**
+   * @type {(fn: function) => void}
+   */
   onCleanup,
 };

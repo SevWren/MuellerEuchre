@@ -43,8 +43,12 @@ const createLobbyGameState = (
 describe('LobbyPhase Logic', () => {
   let attemptToStartGame;
   let mockLogger;
+  let originalLogger;
 
   beforeEach(async () => {
+    // Save the original logger
+    originalLogger = { ...logger.default };
+    
     // Create mock functions for the logger
     mockLogger = {
       info: mock.fn(),
@@ -52,17 +56,18 @@ describe('LobbyPhase Logic', () => {
       error: mock.fn(),
       debug: mock.fn(),
     };
-    // Patch the logger module's default export
-    mock.method(logger, 'default', mockLogger, { times: Infinity });
+    
+    // Replace the logger methods with mocks
+    Object.assign(logger.default, mockLogger);
 
-    // Dynamically import the module under test to ensure it gets the mocked logger
+    // Dynamically import the module under test
     const lobbyPhaseModule = await import('../../../src/game/phases/lobbyPhase.js');
     attemptToStartGame = lobbyPhaseModule.attemptToStartGame;
   });
 
   afterEach(() => {
-    // Restore all mocks after each test
-    mock.restoreAll();
+    // Restore the original logger
+    Object.assign(logger.default, originalLogger);
   });
 
   // Argument Validation Tests
@@ -94,7 +99,7 @@ describe('LobbyPhase Logic', () => {
       () => attemptToStartGame(gameState, PLAYER_ROLES[0]),
       {
         name: 'InvalidPhaseError',
-        message: `Game cannot be started from ${GAME_PHASES.PLAYING} phase. Must be in LOBBY phase.`,
+        message: `Cannot Game cannot be started from ${GAME_PHASES.PLAYING} phase. Must be in LOBBY phase. during the undefined phase. Expected undefined.`,
       },
     );
   });

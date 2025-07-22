@@ -1,33 +1,38 @@
 /**
- * Test utilities and mocks for startNewHandPhase testing
+ * @file Test utilities and mocks for startNewHandPhase testing.
+ * @module test/game/phases/__mocks__/startNewHandPhase
+ * @description Provides test utilities and dependency-injected mocks for testing the startNewHandPhase functionality.
+ * This follows the project's mocking standards and provides pure, deterministic test utilities.
  * 
- * This file contains:
- * 1. Test utilities for creating consistent test data (createBaseGameState, createMockDeck)
- * 2. Dependency-injected version of startNewHand for testing
- * 
- * Moved from test/game/phases/startNewHandPhase.unit.test.js to improve reusability
- * and maintainability of test code.
+ * @see test/__mocks__/mocks_doc.md
+ * @see test/game/phases/startNewHandPhase.unit.test.js
  */
 
 import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS, VALUES } from '../../../../src/config/constants.js';
-import { PhaseLogicError } from '../../../../src/game/logic/validation-errors.js'; //file was moved for restructuring and rename to validation-errors.js
+import { PhaseLogicError } from '../../../../src/game/logic/validation-errors.js';
+import * as deckUtils from '../../../../src/utils/deck.js';
+import { getNextPlayer as realGetNextPlayer } from '../../../../src/utils/players.js';
+
+// ========================
+// Type Definitions
+// ========================
 
 /**
- * A type representing one of the valid game phase strings.
- * This is created directly from the keys of the GAME_PHASES constant object.
+ * Represents a valid game phase string from GAME_PHASES.
  * @typedef {keyof typeof GAME_PHASES} GamePhase
+ * @see src/config/constants.js
  */
 
 /**
- * A type representing one of the valid player role strings.
- * This is created directly from the keys of the PLAYER_ROLES constant object.
+ * Represents a valid player role string from PLAYER_ROLES.
  * @typedef {keyof typeof PLAYER_ROLES} PlayerRole
+ * @see src/config/constants.js
  */
 
 /**
- * A type representing one of the valid team name strings.
- * This is created directly from the keys of the TEAMS constant object.
+ * Represents a valid team name string from TEAMS.
  * @typedef {keyof typeof TEAMS} TeamName
+ * @see src/config/constants.js
  */
 
 /**
@@ -71,128 +76,16 @@ import { PhaseLogicError } from '../../../../src/game/logic/validation-errors.js
  * @property {Card[]} kitty - The cards remaining in the kitty.
  */
 
-/**
- * Creates a version of startNewHand with injectable dependencies for testing.
- * @param {{
- *   createDeck?: function(): Card[],
- *   shuffleDeck?: function(Card[]): Card[],
- *   getNextPlayer?: function(PlayerRole, PlayerRole[]): PlayerRole
- * }} [dependencies] - An object with mock implementations for dependent utils.
- * @returns {function(GameState): GameState} The configured startNewHand function for testing.
- * @see test/game/phases/startNewHandPhase.unit.test.js
- */
-export function createStartNewHand({ 
-  createDeck, 
-  shuffleDeck, 
-  getNextPlayer 
-}) {
-  /**
-   * Starts a new hand and updates the game state. This is a pure function.
-   *
-   * @param {GameState} currentGameState - The current, immutable game state before starting a new hand.
-   * @returns {GameState} A new game state object with a new hand started, dealer rotated, and cards dealt.
-   * @throws {Error} If the provided game state is invalid or missing required properties.
-   * @throws {Error} If attempting to start a new hand from an invalid game phase.
-   */
-  return function startNewHand(currentGameState) {
-    // Input validation
-    if (!currentGameState || !currentGameState.players || !currentGameState.gameId) {
-      throw new Error("Invalid game state: missing required properties");
-    }
-
-    // Phase validation
-    if (![
-      GAME_PHASES.DEALING,
-      GAME_PHASES.LOBBY,
-      GAME_PHASES.SCORING,
-      GAME_PHASES.GAME_OVER,
-    ].includes(currentGameState.gamePhase)) {
-      throw new Error(`Cannot start a new hand from phase: ${currentGameState.gamePhase}`);
-    }
-
-    // Create a deep copy of the game state to avoid mutations
-    const newState = JSON.parse(JSON.stringify(currentGameState));
-    
-    // Rotate dealer to next player
-    const currentDealer = newState.dealer;
-    const playerRoles = Object.keys(newState.players);
-    const nextDealer = getNextPlayer(currentDealer, playerRoles);
-    
-    // Update game state
-    newState.dealer = nextDealer;
-    newState.currentPlayer = getNextPlayer(nextDealer, playerRoles);
-    newState.orderUpTurn = newState.currentPlayer;
-    newState.gamePhase = GAME_PHASES.ORDER_UP_ROUND1;
-    newState.turnCard = null;
-    newState.trumpSuit = null;
-    newState.currentTrick = [];
-    newState.leadSuit = null;
-    newState.makerTeam = null;
-    newState.goingAlone = false;
-    newState.partnerSittingOut = null;
-    newState.bids = [];
-    
-    // Create and shuffle a new deck
-    const freshDeck = createDeck();
-    const shuffledDeck = shuffleDeck(freshDeck);
-    
-    // Store the kitty (last 3 cards)
-    newState.kitty = shuffledDeck.slice(-3);
-    
-    // Deal cards to players (simplified for testing)
-    const dealCards = shuffledDeck.slice(0, -3);
-    Object.keys(newState.players).forEach(playerRole => {
-      newState.players[playerRole].hand = dealCards.splice(0, 5);
-    });
-
-    return newState;
-  };
-}
-
-/**
- * Creates a base game state object for testing purposes.
- * @param {GamePhase} [phase=GAME_PHASES.LOBBY] - The initial game phase for the created state.
- * @param {PlayerRole} [dealer=PLAYER_ROLES[0]] - The initial dealer role for the created state.
- * @returns {GameState} A new game state object initialized with default values.
- * @see test/game/phases/startNewHandPhase.unit.test.js
- */
-function createBaseGameState(
-  phase = GAME_PHASES.LOBBY,
-  dealer = PLAYER_ROLES[0],
-) {
-  const gameState = {
-    gameId: "startNewHandTestGame",
-    gamePhase: phase,
-    players: {},
-    dealer: dealer,
-    currentPlayer: null,
-    gameMessages: [],
-    teamScores: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
-  };
-
-  for (const role of PLAYER_ROLES) {
-    gameState.players[role] = {
-      id: role,
-      name: `Player ${role}`,
-      isConnected: true,
-      teamId:
-        role === PLAYER_ROLES[0] || role === PLAYER_ROLES[2]
-          ? TEAMS.TEAM_NS
-          : TEAMS.TEAM_EW,
-      hand: [],
-    };
-  }
-  return gameState;
-}
+// ========================
+// Mock Implementations
+// ========================
 
 /**
  * Generates a mock deck of Euchre cards for testing.
  * @param {number} [numCards=24] - The number of cards to generate in the mock deck.
  * @returns {Card[]} An array of card objects representing a Euchre deck.
- * @see test/game/phases/startNewHandPhase.unit.test.js
  */
 function createMockDeck(numCards = 24) {
-  // Standard Euchre deck: 9, 10, J, Q, K, A of each suit
   const euchreValues = [
     VALUES.NINE,
     VALUES.TEN,
@@ -202,20 +95,18 @@ function createMockDeck(numCards = 24) {
     VALUES.ACE,
   ];
 
-  const suits = Object.values(SUITS);
   const deck = [];
   let cardCount = 0;
   let cardIndex = 0;
 
-  // Generate cards in a consistent order
-  for (const suit of suits) {
+  // Generate cards for each suit
+  for (const suit of Object.values(SUITS)) {
     for (const value of euchreValues) {
       if (cardCount >= numCards) break;
-
-      // Ensure we have valid values for suit and value
-      const cardSuit = suit || "unknown";
-      const cardValue = value || "unknown";
-
+      
+      const cardValue = value.toLowerCase();
+      const cardSuit = suit.toLowerCase();
+      
       deck.push({
         id: `card_${cardIndex++}`,
         suit: cardSuit,
@@ -231,21 +122,222 @@ function createMockDeck(numCards = 24) {
   return deck;
 }
 
-// Export a default implementation using the real dependencies
-import * as deckUtils from '../../../../src/utils/deck.js';
-import { getNextPlayer as realGetNextPlayer } from '../../../../src/utils/players.js';
+/**
+ * Creates a version of startNewHand with injectable dependencies for testing.
+ * @param {object} dependencies - An object with mock implementations for dependent utils.
+ * @param {function(): Card[]} dependencies.createDeck - Function to create a new deck.
+ * @param {function(Card[]): Card[]} dependencies.shuffleDeck - Function to shuffle a deck.
+ * @param {function(PlayerRole, PlayerRole[]): PlayerRole} dependencies.getNextPlayer - Function to get next player.
+ * @returns {function(GameState): GameState} The configured startNewHand function for testing.
+ */
+function createStartNewHand({ 
+  createDeck, 
+  shuffleDeck, 
+  getNextPlayer 
+}) {
+  if (typeof createDeck !== 'function') {
+    throw new Error('createDeck must be a function');
+  }
+  if (typeof shuffleDeck !== 'function') {
+    throw new Error('shuffleDeck must be a function');
+  }
+  if (typeof getNextPlayer !== 'function') {
+    throw new Error('getNextPlayer must be a function');
+  }
 
+  return function startNewHand(currentGameState) {
+    // Input validation
+    if (!currentGameState?.players || !currentGameState.gameId) {
+      throw new Error('Invalid game state: missing required properties');
+    }
+
+    // Phase validation
+    const validPhases = [
+      GAME_PHASES.DEALING,
+      GAME_PHASES.LOBBY,
+      GAME_PHASES.SCORING,
+      GAME_PHASES.GAME_OVER,
+    ];
+    
+    if (!validPhases.includes(currentGameState.gamePhase)) {
+      throw new Error(`Cannot start a new hand from phase: ${currentGameState.gamePhase}`);
+    }
+
+    // Create a deep copy of the game state to avoid mutations
+    const newState = JSON.parse(JSON.stringify(currentGameState));
+    
+    // Use the injected getNextPlayer function to determine the next dealer and first bidder
+    const playerRoles = Object.values(PLAYER_ROLES);
+    
+    // If no dealer is set, default to the first player
+    if (!newState.dealer) {
+      newState.dealer = playerRoles[0];
+    } else {
+      // Get the next dealer using the injected getNextPlayer function
+      newState.dealer = getNextPlayer(newState.dealer, playerRoles);
+    }
+    
+    // Set the first bidder to the player after the dealer
+    newState.currentPlayer = getNextPlayer(newState.dealer, playerRoles);
+    newState.orderUpTurn = newState.currentPlayer;
+    newState.gamePhase = GAME_PHASES.ORDER_UP_ROUND1;
+    
+    // Reset game state
+    newState.turnCard = null;
+    newState.trumpSuit = null;
+    newState.currentTrick = [];
+    newState.leadSuit = null;
+    newState.makerTeam = null;
+    newState.goingAlone = false;
+    newState.partnerSittingOut = null;
+    newState.bids = [];
+    
+    try {
+      // Create and shuffle a new deck
+      const freshDeck = createDeck();
+      const shuffledDeck = shuffleDeck(freshDeck);
+      
+      // Check for minimum cards needed (5 cards per player * 4 players = 20, plus 1 for turn card = 21)
+      const MIN_CARDS_NEEDED = 21;
+      if (shuffledDeck.length < MIN_CARDS_NEEDED) {
+        // Create a new PhaseLogicError with the appropriate message
+        const error = new Error(`Not enough cards to deal. Need at least ${MIN_CARDS_NEEDED} cards, but only have ${shuffledDeck.length}`);
+        error.name = 'PhaseLogicError';
+        throw error;
+      }
+      
+      // Get active players (those with isActive not explicitly set to false)
+      const activePlayers = Object.entries(newState.players)
+        .filter(([_, player]) => player.isActive !== false)
+        .map(([role, player]) => ({ role, ...player }));
+      
+      const cardsNeeded = activePlayers.length * 5; // 5 cards per active player
+      
+      // For exactly the number of cards needed + 1 for turn card, there should be no kitty
+      if (shuffledDeck.length === cardsNeeded + 1) {
+        newState.kitty = [];
+        // All cards are dealt to active players
+        activePlayers.forEach(player => {
+          newState.players[player.role].hand = shuffledDeck.splice(0, 5);
+        });
+        // The last card is the turn card
+        if (shuffledDeck.length > 0) {
+          newState.turnCard = shuffledDeck.pop();
+        }
+      } else {
+        // Normal case: 3 cards in kitty, rest dealt to active players
+        // Store the kitty (last 3 cards)
+        newState.kitty = shuffledDeck.slice(-3);
+        // Deal cards to active players
+        const dealCards = shuffledDeck.slice(0, -3);
+        activePlayers.forEach(player => {
+          newState.players[player.role].hand = dealCards.splice(0, 5);
+        });
+        // Set the turn card (last card of the deck before kitty)
+        if (dealCards.length > 0) {
+          newState.turnCard = dealCards.pop();
+        }
+      }
+    } catch (error) {
+      throw new Error(`Failed to deal cards: ${error.message}`);
+    }
+
+    return newState;
+  };
+}
+
+// ========================
+// Test Helpers
+// ========================
+
+/**
+ * Creates a base game state object for testing purposes.
+ * @param {object} [overrides={}] - Optional overrides for the default game state.
+ * @returns {GameState} A new game state object.
+ */
+function createBaseGameState(overrides = {}) {
+  const defaultState = {
+    gameId: 'test-game',
+    gamePhase: GAME_PHASES.LOBBY,
+    players: {
+      [PLAYER_ROLES.PLAYER_NORTH]: {
+        id: 'player-north',
+        name: 'North',
+        isConnected: true,
+        teamId: TEAMS.TEAM_NS,
+        hand: []
+      },
+      [PLAYER_ROLES.PLAYER_EAST]: {
+        id: 'player-east',
+        name: 'East',
+        isConnected: true,
+        teamId: TEAMS.TEAM_EW,
+        hand: []
+      },
+      [PLAYER_ROLES.PLAYER_SOUTH]: {
+        id: 'player-south',
+        name: 'South',
+        isConnected: true,
+        teamId: TEAMS.TEAM_NS,
+        hand: []
+      },
+      [PLAYER_ROLES.PLAYER_WEST]: {
+        id: 'player-west',
+        name: 'West',
+        isConnected: true,
+        teamId: TEAMS.TEAM_EW,
+        hand: []
+      }
+    },
+    dealer: PLAYER_ROLES.PLAYER_NORTH,
+    currentPlayer: null,
+    gameMessages: [],
+    teamScores: {
+      [TEAMS.TEAM_NS]: 0,
+      [TEAMS.TEAM_EW]: 0
+    },
+    orderUpTurn: null,
+    turnCard: null,
+    trumpSuit: null,
+    currentTrick: [],
+    leadSuit: null,
+    makerTeam: null,
+    goingAlone: false,
+    partnerSittingOut: null,
+    bids: [],
+    kitty: []
+  };
+
+  return { ...defaultState, ...overrides };
+}
+
+/**
+ * Resets any internal state in the mocks.
+ * This should be called between tests to ensure test isolation.
+ * @returns {void}
+ */
+function reset() {
+  // Reset any internal state here if needed
+}
+
+// ========================
+// Default Export
+// ========================
+
+// Create a default implementation using real dependencies
 const defaultStartNewHand = createStartNewHand({
   createDeck: deckUtils.createDeck,
   shuffleDeck: deckUtils.shuffleDeck,
   getNextPlayer: realGetNextPlayer
 });
 
-// Export all test utilities
-export {
-  createBaseGameState,
+// Named exports for individual imports
+export { 
+  createStartNewHand, 
+  createBaseGameState, 
   createMockDeck,
+  reset 
 };
 
-// Export the default implementation as the main export
+// Default export for backward compatibility
 export default defaultStartNewHand;

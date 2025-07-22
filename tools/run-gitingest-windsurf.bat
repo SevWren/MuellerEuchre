@@ -26,7 +26,7 @@ echo.
 cd /d "%REPO_PATH%"
 
 :: The command is now much simpler. gitingest will find .gitingest automatically.
-gitingest "%REPO_PATH%" --output "%OUTPUT_FILE%" -e "unit_test_results.txt" -e "mueller_euchre_repo_llm.txt" -e "package-lock.json" -e "CODE_OF_CONDUCT.md" -e "coverage/" -e ".git/" -e "Repo_To_LLM/" -e "archived/" -e "node_modules/" -e ".kilocode/" -e ".vscode/" -e "assets/" -e ".husky/" -e ".github/" -e ".nyc_output" -e "archived_for_later_development/" -e "memory-bank/" -e "Prompts/" -e "public/" -e "tools/" -e ".windsurf/"  -e ".kilocode" -e ".kilocodemodes" -e ".markdownlint.json" -e ".mocharc - Copy.cjs.txt" -e ".mocharc.js.bak" -e "players.unit.test.js_100_percent.txt"
+gitingest "%REPO_PATH%" --output "%OUTPUT_FILE%" -e "unit_test_results.txt" -e ".git/" -e "Repo_To_LLM/" -e "archived/" -e ".nyc_output" -e "archived_for_later_development/" -e "memory-bank/" -e "public/" -e ".kilocodemodes" -e ".mocharc - Copy.cjs.txt" -e ".mocharc.js.bak" -e "players.unit.test.js_100_percent.txt" -e ".vscode/" -e "node_modules/" -e ".github/" -e ".kilocode/" -e "assets/" -e "coverage/" -e ".husky/" -e "tools/" -e "Prompts/" -e ".windsurf/" -e "package-lock.json" -e "CODE_OF_CONDUCT.md" -e ".markdownlint.json" -e "MuellerEuchre-Windsurf.code-workspace" -e ".gitingest" -e ".nvmrc" -e "readme.md"
 
 :: Check if the command was successful
 if errorlevel 1 (

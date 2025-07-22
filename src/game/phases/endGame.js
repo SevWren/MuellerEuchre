@@ -20,16 +20,15 @@
  * @requires module:utils/logger
  */
 
-import { GAME_PHASES, WINNING_SCORE } from "../../config/constants.js";
+import { GAME_PHASES, WINNING_SCORE, TEAMS } from "../../config/constants.js";
 import { log } from "../../utils/logger.js";
-import { TEAMS } from "../../config/constants.js";
 
 /**
  * Checks if the game has been won and updates the game state accordingly
  * @param {Object} gameState - Current game state
  * @returns {Object} Updated game state with game over status if applicable
  */
-export function checkGameOver(gameState) {
+function checkGameOver(gameState) {
   log(1, "[checkGameOver] Checking for game over condition");
 
   const updatedState = JSON.parse(JSON.stringify(gameState)); // Ensure it works on a clone
@@ -102,7 +101,7 @@ function endGame(gameState, winningTeam, finalScores) {
  * @param {Object} gameState - Current game state
  * @returns {Object} Reset game state for a new game
  */
-export function startNewGame(gameState) {
+function startNewGame(gameState) {
   log(1, "[startNewGame] Starting a new game");
 
   // Create a deep copy of the game state
@@ -150,7 +149,7 @@ function calculateTeamScores(gameState) {
  * @param {Object} gameState - Current game state
  * @returns {Object} Updated game state with scores and next phase
  */
-export function handleEndOfHand(gameState) {
+function handleEndOfHand(gameState) {
   log(1, "[handleEndOfHand] Processing end of hand");
   log(
     1,
@@ -278,3 +277,10 @@ function getOpponentTeam(team) {
   log(3, `[getOpponentTeam] Unknown team provided: ${team}`);
   return null; // Or throw an error
 }
+
+// Export all public functions at the end of the file
+export {
+  checkGameOver,
+  startNewGame,
+  handleEndOfHand,
+};

@@ -17,8 +17,7 @@
  * @see {@link module:game/phases/biddingPhase} Where AI bidding is integrated
  */
 
-import { getEffectiveSuit } from './validation-core.js';
-import { isLeftBower } from '../../utils/deck.js';
+import { isLeftBower, areSameColor } from "../../utils/deck.js";
 
 
 /**
@@ -70,9 +69,11 @@ const BID_THRESHOLD = 20;
  */
 function countTrumpInHand(hand, trumpSuit) {
   if (!Array.isArray(hand)) return 0;
-  return hand.filter(
-    (card) => getEffectiveSuit(card, trumpSuit) === trumpSuit
-  ).length;
+  return hand.filter((card) => {
+    if (!card) return false;
+    // A card is trump if its suit matches the trump suit, or if it's the Left Bower.
+    return card.suit === trumpSuit || isLeftBower(card, trumpSuit);
+  }).length;
 }
 
 /**
@@ -86,29 +87,43 @@ function calculateHandStrength(hand, trumpSuit) {
   if (!Array.isArray(hand)) return 0;
 
   return hand.reduce((total, card) => {
-    // Only score cards that are part of the trump suit (including left bower)
-    if (getEffectiveSuit(card, trumpSuit) !== trumpSuit) {
+    if (!card) {
+      return total;
+    }
+
+    // A card is trump if it's the left bower or its suit matches trump.
+    const isTrumpCard = card.suit === trumpSuit || isLeftBower(card, trumpSuit);
+
+    if (!isTrumpCard) {
       return total;
     }
 
     // Check for Bowers first
-    if (card.rank === 'J') {
-      if (card.suit === trumpSuit) { // Right Bower
+    if (card.rank === "J") {
+      // The Right Bower is just the Jack of the trump suit.
+      if (card.suit === trumpSuit) {
         return total + POINTS.RIGHT_BOWER;
       }
-      if (isLeftBower(card, trumpSuit)) { // Left Bower
+      // This check is explicit for clarity, though isTrumpCard already covers it.
+      if (isLeftBower(card, trumpSuit)) {
         return total + POINTS.LEFT_BOWER;
       }
     }
 
     // Score other trump cards
     switch (card.rank) {
-      case 'A': return total + POINTS.TRUMP_ACE;
-      case 'K': return total + POINTS.TRUMP_KING;
-      case 'Q': return total + POINTS.TRUMP_QUEEN;
-      case '10': return total + POINTS.TRUMP_TEN;
-      case '9': return total + POINTS.TRUMP_NINE;
-      default: return total;
+      case "A":
+        return total + POINTS.TRUMP_ACE;
+      case "K":
+        return total + POINTS.TRUMP_KING;
+      case "Q":
+        return total + POINTS.TRUMP_QUEEN;
+      case "10":
+        return total + POINTS.TRUMP_TEN;
+      case "9":
+        return total + POINTS.TRUMP_NINE;
+      default:
+        return total;
     }
   }, 0);
 }
@@ -183,6 +198,20 @@ function chooseBid(hand, turnCard, isDealer, bids = []) {
   }
 
   return { decision: "pass" };
+}
+
+/**
+ * Determines the effective suit of a card, considering the Left Bower rule.
+ * This is a local implementation for AI logic to avoid external dependencies.
+ * @param {object} card - The card to evaluate.
+ * @param {string} trumpSuit - The current trump suit.
+ * @returns {string} The effective suit of the card.
+ */
+function getEffectiveSuit(card, trumpSuit) {
+  if (isLeftBower(card, trumpSuit)) {
+    return trumpSuit;
+  }
+  return card.suit;
 }
 
 /**

@@ -2,34 +2,62 @@
  * @file Unit tests for deck utility functions
  * @module test/utils/deck.unit.test
  * @description
- *   Comprehensive test suite for deck utility functions using node:test and node:assert
- *   Tests cover all functionality from src/utils/deck.js
- * 
+ *   Comprehensive test suite for deck utility functions using node:test and node:assert.
+ *   Tests cover all functionality from src/utils/deck.js including card creation, shuffling,
+ *   validation, and game-specific card logic like bower identification and hand sorting.
+ *
  * @see {@link module:src/utils/deck} for the implementation being tested
+ * @see {@link module:test/__mocks__/deck} for mock implementations used in testing
+ * @see {@link module:src/config/constants} for game constants used in testing
+ * @see {@link #L182} - Disabled statistical test for shuffleDeck (TODO: Re-enable with improved approach)
  * @since 1.0.0
  * 
- * 7/18/25
- * ℹ tests 46
- * ℹ suites 8
- * ℹ pass 46
- * ℹ fail 0
- * ℹ 100% Passing
- * ℹ 100% Function Coverage
- * ℹ 99.33% Line Coverage 
+ * @example
+ * // Running the tests
+ * node --test test/utils/deck.unit.test.js
+ * 
+ * // Test coverage (as of 7/18/25)
+ * // ✓ 46 tests
+ * // ✓ 8 test suites
+ * // ✓ 100% passing
+ * // ✓ 100% function coverage
+ * // ✓ 99.33% line coverage
  */
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-// Import the module to test
+/**
+ * The module under test containing all deck utility functions.
+ * @type {Object}
+ */
 import * as deckUtils from '../../src/utils/deck.js';
 
-// Import only the specific constants we need
+// Import game constants for testing
 const constants = await import('../../src/config/constants.js');
-const SUITS = { ...constants.SUITS };  // Create a new object to avoid reference issues
-const VALUES = [...constants.VALUES];  // Create a new array to avoid reference issues
 
+/**
+ * Available card suits for testing.
+ * @type {Object<string, string>}
+ */
+const SUITS = { ...constants.SUITS };
+
+/**
+ * Available card values for testing.
+ * @type {Array<string>}
+ */
+const VALUES = [...constants.VALUES];
+
+/**
+ * Test suite for all deck utility functions.
+ * @namespace DeckUtilityTests
+ */
 describe('Deck Utility Functions', () => {
+  /**
+   * Test suite for the areSameColor function.
+   * @namespace DeckUtilityTests.areSameColor
+   * @see {@link module:src/utils/deck.areSameColor}
+   */
   describe('areSameColor', () => {
     it('should return true for hearts and diamonds (both red)', () => {
       assert.strictEqual(deckUtils.areSameColor(SUITS.HEARTS, SUITS.DIAMONDS), true);
@@ -53,6 +81,11 @@ describe('Deck Utility Functions', () => {
       assert.strictEqual(deckUtils.areSameColor(SUITS.HEARTS, undefined), false, 'Should handle undefined suitB');
     });
   });
+  /**
+   * Test suite for the areSameColor function.
+   * @namespace DeckUtilityTests.areSameColor
+   * @see {@link module:src/utils/deck.areSameColor}
+   */
   describe('areSameColor', () => {
     it('should return true for hearts and diamonds (both red)', () => {
       assert.strictEqual(deckUtils.areSameColor(SUITS.HEARTS, SUITS.DIAMONDS), true);
@@ -78,6 +111,11 @@ describe('Deck Utility Functions', () => {
       assert.strictEqual(deckUtils.areSameColor(SUITS.HEARTS, undefined), false, 'Should handle undefined suitB');
     });
   });
+  /**
+   * Test suite for the createDeck function.
+   * @namespace DeckUtilityTests.createDeck
+   * @see {@link module:src/utils/deck.createDeck}
+   */
   describe('createDeck', () => {
     it('should create a deck with 24 cards', () => {
       const deck = deckUtils.createDeck();
@@ -113,6 +151,11 @@ describe('Deck Utility Functions', () => {
     });
   });
 
+  /**
+   * Test suite for the shuffleDeck function.
+   * @namespace DeckUtilityTests.shuffleDeck
+   * @see {@link module:src/utils/deck.shuffleDeck}
+   */
   describe('shuffleDeck', () => {
     it('should return a new array instance', () => {
       const originalDeck = deckUtils.createDeck();
@@ -170,6 +213,11 @@ describe('Deck Utility Functions', () => {
     });
   });
 
+  /**
+   * Test suite for the cardToId function.
+   * @namespace DeckUtilityTests.cardToId
+   * @see {@link module:src/utils/deck.cardToId}
+   */
   describe('cardToId', () => {
     it('should convert a card with value and suit to correct ID', () => {
       const card = { suit: SUITS.HEARTS, value: 'A' };
@@ -261,6 +309,11 @@ describe('Deck Utility Functions', () => {
     });
   });
 
+  /**
+   * Test suite for the isRightBower function.
+   * @namespace DeckUtilityTests.isRightBower
+   * @see {@link module:src/utils/deck.isRightBower}
+   */
   describe('isRightBower', () => {
     
 
@@ -376,6 +429,11 @@ describe('Deck Utility Functions', () => {
     });
   });
 
+  /**
+   * Test suite for the isLeftBower function.
+   * @namespace DeckUtilityTests.isLeftBower
+   * @see {@link module:src/utils/deck.isLeftBower}
+   */
   describe('isLeftBower', () => {
     it('should identify Left Bower for all suit combinations', () => {
       // Test all valid left bower combinations
@@ -515,6 +573,11 @@ describe('Deck Utility Functions', () => {
     });
   });
 
+  /**
+   * Test suite for the getCardRank function.
+   * @namespace DeckUtilityTests.getCardRank
+   * @see {@link module:src/utils/deck.getCardRank}
+   */
   describe('getCardRank', () => {
     it('should handle errors during suit normalization', () => {
       // Test with a card that will cause an error in normalizeSuit
@@ -616,6 +679,11 @@ describe('Deck Utility Functions', () => {
     });
   });
 
+  /**
+   * Test suite for the sortHand function.
+   * @namespace DeckUtilityTests.sortHand
+   * @see {@link module:src/utils/deck.sortHand}
+   */
   describe('sortHand', () => {
     // Test cards for sorting
     const rightBower = { suit: SUITS.HEARTS, value: 'J', id: 'JH' };

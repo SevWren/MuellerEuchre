@@ -3,9 +3,18 @@ trigger: always_on
 description: When working with complex files.
 ---
 
-JSDoc Best Practices for the Euchre Project
+# JSDoc Best Practices for the Euchre Project
 
 This ruleset outlines the mandatory JSDoc techniques for documenting the Euchre project. Proper documentation is critical for maintaining Layer 1 purity, enabling test-driven development with `node:test`, and ensuring clarity across the layered architecture. Consistent and detailed JSDoc provides a structured format that is easily understood by both developers and AI assistants, aligning with the project's development standards.
+
+### Table of Contents
+1. [Basic Function Documentation (`@param`, `@returns`)](#1-basic-function-documentation-param-returns)
+2. [Defining Complex Objects with In-Place `@typedef`](#2-defining-complex-objects-with-in-place-typedef)
+3. [Documenting Dependency Injection for Tests](#3-documenting-dependency-injection-for-tests)
+4. [Creating Types from Constants (`@typedef`, `keyof typeof`)](#4-creating-types-from-constants-typedef-keyof-typeof)
+5. [Mandatory Reference Tracking with `@see`](#5-mandatory-reference-tracking-with-see)
+
+---
 
 ### 1. Basic Function Documentation (`@param`, `@returns`)
 
@@ -25,10 +34,17 @@ import {
 } from '@/config/constants';
 
 /**
+ * @typedef {import('./jsdoc.md').GamePhase} GamePhase
+ * @typedef {import('./jsdoc.md').PlayerRole} PlayerRole
+ * @typedef {import('./jsdoc.md').Card} Card
+ * @typedef {import('./jsdoc.md').SuitConstant} SuitConstant
+ */
+
+/**
  * Creates the initial state object for a new game. This is a pure function.
  *
  * @param {{ team: string }} player - The player object, containing their team.
- * @returns {{phase: string, dealer: string, cards: any[], trump: string}} A new state fragment.
+ * @returns {{phase: GamePhase, dealer: PlayerRole, cards: Card[], trump: SuitConstant}} A new state fragment.
  */
 function setupInitialState(player) {
   // Access the prefixed property from the imported `TEAMS` object.
@@ -65,13 +81,18 @@ Use `@typedef {object} TypeName` and `@property` to define the structure of a co
 import { GAME_PHASES, PLAYER_POSITIONS } from '@/config/constants';
 
 /**
+ * @typedef {import('./jsdoc.md').PlayerRole} PlayerRole
+ * @typedef {import('./jsdoc.md').Card} Card
+ */
+
+/**
  * Represents the state of a Euchre game.
  * @typedef {object} GameState
  * @property {string} gameId - The unique identifier for the game.
  * @property {string} phase - The current phase, e.g., GAME_PHASES.GAME_PHASE_DEAL.
- * @property {string} dealer - The position of the current dealer.
- * @property {object<string, {hand: object[]}>} players - An object mapping player positions to player data.
- * @property {object[]} deck - The array of cards remaining in the deck.
+ * @property {PlayerRole} dealer - The position of the current dealer.
+ * @property {Object.<PlayerRole, {hand: Card[]}>} players - An object mapping player roles to player data.
+ * @property {Card[]} deck - The array of cards remaining in the deck.
  */
 
 /**
@@ -152,6 +173,10 @@ Import a constant object (like `GAME_PHASES`) and use `keyof typeof` to create a
 import { GAME_PHASES } from '../../config/constants.js';
 
 /**
+ * @typedef {import('./jsdoc.md').GameState} GameState
+ */
+
+/**
  * A type representing one of the valid game phase strings.
  * This is created directly from the keys of the GAME_PHASES constant object.
  * @typedef {keyof typeof GAME_PHASES} GamePhase
@@ -159,9 +184,9 @@ import { GAME_PHASES } from '../../config/constants.js';
 
 /**
  * Transitions the game to a new phase.
- * @param {object} gameState - The current game state.
+ * @param {GameState} gameState - The current game state.
  * @param {GamePhase} nextPhase - The phase to transition to. Must be a valid phase from GAME_PHASES.
- * @returns {object} The updated game state.
+ * @returns {GameState} The updated game state.
  */
 function transitionToPhase(gameState, nextPhase) {
   const newGameState = { ...gameState };
@@ -204,3 +229,8 @@ export function getPartner(playerId) {
 *   **Impact Analysis:** Before changing `getPartner`, a developer can instantly see which files depend on it and must be checked or tested.
 *   **Code Navigation:** Provides quick "links" to related parts of the codebase, improving discoverability.
 *   **Architectural Enforcement:** Makes dependencies explicit, helping to prevent architectural violations.
+
+**Best Practices for `@see` Paths:**
+*   Always use paths relative to the project root (e.g., `src/utils/players.js` or `test/game/logic/validation.unit.test.js`).
+*   Do not use relative paths like `../` as they can become incorrect if the file is moved.
+*   Include the full filename, including the extension.

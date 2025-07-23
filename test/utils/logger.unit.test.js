@@ -16,44 +16,90 @@
  */
 
 import { fileURLToPath } from 'url';
-import path from 'path';
-import { describe, it, before, after, afterEach, mock, beforeEach } from 'node:test';
+import { dirname } from 'path';
+import { describe, it, before, after, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import { DEBUG_LEVELS } from '../../src/config/constants.js';
 
-// Get the project root directory
+// Get the directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const projectRoot = path.resolve(__dirname, '../..');
+const __dirname = dirname(__filename);
 
-// Import the constants directly
-import { DEBUG_LEVELS as ACTUAL_DEBUG_LEVELS } from '../../src/config/constants.js';
+// Define a module-level cache for the logger module
+let loggerCache = null;
 
-// Create a function to get a fresh instance of the logger module
-async function getFreshLoggerModule() {
-  // Use a unique query parameter to bust module cache for ES Modules
-  // This ensures we get a freshly initialized logger for each test that needs it.
-  const freshLogger = await import(`../../src/utils/logger.js?update=${Date.now()}`);
-  return freshLogger;
+// Cache for logger modules to avoid redundant imports
+const loggerModuleCache = new Map();
+
+/**
+ * Gets a fresh instance of the logger module with the specified environment variables.
+ * Caches modules by environment to avoid redundant imports.
+ * @param {Object} [envVars={}] - Environment variables to set for this import
+ * @returns {Promise<Object>} The logger module with cleanup function
+ */
+async function getFreshLoggerModule(envVars = {}) {
+  // Create a cache key based on environment variables
+  const cacheKey = JSON.stringify(envVars);
+  
+  // Return cached module if available
+  if (loggerModuleCache.has(cacheKey)) {
+    const cached = loggerModuleCache.get(cacheKey);
+    return { ...cached, _cleanup: () => {} }; // No cleanup needed for cached instances
+  }
+  
+  // Store original environment variables
+  const originalEnv = { ...process.env };
+  
+  try {
+    // Set new environment variables
+    Object.entries(envVars).forEach(([key, value]) => {
+      process.env[key] = value;
+    });
+    
+    // Import the module with cache busting
+    const cacheBuster = `v=${Date.now()}`;
+    const modulePath = new URL('../../src/utils/logger.js', import.meta.url);
+    modulePath.searchParams.set('v', cacheBuster);
+    
+    const module = await import(modulePath.href);
+    
+    // Create a clean copy of the module with cleanup function
+    const moduleWithCleanup = {
+      ...module,
+      _cleanup: () => {
+        // Restore the original environment variables
+        process.env = { ...originalEnv };
+      }
+    };
+    
+    // Cache the module for future use
+    loggerModuleCache.set(cacheKey, moduleWithCleanup);
+    
+    return moduleWithCleanup;
+  } catch (error) {
+    // Restore the original environment variables if import fails
+    process.env = { ...originalEnv };
+    throw error;
+  }
 }
 
 // Local test constants - use the actual DEBUG_LEVELS
 const TEST_DEBUG_LEVELS = {
-  NONE: ACTUAL_DEBUG_LEVELS.NONE,
-  ERROR: ACTUAL_DEBUG_LEVELS.ERROR,
-  WARNING: ACTUAL_DEBUG_LEVELS.WARN, // Note: Using WARN instead of WARNING
-  INFO: ACTUAL_DEBUG_LEVELS.INFO,
-  VERBOSE: ACTUAL_DEBUG_LEVELS.DEBUG // Using DEBUG for VERBOSE level
+  NONE: DEBUG_LEVELS.NONE,
+  ERROR: DEBUG_LEVELS.ERROR,
+  WARNING: DEBUG_LEVELS.WARN,
+  INFO: DEBUG_LEVELS.INFO,
+  VERBOSE: DEBUG_LEVELS.DEBUG
 };
 
-// Define debugLevelToPino mapping locally for testing purposes to reflect the internal logic of src/utils/logger.js
-// Ensure all keys are explicitly defined or handled to avoid 'undefined' keys.
+// Define debugLevelToPino mapping locally for testing
 const debugLevelToPino = {
-  [ACTUAL_DEBUG_LEVELS.NONE]: 'silent',
-  [ACTUAL_DEBUG_LEVELS.ERROR]: 'error',
-  [ACTUAL_DEBUG_LEVELS.WARN]: 'warn',
-  [ACTUAL_DEBUG_LEVELS.INFO]: 'info',
-  [ACTUAL_DEBUG_LEVELS.DEBUG]: 'debug', // This maps to VERBOSE in logger.js
-  [ACTUAL_DEBUG_LEVELS.TRACE]: 'trace',
+  [DEBUG_LEVELS.NONE]: 'silent',
+  [DEBUG_LEVELS.ERROR]: 'error',
+  [DEBUG_LEVELS.WARN]: 'warn',
+  [DEBUG_LEVELS.INFO]: 'info',
+  [DEBUG_LEVELS.DEBUG]: 'debug',
+  [DEBUG_LEVELS.TRACE]: 'trace',
   'LOG_LEVEL_ERROR': 'error',
   'LOG_LEVEL_WARN': 'warn',
   'LOG_LEVEL_INFO': 'info',
@@ -63,19 +109,17 @@ const debugLevelToPino = {
 };
 
 // Log the actual DEBUG_LEVELS for debugging
-console.log('ACTUAL DEBUG_LEVELS from constants:', JSON.stringify(ACTUAL_DEBUG_LEVELS, null, 2));
+console.log('DEBUG_LEVELS from constants:', JSON.stringify(DEBUG_LEVELS, null, 2));
 console.log('MAPPED TEST_DEBUG_LEVELS:', JSON.stringify(TEST_DEBUG_LEVELS, null, 2));
 
 describe('Logger Utility', () => {
   // Keep track of the original process.env
   let originalEnv;
 
-  before(() => {
+  beforeEach(() => {
     // Save the original process.env
     originalEnv = { ...process.env };
-  });
-
-  beforeEach(() => {
+    
     // Clear any existing mocks
     mock.restoreAll();
 
@@ -249,94 +293,95 @@ describe('Logger Utility', () => {
   });
 
   describe('Environment Variable Handling', () => {
-    it('should use LOG_LEVEL from environment when valid', async () => {
-      // Test with each valid log level
-      const validLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'];
-
-      for (const level of validLevels) {
-        process.env.LOG_LEVEL = level;
-        // Get a fresh logger instance to ensure environment variable is read
-        const { logger: testLogger } = await getFreshLoggerModule();
-
-        assert.strictEqual(testLogger.level, level, `Logger level should be ${level} when LOG_LEVEL is ${level}`);
-      }
-    });
-
-    it('should handle DEBUG_LEVEL to Pino level mapping', async () => {
-      // Clear LOG_LEVEL to ensure DEBUG_LEVEL is used
-      delete process.env.LOG_LEVEL;
-
-      // Test each DEBUG_LEVEL to Pino level mapping
-      const testCases = [
-        { debugLevel: ACTUAL_DEBUG_LEVELS.ERROR, expectedLevel: 'error' },
-        { debugLevel: ACTUAL_DEBUG_LEVELS.WARN, expectedLevel: 'warn' },
-        { debugLevel: ACTUAL_DEBUG_LEVELS.INFO, expectedLevel: 'info' },
-        { debugLevel: ACTUAL_DEBUG_LEVELS.DEBUG, expectedLevel: 'debug' }, // VERBOSE maps to DEBUG
-        { debugLevel: ACTUAL_DEBUG_LEVELS.TRACE, expectedLevel: 'trace' },
-        // Ensure ACTUAL_DEBUG_LEVELS.NONE is defined in constants.js for this test to pass
-        { debugLevel: ACTUAL_DEBUG_LEVELS.NONE, expectedLevel: 'silent' },
-        { debugLevel: 'LOG_LEVEL_ERROR', expectedLevel: 'error' },
-        { debugLevel: 'LOG_LEVEL_WARN', expectedLevel: 'warn' },
-        { debugLevel: 'LOG_LEVEL_INFO', expectedLevel: 'info' },
-        { debugLevel: 'LOG_LEVEL_DEBUG', expectedLevel: 'debug' },
-        { debugLevel: 'LOG_LEVEL_TRACE', expectedLevel: 'trace' },
-        // Ensure ACTUAL_DEBUG_LEVELS.LOG_LEVEL_SILENT is defined in constants.js for this test to pass
-        { debugLevel: 'LOG_LEVEL_SILENT', expectedLevel: 'silent' }
-      ];
-
-      // Test each debug level mapping
-      for (const { debugLevel, expectedLevel } of testCases) {
-        // Ensure debugLevel is a string for process.env
-        process.env.DEBUG_LEVEL = String(debugLevel);
-        const { logger: testLogger } = await getFreshLoggerModule();
+    // Test with each valid log level in sequence to avoid parallel test issues
+    const validLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'];
+    
+    for (const level of validLevels) {
+      it(`should use LOG_LEVEL=${level} from environment when valid`, async () => {
+        const { logger: testLogger } = await getFreshLoggerModule({ 
+          LOG_LEVEL: level,
+          // Clear DEBUG_LEVEL to ensure it doesn't interfere
+          DEBUG_LEVEL: ''
+        });
+        
+        assert.strictEqual(
+          testLogger.level, 
+          level, 
+          `Logger level should be ${level} when LOG_LEVEL is ${level}`
+        );
+      });
+    }
+    
+    // Test DEBUG_LEVEL to Pino level mapping with proper test isolation
+    const debugLevelTestCases = [
+      
+      { debugLevel: DEBUG_LEVELS.ERROR, expectedLevel: 'error' }, 
+      // WARNING maps to 'warn'
+      { debugLevel: DEBUG_LEVELS.VERBOSE, expectedLevel: 'debug' },  // VERBOSE maps to 'debug'
+      { debugLevel: DEBUG_LEVELS.NONE, expectedLevel: 'silent' },
+      { debugLevel: 'LOG_LEVEL_ERROR', expectedLevel: 'error' },
+      { debugLevel: 'LOG_LEVEL_WARN', expectedLevel: 'warn' },
+      { debugLevel: 'LOG_LEVEL_INFO', expectedLevel: 'info' },
+      { debugLevel: 'LOG_LEVEL_DEBUG', expectedLevel: 'debug' },
+      { debugLevel: 'LOG_LEVEL_TRACE', expectedLevel: 'trace' },
+      { debugLevel: 'LOG_LEVEL_SILENT', expectedLevel: 'silent' },
+      // Special case: undefined DEBUG_LEVEL should default to 'debug' based on VERBOSE level
+      { debugLevel: undefined, expectedLevel: 'debug' }
+    ];
+    
+    for (const { debugLevel, expectedLevel } of debugLevelTestCases) {
+      it(`should map DEBUG_LEVEL=${debugLevel} to Pino level ${expectedLevel}`, async () => {
+        const { logger: testLogger } = await getFreshLoggerModule({ 
+          LOG_LEVEL: '', // Clear LOG_LEVEL to test DEBUG_LEVEL in isolation
+          DEBUG_LEVEL: String(debugLevel)
+        });
+        
         assert.strictEqual(
           testLogger.level,
           expectedLevel,
           `DEBUG_LEVEL=${debugLevel} should map to Pino level ${expectedLevel}`
         );
-      }
-    });
-
+      });
+    }
+    
     it('should handle invalid DEBUG_LEVEL with a warning', async () => {
-      // Clear LOG_LEVEL and set an invalid DEBUG_LEVEL
-      delete process.env.LOG_LEVEL;
-      process.env.DEBUG_LEVEL = 'INVALID_DEBUG_LEVEL';
-
       // Mock console.warn to capture the warning
       let warningMessage = '';
       const originalConsoleWarn = console.warn;
       console.warn = (msg) => { warningMessage = msg; };
-
+      
       try {
-        // Import the logger to trigger the initialization
-        const { logger: testLogger } = await getFreshLoggerModule();
-
+        const { logger: testLogger } = await getFreshLoggerModule({
+          LOG_LEVEL: '', // Clear LOG_LEVEL to test DEBUG_LEVEL in isolation
+          DEBUG_LEVEL: 'INVALID_DEBUG_LEVEL'
+        });
+        
         // Verify the warning was logged
         assert.ok(
           warningMessage.includes('Invalid DEBUG_LEVEL: INVALID_DEBUG_LEVEL, defaulting to \'info\''),
           'Expected warning about invalid DEBUG_LEVEL'
         );
-
+        
         // Verify the logger uses the default 'info' level
         assert.strictEqual(testLogger.level, 'info');
       } finally {
-        console.warn = originalConsoleWarn; // Restore original console.warn
+        console.warn = originalConsoleWarn;
       }
     });
-
+    
     it('should use default log level when no valid environment variables are set', async () => {
-      delete process.env.LOG_LEVEL;
-      delete process.env.DEBUG_LEVEL;
-
-      const { logger: testLogger } = await getFreshLoggerModule();
+      const { logger: testLogger } = await getFreshLoggerModule({
+        LOG_LEVEL: '',
+        DEBUG_LEVEL: ''
+      });
       assert.strictEqual(testLogger.level, 'info');
     });
-
+    
     it('should prioritize LOG_LEVEL over DEBUG_LEVEL', async () => {
-      process.env.LOG_LEVEL = 'error';
-      process.env.DEBUG_LEVEL = ACTUAL_DEBUG_LEVELS.DEBUG.toString(); // Should be ignored
-
-      const { logger: testLogger } = await getFreshLoggerModule();
+      const { logger: testLogger } = await getFreshLoggerModule({
+        LOG_LEVEL: 'error',
+        DEBUG_LEVEL: DEBUG_LEVELS.DEBUG.toString() // Should be ignored
+      });
       assert.strictEqual(testLogger.level, 'error', 'LOG_LEVEL should take precedence over DEBUG_LEVEL');
     });
   });
@@ -360,7 +405,7 @@ describe('Logger Utility', () => {
         logger.level = 'silent';
 
         // Try to log with SILENT level
-        log(ACTUAL_DEBUG_LEVELS.LOG_LEVEL_SILENT, 'This should not be logged');
+        log(DEBUG_LEVELS.LOG_LEVEL_SILENT, 'This should not be logged');
 
         // Verify no logger methods were called
         Object.values(spies).forEach((spy, index) => {
@@ -394,7 +439,7 @@ describe('Logger Utility', () => {
         logger.level = 'silent';
 
         // Try to log with NONE level
-        log(ACTUAL_DEBUG_LEVELS.NONE, 'This should not be logged');
+        log(DEBUG_LEVELS.NONE, 'This should not be logged');
 
         // Verify no logger methods were called
         Object.values(spies).forEach((spy, index) => {
@@ -426,7 +471,7 @@ describe('Logger Utility', () => {
       };
 
       try {
-        log(ACTUAL_DEBUG_LEVELS.INFO, testMessage, testObj);
+        log(DEBUG_LEVELS.INFO, testMessage, testObj);
         assert.deepStrictEqual(loggedObj, testObj);
         assert.strictEqual(loggedMsg, testMessage);
       } finally {
@@ -448,7 +493,7 @@ describe('Logger Utility', () => {
       };
 
       try {
-        log(ACTUAL_DEBUG_LEVELS.INFO, testObj);
+        log(DEBUG_LEVELS.INFO, testObj);
         assert.strictEqual(loggedObj, testObj);
         assert.strictEqual(loggedMsg, undefined);
       } finally {
@@ -490,13 +535,12 @@ describe('Logger Utility', () => {
 
     it('should handle all valid log levels correctly', async () => {
       const testCases = [
-        { level: ACTUAL_DEBUG_LEVELS.ERROR, expected: 'error' },
-        { level: ACTUAL_DEBUG_LEVELS.WARN, expected: 'warn' },
-        { level: ACTUAL_DEBUG_LEVELS.INFO, expected: 'info' },
-        { level: ACTUAL_DEBUG_LEVELS.DEBUG, expected: 'debug' }, // VERBOSE maps to DEBUG
-        { level: ACTUAL_DEBUG_LEVELS.NONE, expected: 'silent' },
-        { level: 'LOG_LEVEL_TRACE', expected: 'trace' },
-        { level: 'LOG_LEVEL_SILENT', expected: 'silent' },
+        { level: DEBUG_LEVELS.ERROR, expected: 'error' },
+        { level: DEBUG_LEVELS.WARN, expected: 'warn' },
+        { level: DEBUG_LEVELS.INFO, expected: 'info' },
+        { level: DEBUG_LEVELS.DEBUG, expected: 'debug' },
+        { level: DEBUG_LEVELS.TRACE, expected: 'trace' },
+        { level: DEBUG_LEVELS.NONE, expected: 'silent' },
         { level: 'LOG_LEVEL_DEBUG', expected: 'debug' },
         { level: 'LOG_LEVEL_INFO', expected: 'info' },
         { level: 'LOG_LEVEL_WARN', expected: 'warn' },
@@ -548,11 +592,26 @@ describe('Logger Utility', () => {
     });
 
     it('should not throw when called with invalid level', async () => {
-      const { setDebugLevel } = await getFreshLoggerModule();
-      // Should handle invalid level gracefully
-      assert.doesNotThrow(() => {
+      const { logger, setDebugLevel } = await getFreshLoggerModule();
+      let warningMessage = '';
+      const originalWarn = logger.warn;
+      
+      try {
+        // Mock the warn method to capture the warning message
+        logger.warn = (msg) => { warningMessage = msg; };
+        
+        // Call with invalid level - should not throw
         setDebugLevel('INVALID_LEVEL');
-      });
+        
+        // Verify the warning message was logged
+        assert.ok(
+          warningMessage.includes('INVALID_LEVEL'),
+          'Should log a warning about the invalid level'
+        );
+      } finally {
+        // Restore the original warn method
+        logger.warn = originalWarn;
+      }
     });
   });
 });

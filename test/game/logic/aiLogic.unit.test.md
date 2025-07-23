@@ -25,78 +25,183 @@ import assert from "node:assert/strict";
 
 ### 2. Test Suites
 
-#### 2.1 `countTrumpInHand()`
-Tests the function that counts trump cards in a player's hand.
+#### 2.1 `countTrumpInHand(hand, trumpSuit)`
+Counts the number of trump cards in a player's hand, including left bower.
+
+**Parameters:**
+- `hand`: Array of card objects `{suit: string, value: string}`
+- `trumpSuit`: String representing the current trump suit
 
 **Test Cases:**
-1. Counts right bower correctly
-2. Counts left bower correctly
-3. Counts regular trump cards
-4. Handles empty hand
-5. Handles null/undefined inputs
-6. Ignores non-trump cards
+1. **Right Bower**
+   - Trump is hearts, hand contains J♥
+   - Expected: Counts as 1 trump
 
-#### 2.2 `calculateHandStrength()`
-Tests the function that calculates the total point value of a hand.
+2. **Left Bower**
+   - Trump is hearts, hand contains J♦ (left bower)
+   - Expected: Counts as 1 trump
+
+3. **Regular Trump Cards**
+   - Trump is hearts, hand contains A♥, K♥, Q♥
+   - Expected: Counts all as trumps
+
+4. **Empty Hand**
+   - `hand = []`
+   - Expected: Returns 0
+
+5. **Null/Undefined Inputs**
+   - `hand = null` or `hand = undefined`
+   - `trumpSuit = null` or `trumpSuit = undefined`
+   - Expected: Returns 0
+
+6. **Non-Trump Cards**
+   - Trump is hearts, hand contains only spades and clubs
+   - Expected: Returns 0
+
+7. **Mixed Hand**
+   - Trump is hearts, hand contains [J♥, J♦, A♠, K♥, 9♣]
+   - Expected: Counts 2 trumps (J♥ and K♥, J♦ is left bower)
+
+8. **Invalid Card Objects**
+   - Hand contains `{suit: null, value: null}`, `{}`, `null`
+   - Expected: Ignores invalid cards
+
+#### 2.2 `calculateHandStrength(hand, trumpSuit)`
+Calculates the total point value of a hand based on the trump suit.
+
+**Scoring Table:**
+| Card Type       | Points | Example (trump=hearts) |
+|-----------------|--------|------------------------|
+| Right Bower     | 15     | J♥                     |
+| Left Bower      | 10     | J♦                     |
+| Trump Ace       | 7      | A♥                     |
+| Trump King      | 5      | K♥                     |
+| Trump Queen     | 3      | Q♥                     |
+| Trump 10        | 1      | 10♥                    |
+| Trump 9         | 1      | 9♥                     |
+| Non-trump cards | 0      | Any ♠ ♦ ♣              |
 
 **Test Cases:**
-1. Scores right bower (15 points)
-2. Scores left bower (10 points)
-3. Scores trump Ace (7 points)
-4. Scores trump King (5 points)
-5. Scores trump Queen (3 points)
-6. Scores trump 10 (1 point)
-7. Scores trump 9 (1 point)
-8. Ignores non-trump cards
-9. Handles empty hand
-10. Handles invalid inputs
+1. **Right Bower**
+   - Hand: `[J♥]`, trump: hearts
+   - Expected: 15 points
 
-#### 2.3 `_evaluateHand()`
-Tests the internal hand evaluation function.
+2. **Left Bower**
+   - Hand: `[J♦]`, trump: hearts
+   - Expected: 10 points
+
+3. **Trump Cards**
+   - Hand: `[A♥, K♥, Q♥, 10♥, 9♥]`, trump: hearts
+   - Expected: 7 + 5 + 3 + 1 + 1 = 17 points
+
+4. **Mixed Hand**
+   - Hand: `[J♥, J♦, A♥, K♠, 9♣]`, trump: hearts
+   - Expected: 15 + 10 + 7 + 0 + 0 = 32 points
+
+5. **Non-Trump Cards**
+   - Hand: `[A♠, K♠, Q♠, J♠, 10♠]`, trump: hearts
+   - Expected: 0 points
+
+6. **Empty/Invalid Inputs**
+   - `hand = []` → 0
+   - `hand = null` → 0
+   - `hand = [null, undefined, {}]` → 0
+   - `trumpSuit = null` → 0
+
+7. **Edge Cases**
+   - Hand with duplicate cards
+   - Hand with all cards same rank
+   - Hand with all cards same suit but not trump
+
+#### 2.3 `_evaluateHand(hand, potentialTrump)`
+Internal function that evaluates hand strength for a potential trump suit.
 
 **Test Cases:**
-1. Returns 0 for empty hand
-2. Returns 0 for invalid inputs
-3. Returns correct score for valid hand
-4. Delegates to calculateHandStrength
+1. **Input Validation**
+   - Empty array: `_evaluateHand([], 'hearts')` → 0
+   - Non-array hand: `_evaluateHand({}, 'hearts')` → 0
+   - Invalid trump: `_evaluateHand([A♥], null)` → 0
 
-#### 2.4 `chooseBid()`
-Tests the AI's bidding decision logic.
+2. **Delegation**
+   - Verify calls `calculateHandStrength` with same arguments
+   - Returns same value as direct `calculateHandStrength` call
 
-**First Round Bidding:**
-1. Orders up with strong hand (≥20 points)
-2. Passes with weak hand
-3. Considers dealer position
-4. Handles null/undefined turn card
-5. Handles empty hand
+3. **Edge Cases**
+   - Hand with one card
+   - Maximum possible hand (all trumps + bowers)
+   - Hand with only non-trump cards
 
-**Second Round Bidding:**
-1. Calls best suit if strong enough
-2. Passes if no strong suit
-3. Considers previous passes
-4. Handles edge cases
+#### 2.4 `chooseBid(hand, turnCard, isDealer, bids)`
+Determines AI's bidding decision based on hand strength and game state.
 
-#### 2.5 `chooseCardToPlay()`
-Tests the AI's card selection logic.
+**Bidding Logic:**
+- First Round: Can order up turn card's suit
+- Second Round: Can call any suit except turn card's suit
+- BID_THRESHOLD = 20 points
 
-**Following Suit:**
-1. Plays lowest winning card
-2. Plays lowest card if can't win
-3. Handles left bower correctly
+**Test Cases:**
+1. **First Round - Order Up**
+   - Hand score ≥ 20 for turn card suit
+   - Expected: `{ decision: 'orderUp' }`
 
-**Leading:**
-1. Leads with highest trump if holding multiple
-2. Leads with highest non-trump if no trumps
-3. Leads singleton when appropriate
+2. **First Round - Pass**
+   - Hand score < 20 for turn card suit
+   - Expected: `{ decision: 'pass' }`
 
-**Sloughing:**
-1. Discards lowest non-trump
-2. Handles void in lead suit
+3. **Second Round - Call Trump**
+   - All passed first round
+   - Hand has suit with score ≥ 20
+   - Expected: `{ decision: 'callTrump', suit: 'bestSuit' }`
 
-**Edge Cases:**
-1. Empty trick
-2. Last trick
-3. Near end of game
+4. **Second Round - Pass**
+   - All passed first round
+   - No suit meets threshold
+   - Expected: `{ decision: 'pass' }`
+
+5. **Edge Cases**
+   - Empty hand
+   - Null/undefined turnCard
+   - Invalid bids array
+   - Dealer forced to pick (all passed to dealer)
+   - Multiple eligible suits (should pick highest scoring)
+
+#### 2.5 `chooseCardToPlay(hand, currentTrick, trumpSuit, leadSuit)`
+Selects the optimal card for the AI to play based on game state.
+
+**Card Selection Logic:**
+- If leading (empty trick):
+  - If only trumps, play lowest trump
+  - Otherwise, play highest non-trump
+
+- If following suit:
+  - Try to win trick if possible (play lowest winning card)
+  - Otherwise, play lowest card in suit
+
+- If void in lead suit (sloughing):
+  - Play lowest value card (prefer non-trump)
+
+**Test Cases:**
+1. **Leading**
+   - Only trumps: `[J♥, 9♥]` → play 9♥
+   - Mixed: `[A♠, K♠, Q♥]` → play A♠
+   - All non-trump: `[A♠, K♠, Q♠]` → play A♠
+
+2. **Following Suit**
+   - Can win: Trick=[9♠], hand=[Q♠, J♠] → play Q♠
+   - Can't win: Trick=[A♠], hand=[9♠, 10♠] → play 9♠
+   - Left bower: Trick=[Q♥], hand=[J♦] (trump=hearts) → play J♦
+
+3. **Sloughing**
+   - Has trumps: Need ♠ but void, hand=[J♥, 9♥, K♦] → play K♦
+   - No trumps: hand=[A♣, K♦, Q♣] → play K♦
+
+4. **Edge Cases**
+   - Empty hand
+   - Invalid cards in trick
+   - Last trick strategy
+   - Near endgame (count remaining cards)
+   - All same rank
+   - All same suit
 
 ### 3. Test Data
 

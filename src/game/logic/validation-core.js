@@ -231,22 +231,43 @@ function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
       const trueLedCard = currentTrick[0].card;
       const currentLedEffectiveSuit = getEffectiveSuit(trueLedCard, trumpSuit);
 
-      // Check if player has any card of the led suit (including left bower if applicable)
-      const playerHasLedSuitCard = playerHand.some(
-        (handCard) =>
-          getEffectiveSuit(handCard, trumpSuit) === currentLedEffectiveSuit,
-      );
-
-      const cardToPlayEffectiveSuit = getEffectiveSuit(cardToPlay, trumpSuit);
-
-      // If player has a card of the led suit, they must play one
-      if (
-        playerHasLedSuitCard &&
-        cardToPlayEffectiveSuit !== currentLedEffectiveSuit
-      ) {
-        throw new MustFollowSuitError(
-          `Must follow suit. Led suit is ${currentLedEffectiveSuit}, attempted to play ${cardToPlayEffectiveSuit}.`,
+      // Check if the led card is the Left Bower
+      const isLedCardLeftBower = isLeftBower(ledCard, trumpSuit);
+      
+      // If the led card is the Left Bower, players must follow with a trump card if they have one
+      if (isLedCardLeftBower) {
+        const playerHasTrumpCard = playerHand.some(
+          handCard => getEffectiveSuit(handCard, trumpSuit) === trumpSuit
         );
+        
+        if (playerHasTrumpCard) {
+          const isPlayingTrumpCard = getEffectiveSuit(cardToPlay, trumpSuit) === trumpSuit;
+          if (!isPlayingTrumpCard) {
+            throw new MustFollowSuitError(
+              `Must play a trump card when the Left Bower is led. Attempted to play ${cardToPlay.suit}.`,
+              trumpSuit,
+              getEffectiveSuit(cardToPlay, trumpSuit)
+            );
+          }
+        }
+      } 
+      // Standard follow-suit logic for non-Left Bower led cards
+      else {
+        // Check if player has any card of the led suit (including left bower if applicable)
+        const playerHasLedSuitCard = playerHand.some(
+          handCard => getEffectiveSuit(handCard, trumpSuit) === currentLedEffectiveSuit
+        );
+
+        const cardToPlayEffectiveSuit = getEffectiveSuit(cardToPlay, trumpSuit);
+
+        // If player has a card of the led suit, they must play one
+        if (playerHasLedSuitCard && cardToPlayEffectiveSuit !== currentLedEffectiveSuit) {
+          throw new MustFollowSuitError(
+            `Must follow suit. Led suit is ${currentLedEffectiveSuit}, attempted to play ${cardToPlay.suit}.`,
+            currentLedEffectiveSuit,
+            cardToPlayEffectiveSuit
+          );
+        }
       }
     }
   } catch (error) {

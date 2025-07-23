@@ -59,7 +59,7 @@ const POINTS = {
  * @param {string} rank - The rank of the card.
  * @returns {{suit: string, rank: string}} A card object.
  */
-const createCard = (suit, rank) => ({ suit, rank });
+const createCard = (suit, value) => ({ suit, value });
 
 /**
  * @describe Top-level test suite for the AI Logic Module.
@@ -86,11 +86,11 @@ describe("AI Logic Module", () => {
   });
   // A standard mock hand used across multiple tests.
   const mockHand = [
-    createCard(SUITS.HEARTS, RANKS.JACK), // Right bower if hearts is trump
-    createCard(SUITS.DIAMONDS, RANKS.JACK), // Left bower if hearts is trump
-    createCard(SUITS.HEARTS, RANKS.ACE),
-    createCard(SUITS.CLUBS, RANKS.NINE),
-    createCard(SUITS.SPADES, RANKS.QUEEN),
+    createCard(SUITS.HEARTS, 'J'), // Right bower if hearts is trump
+    createCard(SUITS.DIAMONDS, 'J'), // Left bower if hearts is trump
+    createCard(SUITS.HEARTS, 'A'),
+    createCard(SUITS.CLUBS, '9'),
+    createCard(SUITS.SPADES, 'Q'),
   ];
 
   /**

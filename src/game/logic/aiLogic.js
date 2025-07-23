@@ -1,3 +1,9 @@
+//run `npm test aiLogic.unit.test.js ` and debug all failing tests @aiLogic.unit.test.js 
+
+
+
+
+
 // src/game/logic/aiLogic.js
 /**
  * @module game/logic/aiLogic
@@ -99,7 +105,7 @@ function calculateHandStrength(hand, trumpSuit) {
     }
 
     // Check for Bowers first
-    if (card.rank === "J") {
+    if (card.value === "J") {
       // The Right Bower is just the Jack of the trump suit.
       if (card.suit === trumpSuit) {
         return total + POINTS.RIGHT_BOWER;
@@ -111,7 +117,7 @@ function calculateHandStrength(hand, trumpSuit) {
     }
 
     // Score other trump cards
-    switch (card.rank) {
+    switch (card.value) {
       case "A":
         return total + POINTS.TRUMP_ACE;
       case "K":
@@ -226,12 +232,12 @@ function getEffectiveSuit(card, trumpSuit) {
 function getCardValue(card, trumpSuit) {
   if (!card || !card.suit || !card.value) return 0;
   if (card.suit === trumpSuit) {
-    if (card.rank === "J") return 100; // Right bower
-    if (card.rank === "A") return 80;
-    if (card.rank === "K") return 70;
-    if (card.rank === "Q") return 60;
-    if (card.rank === "10") return 40;
-    if (card.rank === "9") return 30;
+    if (card.value === "J") return 100; // Right bower
+    if (card.value === "A") return 80;
+    if (card.value === "K") return 70;
+    if (card.value === "Q") return 60;
+    if (card.value === "10") return 40;
+    if (card.value === "9") return 30;
   }
 
   if (isLeftBower(card, trumpSuit)) {
@@ -239,12 +245,12 @@ function getCardValue(card, trumpSuit) {
   }
 
   // Non-trump cards
-  if (card.rank === "A") return 20;
-  if (card.rank === "K") return 18;
-  if (card.rank === "Q") return 16;
-  if (card.rank === "J") return 14;
-  if (card.rank === "10") return 12;
-  if (card.rank === "9") return 10;
+  if (card.value === "A") return 20;
+  if (card.value === "K") return 18;
+  if (card.value === "Q") return 16;
+  if (card.value === "J") return 14;
+  if (card.value === "10") return 12;
+  if (card.value === "9") return 10;
 
   return 0;
 }
@@ -345,28 +351,52 @@ function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
       const cardToBeatValue = getCardValue(winningCard, trumpSuit);
       const winningSuit = getEffectiveSuit(winningCard, trumpSuit);
       
-      const playableWinningCards = cardsInSuit.filter(
-        (card) => {
-            if (!card || !card.suit || !card.value) return false;
-            // Must be able to beat the current winning card
-            const isTrump = getEffectiveSuit(card, trumpSuit) === trumpSuit;
-            if(winningSuit === trumpSuit && !isTrump) return false; // can't beat trump with non-trump
-            if(winningSuit !== trumpSuit && isTrump) return true; // can always beat non-trump with trump
-            return getCardValue(card, trumpSuit) > cardToBeatValue;
+      // Find all cards that can win the trick
+      const playableWinningCards = [];
+      for (const card of cardsInSuit) {
+        if (!card || !card.suit || !card.value) continue;
+        
+        const isTrump = getEffectiveSuit(card, trumpSuit) === trumpSuit;
+        const cardValue = getCardValue(card, trumpSuit);
+        
+        if (winningSuit === trumpSuit) {
+          // If winning card is trump, must play higher trump to win
+          if (isTrump && cardValue > cardToBeatValue) {
+            playableWinningCards.push(card);
+          }
+        } else {
+          // If winning card is not trump, can win with any trump or higher card of lead suit
+          if (isTrump) {
+            // Any trump card beats a non-trump card
+            playableWinningCards.push(card);
+          } else if (cardValue > cardToBeatValue) {
+            // Must be same suit and higher value to win
+            playableWinningCards.push(card);
+          }
         }
-      );
+      }
 
       if (playableWinningCards.length > 0) {
         // Play the lowest card that can still win
         return getLowestCard(playableWinningCards, trumpSuit);
       }
     }
-    // Otherwise play lowest card in suit
+    // If can't win, play lowest card in suit
     return getLowestCard(cardsInSuit, trumpSuit);
   }
 
-  // Can't follow suit - slough lowest value card
-  return getLowestCard(hand, trumpSuit);
+  // Can't follow suit - slough lowest value non-trump card if possible
+  const nonTrumpCards = hand.filter(card => 
+    card && card.suit && card.value && getEffectiveSuit(card, trumpSuit) !== trumpSuit
+  );
+  
+  // If no non-trump cards, return lowest card overall
+  if (nonTrumpCards.length === 0) {
+    return getLowestCard(hand, trumpSuit);
+  }
+  
+  // Otherwise, return lowest non-trump card
+  return getLowestCard(nonTrumpCards, trumpSuit);
 }
 
 // Export all public functions

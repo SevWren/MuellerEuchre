@@ -137,13 +137,15 @@ export const LOG_LEVELS = Object.freeze({
   INFO: 'LOG_LEVEL_INFO',
   DEBUG: 'LOG_LEVEL_DEBUG',
   TRACE: 'LOG_LEVEL_TRACE',
+  NONE: 'LOG_LEVEL_SILENT',
 
   // New prefixed versions (preferred)
   LOG_LEVEL_ERROR: 'LOG_LEVEL_ERROR', // Critical errors that cause the app to fail
   LOG_LEVEL_WARN: 'LOG_LEVEL_WARN',   // Non-critical issues that should be addressed
   LOG_LEVEL_INFO: 'LOG_LEVEL_INFO',   // General information about application flow
   LOG_LEVEL_DEBUG: 'LOG_LEVEL_DEBUG', // Detailed debugging information
-  LOG_LEVEL_TRACE: 'LOG_LEVEL_TRACE'  // Very detailed logging for specific debugging
+  LOG_LEVEL_TRACE: 'LOG_LEVEL_TRACE', // Very detailed logging for specific debugging
+  LOG_LEVEL_SILENT: 'LOG_LEVEL_SILENT' // No logging at all
 });
 
 // Maintain original export for backward compatibility

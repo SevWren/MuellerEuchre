@@ -3,68 +3,49 @@
  * @file Test suite for statsUtils.js utility functions
  * @module test/utils/statsUtils.unit.test
  * @description Contains unit tests for statistics calculation and player stat updates using only node:test.
+ * 
+ * 7-23-25 100% Pass
  */
 
 import { describe, it, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-// Mocked dependencies
-const mockLogger = {
-  info: mock.fn(),
-  warn: mock.fn(),
-  error: mock.fn(),
-};
+// Import the actual PhaseLogicError from the source
+import { PhaseLogicError } from '../../src/game/logic/validation-errors.js';
 
-class MockPhaseLogicError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'PhaseLogicError';
-  }
-}
+// Import the logger to mock its methods
+import { logger } from '../../src/utils/logger.js';
 
-const mockTEAMS = {
-  TEAM_NS: 'NS',
-  TEAM_EW: 'EW',
-};
+// Import the actual TEAMS constant
+import { TEAMS } from '../../src/config/constants.js';
 
-// Mock the dependencies of statsUtils.js
-mock.module('../../src/game/logic/errors.js', () => ({
-  PhaseLogicError: MockPhaseLogicError,
-}));
-mock.module('../../src/utils/logger.js', () => ({
-  logger: mockLogger,
-}));
-mock.module('../../src/config/constants.js', () => ({
-  TEAMS: mockTEAMS,
-}));
+// Mock the logger methods individually
+mock.method(logger, 'info', () => {});
+mock.method(logger, 'warn', () => {});
+mock.method(logger, 'error', () => {});
 
-// Dynamically import the module under test after mocks are set up
+// Import the module under test after mocks are set up
 const { calculateHandStats, updatePlayerStats } = await import(
   '../../src/utils/statsUtils.js'
 );
 
 describe('statsUtils', () => {
-  beforeEach(() => {
-    // Reset mocks before each test
-    mock.reset();
-  });
-
   describe('calculateHandStats(completedGameState)', () => {
     it('should calculate stats correctly for a maker team winning 5 tricks (alone)', () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_NS,
+        makerTeam: TEAMS.TEAM_NS,
         makerPlayerRole: 'south',
-        tricksTaken: { [mockTEAMS.TEAM_NS]: 5, [mockTEAMS.TEAM_EW]: 0 },
+        tricksTaken: { [TEAMS.TEAM_NS]: 5, [TEAMS.TEAM_EW]: 0 },
         players: [
-          { role: 'south', team: mockTEAMS.TEAM_NS, hand: [] },
-          { role: 'west', team: mockTEAMS.TEAM_EW, hand: ['card1'] },
-          { role: 'north', team: mockTEAMS.TEAM_NS, hand: [] },
-          { role: 'east', team: mockTEAMS.TEAM_EW, hand: ['card2'] },
+          { role: 'south', team: TEAMS.TEAM_NS, hand: [] },
+          { role: 'west', team: TEAMS.TEAM_EW, hand: ['card1'] },
+          { role: 'north', team: TEAMS.TEAM_NS, hand: [] },
+          { role: 'east', team: TEAMS.TEAM_EW, hand: ['card2'] },
         ],
       };
       const result = calculateHandStats(gameState);
       assert.deepStrictEqual(result, {
-        scoringTeam: mockTEAMS.TEAM_NS,
+        scoringTeam: TEAMS.TEAM_NS,
         pointsScored: 4,
         wasEuchre: false,
         wentAlone: true,
@@ -73,19 +54,19 @@ describe('statsUtils', () => {
 
     it('should calculate stats correctly for a maker team winning 5 tricks (not alone)', () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_NS,
+        makerTeam: TEAMS.TEAM_NS,
         makerPlayerRole: 'south',
-        tricksTaken: { [mockTEAMS.TEAM_NS]: 5, [mockTEAMS.TEAM_EW]: 0 },
+        tricksTaken: { [TEAMS.TEAM_NS]: 5, [TEAMS.TEAM_EW]: 0 },
         players: [
-          { role: 'south', team: mockTEAMS.TEAM_NS, hand: ['card1'] },
-          { role: 'west', team: mockTEAMS.TEAM_EW, hand: ['card2'] },
-          { role: 'north', team: mockTEAMS.TEAM_NS, hand: ['card3'] },
-          { role: 'east', team: mockTEAMS.TEAM_EW, hand: ['card4'] },
+          { role: 'south', team: TEAMS.TEAM_NS, hand: ['card1'] },
+          { role: 'west', team: TEAMS.TEAM_EW, hand: ['card2'] },
+          { role: 'north', team: TEAMS.TEAM_NS, hand: ['card3'] },
+          { role: 'east', team: TEAMS.TEAM_EW, hand: ['card4'] },
         ],
       };
       const result = calculateHandStats(gameState);
       assert.deepStrictEqual(result, {
-        scoringTeam: mockTEAMS.TEAM_NS,
+        scoringTeam: TEAMS.TEAM_NS,
         pointsScored: 2,
         wasEuchre: false,
         wentAlone: false,
@@ -94,19 +75,19 @@ describe('statsUtils', () => {
 
     it('should calculate stats correctly for a maker team winning 3 tricks', () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_NS,
+        makerTeam: TEAMS.TEAM_NS,
         makerPlayerRole: 'south',
-        tricksTaken: { [mockTEAMS.TEAM_NS]: 3, [mockTEAMS.TEAM_EW]: 2 },
+        tricksTaken: { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: 2 },
         players: [
-          { role: 'south', team: mockTEAMS.TEAM_NS, hand: ['card1'] },
-          { role: 'west', team: mockTEAMS.TEAM_EW, hand: ['card2'] },
-          { role: 'north', team: mockTEAMS.TEAM_NS, hand: ['card3'] },
-          { role: 'east', team: mockTEAMS.TEAM_EW, hand: ['card4'] },
+          { role: 'south', team: TEAMS.TEAM_NS, hand: ['card1'] },
+          { role: 'west', team: TEAMS.TEAM_EW, hand: ['card2'] },
+          { role: 'north', team: TEAMS.TEAM_NS, hand: ['card3'] },
+          { role: 'east', team: TEAMS.TEAM_EW, hand: ['card4'] },
         ],
       };
       const result = calculateHandStats(gameState);
       assert.deepStrictEqual(result, {
-        scoringTeam: mockTEAMS.TEAM_NS,
+        scoringTeam: TEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -115,19 +96,19 @@ describe('statsUtils', () => {
 
     it('should calculate stats correctly for a euchre (maker team wins less than 3 tricks)', () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_NS,
+        makerTeam: TEAMS.TEAM_NS,
         makerPlayerRole: 'south',
-        tricksTaken: { [mockTEAMS.TEAM_NS]: 2, [mockTEAMS.TEAM_EW]: 3 },
+        tricksTaken: { [TEAMS.TEAM_NS]: 2, [TEAMS.TEAM_EW]: 3 },
         players: [
-          { role: 'south', team: mockTEAMS.TEAM_NS, hand: ['card1'] },
-          { role: 'west', team: mockTEAMS.TEAM_EW, hand: ['card2'] },
-          { role: 'north', team: mockTEAMS.TEAM_NS, hand: ['card3'] },
-          { role: 'east', team: mockTEAMS.TEAM_EW, hand: ['card4'] },
+          { role: 'south', team: TEAMS.TEAM_NS, hand: ['card1'] },
+          { role: 'west', team: TEAMS.TEAM_EW, hand: ['card2'] },
+          { role: 'north', team: TEAMS.TEAM_NS, hand: ['card3'] },
+          { role: 'east', team: TEAMS.TEAM_EW, hand: ['card4'] },
         ],
       };
       const result = calculateHandStats(gameState);
       assert.deepStrictEqual(result, {
-        scoringTeam: mockTEAMS.TEAM_EW,
+        scoringTeam: TEAMS.TEAM_EW,
         pointsScored: 2,
         wasEuchre: true,
         wentAlone: false,
@@ -138,7 +119,7 @@ describe('statsUtils', () => {
       assert.throws(
         () => calculateHandStats(null),
         (err) => {
-          assert(err instanceof MockPhaseLogicError);
+          assert(err instanceof PhaseLogicError);
           assert.strictEqual(
             err.message,
             'Invalid completedGameState provided for stats calculation.',
@@ -152,7 +133,7 @@ describe('statsUtils', () => {
       assert.throws(
         () => calculateHandStats('invalid'),
         (err) => {
-          assert(err instanceof MockPhaseLogicError);
+          assert(err instanceof PhaseLogicError);
           assert.strictEqual(
             err.message,
             'Invalid completedGameState provided for stats calculation.',
@@ -164,13 +145,13 @@ describe('statsUtils', () => {
 
     it('should throw PhaseLogicError if makerTeam is missing', () => {
       const gameState = {
-        tricksTaken: { [mockTEAMS.TEAM_NS]: 3, [mockTEAMS.TEAM_EW]: 2 },
+        tricksTaken: { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: 2 },
         players: {},
       };
       assert.throws(
         () => calculateHandStats(gameState),
         (err) => {
-          assert(err instanceof MockPhaseLogicError);
+          assert(err instanceof PhaseLogicError);
           assert.strictEqual(
             err.message,
             'Incomplete game state for stats calculation: missing makerTeam, tricksTaken, or players.',
@@ -182,14 +163,14 @@ describe('statsUtils', () => {
 
     it('should handle cases where tricksTaken for a team is undefined (treat as 0)', () => {
       const gameState = {
-        makerTeam: mockTEAMS.TEAM_NS,
+        makerTeam: TEAMS.TEAM_NS,
         makerPlayerRole: 'south',
-        tricksTaken: { [mockTEAMS.TEAM_NS]: 5 }, // TEAM_EW tricksTaken is undefined
+        tricksTaken: { [TEAMS.TEAM_NS]: 5 }, // TEAM_EW tricksTaken is undefined
         players: [
-          { role: 'south', team: mockTEAMS.TEAM_NS, hand: [] },
-          { role: 'west', team: mockTEAMS.TEAM_EW, hand: ['card1'] },
-          { role: 'north', team: mockTEAMS.TEAM_NS, hand: [] },
-          { role: 'east', team: mockTEAMS.TEAM_EW, hand: ['card2'] },
+          { role: 'south', team: TEAMS.TEAM_NS, hand: [] },
+          { role: 'west', team: TEAMS.TEAM_EW, hand: ['card1'] },
+          { role: 'north', team: TEAMS.TEAM_NS, hand: [] },
+          { role: 'east', team: TEAMS.TEAM_EW, hand: ['card2'] },
         ],
       };
       const result = calculateHandStats(gameState);
@@ -210,7 +191,7 @@ describe('statsUtils', () => {
 
     it('should initialize stats if currentStats is empty or undefined', () => {
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_NS,
+        scoringTeam: TEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -218,7 +199,7 @@ describe('statsUtils', () => {
       const updatedStats = updatePlayerStats(
         undefined,
         handResult,
-        mockTEAMS.TEAM_NS,
+        TEAMS.TEAM_NS,
       );
       assert.strictEqual(updatedStats.handsPlayed, 1);
       assert.strictEqual(updatedStats.handsWon, 1);
@@ -229,7 +210,7 @@ describe('statsUtils', () => {
     it('should increment handsPlayed for any hand', () => {
       const current = { ...defaultStats, handsPlayed: 5 };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_NS,
+        scoringTeam: TEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -237,7 +218,7 @@ describe('statsUtils', () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_EW,
+        TEAMS.TEAM_EW,
       );
       assert.strictEqual(updatedStats.handsPlayed, 6);
     });
@@ -245,7 +226,7 @@ describe('statsUtils', () => {
     it('should update stats correctly when playerTeam wins a hand (went alone)', () => {
       const current = { ...defaultStats };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_NS,
+        scoringTeam: TEAMS.TEAM_NS,
         pointsScored: 4,
         wasEuchre: false,
         wentAlone: true,
@@ -253,7 +234,7 @@ describe('statsUtils', () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_NS,
+        TEAMS.TEAM_NS,
       );
       assert.strictEqual(updatedStats.handsPlayed, 1);
       assert.strictEqual(updatedStats.handsWon, 1);
@@ -265,7 +246,7 @@ describe('statsUtils', () => {
     it('should update stats correctly when playerTeam is euchred', () => {
       const current = { ...defaultStats };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_EW,
+        scoringTeam: TEAMS.TEAM_EW,
         pointsScored: 2,
         wasEuchre: true,
         wentAlone: false,
@@ -273,7 +254,7 @@ describe('statsUtils', () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_NS,
+        TEAMS.TEAM_NS,
       );
       assert.strictEqual(updatedStats.handsPlayed, 1);
       assert.strictEqual(updatedStats.handsWon, 0);
@@ -282,21 +263,34 @@ describe('statsUtils', () => {
     });
 
     it('should handle malformed handResult by logging a warning and returning current stats (with handsPlayed incremented)', () => {
+      // Reset the mock before the test
+      mock.restoreAll();
+      const warnSpy = mock.method(logger, 'warn', () => {});
+      
       const current = { ...defaultStats, handsPlayed: 5 };
-      const updatedStats = updatePlayerStats(current, null, mockTEAMS.TEAM_NS);
+      const updatedStats = updatePlayerStats(current, null, TEAMS.TEAM_NS);
+      
       assert.strictEqual(updatedStats.handsPlayed, 6);
       assert.strictEqual(updatedStats.handsWon, 0);
-      assert.strictEqual(mockLogger.warn.mock.callCount(), 1);
-      assert.match(
-        mockLogger.warn.mock.calls[0].arguments[0],
-        /Invalid handResult provided to updatePlayerStats/,
-      );
+      
+      // Check that logger.warn was called once
+      assert.strictEqual(warnSpy.mock.calls.length, 1);
+      
+      // Check the warning message
+      const warnMessage = warnSpy.mock.calls[0].arguments[0];
+      assert.match(warnMessage, /Invalid handResult provided to updatePlayerStats/);
+      
+      // Restore the original mock
+      mock.restoreAll();
+      mock.method(logger, 'info', () => {});
+      mock.method(logger, 'warn', () => {});
+      mock.method(logger, 'error', () => {});
     });
 
     it('should return a new object, not mutate the input currentStats', () => {
       const current = { ...defaultStats, handsPlayed: 5 };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_NS,
+        scoringTeam: TEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -304,7 +298,7 @@ describe('statsUtils', () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_NS,
+        TEAMS.TEAM_NS,
       );
       assert.notStrictEqual(updatedStats, current);
       assert.strictEqual(current.handsPlayed, 5);
@@ -313,7 +307,7 @@ describe('statsUtils', () => {
     it('should correctly merge existing stats with default schema', () => {
       const current = { handsPlayed: 10, customStat: 'abc' };
       const handResult = {
-        scoringTeam: mockTEAMS.TEAM_NS,
+        scoringTeam: TEAMS.TEAM_NS,
         pointsScored: 1,
         wasEuchre: false,
         wentAlone: false,
@@ -321,7 +315,7 @@ describe('statsUtils', () => {
       const updatedStats = updatePlayerStats(
         current,
         handResult,
-        mockTEAMS.TEAM_NS,
+        TEAMS.TEAM_NS,
       );
       assert.strictEqual(updatedStats.handsPlayed, 11);
       assert.strictEqual(updatedStats.handsWon, 1);

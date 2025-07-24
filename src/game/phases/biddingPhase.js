@@ -6,16 +6,16 @@
  * Handles order up decisions, dealer discards, and trump calling in a stateless manner.
  * 
  * @see {@link module:src/game/phases} for other game phase implementations
- * @see {@link module:src/game/logic/validation} for validation logic
+ * @see {@link module:src/game/logic/validation-core} for validation logic
  * @see {@link module:test/game/phases/biddingPhase.unit.test.js} for test coverage
  */
 
 import logger from "../../utils/logger.js";
-import { GAME_PHASES, PLAYER_ROLES, CARD_SUITS, CARD_VALUES } from "../../config/constants.js";
+import { GAME_PHASES, PLAYER_ROLES, CARD_SUITS, CARD_VALUES, TEAMS } from "../../config/constants.js";
 import { getNextPlayer } from "../../utils/players.js";
-import { cardToId } from "../../utils/deck.js";
+import { cardToId } from "../../utils/cardUtils.js";
 import { validateBid, validateDealerDiscard } from "../logic/validation-core.js";
-import { PhaseLogicError, CardNotInHandError } from "../logic/validation-errors.js";
+import { PhaseLogicError, CardNotInHandError, InvalidPhaseError, InvalidBidError } from "../logic/validation-errors.js";
 
 /**
  * @typedef {Object} Card
@@ -30,14 +30,14 @@ import { PhaseLogicError, CardNotInHandError } from "../logic/validation-errors.
  * @typedef {Object} PlayerData
  * @property {string} name - Display name of the player
  * @property {Card[]} hand - Array of cards in the player's hand
- * @property {string} teamId - The team this player belongs to (e.g., 'TEAM_NS', 'TEAM_EW')
+ * @property {keyof typeof TEAMS} teamId - The team this player belongs to (e.g., 'TEAM_NS', 'TEAM_EW')
  */
 
 /**
  * @typedef {Object} GameState
  * @property {string} gameId - Unique identifier for the game session
  * @property {keyof typeof GAME_PHASES} gamePhase - Current phase of the game
- * @property {Object<keyof typeof PLAYER_ROLES, PlayerData>} players - Map of player roles to player data
+ * @property {Object.<keyof typeof PLAYER_ROLES, PlayerData>} players - Map of player roles to player data
  * @property {Card|null} turnCard - The face-up card for the current round
  * @property {keyof typeof PLAYER_ROLES} dealer - Role of the current dealer
  * @property {keyof typeof PLAYER_ROLES} currentPlayer - Role of the player whose turn it is
@@ -45,7 +45,7 @@ import { PhaseLogicError, CardNotInHandError } from "../logic/validation-errors.
  * @property {keyof typeof CARD_SUITS|null} trumpSuit - Currently declared trump suit (if any)
  * @property {keyof typeof PLAYER_ROLES|null} playerWhoOrderedUp - Player who ordered up (round 1)
  * @property {keyof typeof PLAYER_ROLES|null} playerWhoCalledTrump - Player who called trump (round 2)
- * @property {string|null} makerTeam - Team that declared trump (e.g., 'TEAM_NS', 'TEAM_EW')
+ * @property {keyof typeof TEAMS|null} makerTeam - Team that declared trump (e.g., 'TEAM_NS', 'TEAM_EW')
  * @property {number} roundNumber - Current bidding round (1 or 2)
  * @property {Array<GameMessage>} gameMessages - Log of game events and messages
  */
@@ -84,9 +84,11 @@ import { PhaseLogicError, CardNotInHandError } from "../logic/validation-errors.
  * @throws {import('../logic/validation-core.js').InvalidPhaseError} If called in wrong phase
  * @throws {PhaseLogicError} For internal logic errors (e.g., missing turn card)
  * 
- * @see {@link module:src/game/logic/validation.validateBid} For bid validation logic
+ * @see {@link module:src/game/logic/validation-core.validateBid} For bid validation logic
  * @see {@link module:test/game/phases/biddingPhase.unit.test.js} For test coverage
  * @see {@link module:src/socket/handlers/biddingHandlers} For WebSocket integration
+ * @see {@link module:src/utils/players.getNextPlayer} For determining the next player
+ * @see {@link module:src/utils/deck.cardToId} For converting card objects to IDs for messages
  * 
  * @example
  * // Order up the dealer
@@ -102,7 +104,7 @@ function handleOrderUpDecision(currentGameState, playerRole, wantsToOrderUp) {
   );
 
   // Perform bid validation first
-  validateBid(
+  this.validateBid(
     currentGameState,
     playerRole,
     wantsToOrderUp ? "orderUp" : "pass",
@@ -217,9 +219,10 @@ function handleOrderUpDecision(currentGameState, playerRole, wantsToOrderUp) {
  * @throws {CardNotInHandError} If the specified card is not in the dealer's hand
  * @throws {PhaseLogicError} For internal logic errors (e.g., invalid game phase)
  * 
- * @see {@link module:src/game/logic/validation.validateDealerDiscard} For discard validation logic
+ * @see {@link module:src/game/logic/validation-core.validateDealerDiscard} For discard validation logic
  * @see {@link module:test/game/phases/biddingPhase.unit.test.js} For test coverage
  * @see {@link module:src/socket/handlers/biddingHandlers} For WebSocket integration
+ * @see {@link module:src/utils/deck.cardToId} For converting card objects to IDs for messages
  * 
  * @example
  * // Dealer discards a card
@@ -348,9 +351,10 @@ function handleDealerDiscard(currentGameState, dealerRole, cardToDiscardId) {
  * @throws {import('../logic/validation-core.js').InvalidPhaseError} If called in wrong phase
  * @throws {PhaseLogicError} For internal logic errors (e.g., missing team assignment)
  * 
- * @see {@link module:src/game/logic/validation.validateBid} For bid validation logic
+ * @see {@link module:src/game/logic/validation-core.validateBid} For bid validation logic
  * @see {@link module:test/game/phases/biddingPhase.unit.test.js} For test coverage
  * @see {@link module:src/socket/handlers/biddingHandlers} For WebSocket integration
+ * @see {@link module:src/utils/players.getNextPlayer} For determining the next player
  * 
  * @example
  * // Call hearts as trump
@@ -372,9 +376,32 @@ function handleCallTrumpDecision(currentGameState, playerRole, wantsToCall, suit
     "Handling call trump decision.",
   );
 
-  // Perform bid validation first
+  // Ensure we're in the correct phase for call trump
+  if (currentGameState.gamePhase !== GAME_PHASES.ORDER_UP_ROUND2) {
+    throw new InvalidPhaseError(
+      'callTrump decision',
+      currentGameState.gamePhase,
+      [GAME_PHASES.ORDER_UP_ROUND2]
+    );
+  }
+
+  // Validate player has a team
+  const player = currentGameState.players[playerRole];
+  if (!player || (!player.teamId && !player.team)) {
+    const error = new InvalidBidError(
+      `Could not determine team for player ${playerRole}.`,
+      'E_INVALID_BID'
+    );
+    logger.error(
+      { gameId: currentGameState.gameId, playerRole, error },
+      "Player has no team assigned"
+    );
+    throw error;
+  }
+
+  // Perform bid validation
   // suitCalled can be null if wantsToCall is false (passing)
-  validateBid(
+  this.validateBid(
     currentGameState,
     playerRole,
     wantsToCall ? "callTrump" : "pass",
@@ -397,14 +424,37 @@ function handleCallTrumpDecision(currentGameState, playerRole, wantsToCall, suit
   if (wantsToCall) {
     // suitCalled validity (is a valid suit, not the turned-down one) is now handled by validateBid.
     messageText += `called ${suitCalled} as trump.`;
-    const makerTeam = currentGameState.players[playerRole]?.teamId;
+    const player = currentGameState.players[playerRole];
+    // Check both team and teamId properties for compatibility
+    const makerTeam = player?.teamId || player?.team;
+    
+    // Debug logging to help diagnose issues
+    logger.debug(
+      { 
+        gameId: currentGameState.gameId, 
+        playerRole, 
+        player: player ? JSON.stringify(player) : 'undefined',
+        allPlayers: JSON.stringify(Object.keys(currentGameState.players).map(k => ({
+          role: k,
+          teamId: currentGameState.players[k]?.teamId,
+          name: currentGameState.players[k]?.name
+        })))
+      },
+      "Debugging team resolution in handleCallTrumpDecision"
+    );
+    
     if (!makerTeam) {
       logger.error(
-        { gameId: currentGameState.gameId, playerRole },
+        { 
+          gameId: currentGameState.gameId, 
+          playerRole,
+          player: player || 'undefined',
+          allPlayerRoles: Object.keys(currentGameState.players)
+        },
         "Could not determine team for calling player in handleCallTrumpDecision.",
       );
       throw new PhaseLogicError(
-        "Player team could not be determined for calling trump.",
+        `Player team could not be determined for ${playerRole}. Player object: ${JSON.stringify(player)}`,
       );
     }
     logger.info(
@@ -429,15 +479,12 @@ function handleCallTrumpDecision(currentGameState, playerRole, wantsToCall, suit
     messageText += "passed.";
     const nextBidder = getNextPlayer(playerRole, PLAYER_ROLES);
 
-    // Dealer passing is the only condition that might end the round (misdeal)
-    // "Stick the dealer" is handled by validateBid, preventing dealer from passing if necessary.
     if (playerRole === currentGameState.dealer) {
-      // If validateBid allowed dealer to pass, it means it wasn't a "stick the dealer" scenario.
-      // This implies all players (including dealer) have passed in round 2.
+      // If we reach here, all players including dealer have passed in round 2
       messageText += " All players passed in round 2. Misdeal.";
       logger.info(
         { gameId: currentGameState.gameId },
-        "All passed in call trump round (including dealer). Misdeal.",
+        "All players passed in call trump round. Misdeal.",
       );
       changes = {
         gamePhase: GAME_PHASES.DEALING,
@@ -450,6 +497,7 @@ function handleCallTrumpDecision(currentGameState, playerRole, wantsToCall, suit
         makerTeam: null,
       };
     } else {
+      // Move to next bidder
       logger.info(
         { gameId: currentGameState.gameId, nextBidder },
         `Player passed in round 2, next bidder is ${nextBidder}.`,

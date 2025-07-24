@@ -1,20 +1,30 @@
 /**
- * Socket event handlers for bidding-related game actions.
+ * Socket event handlers for bidding-related game actions in the Euchre game.
+ * Handles player decisions during the bidding phase including ordering up, passing,
+ * and dealer discarding.
+ *
  * @module socket/handlers/biddingHandlers
+ * @see {@link module:game/phases/biddingPhase} For core bidding phase logic
+ * @see {@link module:game/logic/validation-core} For validation of bids and discards
+ * @see {@link module:db/gameRepository} For game state persistence
+ * @see {@link module:config/constants} For game events and phases constants
+ * @see {@link module:utils/players} For player role and partner utilities
+ * @see {@link module:utils/logger} For application logging
  */
-import logger from "../../utils/logger.js";
+
+import { GAME_EVENTS, GAME_PHASES } from '../../config/constants.js';
+import { gameRepository } from '../../db/gameRepository.js';
+import {
+  isValidBid,
+  isValidDealerDiscard,
+} from '../../game/logic/validation-core.js';
 import {
   handleOrderUpDecision,
   handleDealerDiscard,
   handleCallTrumpDecision,
-} from "../../game/phases/biddingPhase.js";
-import {
-  isValidBid,
-  isValidDealerDiscard,
-} from "../../game/logic/validation.js";
-import { getRoleBySocketId } from "../../utils/players.js";
-import { gameRepository } from "../../db/gameRepository.js";
-import { GAME_EVENTS, GAME_PHASES } from "../../config/constants.js";
+} from '../../game/phases/biddingPhase.js';
+import { getRoleBySocketId } from '../../utils/players.js';
+import logger from '../../utils/logger.js';
 
 export function registerBiddingHandlers(socket, io) {
   socket.on(GAME_EVENTS.ACTION_ORDER_UP_DECISION, async (data, ack) => {

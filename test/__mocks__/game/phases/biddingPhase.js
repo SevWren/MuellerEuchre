@@ -16,6 +16,9 @@ export function createBiddingPhaseWithDeps(deps = {}) {
   const validateBid = deps.validateBid || mock.fn(() => true);
   // Mock for handleOrderUpDecision
   const mockHandleOrderUpDecision = mock.fn((gameState, playerRole, wantsToOrderUp) => {
+    // Call validateBid first, as the real implementation would
+    validateBid(gameState, playerRole, wantsToOrderUp ? 'orderUp' : 'pass', null);
+    
     // Create a deep copy of the game state to avoid mutating the original
     const newState = JSON.parse(JSON.stringify(gameState));
     

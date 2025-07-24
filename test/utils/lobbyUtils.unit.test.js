@@ -6,19 +6,14 @@
  *   - Player role assignment (assignRoleToPlayer)
  *   - Lobby status checks (isLobbyFull)
  *   - Available role detection (getNextAvailableRole)
- *
+ * 7-24-25 All Pass
+ * 
  * @see {@link module:src/utils/lobbyUtils} for the implementation being tested
  * @see src/utils/lobbyUtils.js
  * @see src/utils/players.js
  * @see src/config/constants.js
  * @since 1.0.0
  */
-
-// JSDoc Type Definitions for the test file
-// These types are defined here because this file is a primary consumer and
-// needs to understand the structure of the game state and players.
-// This aligns with "2. Defining Complex Objects with In-Place @typedef" and
-// "4. Creating Types from Constants (@typedef, keyof typeof)" from jsdoc.md.
 
 /**
  * @typedef {import('../src/config/constants.js').PLAYER_POSITIONS} PLAYER_POSITIONS_CONST
@@ -124,6 +119,310 @@ describe('Lobby Utility Functions', () => {
    * @see src/utils/lobbyUtils.js#assignRoleToPlayer
    */
   describe('assignRoleToPlayer', () => {
+    it('should initialize a completely new player with all properties', () => {
+      const userId = 'brandNewUser';
+      const playerName = 'BrandNew';
+      const socketId = 'newSocket1';
+      const role = PLAYER_POSITIONS.PLAYER_SOUTH;
+      
+      // Create a game state with no existing players
+      const emptyGameState = {
+        ...baseGameState,
+        players: {}
+      };
+      
+      const updatedState = assignRoleToPlayer(emptyGameState, role, userId, playerName, socketId);
+      const player = updatedState.players[role];
+      
+      // Verify all properties are initialized
+      assert.strictEqual(player.id, userId);
+      assert.strictEqual(player.name, playerName);
+      assert.strictEqual(player.socketId, socketId);
+      assert.strictEqual(player.isConnected, true);
+      assert.strictEqual(player.isActive, true);
+      assert.strictEqual(player.role, role);
+      assert.strictEqual(player.teamId, TEAMS.TEAM_NS); // First role should be on TEAM_NS
+      assert.strictEqual(player.tricksWonThisHand, 0);
+      assert.strictEqual(player.score, 0);
+    });
+    
+    it('should handle teams with undefined players array', () => {
+      const userId = 'user1';
+      const playerName = 'TestPlayer';
+      const socketId = 'socket1';
+      const role = PLAYER_POSITIONS.PLAYER_SOUTH;
+      
+      // Create a game state with teams that don't have players arrays
+      const testGameState = {
+        ...baseGameState,
+        teams: {
+          [TEAMS.TEAM_NS]: { score: 0 },
+          [TEAMS.TEAM_EW]: { score: 0 }
+        }
+      };
+      
+      let updatedState = assignRoleToPlayer(testGameState, role, userId, playerName, socketId);
+      
+      // Verify the team's players array was created and contains the role
+      assert(Array.isArray(updatedState.teams[TEAMS.TEAM_NS].players));
+      assert(updatedState.teams[TEAMS.TEAM_NS].players.includes(role));
+      
+      // Test with a team that has no players array
+      const testGameState2 = {
+        ...baseGameState,
+        teams: {
+          [TEAMS.TEAM_NS]: { score: 0 },
+          [TEAMS.TEAM_EW]: { score: 0 }
+        }
+      };
+      
+      // Remove the players array from the team
+      delete testGameState2.teams[TEAMS.TEAM_NS].players;
+      
+      updatedState = assignRoleToPlayer(testGameState2, role, userId, playerName, socketId);
+      
+      // Verify the team's players array was created and contains the role
+      assert(Array.isArray(updatedState.teams[TEAMS.TEAM_NS].players));
+      assert(updatedState.teams[TEAMS.TEAM_NS].players.includes(role));
+      
+      // Test case 1: Team exists but doesn't have a players array
+      const testGameState3 = {
+        ...baseGameState,
+        teams: {
+          [TEAMS.TEAM_NS]: { score: 0 }, // Team exists but no players array
+          [TEAMS.TEAM_EW]: { score: 0, players: [] }
+        },
+        players: {
+          ...baseGameState.players,
+          [role]: {
+            ...baseGameState.players[role],
+            teamId: TEAMS.TEAM_NS,
+            isConnected: false,
+            isActive: false
+          }
+        }
+      };
+      
+      // This will test the branch where the team exists but doesn't have a players array
+      updatedState = assignRoleToPlayer(testGameState3, role, userId, playerName, socketId);
+      
+      // Verify the team now has a players array with the role
+      assert(Array.isArray(updatedState.teams[TEAMS.TEAM_NS].players));
+      assert(updatedState.teams[TEAMS.TEAM_NS].players.includes(role));
+      
+      // Verify the player's connection status was updated
+      assert.strictEqual(updatedState.players[role].isConnected, true);
+      assert.strictEqual(updatedState.players[role].isActive, true);
+      
+      // Test case 2: Team doesn't exist in the teams object at all
+      // Use a role that's guaranteed to be on TEAM_NS
+      const roleToTest = 'PLAYER_SOUTH'; // This should be TEAM_NS
+      const expectedTeamId = TEAMS.TEAM_NS; // We know SOUTH is on TEAM_NS
+      
+      // Create a fresh base state to avoid any side effects from previous tests
+      const freshBaseState = {
+        ...baseGameState,
+        teams: {
+          // Only include the opposite team
+          [TEAMS.TEAM_EW]: { 
+            score: 0, 
+            players: [] 
+          }
+        },
+        players: {
+          ...baseGameState.players,
+          [roleToTest]: {
+            ...baseGameState.players[roleToTest],
+            teamId: expectedTeamId, // This team doesn't exist in the teams object
+            isConnected: false,
+            isActive: false
+          }
+        }
+      };
+      
+      // This will test the branch where the team doesn't exist in the teams object
+      updatedState = assignRoleToPlayer(freshBaseState, roleToTest, userId, playerName, socketId);
+      
+      // Verify the team was created with a players array containing the role
+      assert(updatedState.teams[expectedTeamId] !== undefined, `Team ${expectedTeamId} should be created`);
+      assert(Array.isArray(updatedState.teams[expectedTeamId].players), 'Team should have a players array');
+      assert(updatedState.teams[expectedTeamId].players.includes(roleToTest), 'Role should be added to team players');
+      
+      // Verify the player's connection status was updated
+      assert.strictEqual(updatedState.players[roleToTest].isConnected, true, 'Player should be connected');
+      assert.strictEqual(updatedState.players[roleToTest].isActive, true, 'Player should be active');
+      
+      // Test case 3: Team is completely missing from the teams object (not even an empty object)
+      // This specifically tests the case where the team doesn't exist in the teams object at all
+      const roleToTest2 = 'PLAYER_WEST'; // This should be TEAM_EW
+      const expectedTeamId2 = TEAMS.TEAM_EW; // We know WEST is on TEAM_EW
+      
+      // Create a fresh base state with no teams at all
+      const minimalBaseState = {
+        ...baseGameState,
+        teams: {}, // No teams defined at all
+        players: {
+          ...baseGameState.players,
+          [roleToTest2]: {
+            ...baseGameState.players[roleToTest2],
+            teamId: expectedTeamId2,
+            isConnected: false,
+            isActive: false
+          }
+        }
+      };
+      
+      // This will test the branch where the teams object is completely empty
+      const updatedState2 = assignRoleToPlayer(minimalBaseState, roleToTest2, userId, playerName, socketId);
+      
+      // Verify the team was created with a players array containing the role
+      assert(updatedState2.teams[expectedTeamId2] !== undefined, `Team ${expectedTeamId2} should be created`);
+      assert(Array.isArray(updatedState2.teams[expectedTeamId2].players), 'Team should have a players array');
+      assert(updatedState2.teams[expectedTeamId2].players.includes(roleToTest2), 'Role should be added to team players');
+      
+      // Verify the player's connection status was updated
+      assert.strictEqual(updatedState2.players[roleToTest2].isConnected, true, 'Player should be connected');
+      assert.strictEqual(updatedState2.players[roleToTest2].isActive, true, 'Player should be active');
+      
+      // Test case 4: Team object is undefined in the teams object
+      // This tests the specific case where the team key exists but its value is undefined
+      const roleToTest3 = 'PLAYER_NORTH'; // This should be TEAM_NS
+      const expectedTeamId3 = TEAMS.TEAM_NS; // We know NORTH is on TEAM_NS
+      
+      // Create a state where the team exists but is set to undefined
+      const undefinedTeamState = {
+        ...baseGameState,
+        teams: {
+          [TEAMS.TEAM_NS]: undefined, // Team exists but is undefined
+          [TEAMS.TEAM_EW]: { score: 0, players: [] }
+        },
+        players: {
+          ...baseGameState.players,
+          [roleToTest3]: {
+            ...baseGameState.players[roleToTest3],
+            teamId: expectedTeamId3,
+            isConnected: false,
+            isActive: false
+          }
+        }
+      };
+      
+      // This will test the branch where the team exists but is undefined
+      const updatedState3 = assignRoleToPlayer(undefinedTeamState, roleToTest3, userId, playerName, socketId);
+      
+      // Verify the team was properly initialized
+      assert(updatedState3.teams[expectedTeamId3] !== undefined, `Team ${expectedTeamId3} should exist`);
+      assert(updatedState3.teams[expectedTeamId3] !== null, `Team ${expectedTeamId3} should not be null`);
+      assert(Array.isArray(updatedState3.teams[expectedTeamId3].players), 'Team should have a players array');
+      assert(updatedState3.teams[expectedTeamId3].players.includes(roleToTest3), 'Role should be added to team players');
+      
+      // Verify the player's connection status was updated
+      assert.strictEqual(updatedState3.players[roleToTest3].isConnected, true, 'Player should be connected');
+      assert.strictEqual(updatedState3.players[roleToTest3].isActive, true, 'Player should be active');
+      
+      // Test case 5: Test the specific branch where a team doesn't have a players array
+      it('should handle case where team exists but has no players array', () => {
+        // This test directly tests the specific branch in assignRoleToPlayer where
+        // a team exists but doesn't have a players array
+        
+        // Create a copy of the original function
+        const originalFunction = assignRoleToPlayer;
+        
+        // Mock the function to test the specific branch
+        assignRoleToPlayer = function(gameState, role, userId, playerName, socketId) {
+          // Create a deep copy of the game state to avoid modifying the original
+          const stateCopy = JSON.parse(JSON.stringify(gameState));
+          
+          // Get the team ID for the role
+          const playerTeamId = PLAYER_ROLES.indexOf(role) % 2 === 0 ? TEAMS.TEAM_NS : TEAMS.TEAM_EW;
+          
+          // Ensure the team exists but doesn't have a players array
+          if (!stateCopy.teams[playerTeamId]) {
+            stateCopy.teams[playerTeamId] = { score: 0 };
+          } else if (stateCopy.teams[playerTeamId].players) {
+            delete stateCopy.teams[playerTeamId].players;
+          }
+          
+          // Call the original function with our modified state
+          return originalFunction(stateCopy, role, userId, playerName, socketId);
+        };
+        
+        try {
+          // Test with a role that should go to TEAM_EW
+          const roleToTest = 'PLAYER_EAST';
+          const teamId = TEAMS.TEAM_EW;
+          
+          // Create a test state
+          const testState = {
+            ...baseGameState,
+            teams: {
+              [TEAMS.TEAM_NS]: { score: 0, players: [] },
+              [TEAMS.TEAM_EW]: { score: 0 } // No players array
+            },
+            players: {
+              ...baseGameState.players,
+              [roleToTest]: {
+                ...baseGameState.players[roleToTest],
+                teamId: teamId,
+                isConnected: false,
+                isActive: false
+              }
+            }
+          };
+          
+          // Call the function
+          const result = assignRoleToPlayer(testState, roleToTest, userId, 'Test Player', 'socket-123');
+          
+          // Verify the team now has a players array with the role
+          assert(Array.isArray(result.teams[teamId].players), 'Team should have a players array');
+          assert(result.teams[teamId].players.includes(roleToTest), 'Role should be added to team players');
+          
+          // Verify the player's connection status was updated
+          assert.strictEqual(result.players[roleToTest].isConnected, true, 'Player should be connected');
+          assert.strictEqual(result.players[roleToTest].isActive, true, 'Player should be active');
+          
+        } finally {
+          // Restore the original function
+          assignRoleToPlayer = originalFunction;
+        }
+      });
+      
+      // Test case 6: Team object is missing entirely from the teams object
+      // This tests the specific case where the team key doesn't exist in the teams object at all
+      const roleToTest5 = 'PLAYER_SOUTH'; // This should be TEAM_NS
+      const expectedTeamId5 = TEAMS.TEAM_NS; // We know SOUTH is on TEAM_NS
+      
+      // Create a state where the team is missing completely (not even set to undefined)
+      const missingTeamState = {
+        ...baseGameState,
+        teams: {
+          // TEAM_NS is completely missing
+          [TEAMS.TEAM_EW]: { score: 0, players: [] } // Only TEAM_EW is defined
+        },
+        players: {
+          ...baseGameState.players,
+          [roleToTest5]: {
+            ...baseGameState.players[roleToTest5],
+            teamId: expectedTeamId5,
+            isConnected: false,
+            isActive: false
+          }
+        }
+      };
+      
+      // This will test the branch where the team is completely missing from the teams object
+      const updatedState5 = assignRoleToPlayer(missingTeamState, roleToTest5, userId, playerName, socketId);
+      
+      // Verify the team was properly created and initialized
+      assert(updatedState5.teams[expectedTeamId5] !== undefined, `Team ${expectedTeamId5} should be created`);
+      assert(Array.isArray(updatedState5.teams[expectedTeamId5].players), 'Team should have a players array');
+      assert(updatedState5.teams[expectedTeamId5].players.includes(roleToTest5), 'Role should be added to team players');
+      
+      // Verify the player's connection status was updated
+      assert.strictEqual(updatedState5.players[roleToTest5].isConnected, true, 'Player should be connected');
+      assert.strictEqual(updatedState5.players[roleToTest5].isActive, true, 'Player should be active');
+    });
+    
     it('should assign a role to a new player with initial properties', () => {
       const userId = 'user1';
       const playerName = 'Alice';

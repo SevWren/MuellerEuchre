@@ -2,6 +2,11 @@
 
 This guide provides a systematic, in-depth approach to debugging the MuellerEuchre codebase. It is tailored to the project's specific architecture, tools, and common challenges. Adhering to these principles is critical for maintaining code quality and ensuring the stability of the game's logic.
 
+# Quick Initial Steps
+
+1. Analyze entire file for naming conflicts.
+2. mocking with mock.method() or direct assignment is causing "Cannot redefine property" TypeErrors due to ES module exports being read-only.
+3. List issues that stem from ES modules being read-only.  List appoaches that use a factory pattern with dependency injection.
 ## 1. The Golden Rules of Debugging in This Repo
 
 These are non-negotiable principles derived from the project's architecture. Violating them will lead to cascading failures and technical debt.

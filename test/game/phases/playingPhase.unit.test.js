@@ -10,6 +10,7 @@
  * - Trick winner determination
  * - Game state management during the playing phase
  * - 7-22-25 100% Tests Pass 
+ * - 7-23 Need to improve coverage. Currently at 73%
  * 
  * @see {@link src/game/phases/playingPhase.js} - Implementation being tested
  * @see {@link test/game/phases/determineTrickWinner.test.js} - Related test file

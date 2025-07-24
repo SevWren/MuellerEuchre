@@ -17,8 +17,6 @@ import {
   GAME_PHASES,
 } from '../../src/config/constants.js';
 
-// --- JSDoc Type Definitions ---
-
 /**
  * A type representing one of the valid player role strings.
  * This is created directly from the keys of the PLAYER_POSITIONS constant object.
@@ -116,11 +114,13 @@ function createTestContext() {
   });
 
   return {
-    /**
-     * Tracks a mock within this context for automatic reset.
-     * @param {Function} mockFn - The mock function to track.
-     * @returns {Function} The tracked mock function.
-     */
+
+/**
+ * Tracks a mock within this context for automatic reset.
+ * @param {Function} mockFn - The mock function to track.
+ * @returns {Function} The tracked mock function.
+ */
+
     track: (mockFn) => {
       contextMocks.push(mockFn);
       return mockFn;
@@ -139,6 +139,7 @@ function createTestContext() {
  * Sets up the test environment with automatic cleanup for mocks and registered callbacks.
  * Should be called once per test file or in a global setup file.
  */
+
 function setupTestEnvironment() {
   beforeEach(() => {
     // Reset deterministic ID counter for each test
@@ -163,6 +164,7 @@ function setupTestEnvironment() {
  * @param {object} [options={}] - Configuration for the test state, passed to `setupTestState`.
  * @returns {{gameState: GameState, cleanup: Function}} An object containing the game state and a cleanup function.
  */
+
 function withTestState(options = {}) {
   const { gameState, playerHand } = setupTestState(options);
   // No explicit cleanup needed here as setupTestState returns a new object
@@ -171,15 +173,16 @@ function withTestState(options = {}) {
   return { gameState, playerHand, cleanup: () => {} };
 }
 
-
 // --- ID Generation for Deterministic Tests ---
 let testIdCounter = 0;
 const getTestId = (prefix = 'id') => `${prefix}-${testIdCounter++}`;
+
 /**
  * Resets the deterministic ID counter to 0.
  * @description IMPORTANT: This should be called in a global `beforeEach` hook
  * in your test setup to ensure test isolation and prevent test order dependency.
  */
+
 const resetTestIdCounter = () => { testIdCounter = 0; };
 
 // --- Card and Deck Creation ---
@@ -192,6 +195,7 @@ const cardMap = new Map(fullDeck.map(c => [c.id, c]));
  * @param {string} value - Card value from VALUES constants.
  * @returns {Card} A complete card object.
  */
+
 function createMockCard(suit, value) {
   if (!Object.values(SUITS).includes(suit) || !VALUES.includes(value)) {
     throw new Error(`Invalid card created: ${value} of ${suit}`);
@@ -209,6 +213,7 @@ function createMockCard(suit, value) {
  * @param {string} cardIdString - e.g., "AS,kd,9c,JH"
  * @returns {Card[]} An array of card objects.
  */
+
 function createCards(cardIdString) {
     if (typeof cardIdString !== 'string') throw new TypeError('cardIdString must be a string.');
     const ids = cardIdString.split(',').map(id => id.trim().toUpperCase());
@@ -222,6 +227,7 @@ function createCards(cardIdString) {
  * @param {string} cardId - The case-insensitive ID of the card (e.g., "AS", "kd").
  * @returns {Card} The corresponding card object.
  */
+
 function getCard(cardId) {
     const card = cardMap.get(cardId.toUpperCase());
     if (!card) throw new Error(`Card with ID "${cardId}" not found in standard deck.`);
@@ -232,6 +238,7 @@ function getCard(cardId) {
  * Creates a standard, ordered 24-card Euchre deck. Deterministic.
  * @returns {Card[]} An array of 24 card objects.
  */
+
 function createDeck() {
   const deck = [];
   const canonicalSuits = Object.values(SUITS).filter((s) => s.startsWith('CARD_SUIT_'));
@@ -250,6 +257,7 @@ function createDeck() {
  * @param {number} [seed=12345] - The seed for the PRNG to ensure repeatable shuffles.
  * @returns {Card[]} A new, predictably shuffled array of cards.
  */
+
 function shuffleDeterministic(deck, seed = 12345) {
     const newDeck = [...deck];
     let m = newDeck.length, t, i;
@@ -266,7 +274,9 @@ function shuffleDeterministic(deck, seed = 12345) {
     return newDeck;
 }
 
-// --- Player and Game State Creation ---
+//#---------------------------------------#
+// --- Player and Game State Creation ----#
+//#---------------------------------------#
 
 /**
  * Creates a complete mock player object with a team automatically assigned.
@@ -309,6 +319,7 @@ function createBaseGameState(overrides = {}) {
  * @see test/game/logic/validation.unit.test.js - For examples of testing `validatePlay`.
  * @see test/game/phases/goAlonePhase.unit.test.js - For examples of setting up the `GOING_ALONE_DECISION` phase.
  */
+
 function setupTestState(options = {}) {
     const { phase = GAME_PHASES.ORDER_UP_ROUND1, dealer = APP_PLAYER_ROLES[0], enforceStateConsistency = true, handOverrides = {}, trickOverrides = [], stateOverrides = {} } = options;
     let state = createBaseGameState({ dealer });
@@ -382,6 +393,7 @@ function setupTestState(options = {}) {
  * @param {Partial<GameState>} [options.stateOverrides] - Raw overrides for the final game state.
  * @returns {GameState} A game state object in the SCORING phase.
  */
+
 function setupCompletedHandState(options) {
     const { makerTeam, tricksWonByMaker, goingAlone = false, stateOverrides = {} } = options;
     if (!makerTeam || tricksWonByMaker < 0 || tricksWonByMaker > 5) throw new Error("Invalid options for setupCompletedHandState.");
@@ -399,6 +411,7 @@ function setupCompletedHandState(options) {
  * @param {PlayerRole} [options.playerRole] - The role to associate with the socket ID. If not provided, it's looked up from the gameState.
  * @returns {{mockSocket: object, mockIo: object, mockGameRepository: object, playerRole: PlayerRole, gameState: GameState}} An object containing all necessary mocks.
  */
+
 function setupSocketTest(options = {}) {
     const gameState = options.gameState || createBaseGameState();
     const socketId = options.socketId || 'socket-p1';
@@ -420,6 +433,7 @@ function setupSocketTest(options = {}) {
 const PLAYER_ROLES = APP_PLAYER_ROLES;
 
 // ===== Exports =====
+
 /**
  * @typedef {object} GameState - The game state object.
  * @typedef {string} PlayerRole - A player role (e.g., 'north', 'south', etc.).

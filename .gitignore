@@ -126,6 +126,7 @@ digest.txt
 memory-bank/rules_improvement_plan.md
 
 #daily logs
+filetree.txt
 7_3_2025.txt
 7_5_2025.txt
 7_6_2025.txt
@@ -134,9 +135,7 @@ test_output3.txt
 docs/log_analysis_ESWrapper_Cause.txt
 docs/esmock_wrapper.unit.test_documentation.md
 docs/Reports/filetree.txt
-filetree.txt
 MIGRATION_GUIDE.md
-test-is-left-bower.js
 test.txt
 MuellerEuchre-Windsurf.code-workspace
 
@@ -157,3 +156,4 @@ docs/Daily_Logs/7_22_2025.txt
 .windsurf/Chat_Logs/Chat_Log.md
 .windsurf/Chat_Logs/Fixing Euchre Bidding Phase Tests.html
 .windsurf/Chat_Logs/Fixing Euchre Bidding Phase Tests.md
+For-Analysis/

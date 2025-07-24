@@ -1,17 +1,53 @@
 // filepath: src/utils/historyUtils.js
 
-import { logger } from "./logger.js"; // Assuming a logger utility exists here
+/**
+ * @file History utility functions for tracking game events and actions.
+ * @module utils/historyUtils
+ * @see {@link module:utils/logger} for logging functionality used by this module.
+ */
+
+import { logger } from "./logger.js";
+
+/**
+ * @typedef {Object} HistoryEntry
+ * @property {string} timestamp - ISO 8601 timestamp of when the entry was created
+ * @property {string} action - The type of action that occurred (e.g., 'PLAY_CARD', 'ORDER_UP')
+ * @property {Object} details - Action-specific details
+ * @property {string} [details.playerRole] - The role of the player who performed the action
+ * @property {string} [details.cardId] - The ID of the card involved in the action
+ * @property {*} [details.originalDetails] - Original details object if it couldn't be processed
+ */
+
+/**
+ * @typedef {Object} CardObject
+ * @property {string} id - Unique identifier for the card
+ * @property {string} [rank] - The rank of the card (optional)
+ * @property {string} [suit] - The suit of the card (optional)
+ */
 
 /**
  * Creates a structured, language-agnostic history event object.
  * This function's sole purpose is to create a structured data object.
  * The client is responsible for formatting human-readable messages from this data.
  *
+ * @function createHistoryEntry
  * @param {string} actionType - The type of action (e.g., 'PLAY_CARD', 'ORDER_UP', 'PASS').
- * @param {object} detailsObject - An object containing details relevant to the action.
- * @returns {object} A structured history entry.
+ * @param {Object} [detailsObject={}] - An object containing details relevant to the action.
+ * @param {string} [detailsObject.playerRole] - The role of the player performing the action.
+ * @param {CardObject|string} [detailsObject.card] - The card involved in the action.
+ * @returns {HistoryEntry} A structured history entry with timestamp, action, and processed details.
+ * 
+ * @example
+ * // Create a history entry for playing a card
+ * const entry = createHistoryEntry('PLAY_CARD', {
+ *   playerRole: 'North',
+ *   card: { id: 'AH', rank: 'Ace', suit: 'Hearts' }
+ * });
+ * 
+ * @see {@link module:utils/logger} for logging functionality used by this function.
+ * @see {@link test/utils/historyUtils.unit.test.js} for usage examples and test cases.
  */
-export function createHistoryEntry(actionType, detailsObject = {}) {
+function createHistoryEntry(actionType, detailsObject = {}) {
   const timestamp = new Date().toISOString();
   let action = actionType;
   let details = { ...detailsObject };
@@ -47,7 +83,10 @@ export function createHistoryEntry(actionType, detailsObject = {}) {
     delete details.card;
   }
 
-  // Example switch for different action types (can be expanded as needed)
+  /**
+   * Action-specific validation and processing.
+   * Different action types may have different required fields or transformation rules.
+   */
   switch (actionType) {
     case "PLAY_CARD":
       // Ensure playerRole and cardId are present if expected for this action
@@ -62,13 +101,17 @@ export function createHistoryEntry(actionType, detailsObject = {}) {
         );
       }
       break;
+      
     case "ORDER_UP":
     case "PASS":
     case "CALL_TRUMP":
-      // Add specific validation/restructuring for these actions if needed
+      // These actions currently use the generic structure
+      // Add specific validation/restructuring here if needed in the future
       break;
+      
     default:
       // For unknown actions, just return the generic structure
+      // No special processing needed
       break;
   }
 
@@ -78,3 +121,6 @@ export function createHistoryEntry(actionType, detailsObject = {}) {
     details,
   };
 }
+
+// Export all public functions
+export { createHistoryEntry };

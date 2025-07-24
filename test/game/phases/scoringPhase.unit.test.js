@@ -10,16 +10,16 @@
  *   - Going alone bonuses
  *   - Game over detection
  *   - Score tracking and state transitions
+ *   - 7-23 100% Passing
  *
  * @see {@link src/game/phases/scoringPhase.js} for the implementation under test
  * @see {@link docs/Rules of Euchre.md} for game rules
  * @see {@link docs/Scoring Rules.md} for detailed scoring rules
- *
+ * 
+ * 
  * @example
  * // Run all scoring phase tests
  * node --test test/game/phases/scoringPhase.unit.test.js
- *
- * @license MIT
  */
 
 // Node.js built-in modules

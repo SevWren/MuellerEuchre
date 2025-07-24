@@ -1,24 +1,25 @@
 // filepath: test/utils/idGenerator.unit.test.js
 
-import { expect } from "chai";
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import { generateGameId } from "../../src/utils/idGenerator.js";
 
 describe("idGenerator", () => {
   describe("generateGameId()", () => {
     it("should return a string", () => {
       const id = generateGameId();
-      expect(id).to.be.a("string");
+      assert.strictEqual(typeof id, 'string');
     });
 
     it("should return an ID of length 10", () => {
       const id = generateGameId();
-      expect(id).to.have.lengthOf(10);
+      assert.strictEqual(id.length, 10);
     });
 
     it("should generate unique IDs on successive calls", () => {
       const id1 = generateGameId();
       const id2 = generateGameId();
-      expect(id1).to.not.equal(id2);
+      assert.notStrictEqual(id1, id2);
     });
 
     it("should generate a large number of unique IDs", () => {
@@ -27,7 +28,7 @@ describe("idGenerator", () => {
       for (let i = 0; i < numIds; i++) {
         ids.add(generateGameId());
       }
-      expect(ids.size).to.equal(numIds);
+      assert.strictEqual(ids.size, numIds);
     });
   });
 });

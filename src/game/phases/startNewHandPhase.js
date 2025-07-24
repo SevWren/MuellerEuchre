@@ -245,3 +245,5 @@ function startNewHand(currentGameState) {
     throw error;
   }
 }
+
+export { startNewHand };

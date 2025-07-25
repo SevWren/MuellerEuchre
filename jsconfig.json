@@ -69,5 +69,5 @@
     "public/js/**/*.js",
     "**/cypress",
     "**/e2e",
-    "test/game/logic/validatePlay.unit.test.js.on.hold"]
+    "test/game/logic/validatePlay.unit.test.js.on.hold", "archived/test/debug-validateDiscard.test.js", "archived/test/endGame-test.js"]
 }

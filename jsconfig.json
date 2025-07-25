@@ -56,9 +56,9 @@
     ".vscode/*",
     "archived_for_later_development/test/db/gameRepository.unit.test.js",
     "Repo_To_LLM",
+    "archived",
     "mueller_euchre_repo_llm.txt",
     "MuellerEuchre-Windsurf.code-workspace",
-
     "archived_for_later_development"
   ],
   "include": [
@@ -68,6 +68,6 @@
     "test/**/*.jsx",
     "public/js/**/*.js",
     "**/cypress",
-    "**/e2e",
-    "test/game/logic/validatePlay.unit.test.js.on.hold", "archived/test/debug-validateDiscard.test.js", "archived/test/endGame-test.js"]
+    "**/e2e"
+    ]
 }

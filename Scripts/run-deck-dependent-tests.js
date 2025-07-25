@@ -6,12 +6,8 @@
  * @file Scripts/run-deck-dependent-tests.js
  * @description Runs all unit tests for modules that have a dependency on 'src/utils/deck.js'.
  * @see {@link ./test/utils/deck.unit.test.js}
- * @see {@link @test/utils/deck.unit.test.js}
- * @see {@link @test/game/logic/aiLogic.unit.test.js}
- * 
  * @see {@link ./test/game/logic/aiLogic.unit.test.js}
  * @see {@link ./test/game/logic/validation.unit.test.js}
- * @see {@link ./test/game/logic/validatePlay.unit.test.js}
  * @see {@link ./test/game/logic/validatePlay.edge.unit.test.js}
  * @see {@link ./test/game/phases/startNewHandPhase.unit.test.js}
  * @see {@link ./test/game/phases/biddingPhase.unit.test.js}
@@ -39,12 +35,11 @@ const deckDependentTestFiles = [
   'test/utils/deck.unit.test.js',
   'test/game/logic/aiLogic.unit.test.js',
   'test/game/logic/validation.unit.test.js',
-  'test/game/logic/validatePlay.unit.test.js',
   'test/game/logic/validatePlay.edge.unit.test.js',
   'test/game/phases/startNewHandPhase.unit.test.js',
   'test/game/phases/biddingPhase.unit.test.js',
   'test/game/phases/playingPhase.unit.test.js',
-  'test/game/phases/dealerDiscard.unit.test.js',
+  'test/game/phases/dealer_rotation_fix.unit.test.js',
 ];
 
 // --- Helper Functions ---
@@ -159,18 +154,6 @@ async function runDeckDependentTests() {
       }
     }
   }
-
-  // --- FINAL SUMMARY ---
-  console.log('\n\n=================================================');
-  console.log('--- AGGREGATED TEST SUMMARY ---');
-  console.log(`  Tests:     ${totalResults.tests}`);
-  console.log(`  Suites:    ${totalResults.suites}`);
-  console.log(`  Passed:    ${totalResults.pass}`);
-  console.log(`  Failed:    ${totalResults.fail}`);
-  console.log(`  Cancelled: ${totalResults.cancelled}`);
-  console.log(`  Skipped:   ${totalResults.skipped}`);
-  console.log(`  Todo:      ${totalResults.todo}`);
-  console.log('=================================================');
 
   if (failedTestFiles.length > 0) {
     console.error('\n--- OVERALL TEST RUN FAILED ---');

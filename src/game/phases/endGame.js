@@ -22,7 +22,15 @@
  */
 
 import { GAME_PHASES, WINNING_SCORE, TEAMS } from "../../config/constants.js";
-import { log } from "../../utils/logger.js";
+import { log as defaultLogger } from "../../utils/logger.js";
+
+/**
+ * Creates an instance of the endGame module with the specified logger
+ * @param {Object} [dependencies] - Dependencies
+ * @param {Function} [dependencies.log] - Logger function (defaults to defaultLogger)
+ * @returns {Object} End game module functions
+ */
+function createEndGameModule({ log = defaultLogger } = {}) {
 
 /**
  * @typedef {Object} PlayerState
@@ -92,8 +100,9 @@ import { log } from "../../utils/logger.js";
  * @see {@link module:src/game/phases/scoringPhase.calculateAndApplyScore}
  * @see {@link module:test/game/phases/endGame.unit.test.js}
  */
-function checkGameOver(gameState) {
-  log(1, "[checkGameOver] Checking for game over condition");
+function createCheckGameOver(log) {
+  return function checkGameOver(gameState) {
+    log(1, "[checkGameOver] Checking for game over condition");
 
   // Ensure it works on a clone to maintain purity
   const updatedState = JSON.parse(JSON.stringify(gameState));
@@ -108,7 +117,9 @@ function checkGameOver(gameState) {
   }
 
   return updatedState;
+  }
 }
+
 
 /**
  * Handles the end of a game, setting the game over flag, winning team,
@@ -122,7 +133,8 @@ function checkGameOver(gameState) {
  * @see {@link module:src/game/phases/endGame.checkGameOver}
  * @see {@link module:test/game/phases/endGame.unit.test.js}
  */
-function endGame(gameState, winningTeam, finalScores) {
+function createEndGame(log) {
+  return function endGame(gameState, winningTeam, finalScores) {
   const winningTeamDisplay =
     winningTeam === TEAMS.TEAM_NS ? "North/South" : "East/West";
   log(1, `[endGame] Game over! ${winningTeamDisplay} wins!`);
@@ -130,7 +142,7 @@ function endGame(gameState, winningTeam, finalScores) {
   // Update game state
   gameState.gameOver = true;
   gameState.winningTeam = winningTeam; // Should be TEAMS.TEAM_NS or TEAMS.TEAM_EW
-  gameState.gamePhase = GAME_PHASES.GAME_OVER;
+  gameState.currentPhase = GAME_PHASES.GAME_OVER;
 
   // Add game message
   gameState.messages = gameState.messages || [];
@@ -163,7 +175,8 @@ function endGame(gameState, winningTeam, finalScores) {
   }
   gameState.matchStats.lastUpdated = new Date().toISOString();
 
-  return gameState;
+    return gameState;
+  };
 }
 
 /**
@@ -175,7 +188,8 @@ function endGame(gameState, winningTeam, finalScores) {
  * @see {@link module:src/socket/handlers/gameOverHandlers}
  * @see {@link module:test/game/phases/endGame.unit.test.js}
  */
-function startNewGame(gameState) {
+function createStartNewGame(log) {
+  return function startNewGame(gameState) {
   log(1, "[startNewGame] Starting a new game");
 
   // Create a deep copy of the game state
@@ -183,8 +197,8 @@ function startNewGame(gameState) {
 
   // Reset game-specific state
   updatedState.gameOver = false;
-  updatedState.winningTeam = null;
-  updatedState.gamePhase = GAME_PHASES.LOBBY;
+  updatedState.winningTeam = null; // Match test expectation
+  updatedState.currentPhase = GAME_PHASES.LOBBY; // Match test expectation
   updatedState.players = {}; // Clear players for a fresh lobby
   updatedState.messages = [];
 
@@ -202,6 +216,7 @@ function startNewGame(gameState) {
   });
 
   return updatedState;
+  }
 }
 
 /**
@@ -232,7 +247,8 @@ function calculateTeamScores(gameState) {
  * @see {@link module:src/game/phases/endGame.getOpponentTeam}
  * @see {@link module:test/game/phases/endGame.unit.test.js}
  */
-function handleEndOfHand(gameState) {
+function createHandleEndOfHand(log) {
+  return function handleEndOfHand(gameState) {
   log(1, "[handleEndOfHand] Processing end of hand");
   log(
     1,
@@ -344,7 +360,8 @@ function handleEndOfHand(gameState) {
   });
 
   // Check for game over
-  return checkGameOver(updatedState);
+    return checkGameOver(updatedState);
+  };
 }
 
 /**
@@ -355,16 +372,33 @@ function handleEndOfHand(gameState) {
  * @returns {keyof typeof TEAMS|null} The opponent team (e.g., TEAMS.TEAM_EW), or null if the input team is invalid.
  * @see {@link module:src/game/phases/endGame.handleEndOfHand}
  */
-function getOpponentTeam(team) {
+function createGetOpponentTeam(log) {
+  return function getOpponentTeam(team) {
   if (team === TEAMS.TEAM_NS) return TEAMS.TEAM_EW;
   if (team === TEAMS.TEAM_EW) return TEAMS.TEAM_NS;
   log(3, `[getOpponentTeam] Unknown team provided: ${team}`);
-  return null; // Or throw an error
+    return null; // Or throw an error
+  };
 }
 
-// Export all public functions at the end of the file
-export {
-  checkGameOver,
-  startNewGame,
-  handleEndOfHand,
-};
+  // Create the module functions with the provided logger
+  const checkGameOver = createCheckGameOver(log);
+  const endGame = createEndGame(log);
+  const startNewGame = createStartNewGame(log);
+  const handleEndOfHand = createHandleEndOfHand(log);
+  const getOpponentTeam = createGetOpponentTeam(log);
+
+  return {
+    checkGameOver,
+    endGame,
+    startNewGame,
+    handleEndOfHand,
+    getOpponentTeam,
+  };
+}
+
+// Create and export the default instance
+export default createEndGameModule({ log: defaultLogger });
+
+// Export the factory function
+export { createEndGameModule };

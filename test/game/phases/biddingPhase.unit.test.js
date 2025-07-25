@@ -4,6 +4,8 @@
  * @description
  * Unit tests for the bidding phase logic of the Euchre Multiplayer game.
  * 
+ * 7-23 Need to improve coverage. currently only at 76%
+ * 
  * @see {@link module:src/game/phases/biddingPhase}
  */
 

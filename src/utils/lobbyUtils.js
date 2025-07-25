@@ -129,23 +129,52 @@ export function assignRoleToPlayer(
     [role]: newPlayerState,
   };
 
-  // Create a deep copy of the teams object to avoid mutating the original
-  const updatedTeams = { ...gameState.teams };
+  // Initialize teams object if it doesn't exist
+  const updatedTeams = gameState.teams ? { ...gameState.teams } : {};
   
-  // Remove the role from all teams first to handle role reassignment
-  Object.values(updatedTeams).forEach(team => {
-    if (team.players) {
-      team.players = team.players.filter(playerRole => playerRole !== role);
-    } else {
-      team.players = [];
-    }
-  });
+  if (gameState.teams) {
+    Object.entries(updatedTeams).forEach(([_, team]) => {
+      if (!team) return;
+      if (!team.players) {
+        team.players = [];
+      } else {
+        team.players = team.players.filter(playerRole => playerRole !== role);
+      }
+    });
+  }
   
-  // Add the role to the correct team
-  if (!updatedTeams[playerTeamId].players) {
+  // Ensure the team exists in the teams object
+  if (!updatedTeams[playerTeamId]) {
+    console.log(`Team ${playerTeamId} does not exist, creating it`);
+    updatedTeams[playerTeamId] = { 
+      score: 0,
+      players: [] 
+    };
+  }
+  
+  // Debug logging before ensuring players array exists
+  console.log(`Team ${playerTeamId} state before ensuring players array:`, 
+    JSON.stringify(updatedTeams[playerTeamId], null, 2));
+  
+  // Ensure the team has a players array and initialize it if it doesn't exist
+  if (!updatedTeams[playerTeamId].players || !Array.isArray(updatedTeams[playerTeamId].players)) {
+    console.log(`Initializing players array for team ${playerTeamId}`);
     updatedTeams[playerTeamId].players = [];
   }
-  updatedTeams[playerTeamId].players.push(role);
+  
+  // Debug logging before adding role
+  console.log(`Team ${playerTeamId} players before adding role:`, 
+    JSON.stringify(updatedTeams[playerTeamId].players, null, 2));
+  
+  // Add the role to the correct team if it's not already there
+  if (!updatedTeams[playerTeamId].players.includes(role)) {
+    console.log(`Adding role ${role} to team ${playerTeamId}`);
+    updatedTeams[playerTeamId].players.push(role);
+    console.log(`Team ${playerTeamId} players after adding role:`, 
+      JSON.stringify(updatedTeams[playerTeamId].players, null, 2));
+  } else {
+    console.log(`Role ${role} already exists in team ${playerTeamId}`);
+  }
 
   // Create the updated state with the new players and teams
   const updatedState = {

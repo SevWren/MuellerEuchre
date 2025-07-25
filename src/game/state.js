@@ -25,9 +25,7 @@
  *   - required needs for the functionality of this file. 
  *   - 
  *   - 
- *   - 
- * 
- * @see {@link file://./docs/Project_Architectural_Mandate_for_Layer_1.md} for architectural principles.
+ * @see {@link file://./docs/project_details/Project_Architectural_Mandate_for_Layer_1.md} for architectural principles.
  * @see {@link module:utils/players} for player initialization logic.
  * @see {@link module:socket/handlers} where these functions are consumed.
  */

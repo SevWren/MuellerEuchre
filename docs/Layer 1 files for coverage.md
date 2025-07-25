@@ -23,24 +23,24 @@ Layer 1 ("Core Game Logic & Utilities (Pure Functions)" that are deterministic, 
 `src/utils/path-resolver.js`
 
 # Unit Tests
-`test/config/constants.unit.test.js` 100% passing
-`test/game/logic/aiLogic.unit.test.js` 100% Passing
-`test/game/phases/biddingPhase.unit.test.js` 100% Pass 7-23
-`test/game/phases/scoringPhase.unit.test.js` 100% Pass
-`test/game/phases/endGame.unit.test.js` 7-24 Working On
-`test/game/phases/startNewHandPhase.unit.test.js` 100% Pass
-`test/utils/errorUtils.unit.test.js` 100% Pass
-`test/utils/historyUtils.unit.test.js`  100% Pass
-`test/utils/idGenerator.unit.test.js` 100% pass
-`test/utils/logger.unit.test.js`  100% Pass, almost 100% coverage
-`test/utils/lobbyUtils.unit.test.js` 100% coverage
-`test/utils/statsUtils.unit.test.js`   100% pass
-`test/game/logic/validation-errors.unit.test.js` 100% Pass
-`test/game/logic/validation.unit.test.js` 100% passing
-`test/game/phases/goAlonePhase.unit.test.js` 100% passing
-`test/game/phases/lobbyPhase.unit.test.js` 100% pass
-`test/game/phases/playingPhase.unit.test.js` 100% passing
-`test/utils/players.unit.test.js` 100% pass
-`test/utils/deck.unit.test.js` 100% pass
-`test/utils/settingsUtils.unit.test.js` 100% Pass
-`test/utils/path-resolver.unit.test.js`  100% Pass
+`test/config/constants.unit.test.js`                7-24 100% passing
+`test/game/logic/aiLogic.unit.test.js`              7-24 100% Passing
+`test/game/phases/biddingPhase.unit.test.js`        7-24 100% Pass 7-23
+`test/game/phases/scoringPhase.unit.test.js`        7-24 100% Pass
+`test/game/phases/endGame.unit.test.js`             7-24 100% Pass
+`test/game/phases/startNewHandPhase.unit.test.js`   7-24 100% Pass
+`test/utils/errorUtils.unit.test.js`                7-24 100% Pass
+`test/utils/historyUtils.unit.test.js`              7-24 100% Pass
+`test/utils/idGenerator.unit.test.js`               7-24 100% pass
+`test/utils/logger.unit.test.js`                    7-24 100% Pass, almost 100% coverage
+`test/utils/lobbyUtils.unit.test.js`                7-24 100% coverage
+`test/utils/statsUtils.unit.test.js`                7-24 100% pass
+`test/game/logic/validation-errors.unit.test.js`    7-24 100% Pass
+`test/game/logic/validation.unit.test.js`           7-24 100% passing
+`test/game/phases/goAlonePhase.unit.test.js`        7-24 100% passing
+`test/game/phases/lobbyPhase.unit.test.js`          7-24 100% pass
+`test/game/phases/playingPhase.unit.test.js`        7-24 100% passing
+`test/utils/players.unit.test.js`                   7-24 100% pass
+`test/utils/deck.unit.test.js`                      7-24 100% pass
+`test/utils/settingsUtils.unit.test.js`             7-24 100% Pass
+`test/utils/path-resolver.unit.test.js`             7-24 100% Pass

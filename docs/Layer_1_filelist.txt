@@ -3,7 +3,6 @@ Layer 1 ("Core Game Logic & Utilities (Pure Functions)" that are deterministic, 
 
 # Core Configuration
 1.  `src/config/constants.js` - Pure configuration with game constants and enums
-2.  `src/config/locales/en.json` - Static localization strings
 
 # Game Logic
 3.  `src/game/logic/aiLogic.js` - Pure AI decision making (no side effects)
@@ -42,7 +41,7 @@ Layer 1 ("Core Game Logic & Utilities (Pure Functions)" that are deterministic, 
 4.  `test/game/phases/biddingPhase.unit.test.js`
 5.  `test/game/phases/endGame.unit.test.js`
 6.  `test/game/phases/goAlonePhase.unit.test.js`
-7.  `test/game/phases/lobbyPhase.unit.test.js`
+7.  `test/game/phases/lobbyPhase.unit.test.js` - 100% passing
 8.  `test/game/phases/playingPhase.unit.test.js`
 9.  `test/game/phases/scoringPhase.unit.test.js`
 10. `test/game/phases/startNewHandPhase.unit.test.js`
@@ -55,3 +54,5 @@ Layer 1 ("Core Game Logic & Utilities (Pure Functions)" that are deterministic, 
 17. `test/utils/settingsUtils.unit.test.js`
 18. `test/utils/statsUtils.unit.test.js`
 19. `test/utils/path-resolver.unit.test.js`
+20. `test/game/logic/validation-errors.unit.test.js`
+21. `test/utils/logger.unit.test.js`

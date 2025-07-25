@@ -137,6 +137,10 @@ function log(level, message, obj) {
       if (obj) logger.debug(obj, message);
       else logger.debug(message);
       break;
+    case DEBUG_LEVELS.LOG_LEVEL_TRACE:
+      if (obj) logger.trace(obj, message);
+      else logger.trace(message);
+      break;
     case DEBUG_LEVELS.NONE:
     case DEBUG_LEVELS.LOG_LEVEL_SILENT:
       // If LOG_LEVEL_SILENT is explicitly passed to log(), do nothing

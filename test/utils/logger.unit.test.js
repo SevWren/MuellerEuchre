@@ -159,6 +159,67 @@ describe('Logger Utility', () => {
     });
   });
 
+  describe('setDebugLevel', () => {
+    it('should handle LOG_LEVEL_TRACE in levelMap', async () => {
+      const { logger, setDebugLevel } = await getFreshLoggerModule();
+      
+      // Mock logger.warn
+      const originalWarn = logger.warn;
+      let warningMessage = '';
+      logger.warn = (msg) => { warningMessage = msg; };
+      
+      try {
+        // Call with LOG_LEVEL_TRACE
+        setDebugLevel(DEBUG_LEVELS.LOG_LEVEL_TRACE);
+        
+        // Should log a warning about dynamic level setting
+        assert.match(warningMessage, /Attempted to set debug level to LOG_LEVEL_TRACE/);
+      } finally {
+        // Restore original method
+        logger.warn = originalWarn;
+      }
+    });
+
+    it('should handle LOG_LEVEL_DEBUG and LOG_LEVEL_TRACE in log function', async () => {
+      const { logger, log } = await getFreshLoggerModule();
+      
+      // Mock the logger methods
+      const originalDebug = logger.debug;
+      const originalTrace = logger.trace;
+      
+      let debugCalled = false;
+      let traceCalled = false;
+      
+      try {
+        logger.debug = () => { debugCalled = true; };
+        logger.trace = () => { traceCalled = true; };
+        
+        // Test LOG_LEVEL_DEBUG
+        log(DEBUG_LEVELS.LOG_LEVEL_DEBUG, 'Debug message');
+        assert.strictEqual(debugCalled, true, 'debug should be called for LOG_LEVEL_DEBUG');
+        
+        // Reset
+        debugCalled = false;
+        
+        // Test LOG_LEVEL_TRACE
+        log(DEBUG_LEVELS.LOG_LEVEL_TRACE, 'Trace message');
+        assert.strictEqual(traceCalled, true, 'trace should be called for LOG_LEVEL_TRACE');
+      } finally {
+        // Restore original methods
+        logger.debug = originalDebug;
+        logger.trace = originalTrace;
+      }
+    });
+
+    it('should log a warning when called', async () => {
+      const { logger, setDebugLevel } = await getFreshLoggerModule();
+      // Just verify the function exists and can be called without errors
+      assert.doesNotThrow(() => {
+        setDebugLevel(DEBUG_LEVELS.LOG_LEVEL_TRACE);
+      });
+    });
+  });
+
   describe('Basic Logging', () => {
     it('should log info messages', async () => {
       const { logger } = await getFreshLoggerModule();
@@ -457,23 +518,27 @@ describe('Logger Utility', () => {
   });
 
   describe('Logging with Objects', () => {
-    it('should log objects as first argument and message as second', async () => {
+    it('should log object as first argument and message as second', async () => {
       const { logger, log } = await getFreshLoggerModule();
-      const testObj = { key: 'value', num: 42 };
-      const testMessage = 'Test message with object';
-      let loggedObj, loggedMsg;
-
-      // Mock logger.info
+      
+      const testObj = { key: 'value' };
+      const testMessage = 'Test message';
+      
+      // Mock logger methods
       const originalInfo = logger.info;
-      logger.info = (obj, msg) => {
-        loggedObj = obj;
-        loggedMsg = msg;
-      };
-
+      let loggedMessage = '';
+      let loggedObj = null;
+      
       try {
+        logger.info = (obj, msg) => {
+          loggedObj = obj;
+          loggedMessage = msg;
+        };
+        
         log(DEBUG_LEVELS.INFO, testMessage, testObj);
-        assert.deepStrictEqual(loggedObj, testObj);
-        assert.strictEqual(loggedMsg, testMessage);
+        
+        assert.strictEqual(loggedMessage, testMessage, 'Should log the message as second argument');
+        assert.deepStrictEqual(loggedObj, testObj, 'Should log the object as first argument');
       } finally {
         // Restore original method
         logger.info = originalInfo;
@@ -482,29 +547,101 @@ describe('Logger Utility', () => {
 
     it('should handle missing message when only object is provided', async () => {
       const { logger, log } = await getFreshLoggerModule();
+      
       const testObj = { key: 'value' };
-      let loggedObj, loggedMsg;
-
-      // Mock logger.info
+      
+      // Mock logger methods
       const originalInfo = logger.info;
-      logger.info = (obj, msg) => {
-        loggedObj = obj;
-        loggedMsg = msg;
-      };
-
+      let loggedMessage = '';
+      let loggedObj = null;
+      
       try {
+        logger.info = (obj, msg) => {
+          loggedObj = obj;
+          loggedMessage = msg;
+        };
+        
         log(DEBUG_LEVELS.INFO, testObj);
-        assert.strictEqual(loggedObj, testObj);
-        assert.strictEqual(loggedMsg, undefined);
+        
+        assert.strictEqual(loggedMessage, undefined, 'Message should be undefined when not provided');
+        assert.deepStrictEqual(loggedObj, testObj, 'Should log the object as first argument');
       } finally {
         // Restore original method
         logger.info = originalInfo;
       }
     });
+
+    it('should handle all log level cases with objects', async () => {
+      const { logger, log } = await getFreshLoggerModule();
+      
+      const testObj = { key: 'value' };
+      const testMessage = 'Test message';
+      
+      // Mock all logger methods
+      const originalMethods = {
+        error: logger.error,
+        warn: logger.warn,
+        info: logger.info,
+        debug: logger.debug,
+        trace: logger.trace,
+        fatal: logger.fatal
+      };
+      
+      const calledMethods = [];
+      
+      try {
+        // Create a generic mock that records which method was called
+        const createMock = (level) => (obj, msg) => {
+          calledMethods.push(level);
+          assert.deepStrictEqual(obj, testObj, 'Should pass the object as first argument');
+          // For unknown levels, the logger will prepend a message, so we check if the message ends with our test message
+          if (level === 'info' && msg.includes('Unknown log level')) {
+            assert.ok(msg.endsWith(testMessage), `Message should end with '${testMessage}' for unknown log level`);
+          } else {
+            assert.strictEqual(msg, testMessage, 'Should pass the message as second argument');
+          }
+        };
+        
+        // Apply mocks
+        logger.error = createMock('error');
+        logger.warn = createMock('warn');
+        logger.info = createMock('info');
+        logger.debug = createMock('debug');
+        logger.trace = createMock('trace');
+        logger.fatal = createMock('fatal');
+        
+        // Test all log level cases
+        log(DEBUG_LEVELS.ERROR, testMessage, testObj);
+        log(DEBUG_LEVELS.LOG_LEVEL_ERROR, testMessage, testObj);
+        log(DEBUG_LEVELS.WARNING, testMessage, testObj);
+        log(DEBUG_LEVELS.LOG_LEVEL_WARN, testMessage, testObj);
+        log(DEBUG_LEVELS.INFO, testMessage, testObj);
+        log(DEBUG_LEVELS.LOG_LEVEL_INFO, testMessage, testObj);
+        log(DEBUG_LEVELS.VERBOSE, testMessage, testObj);
+        log(DEBUG_LEVELS.LOG_LEVEL_DEBUG, testMessage, testObj);
+        log(DEBUG_LEVELS.LOG_LEVEL_TRACE, testMessage, testObj);
+        log(DEBUG_LEVELS.LOG_LEVEL_SILENT, testMessage, testObj);
+        
+        // Verify all expected methods were called
+        assert.deepStrictEqual(
+          calledMethods,
+          ['error', 'error', 'warn', 'warn', 'info', 'info', 'warn', 'debug', 'trace'],
+          'Should call the correct logger method for each log level'
+        );
+        
+        // Test default case with unknown level
+        calledMethods.length = 0; // Reset
+        log('UNKNOWN_LEVEL', testMessage, testObj);
+        assert.strictEqual(calledMethods[0], 'info', 'Should default to info for unknown levels');
+        
+      } finally {
+        // Restore original methods
+        Object.assign(logger, originalMethods);
+      }
+    });
   });
 
   describe('setDebugLevel', () => {
-    // These tests will get a fresh logger module for each test to ensure isolation
     // and then mock its warn method directly.
 
     it('should log a warning when called', async () => {

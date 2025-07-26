@@ -221,7 +221,10 @@ export const GAME_EVENTS = Object.freeze({
   GAME_EVENT_CHAT_MESSAGE: 'GAME_EVENT_CHAT_MESSAGE', // In-game chat message
   GAME_EVENT_PLAYER_JOIN: 'GAME_EVENT_PLAYER_JOIN', // New player joins the game
   GAME_EVENT_PLAYER_LEAVE: 'GAME_EVENT_PLAYER_LEAVE', // Player leaves the game
-  GAME_EVENT_GAME_OVER: 'GAME_EVENT_GAME_OVER' // Game has ended
+  GAME_EVENT_GAME_OVER: 'GAME_EVENT_GAME_OVER', // Game has ended
+  GAME_STATE_UPDATED: 'GAME_STATE_UPDATED', // Game state has been updated
+  ACTION_GO_ALONE_DECISION: 'ACTION_GO_ALONE_DECISION', // Player makes a go alone decision
+  GO_ALONE_DECISION_PROCESSED: 'GO_ALONE_DECISION_PROCESSED' // Go alone decision has been processed
 });
 
 /**

@@ -6,11 +6,6 @@
  * 7-22-25 100% Passing
  *
  * Tests use Node's built-in test runner and assertion library.
- *
- * @see https://nodejs.org/docs/latest/api/test.html
- * @see https://nodejs.org/docs/latest/api/assert.html
- * @see jsdoc.md
- * @see js-doc-see.md
  */
 
 import { describe, it, before, after, afterEach, beforeEach, mock } from 'node:test';

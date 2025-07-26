@@ -410,8 +410,17 @@ test('PlayingPhase Logic - handlePlayCard', async (t) => {
     const initialHandSize = gameState.players[currentPlayer].hand.length;
     const initialTrickSize = gameState.currentTrick.length;
 
+    // Mock deckUtils with required getCardRank function
+    const deckUtils = {
+      getCardRank: (card, trumpSuit) => {
+        // Simple ranking for test purposes
+        const rankOrder = { '9': 0, '10': 1, 'J': 2, 'Q': 3, 'K': 4, 'A': 5 };
+        return rankOrder[card.value] || 0;
+      }
+    };
+    
     // Play the card and get the updated game state
-    const updatedGameState = await handlePlayCard(gameState, currentPlayer, cardToPlay);
+    const updatedGameState = await handlePlayCard(gameState, currentPlayer, cardToPlay, deckUtils);
 
     // Verify the card was removed from the player's hand
     assert.strictEqual(

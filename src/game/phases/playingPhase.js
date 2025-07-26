@@ -58,9 +58,13 @@ function handlePlayCard(gameState, playerRole, cardPlayed, deckUtils = {}) {
 
   // Validate the play and throw any validation errors
   const validation = validatePlay(gameState, player.hand, cardPlayed, playerRole);
-  if (!validation.valid) {
-    // Throw the first validation error
+  // Handle both boolean and object return types from validatePlay
+  if (typeof validation === 'object' && !validation.valid) {
+    // If validation is an object with valid: false, throw the first error
     throw validation.errors[0];
+  } else if (validation !== true) {
+    // If validation is not true, it's an unexpected return value
+    throw new Error('Unexpected return value from validatePlay');
   }
 
   // Create a deep clone of the game state

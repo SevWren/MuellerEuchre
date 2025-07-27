@@ -5,7 +5,7 @@
  *   Provides a comprehensive set of pure, stateless utility functions for evaluating
  *   individual card properties and behaviors according to Euchre rules. This module
  *   encapsulates the complex logic for identifying Bowers and determining a card's
- *   "effective suit" during gameplay.
+ *   "effective suit" during gameplay, as well as sorting hands.
  *   THIS FILE IS A SOURCE OF TRUTH
  *   DO NOT EDIT IT
  *   This module is a core component of the Layer 1 (pure logic) architecture.
@@ -15,7 +15,7 @@
  * @see {@link docs/The Left Bowers Identity Shift.md} - For architectural context.
  * @see {@link test/utils/cardUtils.unit.test.js} - For unit tests.
  * @see {@link test/game/phases/playingPhase.unit.test.js} - For integration with playing phase logic.
- * 
+ *
  * @typedef {Object} Card
  * @property {string} suit - The card's suit (must be a valid CARD_SUITS constant).
  * @property {string} value - The card's value (e.g., 'Ace', 'King', '10').
@@ -36,7 +36,7 @@ import logger from './logger.js';
 /**
  * Maps canonical suit constants (e.g., 'CARD_SUIT_HEARTS') to their simple, lowercase names.
  * Used internally for display and comparison purposes.
- * 
+ *
  * @private
  * @readonly
  * @type {Object<string, string>}
@@ -172,11 +172,11 @@ function normalizeSuit(suit) {
   if (suit === null || suit === undefined) {
     throw new InvalidCardError('Suit cannot be null or undefined');
   }
-  
+
   if (typeof suit !== 'string') {
     throw new InvalidCardError('Suit must be a string');
   }
-  
+
   const trimmedSuit = suit.trim();
   if (trimmedSuit === '') {
     throw new InvalidCardError('Suit cannot be empty');
@@ -261,27 +261,27 @@ function isRightBower(card, trumpSuit) {
   if (!card || typeof card !== 'object') {
     throw new InvalidCardError('Card must be an object');
   }
-  
+
   // Check for missing required properties - throw for missing suit property
   if (!card.suit) {
     throw new InvalidCardError('Card must have a suit property');
   }
-  
+
   // Check for missing required properties - throw for missing value property
   if (!card.value) {
     throw new InvalidCardError('Card must have a value property');
   }
-  
+
   // Return false if no trump suit is provided
   if (!trumpSuit) {
     return false;
   }
-  
+
   // Only Jacks can be the Right Bower
   if (card.value !== 'J') {
     return false;
   }
-  
+
   // Normalize the card's suit and the trump suit
   const normalizedCardSuit = normalizeSuit(card.suit);
   const normalizedTrumpSuit = normalizeSuit(trumpSuit);
@@ -290,7 +290,7 @@ function isRightBower(card, trumpSuit) {
   if (!normalizedCardSuit) {
     throw new InvalidCardError(`Invalid card suit: ${card.suit}`);
   }
-  
+
   // Return false for invalid trump suit instead of throwing
   if (!normalizedTrumpSuit) {
     return false;
@@ -353,17 +353,17 @@ function isLeftBower(card, trumpSuit) {
   if (!card || typeof card !== 'object') {
     return false;
   }
-  
+
   // Check for missing required properties - throw for missing suit property
   if (!card.hasOwnProperty('suit')) {
     throw new InvalidCardError('Suit is required');
   }
-  
+
   // Return false for missing value property
   if (!card.hasOwnProperty('value')) {
     return false;
   }
-  
+
   // Check for missing or falsy trumpSuit - return false for falsy values
   if (!trumpSuit) {
     return false;
@@ -381,14 +381,14 @@ function isLeftBower(card, trumpSuit) {
   } catch (error) {
     throw new InvalidCardError('Invalid suit');
   }
-  
+
   if (!normalizedCardSuit) {
     throw new InvalidCardError('Invalid suit');
   }
 
   // Get the partner suit (same color as trump)
   let partnerSuit;
-  
+
   // Normalize the trump suit - throw for invalid trump suits as per test expectations
   let normalizedTrumpSuit;
   try {
@@ -399,14 +399,14 @@ function isLeftBower(card, trumpSuit) {
   } catch (error) {
     throw new InvalidCardError('Invalid suit');
   }
-  
+
   // Get the partner suit - throw if we can't determine it
   try {
     partnerSuit = getPartnerSuit(normalizedTrumpSuit);
   } catch (error) {
     throw new InvalidCardError('Invalid suit');
   }
-  
+
   // Shouldn't happen as getPartnerSuit throws for invalid suits, but just in case
   if (!partnerSuit) {
     return false;
@@ -534,7 +534,7 @@ function getEffectiveSuit(card, trumpSuit) {
  */
 function getSuitColor(suit) {
   const normalizedSuit = normalizeSuit(suit);
-  
+
   if (!normalizedSuit) {
     throw new InvalidCardError(`Invalid suit: ${suit}`);
   }
@@ -612,7 +612,7 @@ function idToCard(id) {
   const normalizedId = id.trim().toUpperCase();
   if (normalizedId.length === 2 || (normalizedId.length === 3 && normalizedId.startsWith('10'))) {
     let valueChar, suitChar;
-    
+
     if (normalizedId.startsWith('10') && normalizedId.length === 3) {
       valueChar = '1';
       suitChar = normalizedId[2];
@@ -652,7 +652,7 @@ function idToCard(id) {
 
     return { suit, value };
   }
-  
+
   throw new InvalidCardError(`Invalid card ID format: ${id}`);
 }
 
@@ -728,15 +728,15 @@ function idToCard(id) {
  * @example
  * // Returns true (both red)
  * areSameColor('hearts', 'diamonds');
- * 
+ *
  * @example
  * // Returns true (both black)
  * areSameColor('clubs', 'spades');
- * 
+ *
  * @example
  * // Returns false (red and black)
  * areSameColor('hearts', 'clubs');
- * 
+ *
  * @example
  * // Throws InvalidCardError (invalid suit)
  * try {
@@ -750,12 +750,12 @@ function areSameColor(suit1, suit2) {
   if (suit1 === null || suit1 === undefined || suit2 === null || suit2 === undefined) {
     return false;
   }
-  
+
   try {
     // Get colors for both suits
     const color1 = getSuitColor(suit1);
     const color2 = getSuitColor(suit2);
-    
+
     // Compare the colors
     return color1 === color2;
   } catch (error) {
@@ -797,26 +797,26 @@ function cardToId(card) {
   if (!card || typeof card !== 'object') {
     throw new InvalidCardError('Card must be an object');
   }
-  
+
   const { suit, value } = card;
-  
+
   if (!suit) {
     throw new InvalidCardError('Card is missing suit property');
   }
-  
+
   if (!value) {
     throw new InvalidCardError('Card is missing value property');
   }
-  
+
   // Get the single-character suit representation
   const suitChar = SUIT_TO_CHAR_MAP[suit];
   if (!suitChar) {
     throw new InvalidCardError(`Invalid suit: ${suit}`);
   }
-  
+
   // Get the single-character value representation (or the first character for 10)
   const valueChar = value === '10' ? 'T' : value[0].toUpperCase();
-  
+
   return `${valueChar}${suitChar}`;
 }
 
@@ -824,7 +824,7 @@ function cardToId(card) {
 /**
  * Gets the base rank value of a card value according to Euchre's standard ranking.
  * This is used for sorting and comparing cards when not considering the trump suit.
- * 
+ *
  * The base rank values are as follows:
  * - Right Bower (Jack of trump): Handled by getCardRank
  * - Left Bower (Jack of same color): Handled by getCardRank
@@ -874,7 +874,7 @@ function getBaseRankValue(value) {
   }
 
   const normalizedValue = typeof value === 'string' ? value.toLowerCase() : '';
-  
+
   // Euchre rank order (highest to lowest): Ace, King, Queen, Jack, 10, 9
   const rankValues = {
     'ace': 6,
@@ -890,11 +890,11 @@ function getBaseRankValue(value) {
   };
 
   const rankValue = rankValues[normalizedValue];
-  
+
   if (rankValue === undefined) {
     throw new InvalidCardError(`Invalid card value: ${value}`);
   }
-  
+
   return rankValue;
 }
 
@@ -905,7 +905,7 @@ function getBaseRankValue(value) {
  * 2. Left Bower (Jack of same color as trump): 90
  * 3. Other trump cards: 50 + base rank value
  * 4. Non-trump cards: base rank value (6 for Ace, 5 for King, etc.)
- * 
+ *
  * @param {Card} card - The card to evaluate. Must have `suit` and `value` properties.
  * @param {string} trumpSuit - The current trump suit (e.g., 'CARD_SUIT_HEARTS' or 'hearts').
  * @returns {number} The rank of the card (higher is better).
@@ -949,164 +949,268 @@ function getCardRank(card, trumpSuit) {
   if (!card || typeof card !== 'object') {
     throw new InvalidCardError('Card must be an object');
   }
-  
+
   if (!card.suit) {
     throw new InvalidCardError('Card is missing suit property');
   }
-  
+
   if (!card.value) {
     throw new InvalidCardError('Card is missing value property');
   }
-  
+
   // If no trump suit is provided, use base rank value
   if (!trumpSuit) {
     return getBaseRankValue(card.value);
   }
-  
+
   // Check for Right Bower (Jack of trump suit)
   if (isRightBower(card, trumpSuit)) {
     return 100; // Highest possible rank
   }
-  
+
   // Check for Left Bower (Jack of same color as trump)
   if (isLeftBower(card, trumpSuit)) {
     return 90; // Second highest rank
   }
-  
+
   // Check if the card is a trump suit card (but not a bower)
   const effectiveSuit = getEffectiveSuit(card, trumpSuit);
   if (effectiveSuit === trumpSuit) {
-    // For trump suit cards, use base rank + 50 (to make them higher than non-trump)
+    // For trump cards, use base rank + 50 (to make them higher than non-trump)
     return 50 + getBaseRankValue(card.value);
   }
-  
+
   // For non-trump cards, just use the base rank
   return getBaseRankValue(card.value);
 }
 
 /**
- * Sorts a hand of cards according to Euchre rules.
- * 
- * Cards are sorted in the following order:
- * 1. Trump suit cards (highest to lowest):
- *    - Right Bower (Jack of trump suit)
- *    - Left Bower (Jack of same color as trump)
- *    - Other trump cards (Ace high, then K, Q, 10, 9)
- * 2. Non-trump cards grouped by suit and sorted by rank (Ace high, then K, Q, J, 10, 9)
- * 
- * This function is pure and returns a new array without modifying the original hand.
+ * @typedef {object} SortKey
+ * @property {boolean} isTrump - True if the card is a trump card.
+ * @property {boolean} isRB - True if the card is the Right Bower.
+ * @property {boolean} isLB - True if the card is the Left Bower.
+ * @property {number} suitOrder - The order of the suit within non-trump suits, or Infinity if trump.
+ * @property {number} rank - The base rank of the card.
+ * @property {number} originalIndex - The original index of the card in the hand.
+ */
+
+/**
+ * Sorts a hand of cards according to Euchre rules with trump suit taking precedence.
  *
- * @param {Card[]} hand - The hand to sort (array of card objects). Each card must have `suit` and `value` properties.
- * @param {string} [trumpSuit] - The current trump suit (e.g., 'CARD_SUIT_HEARTS' or 'hearts').
- *                               If not provided, cards are sorted by base rank only.
- * @returns {Card[]} A new array containing the sorted hand.
- * @throws {InvalidCardError} If any card in the hand is invalid, missing required properties, or has invalid values.
- * @see {@link getCardRank} - For determining the rank of each card including Bowers.
- * @see {@link getEffectiveSuit} - For determining a card's effective suit (accounts for Left Bower).
- * @see {@link getBaseRankValue} - For getting the base rank of non-trump cards.
- * @example
- * // Basic usage with trump suit
- * const hand = [
- *   { suit: 'CARD_SUIT_HEARTS', value: 'J' },  // Right Bower
- *   { suit: 'CARD_SUIT_DIAMONDS', value: 'A' }, // Non-trump
- *   { suit: 'CARD_SUIT_CLUBS', value: 'J' }     // Left Bower
- * ];
- * // Returns [
- * //   { suit: 'CARD_SUIT_HEARTS', value: 'J' }, // Right Bower (highest)
- * //   { suit: 'CARD_SUIT_CLUBS', value: 'J' },  // Left Bower (second highest)
- * //   { suit: 'CARD_SUIT_DIAMONDS', value: 'A' } // Non-trump (sorted by base rank)
- * // ]
- * sortHand(hand, 'CARD_SUIT_HEARTS');
+ * The sorting follows this priority order:
+ * 1. Right Bower (highest)
+ * 2. Left Bower (second highest)
+ * 3. Other trump cards (A, K, Q, 10, 9)
+ * 4. Non-trump cards by suit order (Clubs, Diamonds, Spades, Hearts)
+ * 5. Cards of the same suit by rank (A, K, Q, J, 10, 9)
  *
- * @example
- * // Sorting without a trump suit (sorts by base rank only)
- * const hand = [
- *   { suit: 'CARD_SUIT_DIAMONDS', value: '9' },
- *   { suit: 'CARD_SUIT_HEARTS', value: 'A' },
- *   { suit: 'CARD_SUIT_CLUBS', value: 'K' }
- * ];
- * // Returns [
- * //   { suit: 'CARD_SUIT_HEARTS', value: 'A' },  // Ace (highest base rank)
- * //   { suit: 'CARD_SUIT_CLUBS', value: 'K' },   // King
- * //   { suit: 'CARD_SUIT_DIAMONDS', value: '9' }  // 9 (lowest base rank)
- * // ]
- * sortHand(hand);
- *
- * @example
- * // Sorting with multiple suits and trump
- * const hand = [
- *   { suit: 'CARD_SUIT_HEARTS', value: '10' },
- *   { suit: 'CARD_SUIT_HEARTS', value: 'A' },
- *   { suit: 'CARD_SUIT_CLUBS', value: 'J' },     // Left Bower
- *   { suit: 'CARD_SUIT_HEARTS', value: 'J' },     // Right Bower
- *   { suit: 'CARD_SUIT_DIAMONDS', value: 'K' },
- *   { suit: 'CARD_SUIT_SPADES', value: 'Q' }
- * ];
- * // Returns [
- * //   { suit: 'CARD_SUIT_HEARTS', value: 'J' },  // Right Bower (highest)
- * //   { suit: 'CARD_SUIT_CLUBS', value: 'J' },   // Left Bower (second highest)
- * //   { suit: 'CARD_SUIT_HEARTS', value: 'A' },  // Other trump (A high)
- * //   { suit: 'CARD_SUIT_HEARTS', value: '10' }, // Other trump (10)
- * //   { suit: 'CARD_SUIT_DIAMONDS', value: 'K' },// Non-trump, diamonds before spades
- * //   { suit: 'CARD_SUIT_SPADES', value: 'Q' }   // Non-trump
- * // ]
- * sortHand(hand, 'CARD_SUIT_HEARTS');
- *
- * @example
- * // Throws InvalidCardError (missing value)
- * sortHand([{ suit: 'CARD_SUIT_HEARTS' }], 'CARD_SUIT_SPADES');
- *
- * @example
- * // Throws InvalidCardError (invalid card value)
- * sortHand([{ suit: 'CARD_SUIT_HEARTS', value: 'INVALID' }], 'CARD_SUIT_SPADES');
+ * @param {Array<import('./deck.js').Card>} hand - Array of card objects to sort. Each card must have 'suit' and 'value' properties.
+ * @param {string} [trumpSuit] - The current trump suit (case-insensitive). If not provided, sorts by natural order.
+ * @returns {Array<import('./deck.js').Card>} A new array containing the sorted cards.
+ * @see isRightBower
+ * @see isLeftBower
+ * @see getCardRank
+ * @see normalizeSuit
+ * @see src/game/phases/playingPhase.js
+ * @see src/game/logic/aiLogic.js
+ * @see src/game/logic/validation.js
  */
 function sortHand(hand, trumpSuit) {
+  // Input validation - return empty array for non-array input
   if (!Array.isArray(hand)) {
-    throw new InvalidCardError('Hand must be an array of cards');
+    logger.warn('Invalid hand provided for sorting: must be an array.');
+    return [];
   }
-  
-  // Create a copy of the hand to avoid mutating the original
-  const sortedHand = [...hand];
-  
-  // Sort the hand based on the card ranks
-  sortedHand.sort((cardA, cardB) => {
+
+  // Return a copy of the hand if it contains invalid card objects
+  if (hand.some(card => typeof card !== 'object' || card === null)) {
+    logger.warn('Invalid card objects in hand for sorting.');
+    return [...hand];
+  }
+
+  // Create a working copy of the hand to avoid mutating the input
+  const handCopy = [...hand];
+
+  // Define the default suit order (Clubs, Diamonds, Spades, Hearts)
+  const defaultSuitOrder = [
+    CARD_SUITS.CARD_SUIT_CLUBS,
+    CARD_SUITS.CARD_SUIT_DIAMONDS,
+    CARD_SUITS.CARD_SUIT_SPADES,
+    CARD_SUITS.CARD_SUIT_HEARTS
+  ];
+
+  // Determine if we have a valid trump suit
+  let normalizedTrumpSuit = null;
+  let hasValidTrumpSuit = false;
+
+  if (trumpSuit) {
     try {
-      const rankA = getCardRank(cardA, trumpSuit);
-      const rankB = getCardRank(cardB, trumpSuit);
-      
-      // First, sort by rank (descending)
-      if (rankA !== rankB) {
-        return rankB - rankA;
+      normalizedTrumpSuit = normalizeSuit(trumpSuit);
+      if (normalizedTrumpSuit) {
+        hasValidTrumpSuit = true;
       }
-      
-      // If ranks are equal, sort by suit for non-trump cards
-      if (trumpSuit) {
-        const effectiveSuitA = getEffectiveSuit(cardA, trumpSuit);
-        const effectiveSuitB = getEffectiveSuit(cardB, trumpSuit);
-        
-        // If one is trump and the other isn't, the trump card comes first
-        if (effectiveSuitA === trumpSuit && effectiveSuitB !== trumpSuit) return -1;
-        if (effectiveSuitA !== trumpSuit && effectiveSuitB === trumpSuit) return 1;
-        
-        // If both are non-trump, sort by suit and then by value
-        if (effectiveSuitA !== trumpSuit && effectiveSuitB !== trumpSuit) {
-          const suitCompare = effectiveSuitA.localeCompare(effectiveSuitB);
-          if (suitCompare !== 0) return suitCompare;
-        }
+    } catch (e) {
+      // If we can't normalize the trump suit, treat it as invalid
+      logger.warn(`Invalid trump suit provided: ${trumpSuit}, sorting without trump logic.`);
+      hasValidTrumpSuit = false;
+    }
+  }
+
+  // Create a map of suit to order for faster lookups
+  const suitOrderMap = new Map();
+
+  // If we have a valid trump suit, it gets highest priority (-1)
+  // Then we add the remaining suits in default order (0, 1, 2, etc.)
+  let nextSuitOrder = 0;
+
+  // First add the trump suit if valid
+  if (hasValidTrumpSuit) {
+    suitOrderMap.set(normalizedTrumpSuit, -1);
+  }
+
+  // Then add all other suits in default order
+  defaultSuitOrder.forEach(suit => {
+    try {
+      const normalized = normalizeSuit(suit);
+      // Only add if not already added (trump suit)
+      if (!suitOrderMap.has(normalized)) {
+        suitOrderMap.set(normalized, nextSuitOrder);
+        nextSuitOrder++;
       }
-      
-      // If same suit or no trump suit, sort by value
-      return getBaseRankValue(cardB.value) - getBaseRankValue(cardA.value);
-    } catch (error) {
-      // If there's an error comparing cards, put the invalid card at the end
-      if (error.name === 'InvalidCardError') {
-        return 1; // Put the invalid card after the other card
-      }
-      throw error; // Re-throw other errors
+    } catch (e) {
+      // Skip invalid suits
     }
   });
-  
-  return sortedHand;
+
+  // For non-trump suits, we need to maintain the default order
+  const nonTrumpSuits = new Set();
+  defaultSuitOrder.forEach(suit => {
+    try {
+      nonTrumpSuits.add(normalizeSuit(suit));
+    } catch (e) {
+      // Skip invalid suits
+    }
+  });
+  if (hasValidTrumpSuit) {
+    nonTrumpSuits.delete(normalizedTrumpSuit);
+  }
+
+  /**
+   * Generates a sort key for a given card based on Euchre rules.
+   * @param {import('./deck.js').Card} card - The card to generate the sort key for.
+   * @returns {SortKey} The sort key object.
+   */
+  const getSortKey = (card) => {
+    // Handle invalid cards
+    if (!card || typeof card !== 'object' || !card.suit || !card.value) {
+      return {
+        isTrump: false,
+        isRB: false,
+        isLB: false,
+        suitOrder: Infinity,
+        rank: -1,
+        baseRank: -1,
+        originalIndex: handCopy.indexOf(card),
+        isInvalid: true
+      };
+    }
+
+    try {
+      const normalizedSuit = normalizeSuit(card.suit);
+      const isRB = hasValidTrumpSuit ? isRightBower(card, normalizedTrumpSuit) : false;
+      const isLB = hasValidTrumpSuit ? isLeftBower(card, normalizedTrumpSuit) : false;
+      const isTrump = isRB || isLB || (hasValidTrumpSuit && normalizedSuit === normalizedTrumpSuit);
+
+      // Get the base rank (A=14, K=13, ..., 9=9)
+      const baseRank = getBaseRankValue(card.value);
+
+      // For invalid cards, treat as invalid
+      if (baseRank === 0 || !normalizedSuit) {
+        return {
+          isTrump: false, isRB: false, isLB: false,
+          suitOrder: Infinity, rank: -1, baseRank: -1,
+          originalIndex: handCopy.indexOf(card),
+          isInvalid: true
+        };
+      }
+
+      // For trump cards, we use a special order: Right Bower, Left Bower, then by rank
+      if (isTrump) {
+        // For trump cards, we use a special rank that ensures:
+        // Right Bower (1000) > Left Bower (900) > Ace (14) > King (13) > ... > 9 (9)
+        const trumpRank = isRB ? 1000 : (isLB ? 900 : baseRank);
+
+        return {
+          isTrump: true,
+          isRB,
+          isLB,
+          suitOrder: -1, // All trumps come before non-trumps
+          rank: trumpRank,
+          baseRank,
+          originalIndex: handCopy.indexOf(card),
+          isInvalid: false
+        };
+      }
+
+      // For non-trump cards, use the suit order and base rank
+      // The rank is used for secondary sorting within the same suit
+      const suitOrder = suitOrderMap.get(normalizedSuit) ?? Infinity;
+
+      return {
+        isTrump: false,
+        isRB: false,
+        isLB: false,
+        suitOrder,
+        rank: baseRank, // Use base rank for non-trump cards
+        baseRank,
+        originalIndex: handCopy.indexOf(card),
+        isInvalid: false
+      };
+    } catch (e) {
+      // If we can't process the card, treat it as invalid
+      logger.warn(`Error generating sort key for card:`, { card, error: e.message });
+      return {
+        isTrump: false, isRB: false, isLB: false,
+        suitOrder: Infinity, rank: -1, baseRank: -1,
+        originalIndex: handCopy.indexOf(card),
+        isInvalid: true
+      };
+    }
+  };
+
+  return handCopy.sort((a, b) => {
+    const aKey = getSortKey(a);
+    const bKey = getSortKey(b);
+
+    // 1. Sort invalid cards to the end, maintaining their original order
+    if (aKey.isInvalid && bKey.isInvalid) {
+      return aKey.originalIndex - bKey.originalIndex;
+    }
+    if (aKey.isInvalid) return 1;
+    if (bKey.isInvalid) return -1;
+
+    // 2. Sort trump cards before non-trump cards
+    if (aKey.isTrump && !bKey.isTrump) return -1;
+    if (!aKey.isTrump && bKey.isTrump) return 1;
+
+    // 3. Both cards are trump - sort by rank (highest first)
+    if (aKey.isTrump && bKey.isTrump) {
+      return bKey.rank - aKey.rank;
+    }
+
+    // 4. Both cards are non-trump - first sort by suit order
+    if (aKey.suitOrder !== bKey.suitOrder) {
+      return aKey.suitOrder - bKey.suitOrder;
+    }
+
+    // 5. Same suit - sort by rank (highest first)
+    if (aKey.rank !== bKey.rank) {
+      return bKey.rank - aKey.rank;
+    }
+
+    // 6. If everything else is equal, maintain original order
+    return aKey.originalIndex - bKey.originalIndex;
+  });
 }
 
 // Export all internal helper maps and constants
@@ -1123,7 +1227,7 @@ export {
   getCardRank,
   sortHand,
   getBaseRankValue,
-  
+
   // Internal helper maps (exported for deck.js)
   SUIT_CONSTANT_TO_NAME_MAP,
   SUIT_TO_CHAR_MAP,

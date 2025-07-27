@@ -422,10 +422,21 @@ function setupSocketTest(options = {}) {
     }
 
     const mockSocket = { id: socketId, emit: mock.fn(), join: mock.fn(), leave: mock.fn(), on: mock.fn(), getHandler: (event) => mockSocket.on.mock.calls.find(c => c.arguments[0] === event)?.arguments[1], };
-    const mockIo = { to: mock.fn(() => ({ emit: mock.fn() })), };
-    const emitSpy = mock.fn();
-    mockIo.to.mock.mockImplementation(() => ({ emit: emitSpy }));
-    mockIo.emitSpy = emitSpy;
+    
+    // Create a mock for the emit function that will be returned by io.to()
+    const mockEmit = mock.fn();
+    
+    // Create a mock for the object returned by io.to()
+    const mockToReturn = { emit: mockEmit };
+    
+    // Create the mock for io.to() that returns our mock object
+    const mockTo = mock.fn(() => mockToReturn);
+    
+    // Create the mock io object with our tracked mocks
+    const mockIo = { to: mockTo };
+    
+    // For backward compatibility, add the emitSpy to the mockIo object
+    mockIo.emitSpy = mockEmit;
     const mockGameRepository = { getGame: mock.fn(async (gameId) => (gameId === gameState.gameId ? gameState : null)), updateGame: mock.fn(async (gameId, state) => state), };
     return { mockSocket, mockIo, mockGameRepository, playerRole, gameState };
 }

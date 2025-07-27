@@ -24,6 +24,22 @@ describe("settingsUtils", () => {
   });
 
   describe("validateSettings(customSettings)", () => {
+    it("should return isValid: true for empty object", () => {
+      const result = validateSettings({});
+      assert.strictEqual(result.isValid, true);
+      assert.deepStrictEqual(result.errors, []);
+    });
+
+    it("should return isValid: false for undefined input", () => {
+      const result = validateSettings(undefined);
+      assert.strictEqual(result.isValid, false, "should be invalid for undefined");
+      assert.deepStrictEqual(
+        result.errors,
+        ["Custom settings must be an object."],
+        "should have the correct error message"
+      );
+    });
+
     it("should return isValid: true for valid settings", () => {
       const result = validateSettings({ winningScore: 15 });
       assert.strictEqual(result.isValid, true);
@@ -96,6 +112,28 @@ describe("settingsUtils", () => {
       const result = validateSettings({ someOtherSetting: true });
       assert.strictEqual(result.isValid, true);
       assert.deepStrictEqual(result.errors, []);
+    });
+  });
+
+  describe("SETTINGS_SCHEMA behavior", () => {
+    it("should validate settings according to the schema", () => {
+      // Test that the schema enforces the winningScore rules
+      const validResult = validateSettings({ winningScore: 10 });
+      assert.strictEqual(validResult.isValid, true, "Valid winningScore should pass validation");
+      
+      const tooLowResult = validateSettings({ winningScore: 4 });
+      assert.strictEqual(tooLowResult.isValid, false, "Winning score below min should fail");
+      
+      const tooHighResult = validateSettings({ winningScore: 22 });
+      assert.strictEqual(tooHighResult.isValid, false, "Winning score above max should fail");
+      
+      const nonIntegerResult = validateSettings({ winningScore: 10.5 });
+      assert.strictEqual(nonIntegerResult.isValid, false, "Non-integer winningScore should fail");
+    });
+    
+    it("should ignore settings not defined in the schema", () => {
+      const result = validateSettings({ unknownSetting: "value" });
+      assert.strictEqual(result.isValid, true, "Unknown settings should be ignored");
     });
   });
 

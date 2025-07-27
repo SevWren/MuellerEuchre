@@ -1016,10 +1016,9 @@ function getCardRank(card, trumpSuit) {
  * @see src/game/logic/validation.js
  */
 function sortHand(hand, trumpSuit) {
-  // Input validation - return empty array for non-array input
+  // Input validation - throw error for non-array input
   if (!Array.isArray(hand)) {
-    logger.warn('Invalid hand provided for sorting: must be an array.');
-    return [];
+    throw new InvalidCardError('Hand must be an array of cards');
   }
 
   // Return a copy of the hand if it contains invalid card objects
@@ -1032,68 +1031,51 @@ function sortHand(hand, trumpSuit) {
   const handCopy = [...hand];
 
   // Define the default suit order (Clubs, Diamonds, Spades, Hearts)
+  // This order determines how non-trump suits are sorted
   const defaultSuitOrder = [
-    CARD_SUITS.CARD_SUIT_CLUBS,
-    CARD_SUITS.CARD_SUIT_DIAMONDS,
-    CARD_SUITS.CARD_SUIT_SPADES,
-    CARD_SUITS.CARD_SUIT_HEARTS
+    CARD_SUITS.CARD_SUIT_CLUBS,     // 0
+    CARD_SUITS.CARD_SUIT_DIAMONDS,   // 1
+    CARD_SUITS.CARD_SUIT_SPADES,     // 2
+    CARD_SUITS.CARD_SUIT_HEARTS      // 3
   ];
-
+  
+  // Create a map of suit to order for faster lookups
+  const suitOrderMap = new Map();
+  
   // Determine if we have a valid trump suit
-  let normalizedTrumpSuit = null;
   let hasValidTrumpSuit = false;
-
+  let normalizedTrumpSuit = null;
+  
+  // First, handle the trump suit if provided
   if (trumpSuit) {
     try {
       normalizedTrumpSuit = normalizeSuit(trumpSuit);
-      if (normalizedTrumpSuit) {
+      // Check if the normalized suit is one of the valid suits
+      if (Object.values(CARD_SUITS).includes(normalizedTrumpSuit)) {
         hasValidTrumpSuit = true;
+      } else {
+        logger.warn(`Invalid trump suit provided: ${trumpSuit}, sorting without trump logic.`);
       }
     } catch (e) {
       // If we can't normalize the trump suit, treat it as invalid
       logger.warn(`Invalid trump suit provided: ${trumpSuit}, sorting without trump logic.`);
-      hasValidTrumpSuit = false;
     }
   }
-
-  // Create a map of suit to order for faster lookups
-  const suitOrderMap = new Map();
-
-  // If we have a valid trump suit, it gets highest priority (-1)
-  // Then we add the remaining suits in default order (0, 1, 2, etc.)
-  let nextSuitOrder = 0;
-
-  // First add the trump suit if valid
-  if (hasValidTrumpSuit) {
-    suitOrderMap.set(normalizedTrumpSuit, -1);
-  }
-
-  // Then add all other suits in default order
-  defaultSuitOrder.forEach(suit => {
+  
+  // Initialize with all suits in default order
+  defaultSuitOrder.forEach((suit, index) => {
     try {
-      const normalized = normalizeSuit(suit);
-      // Only add if not already added (trump suit)
-      if (!suitOrderMap.has(normalized)) {
-        suitOrderMap.set(normalized, nextSuitOrder);
-        nextSuitOrder++;
+      const normalizedSuit = normalizeSuit(suit);
+      // Only add if not already added (trump suit will be added with -1)
+      if (hasValidTrumpSuit && normalizedSuit === normalizedTrumpSuit) {
+        suitOrderMap.set(normalizedSuit, -1); // Trump suit gets highest priority
+      } else {
+        suitOrderMap.set(normalizedSuit, index);
       }
     } catch (e) {
       // Skip invalid suits
     }
   });
-
-  // For non-trump suits, we need to maintain the default order
-  const nonTrumpSuits = new Set();
-  defaultSuitOrder.forEach(suit => {
-    try {
-      nonTrumpSuits.add(normalizeSuit(suit));
-    } catch (e) {
-      // Skip invalid suits
-    }
-  });
-  if (hasValidTrumpSuit) {
-    nonTrumpSuits.delete(normalizedTrumpSuit);
-  }
 
   /**
    * Generates a sort key for a given card based on Euchre rules.
@@ -1178,7 +1160,10 @@ function sortHand(hand, trumpSuit) {
     }
   };
 
-  return handCopy.sort((a, b) => {
+  // Sort the hand
+  const sortedHand = [...handCopy];
+  
+  sortedHand.sort((a, b) => {
     const aKey = getSortKey(a);
     const bKey = getSortKey(b);
 
@@ -1189,28 +1174,35 @@ function sortHand(hand, trumpSuit) {
     if (aKey.isInvalid) return 1;
     if (bKey.isInvalid) return -1;
 
-    // 2. Sort trump cards before non-trump cards
-    if (aKey.isTrump && !bKey.isTrump) return -1;
-    if (!aKey.isTrump && bKey.isTrump) return 1;
+    // If we have a valid trump suit, use trump-based sorting
+    if (hasValidTrumpSuit) {
+      // 2. Sort trump cards before non-trump cards
+      if (aKey.isTrump && !bKey.isTrump) return -1;
+      if (!aKey.isTrump && bKey.isTrump) return 1;
 
-    // 3. Both cards are trump - sort by rank (highest first)
-    if (aKey.isTrump && bKey.isTrump) {
-      return bKey.rank - aKey.rank;
+      // 3. Both cards are trump - sort by rank (highest first)
+      if (aKey.isTrump && bKey.isTrump) {
+        // If ranks are equal, maintain original order
+        return bKey.rank - aKey.rank || aKey.originalIndex - bKey.originalIndex;
+      }
     }
 
-    // 4. Both cards are non-trump - first sort by suit order
-    if (aKey.suitOrder !== bKey.suitOrder) {
-      return aKey.suitOrder - bKey.suitOrder;
-    }
-
-    // 5. Same suit - sort by rank (highest first)
+    // 4. Both cards are non-trump (or no valid trump suit)
+    // First sort by rank (highest first)
     if (aKey.rank !== bKey.rank) {
       return bKey.rank - aKey.rank;
+    }
+    
+    // 5. Same rank - sort by suit order (Clubs, Diamonds, Spades, Hearts)
+    if (aKey.suitOrder !== bKey.suitOrder) {
+      return aKey.suitOrder - bKey.suitOrder;
     }
 
     // 6. If everything else is equal, maintain original order
     return aKey.originalIndex - bKey.originalIndex;
   });
+  
+  return sortedHand;
 }
 
 // Export all internal helper maps and constants

@@ -258,7 +258,7 @@ describe("StartNewHandPhase Logic", () => {
     const gameState = createBaseGameState({ dealer: previousDealer, gamePhase: GAME_PHASES.SCORING, teamScores });
 
     const newState = startNewHand(gameState);
-
+ 
     assert.strictEqual(newState.dealer, expectedNewDealer);
     assert.strictEqual(newState.currentPlayer, expectedFirstBidder);
     assert.deepStrictEqual(newState.teamScores, teamScores);

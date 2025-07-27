@@ -1,5 +1,6 @@
 import { validatePlay } from "../logic/validation-core.js";
 import { getNextPlayer } from "../../utils/players.js";
+import { getCardRank } from "../../utils/cardUtils.js";
 import { GAME_PHASES } from "../../config/constants.js";
 import {
   PhaseLogicError,

@@ -1,0 +1,190 @@
+## Node.js & ES Modules Unit Test Cheat Sheet (`node:test`)
+
+This cheat sheet is the authoritative guide for writing unit tests for the Mueller Euchre project. It reflects the established, battle-hardened procedures documented across the repository.
+
+### 1. File Structure & Imports
+
+*   **Test File Location:** Unit tests MUST be located in the `test/` directory, mirroring the `src/` structure.
+    *   Source: `src/game/phases/scoringPhase.js`
+    *   Test: `test/game/phases/scoringPhase.unit.test.js`
+*   **Module Imports:**
+    *   Always use the `node:` prefix for built-in modules (`node:test`, `node:url`).
+    *   Always use `import assert from 'node:assert/strict';`.
+    *   Always include the `.js` extension for local module imports.
+*   **Canonical Pattern for ES Modules (Path Handling):** To ensure cross-platform compatibility (especially with Windows), all test files that need to dynamically import modules MUST use the following pattern:
+
+    ```javascript
+    // Node.js built-in modules
+    import { fileURLToPath, pathToFileURL } from 'node:url';
+    import { dirname, join } from 'node:path';
+    import { describe, it, mock, beforeEach, afterEach } from 'node:test';
+    import assert from 'node:assert/strict';
+
+    // Project modules (relative paths with .js extension)
+    import { GAME_PHASES } from '../../../src/config/constants.js';
+
+    // Get __filename and __dirname equivalent
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+
+    // Create a platform-agnostic file URL for dynamic imports
+    const modulePath = pathToFileURL(join(__dirname, '../../../src/game/phases/scoringPhase.js'));
+    ```
+*   **Path Aliases:** The project uses path aliases defined in `jsconfig.json` (e.g., `@/*`). These are resolved by the tooling. When writing tests, use relative paths (`../../../`) for clarity and reliability.
+
+### 2. Test Runner Basics (`node:test`)
+
+*   **`describe()` for Grouping:** Organize related tests into logical suites.
+    ```javascript
+    describe('ScoringPhase Logic', () => {
+      // ... tests ...
+    });
+    ```
+*   **`it()` for Individual Tests:** Define specific test cases. Use descriptive names that state the expected outcome.
+    ```javascript
+    it('should award 2 points for a march when makers take all 5 tricks', async () => {
+      // ... test logic ...
+    });
+    ```
+*   **Asynchronous Tests:** All tests that involve `async` operations (like dynamic imports or `assert.rejects`) MUST be declared `async`.
+    ```javascript
+    it('should correctly handle a promise rejection', async () => {
+      await assert.rejects(async () => someAsyncFunctionThatRejects());
+    });
+    ```
+*   **Skipping/Only:** Use `describe.skip()`, `it.skip()`, `describe.only()`, and `it.only()` for debugging, but these **MUST be removed before committing code.**
+
+### 3. Assertions (`node:assert/strict`)
+
+*   **Always use `assert/strict`:** This is mandatory to prevent type coercion bugs.
+*   **Key Assertions:**
+    *   `assert.strictEqual(actual, expected)`: For strict equality (`===`) of primitives.
+    *   `assert.deepStrictEqual(actual, expected)`: For deep equality of objects and arrays.
+    *   `assert.ok(value)`: Checks if `value` is truthy.
+    *   `assert.rejects(asyncFn, [errorMatcher])`: Checks if an async function rejects. The `errorMatcher` function is preferred for detailed checks.
+    *   `assert.match(string, regexp)`: Checks if a string matches a regular expression.
+    *   **Error Throwing:** Use the function-based overload of `assert.throws` to inspect error properties, which is more robust than matching message strings.
+        ```javascript
+        import { InvalidPhaseError } from '../../../src/game/logic/validation-errors.js';
+
+        assert.throws(
+          () => functionThatThrows(),
+          (err) => {
+            assert.ok(err instanceof InvalidPhaseError);
+            assert.strictEqual(err.code, 'E_INVALID_PHASE');
+            return true; // IMPORTANT: Return true to confirm the assertion passed.
+          }
+        );
+        ```
+
+### 4. Test Lifecycle Hooks
+
+*   **`beforeEach(async () => { ... })`:** Runs before each `it` block. Use this to reset state and mocks.
+*   **`afterEach(() => { ... })`:** Runs after each `it` block. Use this for cleanup.
+*   **Canonical Pattern for Test Isolation:** Every test file for a stateful or complex module should follow this structure to ensure complete isolation between tests.
+
+    ```javascript
+    let moduleUnderTest; // e.g., calculateAndApplyScore
+
+    beforeEach(async () => {
+      // 1. Dynamically import the module under test for a fresh instance.
+      // This defeats Node's module cache and prevents state leakage between tests.
+      const module = await import(modulePath); // modulePath from Section 1
+      moduleUnderTest = module.calculateAndApplyScore;
+
+      // 2. (If needed) Mock global objects like console.
+    });
+
+    afterEach(() => {
+      // 1. Reset all mocks created with `node:test`'s `mock` API.
+      mock.reset();
+
+      // 2. (If needed) Restore original global objects.
+    });
+    ```
+
+### 5. Mocking and Isolation
+
+*   **The Core Commandment: Thou Shalt Not Attempt to Mutate Imports.** ES Module bindings are read-only. Any attempt to overwrite an imported function will fail. The project's solution is **always** Dependency Injection.
+
+*   **Pattern A: Dependency Injection via `this` Context (`.call`)**
+    *   **Use Case:** For pure Layer 1 functions that have been refactored to remove direct `import` statements for their dependencies.
+    *   **Method:** The function uses `this.dependencyName` instead of a direct import. In the test, you create a mock "service" object and use `Function.prototype.call` to set `this` to your mock object.
+
+    ```javascript
+    // In src/game/phases/biddingPhase.js:
+    // export function handleOrderUpDecision(gameState, player) {
+    //   const { isValid } = this.validateBid(gameState, player, 'orderUp'); // No import!
+    //   // ...
+    // }
+
+    // In test/game/phases/biddingPhase.unit.test.js:
+    import { handleOrderUpDecision } from '../../../src/game/phases/biddingPhase.js';
+
+    it('should call the injected validateBid function', (t) => {
+      // 1. Create the mock service object for this test's context.
+      const mockServices = {
+        validateBid: t.mock.fn(() => ({ isValid: true })),
+      };
+
+      // 2. Execute the function, setting `this` to our mockServices.
+      handleOrderUpDecision.call(mockServices, gameState, player);
+
+      // 3. Assert the mock was called.
+      assert.strictEqual(mockServices.validateBid.mock.callCount(), 1);
+    });
+    ```
+
+*   **Pattern B: Dependency Injection via Factory Functions (`__mocks__`)**
+    *   **Use Case:** For complex modules where refactoring with `.call()` is cumbersome, or for modules that are already designed with a factory pattern.
+    *   **Method:** A mock version of the module is created in `test/__mocks__/`. This mock exports a `create...` factory function that accepts its dependencies as an object.
+
+    ```javascript
+    // In test/__mocks__/utils/players.js
+    // export function createPlayerUtils({ getPartner = realGetPartner } = {}) {
+    //   return { getPartner };
+    // }
+
+    // In a test file:
+    import { createStartNewHand } from '../__mocks__/startNewHandPhase.js';
+
+    it('should use the mocked createDeck function', () => {
+      // 1. Define the mock dependencies.
+      const mockDependencies = {
+        createDeck: mock.fn(() => [/* predictable mock deck */]),
+        shuffleDeck: (deck) => deck, // Pass-through shuffle
+      };
+
+      // 2. Create a testable instance of the function with mocks injected.
+      const startNewHand = createStartNewHand(mockDependencies);
+
+      // 3. Act and Assert.
+      const newState = startNewHand(createBaseGameState());
+      assert.strictEqual(mockDependencies.createDeck.mock.callCount(), 1);
+    });
+    ```
+
+### 6. Test Design Principles
+
+*   **Arrange-Act-Assert (AAA):** Structure every test clearly:
+    1.  **Arrange:** Set up test data, mocks, and initial state. Use helpers from `test/helpers/test-helpers.js`.
+    2.  **Act:** Execute the single function under test.
+    3.  **Assert:** Verify the outcome, return value, or error thrown.
+*   **Adhere to Layer 1 Purity:** Test logic must be deterministic and isolated. A test should produce the same result every time, regardless of order or external factors.
+*   **Use Canonical Test Helpers:** The functions in `test/helpers/test-helpers.js` (e.g., `createBaseGameState`, `setupTestState`, `createCards`) are not optional. They ensure all test data has the correct and consistent shape, preventing data-related bugs.
+
+### 7. Running Tests
+
+*   **Run All Tests (Standard):**
+    ```bash
+    npm test
+    ```
+*   **Run a Single Test File (Primary Debugging Method):**
+    ```bash
+    node --test test/game/phases/scoringPhase.unit.test.js
+    ```
+*   **Run a Single Test File with Coverage:**
+    ```bash
+    npm run test:coverage:file -- test/game/phases/scoringPhase.unit.test.js
+    ```
+*   **Project-Specific Scripts:** Check `package.json` for specialized test runners, such as `npm run test:decktests`, which runs all tests dependent on card and deck logic—a critical regression check.

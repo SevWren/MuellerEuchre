@@ -1,0 +1,177 @@
+import { describe, it, beforeEach, mock } from 'node:test';
+import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+
+// Simple in-memory file system for testing
+class MemoryFileSystem {
+  constructor() {
+    this.files = new Map();
+  }
+
+  writeFileSync(path, data) {
+    this.files.set(path, data);
+  }
+
+  readFileSync(path) {
+    if (!this.files.has(path)) {
+      throw new Error('File not found');
+    }
+    return this.files.get(path);
+  }
+
+  existsSync(path) {
+    return this.files.has(path);
+  }
+}
+
+// Import the GamePersistence class
+const { GamePersistence } = await import('../../../src/db/gamePersistence.js');
+
+describe('GamePersistence', () => {
+  let persistence;
+  let mockFs;
+  const basePath = './test-data';
+  const gameId = 'test-game';
+  const expectedFilename = `${gameId}.json`;
+  
+  it('should throw an error if fs is not provided to constructor', () => {
+    assert.throws(
+      () => new GamePersistence({}),
+      {
+        name: 'Error',
+        message: 'fs implementation is required'
+      }
+    );
+  });
+
+  beforeEach(() => {
+    // Create a new in-memory file system for each test
+    mockFs = new MemoryFileSystem();
+    
+    // Create instance with our mock file system
+    persistence = new GamePersistence({
+      fs: mockFs,
+      basePath
+    });
+  });
+
+  describe('updateGame', () => {
+    it('should save game state to a file', async () => {
+      const gameState = {
+        id: gameId,
+        players: {},
+        scores: { team1: 0, team2: 0 }
+      };
+
+      // Call the method under test
+      const result = await persistence.updateGame(gameId, gameState);
+      
+      // Verify the result is the game ID
+      assert.strictEqual(result, gameId);
+      
+      // Verify the file was saved
+      const filePath = `${basePath}/${expectedFilename}`;
+      assert.strictEqual(mockFs.existsSync(filePath), true);
+      
+      // Verify the content is correct
+      const savedData = JSON.parse(mockFs.readFileSync(filePath));
+      assert.deepStrictEqual(savedData, gameState);
+    });
+  });
+
+  describe('getGame', () => {
+    it('should return game state when file exists', async () => {
+      const gameState = {
+        id: gameId,
+        players: {},
+        scores: { team1: 0, team2: 0 }
+      };
+      
+      // Save test data
+      const filePath = `${basePath}/${expectedFilename}`;
+      mockFs.writeFileSync(filePath, JSON.stringify(gameState));
+      
+      // Call the method under test
+      const result = await persistence.getGame(gameId);
+      
+      // Should return the parsed game state
+      assert.deepStrictEqual(result, gameState);
+    });
+    
+    it('should return null when file does not exist', async () => {
+      // Call the method under test with a non-existent game
+      const result = await persistence.getGame('non-existent-game');
+      
+      // Should return null for non-existent game
+      assert.strictEqual(result, null);
+    });
+  });
+
+  describe('connect', () => {
+    it('should resolve successfully', async () => {
+      // Should not throw
+      await assert.doesNotReject(persistence.connect());
+    });
+  });
+
+  describe('disconnect', () => {
+    it('should resolve successfully', async () => {
+      // Should not throw
+      await assert.doesNotReject(persistence.disconnect());
+    });
+  });
+
+  describe('error handling', () => {
+    it('should handle writeFileSync errors in updateGame', async () => {
+      // Mock fs to throw an error on writeFileSync
+      const error = new Error('Write failed');
+      mock.method(mockFs, 'writeFileSync', () => {
+        throw error;
+      });
+
+      const gameState = { id: 'error-game', players: {} };
+      
+      await assert.rejects(
+        async () => await persistence.updateGame('error-game', gameState),
+        {
+          name: 'Error',
+          message: 'Write failed'
+        }
+      );
+    });
+
+    it('should handle readFileSync errors in getGame', async () => {
+      // Mock fs to throw an error on readFileSync
+      const error = new Error('Read failed');
+      mock.method(mockFs, 'readFileSync', () => {
+        throw error;
+      });
+      
+      // Mock existsSync to return true to reach the readFileSync call
+      mock.method(mockFs, 'existsSync', () => true);
+
+      const result = await persistence.getGame('error-game');
+      assert.strictEqual(result, null);
+    });
+
+    it('should handle JSON parse errors in getGame', async () => {
+      // Mock fs to return invalid JSON
+      mock.method(mockFs, 'readFileSync', () => '{invalid json');
+      mock.method(mockFs, 'existsSync', () => true);
+
+      const result = await persistence.getGame('invalid-json');
+      assert.strictEqual(result, null);
+    });
+  });
+});
+
+describe('gamePersistence singleton', () => {
+  it('should be an instance of GamePersistence', async () => {
+    // Import the singleton directly
+    const { gamePersistence } = await import('../../../src/db/gamePersistence.js');
+    const { GamePersistence } = await import('../../../src/db/gamePersistence.js');
+    
+    assert(gamePersistence instanceof GamePersistence, 'gamePersistence should be an instance of GamePersistence');
+  });
+});

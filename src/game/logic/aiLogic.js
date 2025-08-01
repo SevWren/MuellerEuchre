@@ -1,15 +1,8 @@
-//run `npm test aiLogic.unit.test.js ` and debug all failing tests @aiLogic.unit.test.js 
-
-
-
-
-
-// src/game/logic/aiLogic.js
 /**
  * @module game/logic/aiLogic
  * @description
  * Pure, stateless AI logic for Euchre game decisions.
- * 
+ *
  * This module provides deterministic AI functionality for the Euchre game,
  * implementing standard Euchre strategies for bidding and card play.
  * All functions are pure (same input always produces same output) and have no side effects.
@@ -19,12 +12,15 @@
  * const aiDecision = chooseBid(playerHand, turnCard, isDealer, previousBids);
  * const cardToPlay = chooseCardToPlay(playerHand, currentTrick, trumpSuit, leadSuit);
  *
- * @see {@link module:game/phases/playingPhase} Where AI decisions are integrated
- * @see {@link module:game/phases/biddingPhase} Where AI bidding is integrated
+ * @see {@link module:game/phases/playingPhase}
+ * @see {@link module:game/phases/biddingPhase}
  */
 
-import { isLeftBower } from '../../utils/cardUtils.js';
-
+import {
+  isLeftBower,
+  getEffectiveSuit,
+  normalizeSuit,
+} from "../../utils/cardUtils.js";
 
 /**
  * Point values for card evaluation in AI decision making.
@@ -57,19 +53,23 @@ const POINTS = {
 const BID_THRESHOLD = 20;
 
 /**
+ * @typedef {object} Card
+ * @property {string} suit - The card's suit (e.g., 'hearts', 'spades').
+ * @property {string} value - The card's value (e.g., 'J', 'A', '10').
+ */
+
+/**
  * Counts the number of trump cards in a player's hand.
  * A card is considered trump if it matches the trump suit or is the left bower.
  *
- * @function countTrumpInHand
- * @param {Array<object>} hand - The player's hand as an array of card objects.
- *        Each card should have `suit` and `rank` properties.
+ * @param {Array<Card>} hand - The player's hand as an array of card objects.
  * @param {string} trumpSuit - The current trump suit (e.g., 'hearts', 'spades').
  * @returns {number} The count of trump cards in the hand. Returns 0 for invalid input.
  *
  * @example
  * const hand = [
- *   { suit: 'hearts', rank: 'J' },  // Right bower if trump is hearts
- *   { suit: 'diamonds', rank: 'J' } // Left bower if trump is hearts
+ *   { suit: 'hearts', value: 'J' },  // Right bower if trump is hearts
+ *   { suit: 'diamonds', value: 'J' } // Left bower if trump is hearts
  * ];
  * const trumpCount = countTrumpInHand(hand, 'hearts'); // Returns 2
  */
@@ -85,7 +85,7 @@ function countTrumpInHand(hand, trumpSuit) {
 /**
  * Calculates the total point value (strength) of a hand for a given trump suit.
  * This function consolidates all scoring logic, including bowers and other trump cards.
- * @param {Array<object>} hand - Array of card objects
+ * @param {Array<Card>} hand - Array of card objects
  * @param {string} trumpSuit - The suit to evaluate as trump
  * @returns {number} Total point value of the hand
  */
@@ -139,8 +139,7 @@ function calculateHandStrength(hand, trumpSuit) {
  * This is an internal helper function used by the AI to make bidding decisions.
  *
  * @private
- * @function _evaluateHand
- * @param {Array<object>} hand - The player's hand as an array of card objects.
+ * @param {Array<Card>} hand - The player's hand as an array of card objects.
  * @param {string} potentialTrump - The potential trump suit to evaluate against.
  * @returns {number} A numerical score representing the strength of the hand
  *          for the given trump suit. Higher scores indicate stronger hands.
@@ -148,28 +147,35 @@ function calculateHandStrength(hand, trumpSuit) {
  *
  * @example
  * const hand = [
- *   { suit: 'hearts', rank: 'J' },  // Right bower
- *   { suit: 'diamonds', rank: 'J' }, // Left bower
- *   { suit: 'hearts', rank: 'A' }   // Trump ace
+ *   { suit: 'hearts', value: 'J' },  // Right bower
+ *   { suit: 'diamonds', value: 'J' }, // Left bower
+ *   { suit: 'hearts', value: 'A' }   // Trump ace
  * ];
  * const score = _evaluateHand(hand, 'hearts'); // Returns 32
  *
- * @see calculateHandStrength Used to calculate the strength of the hand.
+ * @see {@link calculateHandStrength} Used to calculate the strength of the hand.
  */
 function _evaluateHand(hand, potentialTrump) {
   if (!Array.isArray(hand) || hand.length === 0) return 0;
   if (typeof potentialTrump !== "string") return 0;
-  
+
   return calculateHandStrength(hand, potentialTrump);
 }
 
 /**
+ * @typedef {object} BidDecision
+ * @property {string} decision - The AI's decision ('pass', 'orderUp', 'callTrump').
+ * @property {string} [suit] - The trump suit chosen if decision is 'callTrump'.
+ */
+
+/**
  * Determines AI's bidding decision based on hand strength.
- * @param {Array<object>} hand - Array of card objects
- * @param {object} turnCard - Current turn card object
+ * @param {Array<Card>} hand - Array of card objects
+ * @param {Card} turnCard - Current turn card object
  * @param {boolean} isDealer - Whether AI is the dealer
- * @param {Array<object>} [bids=[]] - Array of previous bids in current round
- * @returns {object} Decision object {decision: string, suit?: string}
+ * @param {Array<BidDecision>} [bids=[]] - Array of previous bids in current round
+ * @returns {BidDecision} Decision object {decision: string, suit?: string}
+ * @see {@link _evaluateHand} Used to evaluate hand strength for bidding.
  */
 function chooseBid(hand, turnCard, isDealer, bids = []) {
   if (!Array.isArray(hand) || hand.length === 0 || !turnCard) {
@@ -207,27 +213,12 @@ function chooseBid(hand, turnCard, isDealer, bids = []) {
 }
 
 /**
- * Determines the effective suit of a card, considering the Left Bower rule.
- * This is a local implementation for AI logic to avoid external dependencies.
- * @param {object} card - The card to evaluate.
- * @param {string} trumpSuit - The current trump suit.
- * @returns {string} The effective suit of the card.
- */
-function getEffectiveSuit(card, trumpSuit) {
-  if (!card || !card.suit || !card.value) {
-    return null;
-  }
-  if (isLeftBower(card, trumpSuit)) {
-    return trumpSuit;
-  }
-  return card.suit;
-}
-
-/**
- * Gets the numeric value of a card based on trump suit
- * @param {object} card - Card object
+ * Gets the numeric value of a card based on trump suit for AI decision making.
+ * This value is used to compare cards and determine the best card to play.
+ * @param {Card} card - Card object
  * @param {string} trumpSuit - Current trump suit
  * @returns {number} Numeric value of card
+ * @see {@link isLeftBower} Used to identify the Left Bower.
  */
 function getCardValue(card, trumpSuit) {
   if (!card || !card.suit || !card.value) return 0;
@@ -256,11 +247,13 @@ function getCardValue(card, trumpSuit) {
 }
 
 /**
- * Gets the current winning card in the trick
- * @param {Array<object>} trick - Array of cards in current trick
+ * Gets the current winning card in the trick based on Euchre rules.
+ * @param {Array<Card>} trick - Array of cards in current trick
  * @param {string} trumpSuit - Current trump suit
  * @param {string} leadSuit - Lead suit of current trick
- * @returns {object|null} Winning card or null if empty trick
+ * @returns {Card|null} Winning card or null if empty trick
+ * @see {@link getEffectiveSuit} Used to determine the effective suit of a card.
+ * @see {@link getCardValue} Used to compare card values.
  */
 function getWinningCard(trick, trumpSuit, leadSuit) {
   if (trick.length === 0) return null;
@@ -274,7 +267,10 @@ function getWinningCard(trick, trumpSuit, leadSuit) {
 
     if (winningSuit === currentSuit) {
       // Both are same suit, compare values
-      if (getCardValue(currentCard, trumpSuit) > getCardValue(winningCard, trumpSuit)) {
+      if (
+        getCardValue(currentCard, trumpSuit) >
+        getCardValue(winningCard, trumpSuit)
+      ) {
         winningCard = currentCard;
       }
     } else if (currentSuit === trumpSuit) {
@@ -289,30 +285,38 @@ function getWinningCard(trick, trumpSuit, leadSuit) {
 }
 
 /**
- * Gets the lowest value card from a hand
- * @param {Array<object>} cards - Array of card objects
+ * Gets the lowest value card from a hand based on trump suit.
+ * @param {Array<Card>} cards - Array of card objects
  * @param {string} trumpSuit - Current trump suit
- * @returns {object|null} Lowest value card or null if empty
+ * @returns {Card|null} Lowest value card or null if empty
+ * @see {@link getCardValue} Used to compare card values.
  */
 function getLowestCard(cards, trumpSuit) {
   if (!Array.isArray(cards) || cards.length === 0) return null;
 
   return cards.reduce((lowestCard, currentCard) => {
     if (!lowestCard) return currentCard;
-    return getCardValue(currentCard, trumpSuit) < getCardValue(lowestCard, trumpSuit) ? currentCard : lowestCard;
+    return getCardValue(currentCard, trumpSuit) <
+      getCardValue(lowestCard, trumpSuit)
+      ? currentCard
+      : lowestCard;
   }, null);
 }
 
-
 /**
- * Chooses a card for AI to play based on current trick state.
- * @param {Array<object>} hand - Array of card objects
- * @param {Array<object>} [currentTrick=[]] - Array of cards played in current trick
- * @param {string} trumpSuit - Current trump suit
- * @param {string} leadSuit - Lead suit of current trick
- * @returns {object|null} Selected card object or null if invalid input
+ * Chooses a card for AI to play based on current trick state and Euchre rules.
+ * @param {Array<Card>} hand - Array of card objects in the AI's hand.
+ * @param {Array<Card>} [currentTrick=[]] - Array of cards played in the current trick so far.
+ * @param {string} trumpSuit - Current trump suit.
+ * @param {string} leadSuit - Lead suit of current trick.
+ * @returns {Card|null} Selected card object or null if invalid input.
+ * @see {@link getEffectiveSuit} Used to determine the effective suit of a card.
+ * @see {@link getLowestCard} Used to find the lowest value card.
+ * @see {@link getWinningCard} Used to determine the current winning card in the trick.
+ * @see {@link getCardValue} Used to compare card values.
  */
 function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
+  const normalizedLeadSuit = leadSuit ? normalizeSuit(leadSuit) : null;
   if (!Array.isArray(hand) || hand.length === 0) {
     return null;
   }
@@ -321,19 +325,33 @@ function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
   if (currentTrick.length === 0) {
     // If only trump cards, play lowest trump
     const trumpCards = hand.filter(
-      (card) => card && card.suit && card.value && getEffectiveSuit(card, trumpSuit) === trumpSuit
+      (card) =>
+        card &&
+        card.suit &&
+        card.value &&
+        getEffectiveSuit(card, trumpSuit) === trumpSuit
     );
 
     if (trumpCards.length === hand.length) {
       return getLowestCard(trumpCards, trumpSuit);
     }
-    
+
     // Play highest non-trump card if not all trump
-    const nonTrumpCards = hand.filter(card => card && card.suit && card.value && getEffectiveSuit(card, trumpSuit) !== trumpSuit);
-    if(nonTrumpCards.length > 0) {
-        return nonTrumpCards.reduce((highest, card) => getCardValue(card, trumpSuit) > getCardValue(highest, trumpSuit) ? card : highest);
+    const nonTrumpCards = hand.filter(
+      (card) =>
+        card &&
+        card.suit &&
+        card.value &&
+        getEffectiveSuit(card, trumpSuit) !== trumpSuit
+    );
+    if (nonTrumpCards.length > 0) {
+      return nonTrumpCards.reduce((highest, card) =>
+        getCardValue(card, trumpSuit) > getCardValue(highest, trumpSuit)
+          ? card
+          : highest
+      );
     }
-    
+
     // Fallback to lowest card overall if something is weird
     return getLowestCard(hand, trumpSuit);
   }
@@ -341,24 +359,28 @@ function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
   // If not leading, must follow suit if able
   const cardsInSuit = hand.filter((card) => {
     if (!card || !card.suit || !card.value) return false;
-    return getEffectiveSuit(card, trumpSuit) === leadSuit;
+    return getEffectiveSuit(card, trumpSuit) === normalizedLeadSuit;
   });
 
   if (cardsInSuit.length > 0) {
     // Try to win the trick if possible
-    const winningCard = getWinningCard(currentTrick, trumpSuit, leadSuit);
+    const winningCard = getWinningCard(
+      currentTrick,
+      trumpSuit,
+      normalizedLeadSuit
+    );
     if (winningCard) {
       const cardToBeatValue = getCardValue(winningCard, trumpSuit);
       const winningSuit = getEffectiveSuit(winningCard, trumpSuit);
-      
+
       // Find all cards that can win the trick
       const playableWinningCards = [];
       for (const card of cardsInSuit) {
         if (!card || !card.suit || !card.value) continue;
-        
+
         const isTrump = getEffectiveSuit(card, trumpSuit) === trumpSuit;
         const cardValue = getCardValue(card, trumpSuit);
-        
+
         if (winningSuit === trumpSuit) {
           // If winning card is trump, must play higher trump to win
           if (isTrump && cardValue > cardToBeatValue) {
@@ -386,15 +408,19 @@ function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
   }
 
   // Can't follow suit - slough lowest value non-trump card if possible
-  const nonTrumpCards = hand.filter(card => 
-    card && card.suit && card.value && getEffectiveSuit(card, trumpSuit) !== trumpSuit
+  const nonTrumpCards = hand.filter(
+    (card) =>
+      card &&
+      card.suit &&
+      card.value &&
+      getEffectiveSuit(card, trumpSuit) !== trumpSuit
   );
-  
+
   // If no non-trump cards, return lowest card overall
   if (nonTrumpCards.length === 0) {
     return getLowestCard(hand, trumpSuit);
   }
-  
+
   // Otherwise, return lowest non-trump card
   return getLowestCard(nonTrumpCards, trumpSuit);
 }
@@ -408,5 +434,5 @@ export {
   getCardValue,
   getWinningCard,
   getLowestCard,
-  chooseCardToPlay
+  chooseCardToPlay,
 };

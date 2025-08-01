@@ -1,0 +1,90 @@
+/**
+ * On Hold DO NOT MODIFY
+ * Reason: [Belongs to Layer 5]
+ * Last updated: 7-31-25
+ */
+
+import assert from "node:assert/strict";
+import { describe, it, beforeEach, mock } from 'node:test';
+import { createTestServer } from "../test-utils.js";
+
+// Add GamePersistence class definition
+class GamePersistence {
+  constructor(options = {}) {
+
+// Import the local GamePersistence class
+const GamePersistence = (await import('../../../src/server/persistence/gamePersistence.js')).default;
+
+describe('Game State Persistence', () => {
+  let server, persistence;
+
+  beforeEach(() => {
+    // Create test server with default mocks
+    const testServer = createTestServer();
+    server = testServer.server;
+    
+    // Instantiate the local GamePersistence class, passing server.fs
+    persistence = new GamePersistence({ fs: server.fs, basePath: "." });
+  });
+
+  afterEach(() => {
+    // Reset all mocks between tests
+    mock.reset();
+  });
+
+  it("should save game state", () => {
+    const gameState = {
+      id: "test-game",
+      players: {},
+      scores: { team1: 0, team2: 0 },
+    };
+
+    // Call the method under test
+    const result = persistence.saveGameState("test-game", gameState);
+    
+    // Verify the result is true
+    assert.strictEqual(result, true);
+    
+    // Verify writeFileSync was called with the correct arguments
+    const writeFileCalls = server.fs.writeFileSync.mock.calls;
+    assert.strictEqual(writeFileCalls.length, 1);
+    
+    // Get the arguments from the first call
+    const filePath = writeFileCalls[0][0];
+    const data = writeFileCalls[0][1];
+    assert.strictEqual(filePath, "./test-game.json");
+    
+    // Verify the data was stringified correctly
+    const savedData = JSON.parse(data);
+    assert.deepStrictEqual(savedData, gameState);
+  });
+
+  it("should load game state", () => {
+    const gameState = {
+      id: "test-game",
+      players: {},
+      scores: { team1: 0, team2: 0 },
+    };
+
+    // Set up mock implementations for this test
+    server.fs.readFileSync = mock.fn().mock.mockImplementation(() => JSON.stringify(gameState));
+    server.fs.existsSync = mock.fn().mock.mockImplementation(() => true);
+
+    // Call the method under test
+    const loadedState = persistence.loadGameState("test-game");
+    
+    // Verify the returned state matches the expected state
+    assert.deepStrictEqual(loadedState, gameState);
+  });
+
+  it("should handle missing game state", () => {
+    // Set up mock to simulate missing file
+    server.fs.existsSync = mock.fn().mock.mockImplementation(() => false);
+    
+    // Call the method under test
+    const loadedState = persistence.loadGameState("missing-game");
+    
+    // Verify the result is null for missing file
+    assert.strictEqual(loadedState, null);
+  });
+});

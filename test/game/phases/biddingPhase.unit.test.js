@@ -3,10 +3,33 @@
  * @module test/game/phases/biddingPhase.unit
  * @description
  * Unit tests for the bidding phase logic of the Euchre Multiplayer game.
- * 
+ *  Failing tests: ✖ should not modify the input gameState
+ *  Failing tests:  ✖ should propagate errors from validateDealerDiscard 
  * 7-23 Need to improve coverage. currently only at 76%
  * 
  * @see {@link module:src/game/phases/biddingPhase}
+ * @see {@link module:test/__mocks__/game/phases/biddingPhase.js}
+ * @see {@link module:test/helpers/test-helpers.js}
+ * 
+ * @typedef {import('../../../src/config/constants.js').GamePhase} GamePhase
+ * @typedef {import('../../../src/config/constants.js').PlayerRole} PlayerRole
+ * @typedef {import('../../../src/config/constants.js').Suit} Suit
+ * @typedef {import('../../../src/config/constants.js').Team} Team
+ * @typedef {import('../../../src/game/logic/validation-errors.js').PhaseLogicError} PhaseLogicError
+ * @typedef {import('../../../src/game/logic/validation-errors.js').NotPlayersTurnError} NotPlayersTurnError
+ * @typedef {import('../../../src/game/logic/validation-errors.js').CardNotInHandError} CardNotInHandError
+ * @typedef {import('../../../src/game/logic/validation-errors.js').InvalidPhaseError} InvalidPhaseError
+ * @typedef {import('../../../src/game/logic/validation-errors.js').InvalidBidError} InvalidBidError
+ * 
+ * @typedef {Object} GameState
+ * @property {string} phase - Current game phase
+ * @property {PlayerRole} currentPlayer - Current player's turn
+ * @property {PlayerRole} dealer - Current dealer
+ * @property {string} turnCard - Face-up card for bidding
+ * @property {number} round - Current bidding round (1 or 2)
+ * @property {Object} players - Map of player roles to player data
+ * @property {Object} teams - Team information
+ * @property {Object} game - Game metadata
  */
 
 import { describe, it, afterEach, beforeEach, mock } from 'node:test';
@@ -40,19 +63,26 @@ import { createBiddingPhaseWithDeps } from '../../__mocks__/game/phases/biddingP
 // Import the actual implementation to create a spy
 import * as validationCore from '../../../src/game/logic/validation-core.js';
 
-// Wrap the original functions with test dependencies
 /**
- * Creates a version of the bidding phase logic with testable dependencies.
- * @param {object} [deps] - An object containing the dependencies for the bidding phase logic.
- * @param {function} [deps.validateBid] - The validation function for the order up decision.
- * @param {function} [deps.validateDealerDiscard] - The validation function for the dealer discard decision.
- * @param {function} [deps.getNextPlayer] - The function to get the next player in the game.
- * @param {function} [deps.handleGoingAloneDecision] - The function to handle the going alone decision.
- * @param {function} [deps.handlePlayCard] - The function to handle the play card logic.
- * @param {function} [deps.handleTrickComplete] - The function to handle the trick complete logic.
- * @param {function} [deps.handleRoundComplete] - The function to handle the round complete logic.
- * @param {function} [deps.handleGameComplete] - The function to handle the game complete logic.
- * @returns {object} - An object containing the testable functions and the test dependencies.
+ * Creates a testable version of the bidding phase logic with dependency injection.
+ * This factory function allows for mocking dependencies to test the bidding phase in isolation.
+ *
+ * @param {Object} [deps={}] - Dependencies to inject for testing
+ * @param {function(GameState, PlayerRole, boolean, Suit): boolean} [deps.validateBid] - Validates bid decisions
+ * @param {function(GameState, PlayerRole, string): boolean} [deps.validateDealerDiscard] - Validates dealer discards
+ * @param {function(PlayerRole, PlayerRole[]): PlayerRole} [deps.getNextPlayer] - Gets next player in turn order
+ * @param {function(GameState, PlayerRole, boolean): GameState} [deps.handleGoingAloneDecision] - Handles going alone
+ * @param {function(GameState, PlayerRole, Object): GameState} [deps.handlePlayCard] - Handles card plays
+ * @param {function(GameState): GameState} [deps.handleTrickComplete] - Handles trick completion
+ * @param {function(GameState): GameState} [deps.handleRoundComplete] - Handles round completion
+ * @param {function(GameState): GameState} [deps.handleGameComplete] - Handles game completion
+ * @returns {Object} Object containing testable functions and test dependencies
+ * @property {function(GameState, PlayerRole, boolean): GameState} handleOrderUpDecision - Testable order up decision handler
+ * @property {function(GameState, PlayerRole, string): GameState} handleDealerDiscard - Testable dealer discard handler
+ * @property {function(GameState, PlayerRole, boolean, Suit): GameState} handleCallTrumpDecision - Testable trump calling handler
+ *
+ * @see {@link module:src/game/phases/biddingPhase}
+ * @see {@link module:test/__mocks__/game/phases/biddingPhase.js}
  */
 function createTestBiddingPhase(deps = {}) {
   // Default implementations for required dependencies
@@ -82,11 +112,18 @@ function createTestBiddingPhase(deps = {}) {
   };
   
   /**
-   * Tests the dealer discard logic in isolation.
-   * @param {GameState} gameState - The game state.
-   * @param {string} dealerRole - The dealer role (e.g. 'PLAYER_SOUTH').
-   * @param {string} cardToDiscardId - The card to discard (e.g. 'H-9').
-   * @returns {GameState} - The next game state.
+   * Tests the dealer discard logic in isolation with input validation and immutability checks.
+   * This function ensures the original game state remains unmodified by creating a deep copy
+   * before processing the dealer's discard action.
+   *
+   * @param {GameState} gameState - The current game state before the discard
+   * @param {PlayerRole} dealerRole - The role of the dealer (e.g., 'PLAYER_SOUTH')
+   * @param {string} cardToDiscardId - The ID of the card to discard (format: 'S-V' where S is suit, V is value)
+   * @returns {GameState} A new game state reflecting the dealer's discard
+   * @throws {Error} If the input gameState is modified during processing
+   *
+   * @see {@link module:src/game/phases/biddingPhase.handleDealerDiscard}
+   * @see {@link module:test/__mocks__/game/phases/biddingPhase.js}
    */
   const handleDealerDiscard = (gameState, dealerRole, cardToDiscardId) => {
     // Create a deep copy of the game state to ensure immutability
@@ -108,12 +145,20 @@ function createTestBiddingPhase(deps = {}) {
   };
   
   /**
-   * Tests the call trump decision logic in isolation.
-   * @param {GameState} gameState - The game state.
-   * @param {string} playerRole - The player role (e.g. 'PLAYER_SOUTH').
-   * @param {boolean} wantsToCall - The player wants to call trump.
-   * @param {string} suitCalled - The suit called (e.g. 'H').
-   * @returns {GameState} - The next game state.
+   * Tests the trump calling decision logic with dependency injection for testing.
+   * This function validates the game state and player action before processing the trump call.
+   *
+   * @param {GameState} gameState - The current game state before the trump call
+   * @param {PlayerRole} playerRole - The role of the player making the trump call
+   * @param {boolean} wantsToCall - Whether the player wants to call trump
+   * @param {Suit} [suitCalled] - The suit being called as trump (required if wantsToCall is true)
+   * @returns {GameState} A new game state reflecting the trump call decision
+   * @throws {InvalidPhaseError} If the game is not in the correct phase for trump calling
+   * @throws {NotPlayersTurnError} If it's not the specified player's turn
+   * @throws {InvalidBidError} If the bid is invalid for the current game state
+   *
+   * @see {@link module:src/game/phases/biddingPhase.handleCallTrumpDecision}
+   * @see {@link module:test/__mocks__/game/phases/biddingPhase.js}
    */
   const handleCallTrumpDecision = (gameState, playerRole, wantsToCall, suitCalled) => {
     const context = {
@@ -131,10 +176,25 @@ function createTestBiddingPhase(deps = {}) {
   };
 }
 
-// Default test dependencies with mock implementations
+/**
+ * Default test dependencies with mock implementations for the bidding phase tests.
+ * These mocks provide basic pass-through behavior and can be overridden in specific tests.
+ *
+ * @type {Object}
+ * @property {function(GameState, PlayerRole, boolean, Suit): boolean} validateBid - Mock that always returns true
+ * @property {function(GameState, PlayerRole, string): boolean} validateDealerDiscard - Mock that always returns true
+ * @property {function(PlayerRole, PlayerRole[]): PlayerRole} getNextPlayer - Gets the next player in turn order
+ * @property {function(GameState, PlayerRole, boolean): GameState} handleGoingAloneDecision - No-op mock
+ * @property {function(GameState, PlayerRole, Object): GameState} handlePlayCard - No-op mock
+ * @property {function(GameState): GameState} handleTrickComplete - No-op mock
+ * @property {function(GameState): GameState} handleRoundComplete - No-op mock
+ * @property {function(GameState): GameState} handleGameComplete - No-op mock
+ *
+ * @see {@link module:test/game/phases/biddingPhase.unit}
+ */
 const defaultDeps = {
-  validateBid: () => true, // Default mock that passes validation
-  validateDealerDiscard: () => true, // Default mock that passes validation
+  validateBid: () => true,
+  validateDealerDiscard: () => true,
   getNextPlayer: (current, players) => {
     const currentIndex = players.indexOf(current);
     return players[(currentIndex + 1) % players.length];
@@ -146,7 +206,16 @@ const defaultDeps = {
   handleGameComplete: () => ({}),
 };
 
-// Helper function to create a test instance with mocks
+/**
+ * Creates a test instance of the bidding phase logic with the provided mocks.
+ * This is a convenience wrapper around createTestBiddingPhase that merges
+ * the provided mocks with the default test dependencies.
+ *
+ * @param {Object} [mocks={}] - Mocks to override the default test dependencies
+ * @returns {Object} Test instance with the specified mocks and test functions
+ *
+ * @see {@link module:test/game/phases/biddingPhase.unit.createTestBiddingPhase}
+ */
 function createTestInstance(mocks = {}) {
   // Create a fresh instance with the provided mocks
   return createTestBiddingPhase({
@@ -170,11 +239,21 @@ function testGetNextPlayer(currentPlayer) {
 }
 
 /**
- * Creates a test state for bidding phase tests
- * @param {string} dealer - The dealer's role
- * @param {number} round - The round number (1 or 2)
- * @param {string} turnCardSuit - The suit of the turn card
- * @returns {Object} The game state
+ * Creates a test game state for bidding phase tests with the specified configuration.
+ * This helper function sets up a complete game state with players, teams, and the
+ * appropriate phase for testing the bidding logic.
+ *
+ * @param {PlayerRole} [dealer=PLAYER_ROLES[0]] - The role of the dealer
+ * @param {number} [round=1] - The bidding round (1 or 2)
+ * @param {Suit} [turnCardSuit=SUITS.HEARTS] - The suit of the turn card
+ * @returns {GameState} A complete game state object ready for bidding phase testing
+ *
+ * @example
+ * // Basic usage
+ * const gameState = setupBiddingState('PLAYER_SOUTH', 1, 'HEARTS');
+ *
+ * @see {@link module:src/config/constants}
+ * @see {@link module:test/helpers/test-helpers.setupTestState}
  */
 const setupBiddingState = (
   dealer = PLAYER_ROLES[0],
@@ -247,6 +326,14 @@ const setupBiddingState = (
   return gameState;
 };
 
+/**
+ * Test suite for the bidding phase logic.
+ * This suite verifies the behavior of the bidding phase, including order-up decisions,
+ * dealer discards, and trump calling across different game states.
+ *
+ * @see {@link module:src/game/phases/biddingPhase}
+ * @see {@link module:test/__mocks__/game/phases/biddingPhase.js}
+ */
 describe("BiddingPhase Logic", () => {
   // Helper to create a deep copy of an object
   function deepCopy(obj) {
@@ -263,9 +350,19 @@ describe("BiddingPhase Logic", () => {
     resetTestIdCounter();
   });
 
+  /**
+   * Test suite for the handleOrderUpDecision function.
+   * Validates the behavior of the order-up decision logic, including:
+   * - Ordering up the turn card
+   - Passing the turn to the next player
+   - Advancing to round 2 when all players pass
+   - Proper validation of bids
+   - Error handling for invalid game states
+   *
+   * @see {@link module:src/game/phases/biddingPhase.handleOrderUpDecision}
+   * @see {@link module:test/__mocks__/game/phases/biddingPhase.js}
+   */
   describe("handleOrderUpDecision", () => {
-
-
     
     it("should not modify the input gameState", () => {
       const gameState = setupBiddingState(
@@ -512,8 +609,25 @@ describe("BiddingPhase Logic", () => {
     });
   });
 
+  /**
+   * Test suite for the handleDealerDiscard function.
+   * Verifies the behavior of the dealer discard functionality, including validation,
+   * state updates, and error handling during the dealer's discard phase.
+   *
+   * @see {@link module:src/game/phases/biddingPhase.handleDealerDiscard}
+   * @see {@link module:test/__mocks__/game/phases/biddingPhase.js}
+   */
   describe("handleDealerDiscard", () => {
-    // Helper to create a state ready for dealer discard
+    /**
+     * Creates a game state ready for dealer discard testing.
+     * Sets up a state where the dealer has been ordered up and needs to discard a card.
+     *
+     * @param {string} [dealerRole=PLAYER_ROLES[0]] - The role of the dealer
+     * @param {string} [turnCardSuit=SUITS.HEARTS] - The suit of the turn card
+     * @returns {GameState} A game state ready for dealer discard testing
+     *
+     * @see {@link module:test/game/phases/biddingPhase.unit.setupBiddingState}
+     */
     const setupDealerDiscardState = (dealerRole = PLAYER_ROLES[0]) => {
       const orderingPlayer = PLAYER_ROLES[1]; // Player left of dealer
       const turnCard = { id: 'C-A', suit: SUITS.CLUBS, value: 'ACE', name: 'Ace of Clubs' };
@@ -631,6 +745,17 @@ describe("BiddingPhase Logic", () => {
     });
   });
 
+  /**
+   * Test suite for the handleCallTrumpDecision function.
+   * Validates the behavior of the trump calling functionality, including:
+   * - Valid and invalid suit selection
+   * - Turn progression during trump calling
+   * - Error handling for invalid game states
+   * - State transitions after trump is called
+   *
+   * @see {@link module:src/game/phases/biddingPhase.handleCallTrumpDecision}
+   * @see {@link module:test/__mocks__/game/phases/biddingPhase.js}
+   */
   describe("handleCallTrumpDecision", () => {
     it("should call validateBid with correct arguments for call trump decision", () => {
       const gameState = setupBiddingState(

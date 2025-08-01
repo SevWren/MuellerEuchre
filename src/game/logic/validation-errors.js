@@ -13,8 +13,6 @@
  * if (!isValidPlay(card, hand, gameState)) {
  *   throw new InvalidPlayError('Cannot play this card now');
  * }
- *
- * @see ValidationError Base class for all validation errors
  */
 
 /**
@@ -43,9 +41,15 @@
  *     console.error(`Validation failed with code ${error.code}:`, error.message);
  *   }
  * }
+ * @see src/utils/settingsUtils.js
+ * @see src/utils/lobbyUtils.js
+ * @see src/game/phases/startNewHandPhase.js
+ * @see src/game/phases/lobbyPhase.js
+ * @see src/game/phases/goAlonePhase.js
+ * @see src/game/logic/validation-core.js
  */
 class ValidationError extends Error {
-  constructor(message, code = 'GENERIC_VALIDATION_ERROR') {
+  constructor(message, code = "GENERIC_VALIDATION_ERROR") {
     super(message);
     this.name = "ValidationError";
     this.code = code;
@@ -90,7 +94,10 @@ class ValidationError extends Error {
  */
 class NotPlayersTurnError extends ValidationError {
   constructor(playerRole, currentPlayer) {
-    super(`Not ${playerRole}'s turn. It is ${currentPlayer}'s turn.`, 'E_NOT_YOUR_TURN');
+    super(
+      `Not ${playerRole}'s turn. It is ${currentPlayer}'s turn.`,
+      "E_NOT_YOUR_TURN"
+    );
     this.name = "NotPlayersTurnError";
     this.playerRole = playerRole;
     this.currentPlayer = currentPlayer;
@@ -133,8 +140,8 @@ class NotPlayersTurnError extends ValidationError {
  */
 class InvalidPhaseError extends ValidationError {
   constructor(action, currentPhase, expectedPhase) {
-    const message = `Cannot ${action} during the ${currentPhase} phase. Expected ${Array.isArray(expectedPhase) ? expectedPhase.join(' or ') : expectedPhase}.`;
-    super(message, 'E_INVALID_PHASE');
+    const message = `Cannot ${action} during the ${currentPhase} phase. Expected ${Array.isArray(expectedPhase) ? expectedPhase.join(" or ") : expectedPhase}.`;
+    super(message, "E_INVALID_PHASE");
     this.name = "InvalidPhaseError";
     this.action = action;
     this.currentPhase = currentPhase;
@@ -180,7 +187,10 @@ class InvalidPhaseError extends ValidationError {
  */
 class CardNotInHandError extends ValidationError {
   constructor(cardId, playerHandIds) {
-    super(`Card with ID '${cardId}' not found in player's hand.`, 'E_CARD_NOT_IN_HAND');
+    super(
+      `Card with ID '${cardId}' not found in player's hand.`,
+      "E_CARD_NOT_IN_HAND"
+    );
     this.name = "CardNotInHandError";
     this.cardId = cardId;
     this.playerHandIds = playerHandIds;
@@ -225,12 +235,23 @@ class CardNotInHandError extends ValidationError {
  */
 class MustFollowSuitError extends ValidationError {
   constructor(ledSuit, playedSuit) {
-    super(`Must follow suit. Led suit is ${ledSuit}, attempted to play a card of ${playedSuit}.`, 'E_MUST_FOLLOW_SUIT');
+    super(
+      `Must follow suit. Led suit is ${ledSuit}, attempted to play a card of ${playedSuit}.`,
+      "E_MUST_FOLLOW_SUIT"
+    );
     this.name = "MustFollowSuitError";
     this.ledSuit = ledSuit;
     this.playedSuit = playedSuit;
   }
 }
+
+/**
+ * @typedef {object} InvalidBidDetails
+ * @property {string} [decision] - The bid decision made (e.g., 'orderUp', 'pass').
+ * @property {string} [suit] - The suit that was called, if any.
+ * @property {number} [round] - The bidding round number (1 or 2).
+ * @property {string} [playerRole] - The role of the player making the bid.
+ */
 
 /**
  * Thrown when an invalid bid is made during the Euchre bidding phase.
@@ -243,14 +264,10 @@ class MustFollowSuitError extends ValidationError {
  * @class InvalidBidError
  * @extends ValidationError
  * @param {string} message - Human-readable description of the bidding error.
- * @param {object} [details] - Optional object with more context about the invalid bid.
- * @param {string} [details.decision] - The bid decision made (e.g., 'orderUp', 'pass').
- * @param {string} [details.suit] - The suit that was called, if any.
- * @param {number} [details.round] - The bidding round number (1 or 2).
- * @param {string} [details.playerRole] - The role of the player making the bid.
+ * @param {InvalidBidDetails} [details] - Optional object with more context about the invalid bid.
  * @property {string} name - The error name ('InvalidBidError').
  * @property {string} code - The error code ('E_INVALID_BID').
- * @property {object} details - Additional context about the bid.
+ * @property {InvalidBidDetails} details - Additional context about the bid.
  *
  * @example
  * // Example 1: Invalid suit in first round
@@ -283,7 +300,7 @@ class MustFollowSuitError extends ValidationError {
  *       suit: error.details.suit,
  *       error: error.message
  *     });
- *     
+ *
  *     // Notify the client with specific guidance
  *     socket.emit('bid_error', {
  *       code: error.code,
@@ -299,11 +316,16 @@ class MustFollowSuitError extends ValidationError {
  */
 class InvalidBidError extends ValidationError {
   constructor(message, details = {}) {
-    super(message, 'E_INVALID_BID');
+    super(message, "E_INVALID_BID");
     this.name = "InvalidBidError";
     this.details = details;
   }
 }
+
+/**
+ * @typedef {object} InvalidDiscardDetails
+ * @property {object} [card] - The card that was invalidly discarded.
+ */
 
 /**
  * Thrown when an invalid discard is attempted by the dealer.
@@ -311,11 +333,10 @@ class InvalidBidError extends ValidationError {
  * @class InvalidDiscardError
  * @extends ValidationError
  * @param {string} message - Description of the discard error.
- * @param {object} [details] - Optional context.
- * @param {object} [details.card] - The card that was invalidly discarded.
+ * @param {InvalidDiscardDetails} [details] - Optional context.
  * @property {string} name - The error name ('InvalidDiscardError').
  * @property {string} code - The error code ('E_INVALID_DISCARD').
- * @property {object} details - Additional context.
+ * @property {InvalidDiscardDetails} details - Additional context.
  *
  * @example
  * // Throwing the error
@@ -327,7 +348,7 @@ class InvalidBidError extends ValidationError {
  */
 class InvalidDiscardError extends ValidationError {
   constructor(message, details = {}) {
-    super(message, 'E_INVALID_DISCARD');
+    super(message, "E_INVALID_DISCARD");
     this.name = "InvalidDiscardError";
     this.details = details;
   }
@@ -350,7 +371,7 @@ class InvalidDiscardError extends ValidationError {
  */
 class PhaseLogicError extends ValidationError {
   constructor(message) {
-    super(message, 'E_PHASE_LOGIC');
+    super(message, "E_PHASE_LOGIC");
     this.name = "PhaseLogicError";
   }
 }
@@ -374,8 +395,8 @@ class PhaseLogicError extends ValidationError {
  */
 class InvalidGoAloneError extends ValidationError {
   constructor(message) {
-    super(message, 'E_INVALID_GO_ALONE');
-    this.name = 'InvalidGoAloneError';
+    super(message, "E_INVALID_GO_ALONE");
+    this.name = "InvalidGoAloneError";
   }
 }
 
@@ -400,7 +421,7 @@ class InvalidGoAloneError extends ValidationError {
  */
 class InvalidCardError extends ValidationError {
   constructor(message, card) {
-    super(message, 'E_INVALID_CARD');
+    super(message, "E_INVALID_CARD");
     this.name = "InvalidCardError";
     this.card = card;
   }
@@ -427,7 +448,7 @@ class InvalidCardError extends ValidationError {
  */
 class HandSizeError extends ValidationError {
   constructor(message, actualSize, expectedSize) {
-    super(message, 'E_HAND_SIZE');
+    super(message, "E_HAND_SIZE");
     this.name = "HandSizeError";
     this.actualSize = actualSize;
     this.expectedSize = expectedSize;
@@ -456,7 +477,10 @@ class HandSizeError extends ValidationError {
  */
 class NotDealerError extends ValidationError {
   constructor(attemptedBy, dealer) {
-    super(`Action can only be performed by the dealer (${dealer}). Player ${attemptedBy} attempted the action.`, 'E_NOT_DEALER');
+    super(
+      `Action can only be performed by the dealer (${dealer}). Player ${attemptedBy} attempted the action.`,
+      "E_NOT_DEALER"
+    );
     this.name = "NotDealerError";
     this.attemptedBy = attemptedBy;
     this.dealer = dealer;

@@ -4,7 +4,7 @@
  * @description Provides robust, deterministic utility functions for creating mock game data
  * and test fixtures. These helpers are designed to make tests more maintainable and
  * reduce boilerplate code, aligning with modern testing best practices.
- * THIS FILE IS A SINGLE SOURCE OF TRUTH. DO NOT MODIFY IT!
+ * this file ia A AUTHORITATIVE SOURCE OF TRUTH. DO NOT MODIFY IT!
  */
 
 import { mock, beforeEach, afterEach } from 'node:test';

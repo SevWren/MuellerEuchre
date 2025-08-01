@@ -1,0 +1,189 @@
+// filepath: test/socket/handlers/playingHandlers.unit.test.js
+/**
+ * THIS FILE IS ON HOLD AS IT IS A LAYER 3 File
+ * THIS FILE REQUIRES IMMEDIATE Refactoring to REMOVE ALL
+ * ESMOCK - CHAI - JEST - SINON - AND - PROXYQUIRE related code
+ * Refactor to pure NODE mocking
+ *
+ * Unit tests for the playing phase socket event handlers.
+ *
+ * These tests verify the behavior of the `registerPlayingHandlers` function,
+ * ensuring that it correctly registers handlers for playing-related game events
+ * and that those handlers interact with the game state and other services as expected.
+ * Mocks are used for dependencies like the game repository and game logic modules
+ * to isolate the handlers for testing.
+ * @module test/socket/handlers/playingHandlers.unit.test
+ */
+
+import { expect } from "chai";
+import sinon from "sinon";
+import esmock from "esmock";
+import {
+  GAME_EVENTS,
+  GAME_PHASES,
+  PLAYER_ROLES,
+  SUITS,
+  TEAMS,
+} from "../../../src/config/constants.js";
+
+// Define relative paths for esmock
+const playersUtilsModulePath = "../../../src/utils/players.js"; // New: Path to players utilities
+const playingHandlersModulePath =
+  "../../../src/socket/handlers/playingHandlers.js";
+const gameRepositoryModulePath = "../../../src/db/gameRepository.js";
+const playingPhaseModulePath = "../../../src/game/phases/playingPhase.js";
+const loggerModulePath = "../../../src/utils/logger.js";
+
+describe("Playing Phase Socket Handlers", () => {
+  let sandbox;
+  let mockSocket;
+  let mockIo;
+  let mockGameState;
+  let mockGameRepository;
+  let handlePlayCardStub;
+  let stubbedLogger;
+
+  beforeEach(async () => {
+    sandbox = sinon.createSandbox();
+
+    stubbedLogger = {
+      info: sandbox.stub(),
+      warn: sandbox.stub(),
+      error: sandbox.stub(),
+    };
+
+    mockGameState = {
+      gameId: "testGame123",
+      gamePhase: GAME_PHASES.PLAYING,
+      currentPlayer: PLAYER_ROLES[0],
+      players: {
+        [PLAYER_ROLES[0]]: {
+          role: PLAYER_ROLES[0],
+          id: "socket1",
+          socketId: "socket1",
+          teamId: TEAMS.TEAM_NS,
+        },
+      },
+    };
+
+    mockGameRepository = {
+      getGame: sandbox.stub().resolves(mockGameState),
+      updateGame: sandbox.stub().resolves(),
+    };
+
+    handlePlayCardStub = sandbox
+      .stub()
+      .returns({ ...mockGameState, currentPlayer: PLAYER_ROLES[1] });
+
+    mockSocket = {
+      id: "socket1",
+      emit: sandbox.spy(),
+      on: sandbox.spy(),
+    };
+
+    mockIo = {
+      to: sandbox.stub().returns({ emit: sandbox.spy() }),
+    };
+
+    // Use esmock to load the handler with mocked dependencies
+    const { registerPlayingHandlers } = await esmock(
+      playingHandlersModulePath,
+      {
+        [gameRepositoryModulePath]: { gameRepository: mockGameRepository },
+        [playingPhaseModulePath]: { handlePlayCard: handlePlayCardStub },
+        [loggerModulePath]: { default: stubbedLogger },
+      }
+    );
+
+    registerPlayingHandlers(mockSocket, mockIo);
+  });
+
+  afterEach(() => {
+    sandbox.restore();
+    esmock.purge(playingHandlersModulePath);
+  });
+
+  describe(`handle ${GAME_EVENTS.ACTION_PLAY_CARD}`, () => {
+    const eventPayload = {
+      gameId: "testGame123",
+      playerRole: PLAYER_ROLES[0],
+      card: { suit: SUITS.SPADES, rank: "A", id: "AS" },
+    };
+
+    const getPlayCardHandler = () => {
+      const call = mockSocket.on
+        .getCalls()
+        .find((c) => c.args[0] === GAME_EVENTS.ACTION_PLAY_CARD);
+      if (!call) throw new Error("ACTION_PLAY_CARD handler not registered");
+      return call.args[1];
+    };
+
+    it("should call getGame with gameId", async () => {
+      const handler = getPlayCardHandler();
+      await handler(eventPayload);
+      expect(mockGameRepository.getGame).to.have.been.calledOnceWith(
+        eventPayload.gameId
+      );
+    });
+
+    it("should emit ERROR if game not found", async () => {
+      mockGameRepository.getGame.resolves(null);
+      const handler = getPlayCardHandler();
+      await handler(eventPayload);
+      expect(mockSocket.emit).to.have.been.calledOnceWith(GAME_EVENTS.ERROR, {
+        message: "Game not found.",
+      });
+    });
+
+    it("should emit ERROR if card data is invalid", async () => {
+      const handler = getPlayCardHandler();
+      await handler({ ...eventPayload, card: null });
+      expect(mockSocket.emit).to.have.been.calledOnceWith(GAME_EVENTS.ERROR, {
+        message: "Invalid card data.",
+      });
+    });
+
+    it("should call handlePlayCard with correct arguments", async () => {
+      const handler = getPlayCardHandler();
+      await handler(eventPayload);
+      expect(handlePlayCardStub).to.have.been.calledOnceWith(
+        mockGameState,
+        eventPayload.playerRole,
+        eventPayload.card
+      );
+    });
+
+    it("should call updateGame with the new game state", async () => {
+      const newMockState = { ...mockGameState, _turn: 2 };
+      handlePlayCardStub.returns(newMockState);
+      const handler = getPlayCardHandler();
+      await handler(eventPayload);
+      expect(mockGameRepository.updateGame).to.have.been.calledOnceWith(
+        eventPayload.gameId,
+        newMockState
+      );
+    });
+
+    it("should broadcast GAME_STATE_UPDATE to the game room", async () => {
+      const newMockState = { ...mockGameState, _turn: 3 };
+      handlePlayCardStub.returns(newMockState);
+      const handler = getPlayCardHandler();
+      await handler(eventPayload);
+      expect(mockIo.to).to.have.been.calledOnceWith(eventPayload.gameId);
+      expect(mockIo.to(eventPayload.gameId).emit).to.have.been.calledOnceWith(
+        GAME_EVENTS.GAME_STATE_UPDATE,
+        newMockState
+      );
+    });
+
+    it("should emit ERROR to socket if handlePlayCard throws", async () => {
+      const errorMessage = "Invalid play";
+      handlePlayCardStub.throws(new Error(errorMessage));
+      const handler = getPlayCardHandler();
+      await handler(eventPayload);
+      expect(mockSocket.emit).to.have.been.calledOnceWith(GAME_EVENTS.ERROR, {
+        message: errorMessage,
+      });
+    });
+  });
+});

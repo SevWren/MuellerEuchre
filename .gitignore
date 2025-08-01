@@ -163,3 +163,21 @@ docs/Debug_Logs
 Integrate with External Tools via Tasks.md
 package.json
 .gitignore
+.augment/rules/imported/always-logging-and-error-handling-everywhere.md
+.augment/rules/imported/analyze.md
+.augment/rules/imported/constants-import-usage-guide.md
+.augment/rules/imported/debugging.md
+.augment/rules/imported/dependency-injection.md
+.augment/rules/imported/js-doc-see.md
+.augment/rules/imported/jsdoc.md
+.augment/rules/imported/layer-1-purity-rules.md
+.augment/rules/imported/LLM_Mueller_Euchre_InstructionPrompt.md
+.augment/rules/imported/mandate-for-implementing-object-freeze.md
+.augment/rules/imported/node-test.md
+.augment/rules/imported/refactor-example.md
+.augment/rules/imported/Rules_Editing_Code_Verify.md
+.augment/rules/imported/Rules_Enforcing Purity in Layer 1 (Game Phases).md
+.augment/rules/imported/Rules_ES_Module_Depreciated.md
+.augment/rules/imported/Rules_Mandatory In-Depth File Analysis.md
+.augment/rules/imported/Windows.md
+Testing.pdf

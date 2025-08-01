@@ -3,12 +3,7 @@
  * @module test/game/logic/validatePlay.edge.unit.test
  * @description
  *   Edge case tests for the Euchre game validation logic.
- *   This file tests src\game\logic\validation-core.js.
  *   These tests target specific branches not covered by the main test file.
- * @see {@link module:src/game/logic/validation-core}
- * @see {@link module:src/utils/cardUtils}
- * @see {@link .windsurf/rules/jsdoc.md}
- * @see {@link .windsurf/rules/jsdoc-see.md}
  */
 
 import { describe, it, beforeEach, afterEach, mock } from 'node:test';
@@ -78,17 +73,7 @@ describe('validatePlay Edge Cases', () => {
   let playerHand;
   const playerRole = 'south';
   
-  /**
-   * Sets up a test scenario with a customizable game state and player hand.
-   * This helper function creates an immutable game state object for each test,
-   * ensuring test isolation and predictable results.
-   * @param {object} options - Configuration options for the test scenario.
-   * @param {string} [options.trumpSuit=CARD_SUITS.CARD_SUIT_SPADES] - The trump suit for the scenario.
-   * @param {string} [options.gamePhase=GAME_PHASES.PLAYING] - The current game phase.
-   * @param {Array<Object>} [options.currentTrick=[]] - An array of cards already played in the current trick.
-   * @param {Array<Object>} [options.playerCards=[]] - An array of card objects for the current player's hand.
-   * @returns {{gameState: object, playerHand: Array<Object>}} An object containing the configured game state and player hand.
-   */
+  // Helper function to set up a test scenario
   const setupTestScenario = (options = {}) => {
     const {
       trumpSuit = CARD_SUITS.CARD_SUIT_SPADES,
@@ -165,54 +150,31 @@ describe('validatePlay Edge Cases', () => {
 
   describe('Left Bower Behavior', () => {
     it('should identify the led suit as trump when the Left Bower is led', () => {
-      // Set up test constants
-      const trumpSuit = CARD_SUITS.CARD_SUIT_HEARTS; // Hearts is trump
-      const playerRole = 'north';
+      const trumpSuit = CARD_SUITS.CARD_SUIT_HEARTS;
+      const leftBower = createCard('JD', CARD_SUITS.CARD_SUIT_DIAMONDS, JACK); // Left Bower when trump is hearts
+      const offSuitCard = createCard('AC', CARD_SUITS.CARD_SUIT_CLUBS, ACE);
       
-      // Create cards - no mock methods needed as we'll use the real implementations
-      const leftBower = { 
-        id: 'JD', 
-        suit: CARD_SUITS.CARD_SUIT_DIAMONDS, // Jack of Diamonds
-        value: 'J' // Must be 'J' for Jack, not JACK constant
-      };
-      
-      const offSuitCard = { 
-        id: 'AC', 
-        suit: CARD_SUITS.CARD_SUIT_CLUBS, // Ace of Clubs
-        value: ACE
-      };
-      
-      // Create player hand with both cards
-      const playerHand = [leftBower, offSuitCard];
-      
-      // Set up the game state with the left bower as the led card
-      const gameState = {
-        gamePhase: GAME_PHASES.PLAYING,
-        currentPlayer: playerRole,
+      const { gameState, playerHand } = setupTestScenario({
+        trumpSuit,
         currentTrick: [{
           card: leftBower,
           player: 'west',
           index: 0
         }],
-        trumpSuit: trumpSuit,
-        players: {
-          [playerRole]: { hand: playerHand },
-          'west': { hand: [leftBower] },
-          'north': { hand: [] },
-          'east': { hand: [] }
-        }
-      };
+        playerCards: [leftBower, offSuitCard]
+      });
       
       // Test 1: Should throw when trying to play off-suit when having the Left Bower
-      try {
-        validatePlay(gameState, playerHand, offSuitCard, playerRole);
-        assert.fail('Expected MustFollowSuitError but no error was thrown');
-      } catch (error) {
-        assert.strictEqual(error.name, 'MustFollowSuitError', 'Error should be MustFollowSuitError');
-        assert.strictEqual(error.code, 'E_MUST_FOLLOW_SUIT', 'Error code should be E_MUST_FOLLOW_SUIT');
-        assert.strictEqual(error.ledSuit, trumpSuit, 'Led suit in error should be trump suit');
-        assert.strictEqual(error.playedSuit, offSuitCard.suit, 'Played suit in error should match off-suit card');
-      }
+      assert.throws(
+        () => validatePlay(gameState, playerHand, offSuitCard, playerRole),
+        {
+          name: 'MustFollowSuitError',
+          code: 'E_MUST_FOLLOW_SUIT',
+          ledSuit: trumpSuit,
+          playedSuit: offSuitCard.suit
+        },
+        'Should require following trump suit when Left Bower is led'
+      );
       
       // Test 2: Should allow playing the Left Bower (trump) when trump is led
       const result = validatePlay(gameState, playerHand, leftBower, playerRole);
@@ -224,63 +186,48 @@ describe('validatePlay Edge Cases', () => {
     });
 
     it('should treat the Left Bower as part of the trump suit when checking if player can follow', () => {
-      // Set up test constants
-      const trumpSuit = CARD_SUITS.CARD_SUIT_HEARTS; // Trump is hearts, so JD is Left Bower
-      const playerRole = 'north';
+      // Reset game state for this test
+      gameState = createBaseGameState(GAME_PHASES.PLAYING);
+      gameState.trumpSuit = CARD_SUITS.CARD_SUIT_HEARTS; // Trump is hearts, so JD is Left Bower
+      gameState.currentPlayer = playerRole;
       
-      // Create cards - no mock methods needed as we'll use the real implementations
-      const leftBower = { 
-        id: 'JD', 
-        suit: CARD_SUITS.CARD_SUIT_DIAMONDS, // Jack of Diamonds (Left Bower when hearts is trump)
-        value: 'J'
-      };
+      // Player has the Left Bower (JD) which is effectively hearts (trump)
+      // and an off-suit card (AS)
+      playerHand = [
+        createCard('JD', CARD_SUITS.CARD_SUIT_DIAMONDS, JACK), // Left Bower (effective suit: Hearts)
+        createCard('AS', CARD_SUITS.CARD_SUIT_SPADES, 'A'),    // Off-suit
+      ];
+      gameState.players[playerRole].hand = [...playerHand];
       
-      const offSuitCard = { 
-        id: 'AS', 
-        suit: CARD_SUITS.CARD_SUIT_SPADES, // Ace of Spades (off-suit)
-        value: 'A'
-      };
+      // Trump (hearts) is led (King of Hearts)
+      const trumpCard = createCard('KH', CARD_SUITS.CARD_SUIT_HEARTS, 'K');
+      gameState.currentTrick = [{
+        card: trumpCard,
+        player: 'west',
+        index: 0
+      }];
+
+      // Player must follow suit (hearts/trump) if they can
+      // They have the Left Bower (JD) which is effectively hearts/trump
+      // So they must play it instead of the off-suit AS
       
-      // Create player hand with both cards
-      const playerHand = [leftBower, offSuitCard];
+      // Should throw if trying to play off-suit when having a trump card (Left Bower)
+      const offSuitCardToPlay = playerHand[1]; // The Ace of Spades
       
-      // Set up the game state with a trump card led (King of Hearts)
-      const gameState = {
-        gamePhase: GAME_PHASES.PLAYING,
-        currentPlayer: playerRole,
-        currentTrick: [{
-          card: { 
-            id: 'KH', 
-            suit: CARD_SUITS.CARD_SUIT_HEARTS, // King of Hearts (trump)
-            value: 'K' 
-          },
-          player: 'west',
-          index: 0
-        }],
-        trumpSuit: trumpSuit,
-        players: {
-          [playerRole]: { hand: playerHand },
-          'west': { hand: [] },
-          'east': { hand: [] },
-          'south': { hand: [] }
-        }
-      };
+      assert.throws(
+        () => validatePlay(gameState, playerHand, offSuitCardToPlay, playerRole),
+        {
+          name: 'MustFollowSuitError',
+          code: 'E_MUST_FOLLOW_SUIT',
+          ledSuit: gameState.trumpSuit,
+          playedSuit: offSuitCardToPlay.suit
+        },
+        'Expected MustFollowSuitError when not following suit with a trump card in hand'
+      );
       
-      // Test: Should throw when trying to play off-suit when having a trump card (Left Bower)
-      try {
-        validatePlay(gameState, playerHand, offSuitCard, playerRole);
-        assert.fail('Expected MustFollowSuitError but no error was thrown');
-      } catch (error) {
-        assert.strictEqual(error.name, 'MustFollowSuitError', 'Error should be MustFollowSuitError');
-        assert.strictEqual(error.code, 'E_MUST_FOLLOW_SUIT', 'Error code should be E_MUST_FOLLOW_SUIT');
-        assert.strictEqual(error.ledSuit, trumpSuit, 'Led suit in error should be trump suit');
-        assert.strictEqual(error.playedSuit, offSuitCard.suit, 'Played suit in error should match off-suit card');
-      }
-      
-      // Test: Should allow playing the Left Bower (trump) when trump is led
-      const result = validatePlay(gameState, playerHand, leftBower, playerRole);
+      // Should allow playing the Left Bower (trump)
       assert.strictEqual(
-        result,
+        validatePlay(gameState, playerHand, playerHand[0], playerRole),
         true,
         'Should allow playing the Left Bower when trump is led'
       );

@@ -3,26 +3,44 @@
  * @description Logic for starting a new hand in Euchre: shuffling, dealing, and setting up for bidding.
  * This module handles the initialization of a new hand, including dealer rotation, card dealing, and
  * game state transition to the bidding phase.
- * 
- * @see {@link module:game/phases/playingPhase} For the next phase in the game flow
- * @see {@link module:game/phases/biddingPhase} For the phase that follows after dealing
- * @see {@link module:utils/deck} For deck creation and shuffling utilities
+ *
+ * @see {@link module:src/game/phases/playingPhase} For the next phase in the game flow
+ * @see {@link module:src/game/phases/biddingPhase} For the phase that follows after dealing
+ * @see {@link module:src/utils/deck} For deck creation and shuffling utilities
+ * @see {@link module:src/config/constants}
+ * @see {@link module:src/utils/logger}
+ * @see {@link module:src/utils/cardUtils}
+ * @see {@link module:src/utils/players}
+ * @see {@link module:src/game/logic/validation-errors}
+ * @see {@link module:test/game/phases/startNewHandPhase.unit.test.js}
  */
 
 /**
- * @typedef {Object} Card
+ * Represents a playing card.
+ * @typedef {object} Card
  * @property {string} suit - The suit of the card (e.g., 'hearts', 'diamonds')
  * @property {string} value - The value of the card (e.g., '9', 'J', 'Q', 'K', 'A')
  * @property {string} [id] - Optional unique identifier for the card
- *
- * @typedef {Object} Player
+ */
+
+/**
+ * Represents the structure of a player object within the game state.
+ * @typedef {object} Player
  * @property {Card[]} hand - Array of cards in the player's hand
  * @property {boolean} [isActive=true] - Whether the player is active in the game
  * @property {number} [tricksWonThisHand=0] - Number of tricks won in the current hand
- *
- * @typedef {Object} GameState
+ * @property {string} name - The display name of the player.
+ * @property {string|null} socketId - The socket ID of the connected player, or null if disconnected.
+ * @property {string} teamId - The ID of the player's team (e.g., 'TEAM_NS', 'TEAM_EW').
+ * @property {number} score - The player's current score (or their team's score).
+ * @property {boolean} isConnected - True if the player is currently connected.
+ */
+
+/**
+ * Represents the state of a Euchre game.
+ * @typedef {object} GameState
  * @property {string} gameId - Unique identifier for the game
- * @property {string} gamePhase - Current phase of the game
+ * @property {keyof typeof GAME_PHASES} gamePhase - Current phase of the game
  * @property {Object.<string, Player>} players - Map of player roles to player objects
  * @property {string} dealer - Role of the current dealer
  * @property {Card} turnCard - The face-up card for the current hand
@@ -45,6 +63,8 @@
  * @property {number} tricksTaken.TEAM_EW - Tricks taken by East/West team
  * @property {Array} gameMessages - Array of game messages
  * @property {number} lastUpdated - Timestamp of last state update
+ * @property {object} [scores] - Current scores for each team.
+ * @property {object} [previousTricksTaken] - Tricks taken in the previous hand.
  */
 import logger from "../../utils/logger.js";
 import { createDeck, shuffleDeck } from "../../utils/deck.js";
@@ -77,27 +97,12 @@ import {
  * @throws {ValidationError} If `currentGameState` is missing required properties or is invalid.
  * @throws {InvalidPhaseError} If the game is not in a valid phase to start a new hand.
  * @throws {PhaseLogicError} If dealing encounters a critical error (e.g., empty kitty).
- * 
- * @see {@link module:game/phases/startNewHandPhase} For the module documentation
- * @see {@link module:utils/deck.createDeck} For deck creation logic
- * @see {@link module:utils/deck.shuffleDeck} For deck shuffling logic
- * @see {@link module:utils/players.getNextPlayer} For player rotation logic
- * @see {@link module:game/phases/biddingPhase} For the next phase in the game flow
- * 
- * @example
- * // Start a new hand from the scoring phase
- * const newState = startNewHand({
- *   gameId: 'game123',
- *   gamePhase: 'SCORING',
- *   players: {
- *     north: { hand: [], isActive: true },
- *     east: { hand: [], isActive: true },
- *     south: { hand: [], isActive: true },
- *     west: { hand: [], isActive: true }
- *   },
- *   dealer: 'north',
- *   // ... other game state properties
- * });
+ *
+ * @see {@link module:src/game/phases/startNewHandPhase} For the module documentation
+ * @see {@link module:src/utils/deck.createDeck} For deck creation logic
+ * @see {@link module:src/utils/deck.shuffleDeck} For deck shuffling logic
+ * @see {@link module:src/utils/players.getNextPlayer} For player rotation logic
+ * @see {@link module:src/game/phases/biddingPhase} For the next phase in the game flow
  */
 function startNewHand(currentGameState) {
   if (
@@ -106,19 +111,21 @@ function startNewHand(currentGameState) {
     !currentGameState.gameId
   ) {
     throw new ValidationError(
-      "startNewHand: Missing or invalid currentGameState (must include players and gameId).",
+      "startNewHand: Missing or invalid currentGameState (must include players and gameId)."
     );
   }
 
   const validStartPhases = [
-    GAME_PHASES.DEALING,
-    GAME_PHASES.LOBBY,
-    GAME_PHASES.SCORING,
-    GAME_PHASES.GAME_OVER,
+    GAME_PHASES.GAME_PHASE_DEALING,
+    GAME_PHASES.GAME_PHASE_LOBBY,
+    GAME_PHASES.GAME_PHASE_SCORING,
+    GAME_PHASES.GAME_PHASE_GAME_OVER,
   ];
   if (!validStartPhases.includes(currentGameState.gamePhase)) {
     throw new InvalidPhaseError(
-      `Cannot start a new hand from the current game phase: ${currentGameState.gamePhase}.`
+      `Cannot start a new hand from the current game phase: ${currentGameState.gamePhase}.`,
+      "start new hand",
+      validStartPhases
     );
   }
 
@@ -127,7 +134,7 @@ function startNewHand(currentGameState) {
       gameId: currentGameState.gameId,
       currentPhase: currentGameState.gamePhase,
     },
-    "Starting new hand procedures.",
+    "Starting new hand procedures."
   );
 
   let newState = JSON.parse(JSON.stringify(currentGameState));
@@ -136,9 +143,10 @@ function startNewHand(currentGameState) {
     // 1. Determine the new dealer
     // Default to East's left (North) if no dealer is set
     const currentDealer = newState.dealer || PLAYER_ROLES[3];
-    const newDealer = (newState.gamePhase === GAME_PHASES.LOBBY && newState.dealer)
-      ? newState.dealer
-      : getNextPlayer(currentDealer, PLAYER_ROLES);
+    const newDealer =
+      newState.gamePhase === GAME_PHASES.GAME_PHASE_LOBBY && newState.dealer
+        ? newState.dealer
+        : getNextPlayer(currentDealer, PLAYER_ROLES);
 
     newState.dealer = newDealer;
     logger.debug({ gameId: newState.gameId, newDealer }, "Dealer rotated.");
@@ -146,7 +154,7 @@ function startNewHand(currentGameState) {
     // 2. Create and shuffle a new deck
     const deck = shuffleDeck(createDeck());
     if (deck.length < 24) {
-        throw new PhaseLogicError("Invalid deck: must contain 24 cards.");
+      throw new PhaseLogicError("Invalid deck: must contain 24 cards.");
     }
 
     // 3. Reset player hands and identify active players
@@ -161,35 +169,47 @@ function startNewHand(currentGameState) {
     });
 
     if (activePlayers.length < 4) {
-        logger.warn({ gameId: newState.gameId, activePlayers: activePlayers.length }, "Starting hand with fewer than 4 active players.");
+      logger.warn(
+        { gameId: newState.gameId, activePlayers: activePlayers.length },
+        "Starting hand with fewer than 4 active players."
+      );
     }
 
     // 4. Deal cards in two passes (3-2, 2-3 pattern)
     const dealRound = (count) => {
-        let playerToDeal = getNextPlayer(newDealer, PLAYER_ROLES);
-        for (let i = 0; i < PLAYER_ROLES.length; i++) {
-            if (activePlayers.includes(playerToDeal)) {
-                const cardsToDeal = deck.splice(0, count);
-                newState.players[playerToDeal].hand.push(...cardsToDeal);
-            }
-            playerToDeal = getNextPlayer(playerToDeal, PLAYER_ROLES);
+      let playerToDeal = getNextPlayer(newDealer, PLAYER_ROLES);
+      for (let i = 0; i < PLAYER_ROLES.length; i++) {
+        if (activePlayers.includes(playerToDeal)) {
+          const cardsToDeal = deck.splice(0, count);
+          newState.players[playerToDeal].hand.push(...cardsToDeal);
         }
+        playerToDeal = getNextPlayer(playerToDeal, PLAYER_ROLES);
+      }
     };
-    
+
     dealRound(3);
     dealRound(2);
-    
+
     // 5. Set the kitty and turn card correctly
     // Remaining cards after dealing become the kitty
     const kitty = deck;
     if (kitty.length === 0) {
-        throw new PhaseLogicError("Deck exhausted. No cards left for kitty and turn card.");
+      throw new PhaseLogicError(
+        "Deck exhausted. No cards left for kitty and turn card."
+      );
     }
 
     newState.turnCard = kitty.shift(); // The top card of the remainder is the turn card
     newState.kitty = kitty; // The rest are the kitty
 
-    logger.debug({ gameId: newState.gameId, turnCard: cardToId(newState.turnCard), kittySize: newState.kitty.length }, "Dealt cards and set turn card.");
+    logger.debug(
+      {
+        gameId: newState.gameId,
+        turnCard: cardToId(newState.turnCard),
+        kittySize: newState.kitty.length,
+      },
+      "Dealt cards and set turn card."
+    );
 
     // 6. Determine the first bidder (left of dealer)
     // The player to the left of the dealer bids first
@@ -204,31 +224,31 @@ function startNewHand(currentGameState) {
     };
 
     newState = {
-        ...newState,
-        gamePhase: GAME_PHASES.ORDER_UP_ROUND1,
-        currentPlayer: firstBidder,
-        orderUpTurn: firstBidder,
-        trumpSuit: null,
-        bids: [],
-        roundNumber: 1,
-        playerWhoOrderedUp: null,
-        playerWhoCalledTrump: null,
-        makerTeam: null,
-        goingAlone: false,
-        playerGoingAlone: null,
-        partnerSittingOut: null,
-        currentTrick: [],
-        leadSuit: null,
-        tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
-        gameMessages: [...(newState.gameMessages || []), startHandMessage],
-        lastUpdated: Date.now(),
+      ...newState,
+      gamePhase: GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND1,
+      currentPlayer: firstBidder,
+      orderUpTurn: firstBidder,
+      trumpSuit: null,
+      bids: [],
+      roundNumber: 1,
+      playerWhoOrderedUp: null,
+      playerWhoCalledTrump: null,
+      makerTeam: null,
+      goingAlone: false,
+      playerGoingAlone: null,
+      partnerSittingOut: null,
+      currentTrick: [],
+      leadSuit: null,
+      tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
+      gameMessages: [...(newState.gameMessages || []), startHandMessage],
+      lastUpdated: Date.now(),
     };
 
     // Reset tricks won counter for all players
     PLAYER_ROLES.forEach((role) => {
-        if (newState.players[role]) {
-            newState.players[role].tricksWonThisHand = 0;
-        }
+      if (newState.players[role]) {
+        newState.players[role].tricksWonThisHand = 0;
+      }
     });
 
     logger.info(
@@ -240,7 +260,7 @@ function startNewHand(currentGameState) {
   } catch (error) {
     logger.error(
       { error, gameId: currentGameState.gameId },
-      "Critical error in startNewHand.",
+      "Critical error in startNewHand."
     );
     throw error;
   }

@@ -3,10 +3,10 @@
  * @module test/socket/handlers/biddingHandlers.unit.test
  * @description
  *   Comprehensive test suite for bidding socket handlers using node:test and node:assert
- *   
+ *   Layer 3 File (ON HOLD)
  *   Tests cover:
  *   - Handler registration
- *   - Order up decision handling
+//  *   - Order up decision handling
  *   - Dealer discard handling
  *   - Error conditions and edge cases
  *   

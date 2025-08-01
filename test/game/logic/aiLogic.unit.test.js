@@ -56,8 +56,8 @@ const POINTS = {
 /**
  * @description Helper function to create a card object for use in tests.
  * @param {string} suit - The suit of the card.
- * @param {string} rank - The rank of the card.
- * @returns {{suit: string, rank: string}} A card object.
+ * @param {string} value - The value of the card.
+ * @returns {{suit: string, value: string}} A card object.
  */
 const createCard = (suit, value) => ({ suit, value });
 
@@ -67,7 +67,7 @@ const createCard = (suit, value) => ({ suit, value });
 describe("AI Logic Module", () => {
   let aiLogic;
 
-/**
+  /**
    * @function beforeEach
    * @description Resets all mocks before each test to ensure test isolation.
    */
@@ -86,11 +86,11 @@ describe("AI Logic Module", () => {
   });
   // A standard mock hand used across multiple tests.
   const mockHand = [
-    createCard(SUITS.HEARTS, 'J'), // Right bower if hearts is trump
-    createCard(SUITS.DIAMONDS, 'J'), // Left bower if hearts is trump
-    createCard(SUITS.HEARTS, 'A'),
-    createCard(SUITS.CLUBS, '9'),
-    createCard(SUITS.SPADES, 'Q'),
+    createCard(SUITS.HEARTS, "J"), // Right bower if hearts is trump
+    createCard(SUITS.DIAMONDS, "J"), // Left bower if hearts is trump
+    createCard(SUITS.HEARTS, "A"),
+    createCard(SUITS.CLUBS, "9"),
+    createCard(SUITS.SPADES, "Q"),
   ];
 
   /**
@@ -105,7 +105,11 @@ describe("AI Logic Module", () => {
       const trumpSuit = SUITS.HEARTS;
       const result = aiLogic.countTrumpInHand(mockHand, trumpSuit);
       // J of Hearts (RB), J of Diamonds (LB), A of Hearts
-      assert.strictEqual(result, 3, "Should count Right Bower, Left Bower, and Trump Ace");
+      assert.strictEqual(
+        result,
+        3,
+        "Should count Right Bower, Left Bower, and Trump Ace"
+      );
     });
 
     /**
@@ -132,14 +136,14 @@ describe("AI Logic Module", () => {
      */
     it("should return 0 if no trump cards are present", () => {
       const handWithoutTrump = [
-        { suit: "clubs", rank: "9" },
-        { suit: "spades", rank: "Q" },
+        { suit: "clubs", value: "9" },
+        { suit: "spades", value: "Q" },
       ];
       const result = aiLogic.countTrumpInHand(handWithoutTrump, SUITS.HEARTS);
       assert.strictEqual(result, 0);
     });
   });
-  
+
   /**
    * @describe Test suite for the `calculateHandStrength` function.
    */
@@ -152,7 +156,11 @@ describe("AI Logic Module", () => {
       const trumpSuit = SUITS.HEARTS;
       const result = aiLogic.calculateHandStrength(mockHand, trumpSuit);
       // Expected: Right Bower (15) + Left Bower (10) + Trump Ace (7) = 32
-      assert.strictEqual(result, 32, "Hand strength should be the sum of all trump points");
+      assert.strictEqual(
+        result,
+        32,
+        "Hand strength should be the sum of all trump points"
+      );
     });
 
     /**
@@ -238,7 +246,7 @@ describe("AI Logic Module", () => {
      * @description Verifies the AI decides to "orderUp" when its hand strength for the turn card's suit exceeds the threshold.
      */
     it("should order up when hand strength exceeds the threshold", () => {
-       const strongHand = [
+      const strongHand = [
         createCard(SUITS.HEARTS, RANKS.JACK), // RB: 15
         createCard(SUITS.HEARTS, RANKS.ACE), // Trump Ace: 7
         createCard(SUITS.DIAMONDS, RANKS.JACK), // LB: 10
@@ -253,8 +261,8 @@ describe("AI Logic Module", () => {
      */
     it("should pass when hand strength is below the threshold", () => {
       const weakHand = [
-        createCard(SUITS.CLUBS, RANKS.NINE), 
-        createCard(SUITS.SPADES, RANKS.TEN), 
+        createCard(SUITS.CLUBS, RANKS.NINE),
+        createCard(SUITS.SPADES, RANKS.TEN),
         createCard(SUITS.DIAMONDS, RANKS.QUEEN),
       ]; // Total: 0 points for Hearts
       const result = aiLogic.chooseBid(weakHand, turnCard, false, []);
@@ -303,15 +311,15 @@ describe("AI Logic Module", () => {
     it("should follow suit with the lowest winning card if it can win", () => {
       const currentTrick = [createCard(SUITS.HEARTS, RANKS.TEN)]; // Opponent leads a trump (value: 40)
       const hand = [
-        createCard(SUITS.HEARTS, RANKS.ACE),   // Can win (value: 80)
-        createCard(SUITS.HEARTS, RANKS.KING),  // Can also win (value: 70)
-        createCard(SUITS.CLUBS, RANKS.NINE),   // Off-suit
+        createCard(SUITS.HEARTS, RANKS.ACE), // Can win (value: 80)
+        createCard(SUITS.HEARTS, RANKS.KING), // Can also win (value: 70)
+        createCard(SUITS.CLUBS, RANKS.NINE), // Off-suit
       ];
       const result = aiLogic.chooseCardToPlay(
         hand,
         currentTrick,
         trumpSuit,
-        SUITS.HEARTS, // Lead suit is trump
+        SUITS.HEARTS // Lead suit is trump
       );
       // AI has K and A of hearts, both beat the 10. It should play the lowest winning card.
       assert.deepStrictEqual(result, createCard(SUITS.HEARTS, RANKS.KING));
@@ -320,15 +328,15 @@ describe("AI Logic Module", () => {
     it("should slough the lowest value card when unable to follow suit", () => {
       const currentTrick = [createCard(SUITS.SPADES, RANKS.ACE)]; // Opponent leads spades
       const hand = [
-        createCard(SUITS.HEARTS, RANKS.QUEEN),  // Trump card (value: 60)
-        createCard(SUITS.CLUBS, RANKS.NINE),    // Lowest value off-suit (value: 10)
-        createCard(SUITS.DIAMONDS, RANKS.TEN),  // Another off-suit (value: 12)
+        createCard(SUITS.HEARTS, RANKS.QUEEN), // Trump card (value: 60)
+        createCard(SUITS.CLUBS, RANKS.NINE), // Lowest value off-suit (value: 10)
+        createCard(SUITS.DIAMONDS, RANKS.TEN), // Another off-suit (value: 12)
       ];
       const result = aiLogic.chooseCardToPlay(
         hand,
         currentTrick,
         trumpSuit,
-        SUITS.SPADES, // Lead suit is spades
+        SUITS.SPADES // Lead suit is spades
       );
       // Can't follow suit. Slough lowest value card. 9 of Clubs is lowest.
       assert.deepStrictEqual(result, createCard(SUITS.CLUBS, RANKS.NINE));
@@ -338,21 +346,26 @@ describe("AI Logic Module", () => {
       const currentTrick = [createCard(SUITS.SPADES, RANKS.ACE)]; // Opponent leads a high spade
       const hand = [
         createCard(SUITS.SPADES, RANKS.NINE), // Can follow suit, but can't win
-        createCard(SUITS.SPADES, RANKS.TEN),  // Can also follow suit, can't win
+        createCard(SUITS.SPADES, RANKS.TEN), // Can also follow suit, can't win
         createCard(SUITS.HEARTS, RANKS.JACK), // Right Bower (could win by trumping, but must follow)
       ];
       const result = aiLogic.chooseCardToPlay(
         hand,
         currentTrick,
         SUITS.HEARTS, // Hearts are trump
-        SUITS.SPADES, // Lead suit is spades
+        SUITS.SPADES // Lead suit is spades
       );
       // Must follow suit (Spades). Has 9 and 10 of spades. Neither can win. Play lowest.
       assert.deepStrictEqual(result, createCard(SUITS.SPADES, RANKS.NINE));
     });
 
     it("should return null for an empty hand", () => {
-      const result = aiLogic.chooseCardToPlay([], [], SUITS.HEARTS, SUITS.HEARTS);
+      const result = aiLogic.chooseCardToPlay(
+        [],
+        [],
+        SUITS.HEARTS,
+        SUITS.HEARTS
+      );
       assert.strictEqual(result, null);
     });
   });

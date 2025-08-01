@@ -10,8 +10,27 @@
  *
  * @example
  * import { CARD_SUITS, CARD_VALUES, GAME_PHASES } from '@/config/constants';
+ *
+ * @see {@link module:src/utils/cardUtils} - For card-related utility functions
+ * @see {@link module:src/utils/deck} - For deck management and card operations
+ * @see {@link module:src/utils/logger} - For application logging utilities
+ * @see {@link module:src/utils/players} - For player management utilities
+ * @see {@link module:src/utils/lobbyUtils} - For lobby management utilities
+ * @see {@link module:src/socket/handlers/playingHandlers} - For game playing socket handlers
+ * @see {@link module:src/socket/handlers/playerConnectionHandlers} - For player connection handlers
+ * @see {@link module:src/socket/handlers/lobbyHandlers} - For lobby management socket handlers
+ * @see {@link module:src/socket/handlers/gameOverHandlers} - For game over state handlers
+ * @see {@link module:src/socket/handlers/biddingHandlers} - For bidding phase socket handlers
+ * @see {@link module:src/game/state} - For core game state management
+ * @see {@link module:src/game/phases/startNewHandPhase} - For new hand initialization
+ * @see {@link module:src/game/phases/scoringPhase} - For game scoring logic
+ * @see {@link module:src/game/phases/playingPhase} - For main game playing logic
+ * @see {@link module:src/game/phases/lobbyPhase} - For lobby management
+ * @see {@link module:src/game/phases/goAlonePhase} - For "going alone" game logic
+ * @see {@link module:src/game/phases/endGame} - For game conclusion handling
+ * @see {@link module:src/game/phases/biddingPhase} - For bidding phase logic
+ * @see {@link module:src/game/logic/validation-core} - For core game validation rules
  */
-
 /**
  * Enumeration of card suits in Euchre.
  * @readonly
@@ -21,6 +40,7 @@
  * @property {string} CARD_SUIT_CLUBS - Clubs suit (♣)
  * @property {string} CARD_SUIT_SPADES - Spades suit (♠)
  */
+
 export const CARD_SUITS = Object.freeze({
   // Original exports for backward compatibility
   HEARTS: 'CARD_SUIT_HEARTS',

@@ -4,9 +4,6 @@
 // it.skip("should throw PhaseLogicError if the deck is too small", async () => {
 // This test is temporarily skipped due to ESM module mocking limitations
 // The test will be re-enabled once we have a proper solution for mocking ESM modules
-//
-
-
 // Import test utilities
 import { describe, it, afterEach, mock, before, after } from 'node:test';
 import assert from 'node:assert/strict';

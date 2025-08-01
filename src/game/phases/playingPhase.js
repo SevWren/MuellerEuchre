@@ -10,24 +10,34 @@
  *   As a pure Layer 1 module, all functions herein are stateless and deterministic. They
  *   receive the current game state and an action, and return a new, updated game state
  *   without any side effects.
+ *
+ * @see {@link module:src/config/constants}
+ * @see {@link module:src/game/logic/validation-errors}
+ * @see {@link module:src/utils/players}
+ * @see {@link module:src/utils/cardUtils}
  */
 
 // =============================================================================
 // Type Definitions for JSDoc
 // =============================================================================
 
-import { GAME_PHASES, PLAYER_ROLES, TEAMS, SUITS, VALUES } from "../../config/constants.js";
+import {
+  GAME_PHASES,
+  PLAYER_ROLES,
+  TEAMS,
+  CARD_SUITS,
+  CARD_VALUES,
+} from "../../config/constants.js";
 import {
   PhaseLogicError,
   NotPlayersTurnError,
   InvalidPhaseError,
   CardNotInHandError,
-  MustFollowSuitError
+  MustFollowSuitError,
 } from "../logic/validation-errors.js";
 
 /**
  * A type representing one of the valid player role strings.
- * This is created directly from the keys of the PLAYER_ROLES constant array.
  * @typedef {keyof typeof PLAYER_ROLES} PlayerRole
  */
 
@@ -40,7 +50,7 @@ import {
  * Represents a playing card.
  * @typedef {object} Card
  * @property {string} id - The unique identifier for the card (e.g., "AS", "9D").
- * @property {string} suit - The suit of the card, from SUITS constants.
+ * @property {keyof typeof CARD_SUITS} suit - The suit of the card, from CARD_SUITS constants.
  * @property {string} value - The face value of the card ('9', '10', 'J', 'Q', 'K', 'A').
  * @property {string} name - The human-readable name (e.g., "Ace of Spades").
  */
@@ -60,16 +70,28 @@ import {
  * Represents the complete, canonical state of a single Euchre game.
  * @typedef {object} GameState
  * @property {string} gameId - The unique identifier for the game session.
- * @property {string} gamePhase - The current phase of the game, from GAME_PHASES.
+ * @property {keyof typeof GAME_PHASES} gamePhase - The current phase of the game, from GAME_PHASES.
  * @property {Object.<PlayerRole, Player>} players - A map of player roles to player data.
  * @property {PlayerRole} dealer - The role of the current dealer.
  * @property {PlayerRole} currentPlayer - The role of the player whose turn it is.
- * @property {string | null} trumpSuit - The suit that is currently trump.
- * @property {string | null} makerTeam - The team that called trump.
+ * @property {keyof typeof CARD_SUITS | null} trumpSuit - The suit that is currently trump.
+ * @property {TeamName | null} makerTeam - The team that called trump.
  * @property {boolean} goingAlone - True if the maker is playing without their partner.
  * @property {PlayerRole | null} partnerSittingOut - The role of the partner sitting out.
  * @property {{card: Card, playedBy: PlayerRole}[]} currentTrick - The cards played in the current trick.
  * @property {Object.<TeamName, number>} tricksTaken - A map of team IDs to the number of tricks they have won.
+ * @property {Card[]} [kitty] - Cards in the kitty.
+ * @property {Card|null} [turnCard] - The turn card.
+ * @property {PlayerRole|null} [playerWhoOrderedUp] - The player who ordered up.
+ * @property {PlayerRole|null} [playerWhoCalledTrump] - The player who called trump.
+ * @property {PlayerRole|null} [playerGoingAlone] - The player who went alone.
+ * @property {Array<object>} [messages] - Log of game events and messages.
+ * @property {object} [scores] - Current scores for each team.
+ * @property {object} [previousTricksTaken] - Tricks taken in the previous hand.
+ * @property {Card|null} [lastTrickWinningCard] - The winning card of the last trick.
+ * @property {PlayerRole|null} [lastTrickWinner] - The player who won the last trick.
+ * @property {TeamName|null} [lastTrickWinningTeam] - The team that won the last trick.
+ * @property {Array<object>} [lastTrick] - The cards played in the last trick.
  */
 
 // =============================================================================
@@ -85,9 +107,11 @@ import {
  */
 function deepCloneState(state) {
   try {
-    return structuredClone ? structuredClone(state) : JSON.parse(JSON.stringify(state));
+    return structuredClone
+      ? structuredClone(state)
+      : JSON.parse(JSON.stringify(state));
   } catch (error) {
-    throw new Error('Failed to clone game state', { cause: error });
+    throw new Error("Failed to clone game state", { cause: error });
   }
 }
 
@@ -113,8 +137,9 @@ function validatePlayer(gameState, playerRole) {
 /**
  * Handles a player playing a card. Validates the play, updates the current trick,
  * determines the next player, and transitions to scoring if the hand is over.
- * @description This function relies on `this.validatePlay` and `this.getNextPlayer`
- * being available in its execution context via dependency injection.
+ * @description This function relies on `this.validatePlay`, `this.getNextPlayer`,
+ * `this.getEffectiveSuit`, and `this.getCardRank` being available in its execution
+ * context via dependency injection.
  *
  * @param {GameState} gameState - The current, immutable state of the game.
  * @param {PlayerRole} playerRole - The role of the player making the play.
@@ -126,22 +151,22 @@ function validatePlayer(gameState, playerRole) {
  * @throws {InvalidPhaseError} If not in PLAYING phase (from `this.validatePlay`).
  * @throws {CardNotInHandError} If card not in hand (from `this.validatePlay`).
  * @throws {MustFollowSuitError} If player fails to follow suit (from `this.validatePlay`).
- * @see src/socket/handlers/playingHandlers.js
- * @see test/game/phases/playingPhase.unit.test.js
- * @see docs/refactoring_Playing_Phase_And_playing_phase_test_task_guide.md
- * @see docs/Knowledge/The Going Alone Gameplay and Scoring Modifiers.md
+ * @see {@link module:src/socket/handlers/playingHandlers}
+ * @see {@link module:test/game/phases/playingPhase.unit.test.js}
+ * @see {@link docs/refactoring_Playing_Phase_And_playing_phase_test_task_guide.md}
+ * @see {@link docs/Knowledge/The Going Alone Gameplay and Scoring Modifiers.md}
  */
 function handlePlayCard(gameState, playerRole, cardPlayed) {
-  if (!gameState || typeof gameState !== 'object') {
-    throw new TypeError('gameState must be an object');
+  if (!gameState || typeof gameState !== "object") {
+    throw new TypeError("gameState must be an object");
   }
-  if (!playerRole || typeof playerRole !== 'string') {
-    throw new TypeError('playerRole must be a non-empty string');
+  if (!playerRole || typeof playerRole !== "string") {
+    throw new TypeError("playerRole must be a non-empty string");
   }
-  if (!cardPlayed || typeof cardPlayed !== 'object') {
-    throw new TypeError('cardPlayed must be an object');
+  if (!cardPlayed || typeof cardPlayed !== "object") {
+    throw new TypeError("cardPlayed must be an object");
   }
-  
+
   const player = validatePlayer(gameState, playerRole);
 
   // Validate the play and throw any validation errors
@@ -153,7 +178,9 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
   // Remove card from player's hand
   const newHand = player.hand.filter((card) => card.id !== cardPlayed.id);
   if (newHand.length === player.hand.length) {
-      throw new PhaseLogicError(`Card ${cardPlayed.id} not found in player's hand after validation.`);
+    throw new PhaseLogicError(
+      `Card ${cardPlayed.id} not found in player's hand after validation.`
+    );
   }
   newGameState.players = {
     ...newGameState.players,
@@ -179,52 +206,62 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
       newGameState.trumpSuit,
       completedTrick[0]?.playedBy
     );
-    
+
     const winningPlayer = newGameState.players[trickWinnerRole];
     const winnerTeam = winningPlayer?.teamId;
-    
+
     if (winnerTeam === undefined) {
       throw new PhaseLogicError(
         `Could not determine teamId for trick winner: ${trickWinnerRole}`
       );
     }
 
-    // **FIX START**: Find the actual winning card to store in the state
-    const leadSuit = this.getEffectiveSuit(completedTrick[0].card, newGameState.trumpSuit);
+    // Find the actual winning card to store in the state
+    const leadSuit = this.getEffectiveSuit(
+      completedTrick[0].card,
+      newGameState.trumpSuit
+    );
     let winningCard = completedTrick[0].card;
-    let winningRank = this.getCardRank(winningCard, newGameState.trumpSuit, leadSuit);
+    let winningRank = this.getCardRank(
+      winningCard,
+      newGameState.trumpSuit,
+      leadSuit
+    );
 
     for (let i = 1; i < completedTrick.length; i++) {
-        const currentCard = completedTrick[i].card;
-        const currentRank = this.getCardRank(currentCard, newGameState.trumpSuit, leadSuit);
-        if (currentRank > winningRank) {
-            winningCard = currentCard;
-            winningRank = currentRank;
-        }
+      const currentCard = completedTrick[i].card;
+      const currentRank = this.getCardRank(
+        currentCard,
+        newGameState.trumpSuit,
+        leadSuit
+      );
+      if (currentRank > winningRank) {
+        winningCard = currentCard;
+        winningRank = currentRank;
+      }
     }
-    // **FIX END**
 
     const updatedTricksTaken = {
       ...newGameState.tricksTaken,
-      [winnerTeam]: (newGameState.tricksTaken[winnerTeam] || 0) + 1
+      [winnerTeam]: (newGameState.tricksTaken[winnerTeam] || 0) + 1,
     };
 
     newGameState.tricksTaken = updatedTricksTaken;
-    newGameState.lastTrick = completedTrick; // **FIX**: Save the completed trick
+    newGameState.lastTrick = completedTrick;
     newGameState.lastTrickWinner = trickWinnerRole;
-    newGameState.lastTrickWinningCard = winningCard; // **FIX**: Save the winning card
-    newGameState.lastTrickWinningTeam = winnerTeam; // **FIX**: Save the winning team
+    newGameState.lastTrickWinningCard = winningCard;
+    newGameState.lastTrickWinningTeam = winnerTeam;
     newGameState.currentTrick = [];
     newGameState.currentPlayer = trickWinnerRole;
     newGameState.message = `${trickWinnerRole} wins the trick.`;
 
     const totalTricksPlayedThisHand = Object.values(
-      newGameState.tricksTaken,
+      newGameState.tricksTaken
     ).reduce((sum, count) => sum + count, 0);
 
     if (totalTricksPlayedThisHand === 5) {
       const finalTricksMessageSegment = `Scores for this hand: ${JSON.stringify(newGameState.tricksTaken)}.`;
-      newGameState.gamePhase = GAME_PHASES.SCORING;
+      newGameState.gamePhase = GAME_PHASES.GAME_PHASE_SCORING;
       newGameState.currentPlayer = null;
       newGameState.message = `Hand over. ${finalTricksMessageSegment} Moving to scoring.`;
     }
@@ -235,7 +272,7 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
       playerRole,
       playerRoles,
       newGameState.goingAlone,
-      newGameState.partnerSittingOut,
+      newGameState.partnerSittingOut
     );
     newGameState.currentPlayer = nextPlayerForTrick;
     newGameState.message = `${playerRole} played ${cardPlayed.value} of ${cardPlayed.suit}. Next player: ${nextPlayerForTrick}.`;
@@ -245,52 +282,62 @@ function handlePlayCard(gameState, playerRole, cardPlayed) {
 
 /**
  * Determines the winner of a completed trick based on Euchre rules.
- * @description This function relies on `this.getCardRank` being available in its
- * execution context via dependency injection.
+ * @description This function relies on `this.getCardRank` and `this.getEffectiveSuit`
+ * being available in its execution context via dependency injection.
  *
- * @param {Array} trick - Array of card objects with playedBy property
- * @param {string} trumpSuit - The current trump suit
- * @param {string} leadPlayerRole - The player who led the trick
- * @returns {string} The role of the player who won the trick
- * @throws {PhaseLogicError} If trick is invalid or missing required properties
- * @see test/game/phases/playingPhase.unit.test.js - For test cases
- * @see docs/The Complete Card Ranking Hierarchy.md - For card ranking rules
+ * @param {{card: Card, playedBy: PlayerRole}[]} trick - Array of card objects with playedBy property.
+ * @param {keyof typeof CARD_SUITS} trumpSuit - The current trump suit.
+ * @param {PlayerRole} leadPlayerRole - The player who led the trick.
+ * @returns {PlayerRole} The role of the player who won the trick.
+ * @throws {PhaseLogicError} If trick is invalid or missing required properties.
+ * @throws {TypeError} If `this.getCardRank` or `this.getEffectiveSuit` are not functions.
+ * @see {@link module:test/game/phases/playingPhase.unit.test.js} - For test cases
+ * @see {@link docs/Knowledge/The Complete Card Ranking Hierarchy.md} - For card ranking rules
  */
 function determineTrickWinner(trick, trumpSuit, leadPlayerRole) {
-  if (typeof this.getCardRank !== 'function' || typeof this.getEffectiveSuit !== 'function') {
-    throw new TypeError('this.getCardRank and this.getEffectiveSuit must be functions');
+  if (
+    typeof this.getCardRank !== "function" ||
+    typeof this.getEffectiveSuit !== "function"
+  ) {
+    throw new TypeError(
+      "this.getCardRank and this.getEffectiveSuit must be functions"
+    );
   }
-  
+
   validateTrick(trick);
-  
+
   if (!leadPlayerRole) {
-    throw new PhaseLogicError('leadPlayerRole is required');
+    throw new PhaseLogicError("leadPlayerRole is required");
   }
 
   const leadCard = trick[0].card;
-  // **FIX START**: Use getEffectiveSuit to correctly handle the Left Bower being led.
   const ledSuit = this.getEffectiveSuit(leadCard, trumpSuit);
-  // **FIX END**
-  
+
   let winningEntry = trick[0];
   let winningRank = this.getCardRank(winningEntry.card, trumpSuit, ledSuit);
 
   for (let i = 1; i < trick.length; i++) {
     const currentEntry = trick[i];
     const currentRank = this.getCardRank(currentEntry.card, trumpSuit, ledSuit);
-    
+
     if (currentRank > winningRank) {
       winningEntry = currentEntry;
       winningRank = currentRank;
     }
   }
-  
+
   return winningEntry.playedBy;
 }
 
+/**
+ * Validates the structure and length of a trick.
+ * @private
+ * @param {{card: Card, playedBy: PlayerRole}[]} trick - The trick array to validate.
+ * @throws {PhaseLogicError} If the trick is not an array or does not contain exactly 4 cards.
+ */
 function validateTrick(trick) {
   if (!Array.isArray(trick) || trick.length !== 4) {
-    throw new PhaseLogicError('Trick must have 4 cards to determine a winner');
+    throw new PhaseLogicError("Trick must have 4 cards to determine a winner");
   }
 }
 

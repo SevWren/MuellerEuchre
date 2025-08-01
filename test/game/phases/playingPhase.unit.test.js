@@ -572,8 +572,13 @@ describe('PlayingPhase Logic - handlePlayCard', { concurrency: false }, () => {
     const nextPlayerAfterMaker = PLAYER_POSITIONS.PLAYER_WEST;
 
     const specificCardToPlay = createTestCard(CARD_SUITS.CARD_SUIT_HEARTS, 'A');
+    // Ensure the card has a valid ID by recreating it with the correct ID format
+    const cardWithCorrectId = {
+      ...specificCardToPlay,
+      id: `Card ${specificCardToPlay.value}${specificCardToPlay.suit.charAt(0)}`
+    };
     const customHands = {
-      [trumpMaker]: testUtils.createHand([specificCardToPlay]),
+      [trumpMaker]: [cardWithCorrectId],
     };
 
     const gameState = createPlayingGameState({
@@ -584,7 +589,11 @@ describe('PlayingPhase Logic - handlePlayCard', { concurrency: false }, () => {
       customHands: customHands,
     });
 
-    const cardToPlay = specificCardToPlay;
+    const cardToPlay = cardWithCorrectId;
+    
+    // Debug: Log the card being played and the player's hand
+    console.log('Card to play:', JSON.stringify(cardToPlay, null, 2));
+    console.log('Player hand:', JSON.stringify(gameState.players[trumpMaker].hand, null, 2));
 
     // The mock for getNextPlayer is already on mockServices from beforeEach.
     // We can just let the bound handlePlayCard call it.

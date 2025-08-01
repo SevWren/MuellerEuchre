@@ -81,7 +81,7 @@ Thumbs.db
 ENVIRONMENT_INSTABILITY.MD
 
 #Archive
-archived/
+archived
 archived_files_for_rewrite/
 main_branch_test_log.txt
 server3_migration_audit.md
@@ -152,11 +152,14 @@ Test-Structure-Migration.html
 docs/Daily_Logs/7_21_2025.txt
 MuellerEuchre-Windsurf.code-workspace.txt
 docs/Daily_Logs/7_22_2025.txt
-.windsurf/Chat_Logs/chat_log.html
-.windsurf/Chat_Logs/Chat_Log.md
-.windsurf/Chat_Logs/Fixing Euchre Bidding Phase Tests.html
-.windsurf/Chat_Logs/Fixing Euchre Bidding Phase Tests.md
+.windsurf/Chat_Logs
 For-Analysis/
-For-Analysis/**
 docs/Daily_Logs/7_7_2025.txt
 .kilocodeignore
+jsdoc/**
+index.js
+docs/Daily_Logs
+docs/Debug_Logs
+Integrate with External Tools via Tasks.md
+package.json
+.gitignore

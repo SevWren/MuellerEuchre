@@ -7,39 +7,82 @@
  * Euchre rules. These functions are stateless and side-effect free, making them
  * easy to test and reason about.
  * 
+ * ## Key Features
+ * - Validates card plays, bids, and dealer discards
+ * - Enforces Euchre's special rules (e.g., Left Bower handling)
+ * - Provides detailed error information for invalid actions
+ * - Works with the game state to ensure all moves are legal
+ * 
  * @see {@link module:config/constants} For game constants and enums
  * @see {@link module:game/logic/validation-errors} For custom error types
+ * @see {@link module:utils/cardUtils} For card-related utility functions
  * 
  * @example
  * // Example usage of validation functions
  * import { validatePlay, GAME_PHASES, SUITS } from './game/logic/validation';
+ * import { PLAYER_ROLES } from '../../config/constants';
+ * 
+ * // Example game state
+ * const gameState = {
+ *   gamePhase: GAME_PHASES.PLAYING,
+ *   currentPlayer: PLAYER_ROLES.NORTH,
+ *   trumpSuit: SUITS.CARD_SUIT_HEARTS,
+ *   currentTrick: [],
+ *   players: {
+ *     [PLAYER_ROLES.NORTH]: { hand: [] },
+ *     [PLAYER_ROLES.EAST]: { hand: [] },
+ *     [PLAYER_ROLES.SOUTH]: { hand: [] },
+ *     [PLAYER_ROLES.WEST]: { hand: [] }
+ *   }
+ * };
+ * 
+ * // Example hand and card to play
+ * const playerHand = [
+ *   { id: 'AH', suit: SUITS.CARD_SUIT_HEARTS, value: 'A' },
+ *   { id: 'KS', suit: SUITS.CARD_SUIT_SPADES, value: 'K' }
+ * ];
+ * const cardToPlay = playerHand[0];
  * 
  * try {
- *   validatePlay(gameState, playerHand, cardToPlay, playerRole);
- *   // Card play is valid
+ *   const isValid = validatePlay(gameState, playerHand, cardToPlay, PLAYER_ROLES.NORTH);
+ *   console.log('Play is valid:', isValid); // true
  * } catch (error) {
- *   // Handle validation error
- *   console.error(error.message);
+ *   console.error('Validation failed:', error.message);
+ *   if (error.name === 'MustFollowSuitError') {
+ *     console.error(`Must follow suit: ${error.requiredSuit}`);
+ *   }
  * }
  */
 
 /**
+ * Represents a playing card in the game.
  * @typedef {Object} Card
- * @property {string} id - Unique identifier for the card
+ * @property {string} id - Unique identifier for the card (e.g., 'AH' for Ace of Hearts)
  * @property {string} suit - The card's suit (must be a value from SUITS)
- * @property {string} value - The card's value (e.g., 'A', 'K', 'Q', 'J', '10', '9')
+ * @property {string} value - The card's rank (e.g., 'A', 'K', 'Q', 'J', '10', '9')
+ * @example
+ * // Example card object
+ * {
+ *   id: 'AH',
+ *   suit: 'HEARTS',
+ *   value: 'A'
+ * }
  */
 
 /**
+ * Represents a player in the game.
  * @typedef {Object} Player
  * @property {string} id - Unique identifier for the player
  * @property {string} name - The player's display name
  * @property {Array<Card>} hand - The player's current hand of cards
  * @property {string} team - The player's team ('NS' or 'EW')
- * @property {boolean} [isGoingAlone] - Whether the player is going alone
+ * @property {boolean} [isGoingAlone=false] - Whether the player is going alone
+ * @property {number} [score=0] - The player's current score
+ * @property {string} role - The player's role (e.g., 'north', 'east', 'south', 'west')
  */
 
 /**
+ * Represents the complete state of a Euchre game.
  * @typedef {Object} GameState
  * @property {string} gamePhase - Current game phase (from GAME_PHASES)
  * @property {string} currentPlayer - Role of the player whose turn it is
@@ -47,17 +90,23 @@
  * @property {string} [winningBidder] - Role of the winning bidder
  * @property {string} trumpSuit - Current trump suit (from SUITS)
  * @property {Array<Object>} currentTrick - Cards played in the current trick
+ * @property {Object} [turnCard] - The turn card (for bidding)
  * @property {string} [currentTrickSuit] - Leading suit of the current trick
  * @property {Array<Object>} [bids] - History of bids made
  * @property {Object.<string, Player>} players - Map of player roles to player objects
  * @property {Object} teams - Team scores and statistics
  * @property {string} [gameId] - Optional game identifier
+ * @property {number} roundNumber - Current round number
+ * @property {number} tricksWon - Number of tricks won by the current team
+ * @property {number} opponentTricksWon - Number of tricks won by the opposing team
  */
 
 /**
+ * Represents the result of a validation operation.
  * @typedef {Object} ValidationResult
  * @property {boolean} valid - Whether the validation passed
  * @property {Array<Error>} [errors] - Any validation errors that occurred
+ * @property {string} [message] - Optional summary message
  */
 
 import { GAME_PHASES, SUITS, PLAYER_ROLES, BID_DECISIONS } from "../../config/constants.js";
@@ -286,9 +335,10 @@ function getEffectiveSuit(card, trumpSuit) {
  * 
  * This function enforces the core rules of Euchre card play, including:
  * - Verifying it's the player's turn
- * - Ensuring the game is in the correct phase
+ * - Ensuring the game is in the correct phase (PLAYING)
  * - Validating the card is in the player's hand
  * - Enforcing the "follow suit" rule (including Left Bower handling)
+ * - Validating card and hand objects
  * 
  * @function validatePlay
  * @memberof module:game/logic/validation
@@ -298,6 +348,15 @@ function getEffectiveSuit(card, trumpSuit) {
  * @param {string} playerRole - The role of the player making the move.
  * @returns {boolean} True if the play is valid.
  * @throws {module:game/logic/validation-errors.ValidationError} If any required arguments are missing or invalid.
+ * @throws {module:game/logic/validation-errors.InvalidPhaseError} If game is not in PLAYING phase.
+ * @throws {module:game/logic/validation-errors.NotPlayersTurnError} If it's not the specified player's turn.
+ * @throws {module:game/logic/validation-errors.CardNotInHandError} If the card is not in the player's hand.
+ * @throws {module:game/logic/validation-errors.MustFollowSuitError} If player must follow suit but played a different suit.
+ * @see {@link module:game/logic/validation~getEffectiveSuit} For determining a card's effective suit
+ * @see {@link module:game/logic/validation~isValidGoAlone} For go-alone validation
+ * @see {@link module:config/constants.GAME_PHASES} For valid game phases
+ * @see {@link module:config/constants.PLAYER_ROLES} For valid player roles
+ * @see {@link module:config/constants.SUITS} For valid suit constants
  * @throws {module:game/logic/validation-errors.InvalidPhaseError} If game is not in PLAYING phase.
  *   The error will have a `currentPhase` property and an `allowedPhases` array.
  * @throws {module:game/logic/validation-errors.NotPlayersTurnError} If it's not the player's turn.
@@ -451,6 +510,8 @@ function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
  * - Round 2 bidding (CALL_TRUMP/PASS)
  * - The "stick the dealer" rule
  * - Turn card validation for round 1
+ * - Bid order validation
+ * - Suit validation for CALL_TRUMP
  * 
  * @function validateBid
  * @memberof module:game/logic/validation
@@ -461,11 +522,18 @@ function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
  * @returns {boolean} True if the bid is valid.
  * @throws {module:game/logic/validation-errors.ValidationError} If arguments are invalid.
  *   The error will have a `message` property describing the validation failure.
+ * @throws {module:game/logic/validation-errors.InvalidPhaseError} If game is not in a bidding phase.
+ *   The error will have `currentPhase` and `allowedPhases` properties.
  * @throws {module:game/logic/validation-errors.NotPlayersTurnError} If it's not the player's turn.
  *   The error will have `currentPlayer` and `attemptedPlayer` properties.
  * @throws {module:game/logic/validation-errors.InvalidBidError} If the bid violates game rules.
  *   The error will have a `message` property describing the specific violation.
  *   May include additional context like `phase`, `decision`, and `suit`.
+ * @see {@link module:config/constants.BID_DECISIONS} For valid bid decisions
+ * @see {@link module:config/constants.GAME_PHASES} For valid game phases
+ * @see {@link module:config/constants.SUITS} For valid suit constants
+ * @see {@link module:config/constants.PLAYER_ROLES} For valid player roles
+ * @see {@link module:game/logic/validation~validatePlay} For card play validation
  * @see {@link module:config/constants.BID_DECISIONS} For valid bid decisions
  * @see {@link module:config/constants.GAME_PHASES} For valid game phases
  * @see {@link module:config/constants.SUITS} For valid suit constants
@@ -640,6 +708,7 @@ function validateBid(gameState, playerRole, decision, suit = null) {
  * - Ensuring it's the dealer's turn to discard
  * - Validating the card to be discarded is in the dealer's hand
  * - Preventing the dealer from discarding the turn card
+ * - Validating the dealer's hand size (should be 6 cards after picking up the turn card)
  * - Logging warnings for unexpected hand sizes
  * 
  * @function validateDealerDiscard
@@ -658,6 +727,49 @@ function validateBid(gameState, playerRole, decision, suit = null) {
  *   The error will have `cardId` and `playerHandIds` properties.
  * @throws {module:game/logic/validation-errors.InvalidDiscardError} If the dealer tries to discard the turn card.
  *   The error will have a `message` property and may include `cardId`.
+ * @see {@link module:config/constants.GAME_PHASES} For valid game phases
+ * @see {@link module:config/constants.PLAYER_ROLES} For valid player roles
+ * @see {@link module:game/logic/validation~validatePlay} For card play validation
+ * @see {@link module:game/logic/validation~validateBid} For bid validation
+ * 
+ * @example
+ * // Example usage in the dealer discard phase
+ * const gameState = {
+ *   gamePhase: GAME_PHASES.DEALER_DISCARD,
+ *   currentPlayer: PLAYER_ROLES.SOUTH,
+ *   dealer: PLAYER_ROLES.SOUTH,
+ *   turnCard: { id: '9H-turn', suit: SUITS.CARD_SUIT_HEARTS, value: '9' },
+ *   players: {
+ *     [PLAYER_ROLES.SOUTH]: { hand: [] },
+ *     [PLAYER_ROLES.WEST]: { hand: [] },
+ *     [PLAYER_ROLES.NORTH]: { hand: [] },
+ *     [PLAYER_ROLES.EAST]: { hand: [] }
+ *   }
+ * };
+ * 
+ * const dealerHand = [
+ *   { id: '10H', suit: SUITS.CARD_SUIT_HEARTS, value: '10' },
+ *   { id: 'JD', suit: SUITS.CARD_SUIT_DIAMONDS, value: 'J' },
+ *   { id: 'QC', suit: SUITS.CARD_SUIT_CLUBS, value: 'Q' },
+ *   { id: 'KS', suit: SUITS.CARD_SUIT_SPADES, value: 'K' },
+ *   { id: 'AH', suit: SUITS.CARD_SUIT_HEARTS, value: 'A' },
+ *   { id: '9D', suit: SUITS.CARD_SUIT_DIAMONDS, value: '9' },
+ *   gameState.turnCard // The dealer picks up the turn card (now has 7 cards)
+ * ];
+ * 
+ * // Valid discard - dealer discards a non-turn card
+ * try {
+ *   const cardToDiscard = dealerHand[1]; // JD
+ *   const isValid = validateDealerDiscard(
+ *     gameState,
+ *     PLAYER_ROLES.SOUTH,
+ *     cardToDiscard,
+ *     dealerHand
+ *   );
+ *   console.log('Discard is valid:', isValid); // true
+ * } catch (error) {
+ *   console.error('Discard validation failed:', error.message);
+ * }
  * @see {@link module:config/constants.GAME_PHASES} For valid game phases
  * @see {@link module:config/constants.PLAYER_ROLES} For valid player roles
  * @see {@link module:game/logic/validation~validatePlay} For card play validation
@@ -817,12 +929,9 @@ function validateDealerDiscard(
  * @see {@link module:config/constants.GAME_PHASES} For valid game phases
  * @see {@link module:config/constants.PLAYER_ROLES} For valid player roles
  * @see {@link module:game/logic/validation~validateBid} For bid validation
- * @see {@link module:game/logic/validation~validatePlay} For play validation
+ * @see {@link module:game/logic/validation~validatePlay} For card play validation
  * 
  * @example
- * import { isValidGoAlone } from './game/logic/validation';
- * import { GAME_PHASES, PLAYER_ROLES } from './config/constants';
- * 
  * // Valid go-alone declaration
  * const gameState = {
  *   gamePhase: GAME_PHASES.GOING_ALONE_DECISION,

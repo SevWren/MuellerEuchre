@@ -8,7 +8,7 @@
     "node": ">=v20.1.0"
   },
   "scripts": {
-    "test": "node --test test/",
+    "test": "node scripts/run-layer1-tests.js",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test:file": "node --test --timeout 15000",

@@ -7,7 +7,7 @@ description: Apply these rules when writing new or refactoring existing unit tes
 
 Core Principle: Isolate with Native Mocks
 
-The primary goal is to isolate the module-under-test (SUT) by controlling its external dependencies. This **MUST** be achieved using the built-in `node:test` runner and its `mock` API, available in Node.js v20+. This approach eliminates external test runners (Jest, Mocha) and third-party mocking libraries (Sinon, esmock), ensuring consistency and leveraging modern Node.js features.
+The primary goal is to isolate the module-under-test (SUT) by controlling its external dependencies. This **MUST** be achieved using the built-in `node:test` runner and its `mock` API, available in Node.js v20+. This approach eliminates external test runners (Jest, Mocha) and third-party mocking libraries (Sinon, esmock), ensuring consistency and leveraging Node.js v20.12.2 features.
 
 The key to mocking ES Modules is to **patch a dependency *before* the SUT is loaded**. This is accomplished by using a **dynamic `import()`** for the SUT after the mock has been applied.
 

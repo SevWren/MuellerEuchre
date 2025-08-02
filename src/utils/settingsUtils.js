@@ -16,7 +16,11 @@ import { ValidationError } from "../game/logic/validation-errors.js";
  * @property {number} winningScore.max - Maximum allowed value.
  * @property {boolean} winningScore.required - True if the setting is mandatory.
  */
-const SETTINGS_SCHEMA = {
+/**
+ * Schema definition for game settings validation.
+ * @type {Object}
+ */
+export const SETTINGS_SCHEMA = {
   winningScore: {
     type: "number",
     integer: true,

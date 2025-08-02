@@ -17,7 +17,7 @@
  * @see {@link test/game/phases/playingPhase.unit.test.js} - For integration with playing phase logic.
  *
  * @typedef {Object} Card
- * @property {string} suit - The card's suit (must be a valid CARD_SUITS constant).
+ * @property {string} suit - The card's suit (must be a valid CARD_SUITS constant). 
  * @property {string} value - The card's value (e.g., 'Ace', 'King', '10').
  * @property {string} [id] - Optional unique identifier for the card.
  * @property {string} [playedBy] - Optional player ID of who played the card.
@@ -609,110 +609,61 @@ function idToCard(id) {
   }
 
   // Handle '10' as a special case since it's two characters
-  const normalizedId = id.trim().toUpperCase();
-  if (normalizedId.length === 2 || (normalizedId.length === 3 && normalizedId.startsWith('10'))) {
-    let valueChar, suitChar;
-
-    if (normalizedId.startsWith('10') && normalizedId.length === 3) {
-      valueChar = '1';
-      suitChar = normalizedId[2];
+  const normalizedId = id.trim();
+  
+  // Check for valid ID length and format first
+  if (normalizedId.length !== 2) {
+    if (normalizedId.length === 3 && normalizedId.toUpperCase().startsWith('10')) {
+      // This is a valid 10 case, handle it below
     } else {
-      valueChar = normalizedId[0];
-      suitChar = normalizedId[1];
+      throw new InvalidCardError(`Invalid card ID format: ${id}`);
     }
-
-    // Map value character to full value string
-    const valueMap = {
-      'A': 'Ace',
-      'K': 'King',
-      'Q': 'Queen',
-      'J': 'Jack',
-      '1': '10',
-      'T': '10',
-      '9': '9'
-    };
-
-    const value = valueMap[valueChar];
-    if (!value) {
-      throw new InvalidCardError(`Invalid card value: ${valueChar}`);
-    }
-
-    // Map suit character to full suit constant
-    const suitMap = {
-      'H': CARD_SUITS.CARD_SUIT_HEARTS,
-      'D': CARD_SUITS.CARD_SUIT_DIAMONDS,
-      'C': CARD_SUITS.CARD_SUIT_CLUBS,
-      'S': CARD_SUITS.CARD_SUIT_SPADES
-    };
-
-    const suit = suitMap[suitChar];
-    if (!suit) {
-      throw new InvalidCardError(`Invalid card suit: ${suitChar}`);
-    }
-
-    return { suit, value };
   }
 
-  throw new InvalidCardError(`Invalid card ID format: ${id}`);
-}
+  let valueChar, suitChar;
 
-/**
- * Determines if two suits are of the same color (both red or both black).
- * This is used for identifying the Left Bower and for suit color-based rules.
- *
- * Special cases:
- * - 'T' or '1' are both valid for the 10 of any suit
- * - Suits are case-insensitive ('Ah' is equivalent to 'AH')
- *
- * @param {string} id - The card ID string to convert (e.g., 'AH', '10S', 'JD').
- * @returns {Card} The corresponding card object with `suit` and `value` properties.
- *   The suit will be a valid suit constant (e.g., 'CARD_SUIT_HEARTS').
- *   The value will be a valid card value (e.g., 'Ace', 'King', '10').
- * @throws {InvalidCardError} If:
- *   - The ID is null, undefined, or not a string
- *   - The ID has an invalid length (not 2 characters)
- *   - The value character is invalid
- *   - The suit character is invalid
- * @see {@link cardToId} - For the inverse operation.
- * @see {@link CARD_VALUES} - For valid card values.
- * @see {@link CARD_SUITS} - For valid suit constants.
- * @example
- * // Returns { suit: 'CARD_SUIT_HEARTS', value: 'Ace' }
- * idToCard('AH');
- *
- * @example
- * // Returns { suit: 'CARD_SUIT_SPADES', value: '10' } (both formats work for 10)
- * idToCard('10S');
- * idToCard('TS');
- *
- * @example
- * // Returns { suit: 'CARD_SUIT_DIAMONDS', value: 'Jack' }
- * idToCard('jd'); // Case-insensitive
- *
- * @example
- * // Throws InvalidCardError (invalid length)
- * try {
- *   idToCard('A');
- * } catch (error) {
- *   console.error(error.message); // "Invalid card ID format: A"
- * }
- *
- * @example
- * // Throws InvalidCardError (invalid value)
- * try {
- *   idToCard('XH');
- * } catch (error) {
- *   console.error(error.message); // "Invalid card value: X"
- * }
- *
- * @example
- * // Throws InvalidCardError (invalid suit)
- * try {
- *   idToCard('AX');
- * } catch (error) {
- *   console.error(error.message); // "Invalid card suit: X"
- * }
- */
+  if (normalizedId.toUpperCase().startsWith('10') && normalizedId.length === 3) {
+    valueChar = '1';
+    suitChar = normalizedId[2].toUpperCase();
+  } else {
+    if (normalizedId.length !== 2) {
+      throw new InvalidCardError(`Invalid card ID format: ${id}`);
+    }
+    valueChar = normalizedId[0].toUpperCase();
+    suitChar = normalizedId[1].toUpperCase();
+  }
+
+  // Map value character to full value string
+  const valueMap = {
+    'A': 'Ace',
+    'K': 'King',
+    'Q': 'Queen',
+    'J': 'Jack',
+    '1': '10',
+    'T': '10',
+    '9': '9'
+  };
+
+  const value = valueMap[valueChar];
+  if (!value) {
+    throw new InvalidCardError(`Invalid card value: ${valueChar}`);
+  }
+
+  // Map suit character to full suit constant
+  const suitMap = {
+    'H': CARD_SUITS.CARD_SUIT_HEARTS,
+    'D': CARD_SUITS.CARD_SUIT_DIAMONDS,
+    'C': CARD_SUITS.CARD_SUIT_CLUBS,
+    'S': CARD_SUITS.CARD_SUIT_SPADES
+  };
+
+  const suit = suitMap[suitChar];
+  if (!suit) {
+    throw new InvalidCardError(`Invalid card suit: ${suitChar}`);
+  }
+
+  return { suit, value };
+}
 
 /**
  * Determines if two suits are of the same color (both red or both black).
@@ -745,6 +696,7 @@ function idToCard(id) {
  *   console.error(error.message);
  * }
  */
+
 function areSameColor(suit1, suit2) {
   // Handle null/undefined inputs by returning false
   if (suit1 === null || suit1 === undefined || suit2 === null || suit2 === undefined) {
@@ -791,8 +743,6 @@ function areSameColor(suit1, suit2) {
  * // Throws InvalidCardError
  * cardToId({ suit: 'invalid', value: 'A' });
  */
-
-
 function cardToId(card) {
   if (!card || typeof card !== 'object') {
     throw new InvalidCardError('Card must be an object');
@@ -1119,8 +1069,9 @@ function sortHand(hand, trumpSuit) {
       // For trump cards, we use a special order: Right Bower, Left Bower, then by rank
       if (isTrump) {
         // For trump cards, we use a special rank that ensures:
-        // Right Bower (1000) > Left Bower (900) > Ace (14) > King (13) > ... > 9 (9)
-        const trumpRank = isRB ? 1000 : (isLB ? 900 : baseRank);
+        // Right Bower (SORT_RANK_RIGHT_BOWER) > Left Bower (SORT_RANK_LEFT_BOWER) > Ace (14) > King (13) > ... > 9 (9)
+        const trumpRank = isRB ? CARD_RANKS.SORT_RANK_RIGHT_BOWER : 
+                             (isLB ? CARD_RANKS.SORT_RANK_LEFT_BOWER : baseRank);
 
         return {
           isTrump: true,
@@ -1216,6 +1167,7 @@ export {
   getSuitColor,
   areSameColor,
   cardToId,
+  idToCard,
   getCardRank,
   sortHand,
   getBaseRankValue,

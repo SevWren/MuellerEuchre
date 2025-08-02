@@ -1,4 +1,3 @@
-// test/game/logic/aiLogic.unit.test.js
 /**
  * @file Unit tests for the AI logic module.
  * @module test/game/logic/aiLogic.unit.test

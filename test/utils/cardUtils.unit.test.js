@@ -223,6 +223,222 @@ describe('Card Utility Functions', () => {
   });
 
   /**
+   * Test suite for the idToCard function.
+   * @namespace CardUtilityTests.idToCard
+   * @see {@link module:src/utils/cardUtils.idToCard}
+   */
+  describe('idToCard', () => {
+    it('should throw InvalidCardError for null or undefined input', () => {
+      assert.throws(
+        () => cardUtils.idToCard(null),
+        { name: 'InvalidCardError', message: 'Card ID cannot be null or undefined' },
+        'Should throw for null input'
+      );
+      
+      assert.throws(
+        () => cardUtils.idToCard(undefined),
+        { name: 'InvalidCardError', message: 'Card ID cannot be null or undefined' },
+        'Should throw for undefined input'
+      );
+    });
+
+    it('should throw InvalidCardError for non-string input', () => {
+      assert.throws(
+        () => cardUtils.idToCard(123),
+        { name: 'InvalidCardError', message: 'Card ID must be a string' },
+        'Should throw for number input'
+      );
+      
+      assert.throws(
+        () => cardUtils.idToCard({}),
+        { name: 'InvalidCardError', message: 'Card ID must be a string' },
+        'Should throw for object input'
+      );
+      
+      assert.throws(
+        () => cardUtils.idToCard(true),
+        { name: 'InvalidCardError', message: 'Card ID must be a string' },
+        'Should throw for boolean input'
+      );
+    });
+
+    it('should throw InvalidCardError for invalid card value', () => {
+      assert.throws(
+        () => cardUtils.idToCard('XH'),
+        { name: 'InvalidCardError', message: 'Invalid card value: X' },
+        'Should throw for invalid value character'
+      );
+      
+      assert.throws(
+        () => cardUtils.idToCard('ZH'),
+        { name: 'InvalidCardError', message: 'Invalid card value: Z' },
+        'Should throw for another invalid value character'
+      );
+    });
+
+    it('should throw InvalidCardError for invalid suit character', () => {
+      assert.throws(
+        () => cardUtils.idToCard('AX'),
+        { name: 'InvalidCardError', message: 'Invalid card suit: X' },
+        'Should throw for invalid suit character'
+      );
+      
+      assert.throws(
+        () => cardUtils.idToCard('9Y'),
+        { name: 'InvalidCardError', message: 'Invalid card suit: Y' },
+        'Should throw for another invalid suit character'
+      );
+    });
+
+    it('should throw InvalidCardError for invalid ID length and format', () => {
+      // Test cases for invalid lengths and formats
+      const testCases = [
+        { id: '', message: 'Invalid card ID format: ' },
+        { id: 'A', message: 'Invalid card ID format: A' },
+        { id: 'AXH', message: 'Invalid card ID format: AXH' },
+        { id: '10X', message: 'Invalid card ID format: 10X' },
+        { id: '10HX', message: 'Invalid card ID format: 10HX' },
+        { id: '1H', message: 'Invalid card ID format: 1H' },
+        { id: 'THX', message: 'Invalid card ID format: THX' },
+        { id: 'TH ', message: 'Invalid card ID format: TH ' },
+        { id: ' TH', message: 'Invalid card ID format:  TH' },
+        { id: 'T H', message: 'Invalid card ID format: T H' },
+        { id: 'T\tH', message: 'Invalid card ID format: T\tH' },
+        { id: 'T\nH', message: 'Invalid card ID format: T\nH' },
+        { id: '1', message: 'Invalid card ID format: 1' },
+        { id: '1 ', message: 'Invalid card ID format: 1 ' },
+        { id: ' 1', message: 'Invalid card ID format:  1' },
+        { id: '1 0', message: 'Invalid card ID format: 1 0' },
+        { id: '10', message: 'Invalid card ID format: 10' },
+        { id: '10 ', message: 'Invalid card ID format: 10 ' },
+        { id: ' 10', message: 'Invalid card ID format:  10' }
+      ];
+
+      for (const { id, message } of testCases) {
+        assert.throws(
+          () => cardUtils.idToCard(id),
+          { name: 'InvalidCardError', message },
+          `Should throw for invalid ID format: '${id.replace(/\n/g, '\\n')}'`
+        );
+      }
+    });
+
+    it('should throw InvalidCardError for invalid card values', () => {
+      // Test all invalid card values (not in A, K, Q, J, T, 9)
+      const invalidValues = 'BCDEFGHILMNOPRSTUVWXYZ0123456789';
+      
+      for (const value of invalidValues) {
+        // Skip 'A', 'K', 'Q', 'J', 'T', '9' as they are valid
+        if (['A', 'K', 'Q', 'J', 'T', '9'].includes(value)) continue;
+        
+        const id = `${value}H`; // H is a valid suit
+        assert.throws(
+          () => cardUtils.idToCard(id),
+          { name: 'InvalidCardError', message: `Invalid card value: ${value}` },
+          `Should throw for invalid value '${value}' in ID '${id}'`
+        );
+      }
+    });
+
+    it('should throw InvalidCardError for invalid suit characters', () => {
+      // Test all invalid suit characters (not H, D, C, S)
+      const validSuits = ['H', 'D', 'C', 'S'];
+      const invalidSuits = 'ABEFGIJKLMNOPQRTUVWXYZ0123456789';
+      
+      for (const suit of invalidSuits) {
+        // Skip valid suits
+        if (validSuits.includes(suit)) continue;
+        
+        const id = `A${suit}`; // A is a valid value
+        assert.throws(
+          () => cardUtils.idToCard(id),
+          { name: 'InvalidCardError', message: `Invalid card suit: ${suit}` },
+          `Should throw for invalid suit '${suit}' in ID '${id}'`
+        );
+      }
+    });
+
+    it('should handle special characters and whitespace', () => {
+      const testCases = [
+        { id: '!H', message: 'Invalid card value: !' },
+        { id: '@H', message: 'Invalid card value: @' },
+        { id: '#H', message: 'Invalid card value: #' },
+        { id: '$H', message: 'Invalid card value: $' },
+        { id: '%H', message: 'Invalid card value: %' },
+        { id: '^H', message: 'Invalid card value: ^' },
+        { id: '&H', message: 'Invalid card value: &' },
+        { id: '*H', message: 'Invalid card value: *' },
+        { id: '(H', message: 'Invalid card value: (' },
+        { id: ')H', message: 'Invalid card value: )' },
+        { id: '-H', message: 'Invalid card value: -' },
+        { id: '+H', message: 'Invalid card value: +' },
+        { id: '=H', message: 'Invalid card value: =' },
+        { id: '[H', message: 'Invalid card value: [' },
+        { id: ']H', message: 'Invalid card value: ]' },
+        { id: '{H', message: 'Invalid card value: {' },
+        { id: '}H', message: 'Invalid card value: }' },
+        { id: '|H', message: 'Invalid card value: |' },
+        { id: '\\H', message: 'Invalid card value: \\' },
+        { id: '/H', message: 'Invalid card value: /' },
+        { id: '?H', message: 'Invalid card value: ?' },
+        { id: ',H', message: 'Invalid card value: ,' },
+        { id: '.H', message: 'Invalid card value: .' },
+        { id: '<H', message: 'Invalid card value: <' },
+        { id: '>H', message: 'Invalid card value: >' },
+        { id: '`H', message: 'Invalid card value: `' },
+        { id: '~H', message: 'Invalid card value: ~' },
+        { id: 'AH\n', message: 'Invalid card ID format: AH\n' },
+        { id: 'AH\t', message: 'Invalid card ID format: AH\t' },
+        { id: 'AH ', message: 'Invalid card ID format: AH ' },
+        { id: ' AH', message: 'Invalid card ID format:  AH' },
+        { id: 'A H', message: 'Invalid card ID format: A H' },
+        { id: 'A\tH', message: 'Invalid card ID format: A\tH' },
+        { id: 'A\nH', message: 'Invalid card ID format: A\nH' },
+        { id: 'A\rH', message: 'Invalid card ID format: A\rH' },
+        { id: 'A\fH', message: 'Invalid card ID format: A\fH' },
+        { id: 'A\vH', message: 'Invalid card ID format: A\vH' },
+        { id: '\u00A0H', message: 'Invalid card ID format: \u00A0H' }, // Non-breaking space
+        { id: 'A\u00A0', message: 'Invalid card ID format: A\u00A0' }  // Non-breaking space
+      ];
+
+      for (const { id, message } of testCases) {
+        assert.throws(
+          () => cardUtils.idToCard(id),
+          { name: 'InvalidCardError', message },
+          `Should throw for special character in ID '${id.replace(/[\n\t\r\f\v]/g, m => 
+            ({'\n': '\\n', '\t': '\\t', '\r': '\\r', '\f': '\\f', '\v': '\\v'})[m]
+          )}'`
+        );
+      }
+    });
+
+    it('should handle valid card IDs', () => {
+      // Test all valid card values with each suit
+      const testCases = [
+        { id: 'AH', expected: { suit: SUITS.HEARTS, value: 'Ace' } },
+        { id: 'KH', expected: { suit: SUITS.HEARTS, value: 'King' } },
+        { id: 'QH', expected: { suit: SUITS.HEARTS, value: 'Queen' } },
+        { id: 'JH', expected: { suit: SUITS.HEARTS, value: 'Jack' } },
+        { id: '10H', expected: { suit: SUITS.HEARTS, value: '10' } },
+        { id: 'TH', expected: { suit: SUITS.HEARTS, value: '10' } },
+        { id: '9H', expected: { suit: SUITS.HEARTS, value: '9' } },
+        { id: 'AD', expected: { suit: SUITS.DIAMONDS, value: 'Ace' } },
+        { id: 'AC', expected: { suit: SUITS.CLUBS, value: 'Ace' } },
+        { id: 'AS', expected: { suit: SUITS.SPADES, value: 'Ace' } },
+      ];
+
+      for (const { id, expected } of testCases) {
+        const card = cardUtils.idToCard(id);
+        assert.deepStrictEqual(
+          card,
+          expected,
+          `Should correctly parse card ID: ${id}`
+        );
+      }
+    });
+  });
+
+  /**
    * Test suite for the isRightBower function.
    * @namespace CardUtilityTests.isRightBower
    * @see {@link module:src/utils/cardUtils.isRightBower}

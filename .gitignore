@@ -156,7 +156,6 @@ docs/Daily_Logs/7_22_2025.txt
 For-Analysis/
 docs/Daily_Logs/7_7_2025.txt
 .kilocodeignore
-jsdoc/**
 index.js
 docs/Daily_Logs
 docs/Debug_Logs
@@ -181,3 +180,5 @@ package.json
 .augment/rules/imported/Rules_Mandatory In-Depth File Analysis.md
 .augment/rules/imported/Windows.md
 Testing.pdf
+jsdoc.json
+jsdoc/**

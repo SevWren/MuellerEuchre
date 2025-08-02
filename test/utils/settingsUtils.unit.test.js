@@ -7,6 +7,7 @@ import {
   getDefaultSettings,
   validateSettings,
   mergeSettings,
+  SETTINGS_SCHEMA
 } from "../../src/utils/settingsUtils.js";
 
 describe("settingsUtils", () => {
@@ -129,6 +130,44 @@ describe("settingsUtils", () => {
       
       const nonIntegerResult = validateSettings({ winningScore: 10.5 });
       assert.strictEqual(nonIntegerResult.isValid, false, "Non-integer winningScore should fail");
+    });
+
+    it("should provide specific error messages for non-winningScore settings", () => {
+      // Temporarily add a test setting to the schema
+      const originalSchema = { ...SETTINGS_SCHEMA };
+      SETTINGS_SCHEMA.testSetting = {
+        type: "number",
+        integer: true,
+        min: 10,
+        max: 20,
+        required: false
+      };
+
+      try {
+        // Test type validation error
+        const typeError = validateSettings({ testSetting: "not a number" });
+        assert.strictEqual(typeError.isValid, false);
+        assert.ok(typeError.errors.includes("Setting 'testSetting' must be of type number"));
+
+        // Test integer validation error
+        const intError = validateSettings({ testSetting: 15.5 });
+        assert.strictEqual(intError.isValid, false);
+        assert.ok(intError.errors.includes("Setting 'testSetting' must be an integer"));
+
+        // Test min value validation error
+        const minError = validateSettings({ testSetting: 5 });
+        assert.strictEqual(minError.isValid, false);
+        assert.ok(minError.errors.includes("Setting 'testSetting' must be at least 10"));
+
+        // Test max value validation error
+        const maxError = validateSettings({ testSetting: 25 });
+        assert.strictEqual(maxError.isValid, false);
+        assert.ok(maxError.errors.includes("Setting 'testSetting' must be at most 20"));
+      } finally {
+        // Clean up by restoring the original schema
+        Object.keys(SETTINGS_SCHEMA).forEach(key => delete SETTINGS_SCHEMA[key]);
+        Object.assign(SETTINGS_SCHEMA, originalSchema);
+      }
     });
     
     it("should ignore settings not defined in the schema", () => {

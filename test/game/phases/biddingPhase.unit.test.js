@@ -7,6 +7,8 @@
  * state transitions, enforce game rules through injected validators, and maintain
  * state immutability for all bidding actions.
  *
+ * 8-2-25 - 100% Coverage
+ * 
  * @see {@link module:src/game/phases/biddingPhase} for the implementation being tested.
  */
 

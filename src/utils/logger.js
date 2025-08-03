@@ -5,6 +5,10 @@
  * Provides a centralized logging solution using Pino for high-performance,
  * structured JSON logging with pretty-printing in development.
  *
+ * This module exports a singleton `logger` for application-wide use. It also
+ * exports factory functions (`createLogger`, `getLogLevelFromEnv`) to facilitate
+ * fast, isolated unit testing without reloading the module.
+ *
  * Log levels can be configured via environment variables:
  * - LOG_LEVEL: Directly set Pino log level (fatal, error, warn, info, debug, trace, silent)
  * - DEBUG_LEVEL: Numeric log level using DEBUG_LEVELS constants
@@ -14,91 +18,101 @@
 import pino from "pino";
 import { DEBUG_LEVELS } from "../config/constants.js";
 
-// Initialize default log level from environment variables
-let currentLogLevelName = "info";
-const envLogLevel = process.env.LOG_LEVEL?.toLowerCase();
-const pinoLevels = ["fatal", "error", "warn", "info", "debug", "trace", "silent"];
+// --- Pure Functions for Configuration and Instantiation ---
 
-// Debug level to Pino level mapping
 const debugLevelToPino = {
   [DEBUG_LEVELS.ERROR]: "error",
   [DEBUG_LEVELS.LOG_LEVEL_ERROR]: "error",
-  [DEBUG_LEVELS.WARNING]: "warn",
+  [DEBUG_LEVELS.WARN]: "warn",
   [DEBUG_LEVELS.LOG_LEVEL_WARN]: "warn",
   [DEBUG_LEVELS.INFO]: "info",
   [DEBUG_LEVELS.LOG_LEVEL_INFO]: "info",
-  [DEBUG_LEVELS.VERBOSE]: "debug",
+  [DEBUG_LEVELS.DEBUG]: "debug",
   [DEBUG_LEVELS.LOG_LEVEL_DEBUG]: "debug",
   [DEBUG_LEVELS.LOG_LEVEL_TRACE]: "trace",
   [DEBUG_LEVELS.NONE]: "silent",
   [DEBUG_LEVELS.LOG_LEVEL_SILENT]: "silent"
 };
 
-// Determine log level from environment variables
-// Priority: LOG_LEVEL > DEBUG_LEVEL > default 'info'
-if (envLogLevel && pinoLevels.includes(envLogLevel)) {
-  // Use LOG_LEVEL if it's a valid Pino level
-  currentLogLevelName = envLogLevel;
-} else if (process.env.DEBUG_LEVEL) {
-  // Try to map DEBUG_LEVEL to a Pino level
-  const mappedLevel = debugLevelToPino[process.env.DEBUG_LEVEL];
-  if (mappedLevel) {
-    currentLogLevelName = mappedLevel;
-  } else {
-    // Fallback to info level with a warning if DEBUG_LEVEL is invalid
-    console.warn(`Invalid DEBUG_LEVEL: ${process.env.DEBUG_LEVEL}, defaulting to 'info'`);
+/**
+ * Creates a Pino logger instance with a specific configuration.
+ * This factory is exported for easy testing.
+ *
+ * @param {object} [options={}] - Configuration options.
+ * @param {string} [options.level='info'] - A valid Pino log level.
+ * @param {boolean} [options.prettyPrint=false] - Whether to enable pretty printing.
+ * @returns {import('pino').Logger} A Pino logger instance.
+ */
+function createLogger({ level = 'info', prettyPrint = false } = {}) {
+  /** @type {import('pino').LoggerOptions} */
+  const loggerOptions = { level };
+
+  if (prettyPrint) {
+    loggerOptions.transport = {
+      target: "pino-pretty",
+      options: {
+        colorize: true,
+        translateTime: "SYS:yyyy-mm-dd HH:MM:ss",
+        ignore: "pid,hostname",
+      },
+    };
   }
+  return pino(loggerOptions);
 }
 
 /**
- * Pino logger configuration options.
- * @type {import('pino').LoggerOptions}
+ * Determines the log level from environment variables.
+ * This pure function is exported for easy testing.
+ *
+ * @param {object} env - The environment object (e.g., process.env).
+ * @returns {{level: string, warning: string|null}} The determined Pino log level name and a potential warning.
  */
-const loggerOptions = {
-  level: currentLogLevelName, // Set the minimum log level
-  // Add additional Pino options here as needed
-};
+function getLogLevelFromEnv(env) {
+  const envLogLevel = env.LOG_LEVEL?.toLowerCase();
+  const pinoLevels = ["fatal", "error", "warn", "info", "debug", "trace", "silent"];
 
-// Enable pretty printing in non-production environments
-if (process.env.NODE_ENV !== "production") {
-  loggerOptions.transport = {
-    target: "pino-pretty", // Use pino-pretty for human-readable logs
-    options: {
-      colorize: true, // Add colors to log output
-      translateTime: "SYS:yyyy-mm-dd HH:MM:ss", // Format timestamps
-      ignore: "pid,hostname", // Remove unnecessary fields
-    },
-  };
+  if (envLogLevel && pinoLevels.includes(envLogLevel)) {
+    return { level: envLogLevel, warning: null };
+  }
+
+  if (env.DEBUG_LEVEL) {
+    const mappedLevel = debugLevelToPino[env.DEBUG_LEVEL];
+    if (mappedLevel) {
+      return { level: mappedLevel, warning: null };
+    }
+    return {
+      level: 'info',
+      warning: `Invalid DEBUG_LEVEL: ${env.DEBUG_LEVEL}, defaulting to 'info'`
+    };
+  }
+
+  return { level: 'info', warning: null }; // Default
+}
+
+
+// --- Singleton Instance Creation for Application Use ---
+
+const { level: currentLogLevelName, warning: startupWarning } = getLogLevelFromEnv(process.env);
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (startupWarning) {
+  // Use console.warn here as the logger is not yet initialized.
+  // This is an acceptable side-effect during application startup.
+  console.warn(startupWarning);
 }
 
 /**
  * The main Pino logger instance for the application.
  * This instance is used for structured logging throughout the server.
  * @type {import('pino').Logger}
- * @see {@link module:src/server}
- * @see {@link module:src/db/gameRepository}
- * @see {@link module:src/game/logic/validation-core}
- * @see {@link module:src/game/phases/biddingPhase}
- * @see {@link module:src/game/phases/goAlonePhase}
- * @see {@link module:src/game/phases/lobbyPhase}
- * @see {@link module:src/game/phases/scoringPhase}
- * @see {@link module:src/game/phases/startNewHandPhase}
- * @see {@link module:src/socket/index}
- * @see {@link module:src/socket/handlers/biddingHandlers}
- * @see {@link module:src/socket/handlers/gameOverHandlers}
- * @see {@link module:src/socket/handlers/goAloneHandlers}
- * @see {@link module:src/socket/handlers/lobbyHandlers}
- * @see {@link module:src/socket/handlers/playerConnectionHandlers}
- * @see {@link module:src/socket/handlers/playingHandlers}
- * @see {@link module:src/utils/cardUtils}
- * @see {@link module:src/utils/deck}
- * @see {@link module:src/utils/historyUtils}
- * @see {@link module:src/utils/i18n}
- * @see {@link module:src/utils/lobbyUtils}
- * @see {@link module:src/utils/players}
- * @see {@link module:src/utils/statsUtils}
  */
-const logger = pino(loggerOptions);
+const logger = createLogger({
+  level: currentLogLevelName,
+  prettyPrint: !isProduction,
+});
+
+
+// --- Legacy API Functions for Backward Compatibility ---
 
 /**
  * Centralized logging function that maps between DEBUG_LEVELS and Pino's logging methods.
@@ -106,16 +120,8 @@ const logger = pino(loggerOptions);
  * @param {string} level - Log level from DEBUG_LEVELS (e.g., 'LOG_LEVEL_ERROR')
  * @param {string} message - The log message
  * @param {Object} [obj] - Optional object to be logged as JSON
- *
- * @example
- * log(DEBUG_LEVELS.ERROR, 'Connection failed', { error: err });
- * log(DEBUG_LEVELS.INFO, 'Server started');
- * @see {@link module:src/game/phases/endGame}
  */
 function log(level, message, obj) {
-  // If the logger's level is 'silent', no messages will be output regardless of the call
-  // The 'log' function itself doesn't need to explicitly handle LOG_LEVEL_SILENT
-  // because the underlying 'logger' instance's level is already set
   switch (level) {
     case DEBUG_LEVELS.ERROR:
     case DEBUG_LEVELS.LOG_LEVEL_ERROR:
@@ -127,12 +133,12 @@ function log(level, message, obj) {
       if (obj) logger.info(obj, message);
       else logger.info(message);
       break;
-    case DEBUG_LEVELS.WARNING:
+    case DEBUG_LEVELS.WARN:
     case DEBUG_LEVELS.LOG_LEVEL_WARN:
       if (obj) logger.warn(obj, message);
       else logger.warn(message);
       break;
-    case DEBUG_LEVELS.VERBOSE:
+    case DEBUG_LEVELS.DEBUG:
     case DEBUG_LEVELS.LOG_LEVEL_DEBUG:
       if (obj) logger.debug(obj, message);
       else logger.debug(message);
@@ -157,31 +163,26 @@ function log(level, message, obj) {
  * Attempts to set the debug level dynamically.
  * Note: Pino's log level can only be set at initialization.
  * This logs a warning and informs the user to restart with the correct env var.
- * 
+ *
  * @param {string} newLevel - The new debug level from DEBUG_LEVELS (e.g., 'LOG_LEVEL_ERROR')
- * 
- * @example
- * setDebugLevel(DEBUG_LEVELS.VERBOSE); // Will log a warning
  */
 function setDebugLevel(newLevel) {
-  // Map the debug level to a human-readable name for the warning message
   const levelMap = {
     [DEBUG_LEVELS.ERROR]: 'error',
     [DEBUG_LEVELS.LOG_LEVEL_ERROR]: 'error',
-    [DEBUG_LEVELS.WARNING]: 'warn',
+    [DEBUG_LEVELS.WARN]: 'warn',
     [DEBUG_LEVELS.LOG_LEVEL_WARN]: 'warn',
     [DEBUG_LEVELS.INFO]: 'info',
     [DEBUG_LEVELS.LOG_LEVEL_INFO]: 'info',
-    [DEBUG_LEVELS.VERBOSE]: 'debug',
+    [DEBUG_LEVELS.DEBUG]: 'debug',
     [DEBUG_LEVELS.LOG_LEVEL_DEBUG]: 'debug',
     [DEBUG_LEVELS.LOG_LEVEL_TRACE]: 'trace',
     [DEBUG_LEVELS.NONE]: 'silent',
     [DEBUG_LEVELS.LOG_LEVEL_SILENT]: 'silent'
   };
-  
+
   const levelName = levelMap[newLevel] || 'info';
-  
-  // Log a warning that the level can only be set at initialization
+
   logger.warn(
     `Attempted to set debug level to ${newLevel} (${levelName}) dynamically. ` +
     `Pino logger level ('${logger.level}') is set at initialization. ` +
@@ -189,14 +190,26 @@ function setDebugLevel(newLevel) {
   );
 }
 
+
+// --- Exports ---
+
 /**
- * Exports the main logger instance and utility functions.
+ * Exports the main logger instance, utility functions, and testable factories.
  * @type {{
  *   logger: import('pino').Logger,
  *   log: function(string, string, Object): void,
- *   setDebugLevel: function(string): void
+ *   setDebugLevel: function(string): void,
+ *   createLogger: function(object): import('pino').Logger,
+ *   getLogLevelFromEnv: function(object): {level: string, warning: string|null}
  * }}
  */
-export { logger, log, setDebugLevel };
+export {
+  logger,
+  log,
+  setDebugLevel,
+  createLogger,
+  getLogLevelFromEnv
+};
+
 // Default export for backward compatibility
 export default logger;

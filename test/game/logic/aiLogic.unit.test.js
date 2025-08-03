@@ -13,6 +13,23 @@ const POINTS = {
   TRUMP_NINE: 1,
 };
 
+const AI_CARD_VALUES = {
+  TRUMP_RIGHT_BOWER: 100,
+  TRUMP_LEFT_BOWER: 90,
+  TRUMP_ACE: 80,
+  TRUMP_KING: 70,
+  TRUMP_QUEEN: 60,
+  TRUMP_TEN: 40,
+  TRUMP_NINE: 30,
+  OFFSUIT_ACE: 20,
+  OFFSUIT_KING: 18,
+  OFFSUIT_QUEEN: 16,
+  OFFSUIT_JACK: 14,
+  OFFSUIT_TEN: 12,
+  OFFSUIT_NINE: 10,
+  INVALID: 0,
+};
+
 describe("AI Logic Module", () => {
   let aiLogic;
 
@@ -198,7 +215,12 @@ describe("AI Logic Module", () => {
 
     it("should call trump in the second round if hand strength is sufficient for any suit", () => {
       const turnCardSpades = createMockCard(CARD_SUITS.SPADES, '9');
-      const bids = [{ decision: "pass" }, { decision: "pass" }];
+      const bids = [
+        { decision: "pass" },
+        { decision: "pass" },
+        { decision: "pass" },
+        { decision: "pass" },
+      ];
       const result = aiLogic.chooseBid(mockHand, turnCardSpades, false, bids);
       assert.strictEqual(result.decision, "callTrump");
       assert.strictEqual(result.suit, CARD_SUITS.HEARTS);
@@ -210,7 +232,12 @@ describe("AI Logic Module", () => {
         createMockCard(CARD_SUITS.SPADES, '10'),
         createMockCard(CARD_SUITS.DIAMONDS, 'Q'),
       ];
-      const bids = [{ decision: "pass" }, { decision: "pass" }];
+      const bids = [
+        { decision: "pass" },
+        { decision: "pass" },
+        { decision: "pass" },
+        { decision: "pass" },
+      ];
       const result = aiLogic.chooseBid(veryWeakHand, turnCard, false, bids);
       assert.strictEqual(result.decision, "pass");
     });
@@ -231,7 +258,12 @@ describe("AI Logic Module", () => {
         createMockCard(CARD_SUITS.CLUBS, 'J'),
         createMockCard(CARD_SUITS.CLUBS, 'A'),
       ];
-      const bids = [{ decision: "pass" }];
+      const bids = [
+        { decision: "pass" },
+        { decision: "pass" },
+        { decision: "pass" },
+        { decision: "pass" },
+      ];
       const result = aiLogic.chooseBid(hand, turnCardDiamonds, false, bids);
       assert.strictEqual(result.decision, "callTrump");
       assert.strictEqual(result.suit, CARD_SUITS.HEARTS);
@@ -240,38 +272,38 @@ describe("AI Logic Module", () => {
 
   describe("getCardValue()", () => {
     it("should return 0 for invalid card objects", () => {
-        assert.strictEqual(aiLogic.getCardValue(null, CARD_SUITS.HEARTS), 0);
-        assert.strictEqual(aiLogic.getCardValue({}, CARD_SUITS.HEARTS), 0);
-        assert.strictEqual(aiLogic.getCardValue({ suit: CARD_SUITS.HEARTS }, CARD_SUITS.HEARTS), 0);
+        assert.strictEqual(aiLogic.getCardValue(null, CARD_SUITS.HEARTS), AI_CARD_VALUES.INVALID);
+        assert.strictEqual(aiLogic.getCardValue({}, CARD_SUITS.HEARTS), AI_CARD_VALUES.INVALID);
+        assert.strictEqual(aiLogic.getCardValue({ suit: CARD_SUITS.HEARTS }, CARD_SUITS.HEARTS), AI_CARD_VALUES.INVALID);
     });
 
     it("should return 0 for cards with unrecognized values", () => {
         const card = { suit: CARD_SUITS.SPADES, value: "8" };
-        assert.strictEqual(aiLogic.getCardValue(card, CARD_SUITS.HEARTS), 0);
+        assert.strictEqual(aiLogic.getCardValue(card, CARD_SUITS.HEARTS), AI_CARD_VALUES.INVALID);
     });
 
     it("should return correct value for Left Bower", () => {
         const leftBower = createMockCard(CARD_SUITS.DIAMONDS, 'J');
         const result = aiLogic.getCardValue(leftBower, CARD_SUITS.HEARTS);
-        assert.strictEqual(result, 90);
+        assert.strictEqual(result, AI_CARD_VALUES.TRUMP_LEFT_BOWER);
     });
 
     it("should return correct value for a trump Queen", () => {
         const card = createMockCard(CARD_SUITS.HEARTS, 'Q');
         const result = aiLogic.getCardValue(card, CARD_SUITS.HEARTS);
-        assert.strictEqual(result, 60);
+        assert.strictEqual(result, AI_CARD_VALUES.TRUMP_QUEEN);
     });
 
     it("should return correct value for a non-trump Queen", () => {
         const card = createMockCard(CARD_SUITS.SPADES, 'Q');
         const result = aiLogic.getCardValue(card, CARD_SUITS.HEARTS);
-        assert.strictEqual(result, 16);
+        assert.strictEqual(result, AI_CARD_VALUES.OFFSUIT_QUEEN);
     });
 
     it("should return correct value for a non-bower, non-trump Jack", () => {
         const card = createMockCard(CARD_SUITS.SPADES, 'J');
         const result = aiLogic.getCardValue(card, CARD_SUITS.HEARTS);
-        assert.strictEqual(result, 14);
+        assert.strictEqual(result, AI_CARD_VALUES.OFFSUIT_JACK);
     });
   });
 
@@ -448,6 +480,39 @@ describe("AI Logic Module", () => {
   });
 
   describe("Coverage-focused Edge Cases", () => {
+    it("getCardValue should return INVALID for trump with unrecognized value", () => {
+        const card = { suit: CARD_SUITS.HEARTS, value: "8" };
+        assert.strictEqual(aiLogic.getCardValue(card, CARD_SUITS.HEARTS), AI_CARD_VALUES.INVALID);
+    });
+
+    it("getWinningCard should keep winning card if next card is lower value of same suit", () => {
+        const trick = [
+            createMockCard(CARD_SUITS.CLUBS, 'A'),
+            createMockCard(CARD_SUITS.CLUBS, '9'),
+        ];
+        const result = aiLogic.getWinningCard(trick, CARD_SUITS.HEARTS, CARD_SUITS.CLUBS);
+        assert.deepStrictEqual(result, createMockCard(CARD_SUITS.CLUBS, 'A'));
+    });
+
+    it("getWinningCard should handle a trick starting with an invalid card", () => {
+        const trick = [
+            null,
+            createMockCard(CARD_SUITS.CLUBS, 'A'),
+        ];
+        const result = aiLogic.getWinningCard(trick, CARD_SUITS.HEARTS, CARD_SUITS.CLUBS);
+        assert.deepStrictEqual(result, createMockCard(CARD_SUITS.CLUBS, 'A'));
+    });
+
+    it("chooseCardToPlay should handle a trick with only invalid cards", () => {
+        const currentTrick = [null, {}];
+        const hand = [
+            createMockCard(CARD_SUITS.CLUBS, 'A'),
+            createMockCard(CARD_SUITS.CLUBS, '9'),
+        ];
+        const result = aiLogic.chooseCardToPlay(hand, currentTrick, CARD_SUITS.HEARTS, CARD_SUITS.CLUBS);
+        assert.deepStrictEqual(result, createMockCard(CARD_SUITS.CLUBS, '9'));
+    });
+
     it("getCardValue should handle cards with missing properties", () => {
         assert.strictEqual(aiLogic.getCardValue({ suit: CARD_SUITS.HEARTS }, CARD_SUITS.HEARTS), 0);
         assert.strictEqual(aiLogic.getCardValue({ value: 'A' }, CARD_SUITS.HEARTS), 0);

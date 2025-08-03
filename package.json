@@ -11,7 +11,7 @@
     "test": "node Scripts/run-layer1-tests.js",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test:file": "node --test --timeout 15000",
+    "test:file": "node --test --test-reporter=spec",
     "test:watch": "node --test --watch",
     "test:bidding": "node --test test/game/phases/biddingPhase.unit.test.js",
     "test:debug": "node --inspect node --test --timeout 10000",

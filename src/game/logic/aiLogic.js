@@ -15,13 +15,48 @@ const POINTS = {
   TRUMP_NINE: 1,
 };
 
+const AI_CARD_VALUES = {
+  TRUMP_RIGHT_BOWER: 100,
+  TRUMP_LEFT_BOWER: 90,
+  TRUMP_ACE: 80,
+  TRUMP_KING: 70,
+  TRUMP_QUEEN: 60,
+  TRUMP_TEN: 40,
+  TRUMP_NINE: 30,
+  OFFSUIT_ACE: 20,
+  OFFSUIT_KING: 18,
+  OFFSUIT_QUEEN: 16,
+  OFFSUIT_JACK: 14,
+  OFFSUIT_TEN: 12,
+  OFFSUIT_NINE: 10,
+  INVALID: 0,
+};
+
 const BID_THRESHOLD = 20;
+
+const TRUMP_VALUE_MAP = {
+  J: AI_CARD_VALUES.TRUMP_RIGHT_BOWER,
+  A: AI_CARD_VALUES.TRUMP_ACE,
+  K: AI_CARD_VALUES.TRUMP_KING,
+  Q: AI_CARD_VALUES.TRUMP_QUEEN,
+  "10": AI_CARD_VALUES.TRUMP_TEN,
+  "9": AI_CARD_VALUES.TRUMP_NINE,
+};
+
+const OFFSUIT_VALUE_MAP = {
+  A: AI_CARD_VALUES.OFFSUIT_ACE,
+  K: AI_CARD_VALUES.OFFSUIT_KING,
+  Q: AI_CARD_VALUES.OFFSUIT_QUEEN,
+  J: AI_CARD_VALUES.OFFSUIT_JACK,
+  "10": AI_CARD_VALUES.OFFSUIT_TEN,
+  "9": AI_CARD_VALUES.OFFSUIT_NINE,
+};
 
 function countTrumpInHand(hand, trumpSuit) {
   if (!Array.isArray(hand)) return 0;
   return hand.filter((card) => {
     if (!card || !card.suit || !card.value) return false;
-    return card.suit === trumpSuit || isLeftBower(card, trumpSuit);
+    return getEffectiveSuit(card, trumpSuit) === trumpSuit;
   }).length;
 }
 
@@ -33,9 +68,7 @@ function calculateHandStrength(hand, trumpSuit) {
       return total;
     }
 
-    const isTrumpCard = card.suit === trumpSuit || isLeftBower(card, trumpSuit);
-
-    if (!isTrumpCard) {
+    if (getEffectiveSuit(card, trumpSuit) !== trumpSuit) {
       return total;
     }
 
@@ -43,24 +76,16 @@ function calculateHandStrength(hand, trumpSuit) {
       if (card.suit === trumpSuit) {
         return total + POINTS.RIGHT_BOWER;
       }
-      if (isLeftBower(card, trumpSuit)) {
-        return total + POINTS.LEFT_BOWER;
-      }
+      return total + POINTS.LEFT_BOWER;
     }
 
     switch (card.value) {
-      case "A":
-        return total + POINTS.TRUMP_ACE;
-      case "K":
-        return total + POINTS.TRUMP_KING;
-      case "Q":
-        return total + POINTS.TRUMP_QUEEN;
-      case "10":
-        return total + POINTS.TRUMP_TEN;
-      case "9":
-        return total + POINTS.TRUMP_NINE;
-      default:
-        return total;
+      case "A": return total + POINTS.TRUMP_ACE;
+      case "K": return total + POINTS.TRUMP_KING;
+      case "Q": return total + POINTS.TRUMP_QUEEN;
+      case "10": return total + POINTS.TRUMP_TEN;
+      case "9": return total + POINTS.TRUMP_NINE;
+      default: return total;
     }
   }, 0);
 }
@@ -68,8 +93,17 @@ function calculateHandStrength(hand, trumpSuit) {
 function _evaluateHand(hand, potentialTrump) {
   if (!Array.isArray(hand) || hand.length === 0) return 0;
   if (typeof potentialTrump !== "string") return 0;
-
   return calculateHandStrength(hand, potentialTrump);
+}
+
+function _findBestSuitToCall(hand, suitsToConsider) {
+  return suitsToConsider.reduce((best, suit) => {
+    const score = _evaluateHand(hand, suit);
+    if (score > best.score) {
+      return { suit, score };
+    }
+    return best;
+  }, { suit: null, score: 0 });
 }
 
 function chooseBid(hand, turnCard, isDealer, bids = []) {
@@ -82,20 +116,11 @@ function chooseBid(hand, turnCard, isDealer, bids = []) {
     return { decision: "orderUp" };
   }
 
-  if (bids.every((bid) => bid.decision === "pass")) {
+  const isRoundTwo = bids.length >= 4 && bids.every((bid) => bid.decision === "pass");
+  if (isRoundTwo) {
     const suits = Object.values(CARD_SUITS).filter(s => s.startsWith('CARD_SUIT_'));
-    const otherSuits = suits.filter((s) => s !== turnCard.suit);
-
-    let bestSuit = null;
-    let highestScore = 0;
-
-    otherSuits.forEach((suit) => {
-      const score = _evaluateHand(hand, suit);
-      if (score > highestScore) {
-        highestScore = score;
-        bestSuit = suit;
-      }
-    });
+    const callableSuits = suits.filter((s) => s !== turnCard.suit);
+    const { suit: bestSuit, score: highestScore } = _findBestSuitToCall(hand, callableSuits);
 
     if (highestScore >= BID_THRESHOLD) {
       return { decision: "callTrump", suit: bestSuit };
@@ -106,53 +131,37 @@ function chooseBid(hand, turnCard, isDealer, bids = []) {
 }
 
 function getCardValue(card, trumpSuit) {
-  if (!card || !card.suit || !card.value) return 0;
-  if (card.suit === trumpSuit) {
-    if (card.value === "J") return 100;
-    if (card.value === "A") return 80;
-    if (card.value === "K") return 70;
-    if (card.value === "Q") return 60;
-    if (card.value === "10") return 40;
-    if (card.value === "9") return 30;
+  if (!card || !card.suit || !card.value) return AI_CARD_VALUES.INVALID;
+
+  if (card.value === "J") {
+    if (card.suit === trumpSuit) return AI_CARD_VALUES.TRUMP_RIGHT_BOWER;
+    if (isLeftBower(card, trumpSuit)) return AI_CARD_VALUES.TRUMP_LEFT_BOWER;
   }
 
-  if (isLeftBower(card, trumpSuit)) {
-    return 90;
+  if (getEffectiveSuit(card, trumpSuit) === trumpSuit) {
+    return TRUMP_VALUE_MAP[card.value] || AI_CARD_VALUES.INVALID;
   }
 
-  if (card.value === "A") return 20;
-  if (card.value === "K") return 18;
-  if (card.value === "Q") return 16;
-  if (card.value === "J") return 14;
-  if (card.value === "10") return 12;
-  if (card.value === "9") return 10;
-
-  return 0;
+  return OFFSUIT_VALUE_MAP[card.value] || AI_CARD_VALUES.INVALID;
 }
 
 function getWinningCard(trick, trumpSuit, leadSuit) {
-  if (trick.length === 0) return null;
+  if (!trick || trick.length === 0) return null;
 
-  let winningCard = trick[0];
-  for (let i = 1; i < trick.length; i++) {
-    const currentCard = trick[i];
-    if (!currentCard || !currentCard.suit || !currentCard.value) continue;
+  return trick.reduce((winningCard, currentCard) => {
+    if (!currentCard || !currentCard.suit || !currentCard.value) return winningCard;
+    if (!winningCard) return currentCard;
+
     const winningSuit = getEffectiveSuit(winningCard, trumpSuit);
     const currentSuit = getEffectiveSuit(currentCard, trumpSuit);
 
     if (winningSuit === currentSuit) {
-      if (
-        getCardValue(currentCard, trumpSuit) >
-        getCardValue(winningCard, trumpSuit)
-      ) {
-        winningCard = currentCard;
-      }
-    } else if (currentSuit === trumpSuit) {
-      winningCard = currentCard;
+      return getCardValue(currentCard, trumpSuit) > getCardValue(winningCard, trumpSuit)
+        ? currentCard
+        : winningCard;
     }
-  }
-
-  return winningCard;
+    return currentSuit === trumpSuit ? currentCard : winningCard;
+  });
 }
 
 function getLowestCard(cards, trumpSuit) {
@@ -168,94 +177,83 @@ function getLowestCard(cards, trumpSuit) {
   });
 }
 
+function _leadTrick(hand, trumpSuit) {
+  const trumpCards = hand.filter(
+    (card) => card && card.suit && card.value && getEffectiveSuit(card, trumpSuit) === trumpSuit
+  );
+
+  if (trumpCards.length === hand.length) {
+    return getLowestCard(trumpCards, trumpSuit);
+  }
+
+  const nonTrumpCards = hand.filter(
+    (card) => card && card.suit && card.value && getEffectiveSuit(card, trumpSuit) !== trumpSuit
+  );
+
+  if (nonTrumpCards.length > 0) {
+    return nonTrumpCards.reduce((highest, card) =>
+      getCardValue(card, trumpSuit) > getCardValue(highest, trumpSuit)
+        ? card
+        : highest
+    );
+  }
+
+  return getLowestCard(hand, trumpSuit);
+}
+
+function _followSuit(hand, currentTrick, trumpSuit, leadSuit) {
+  const cardsInSuit = hand.filter((card) => {
+    if (!card || !card.suit || !card.value) return false;
+    return getEffectiveSuit(card, trumpSuit) === leadSuit;
+  });
+
+  if (cardsInSuit.length > 0) {
+    const winningCardInTrick = getWinningCard(currentTrick, trumpSuit, leadSuit);
+    if (winningCardInTrick) {
+      const cardToBeatValue = getCardValue(winningCardInTrick, trumpSuit);
+
+      const winningCardsInHand = cardsInSuit.filter(card => {
+        return getCardValue(card, trumpSuit) > cardToBeatValue;
+      });
+
+      if (winningCardsInHand.length > 0) {
+        return getLowestCard(winningCardsInHand, trumpSuit);
+      }
+    }
+    return getLowestCard(cardsInSuit, trumpSuit);
+  }
+  return null;
+}
+
+function _sloughCard(hand, trumpSuit) {
+  const nonTrumpCards = hand.filter(
+    (card) => card && card.suit && card.value && getEffectiveSuit(card, trumpSuit) !== trumpSuit
+  );
+
+  if (nonTrumpCards.length > 0) {
+    return getLowestCard(nonTrumpCards, trumpSuit);
+  }
+
+  return getLowestCard(hand, trumpSuit);
+}
+
 function chooseCardToPlay(hand, currentTrick = [], trumpSuit, leadSuit) {
-  const normalizedLeadSuit = leadSuit ? normalizeSuit(leadSuit) : null;
   if (!Array.isArray(hand) || hand.length === 0) {
     return null;
   }
 
   if (currentTrick.length === 0) {
-    const trumpCards = hand.filter(
-      (card) =>
-        card &&
-        card.suit &&
-        card.value &&
-        getEffectiveSuit(card, trumpSuit) === trumpSuit
-    );
-
-    if (trumpCards.length === hand.length) {
-      return getLowestCard(trumpCards, trumpSuit);
-    }
-
-    const nonTrumpCards = hand.filter(
-      (card) =>
-        card &&
-        card.suit &&
-        card.value &&
-        getEffectiveSuit(card, trumpSuit) !== trumpSuit
-    );
-    if (nonTrumpCards.length > 0) {
-      return nonTrumpCards.reduce((highest, card) =>
-        getCardValue(card, trumpSuit) > getCardValue(highest, trumpSuit)
-          ? card
-          : highest
-      );
-    }
-
-    return getLowestCard(hand, trumpSuit);
+    return _leadTrick(hand, trumpSuit);
   }
 
-  const cardsInSuit = hand.filter((card) => {
-    if (!card || !card.suit || !card.value) return false;
-    return getEffectiveSuit(card, trumpSuit) === normalizedLeadSuit;
-  });
+  const normalizedLeadSuit = leadSuit ? normalizeSuit(leadSuit) : null;
+  const cardToPlay = _followSuit(hand, currentTrick, trumpSuit, normalizedLeadSuit);
 
-  if (cardsInSuit.length > 0) {
-    const winningCard = getWinningCard(
-      currentTrick,
-      trumpSuit,
-      normalizedLeadSuit
-    );
-    if (winningCard) {
-      const cardToBeatValue = getCardValue(winningCard, trumpSuit);
-      const winningSuit = getEffectiveSuit(winningCard, trumpSuit);
-
-      const playableWinningCards = [];
-      for (const card of cardsInSuit) {
-        const cardValue = getCardValue(card, trumpSuit);
-
-        if (winningSuit === trumpSuit) {
-          const isTrump = getEffectiveSuit(card, trumpSuit) === trumpSuit;
-          if (isTrump && cardValue > cardToBeatValue) {
-            playableWinningCards.push(card);
-          }
-        } else {
-          if (cardValue > cardToBeatValue) {
-            playableWinningCards.push(card);
-          }
-        }
-      }
-
-      if (playableWinningCards.length > 0) {
-        return getLowestCard(playableWinningCards, trumpSuit);
-      }
-    }
-    return getLowestCard(cardsInSuit, trumpSuit);
+  if (cardToPlay) {
+    return cardToPlay;
   }
 
-  const nonTrumpCards = hand.filter(
-    (card) =>
-      card &&
-      card.suit &&
-      card.value &&
-      getEffectiveSuit(card, trumpSuit) !== trumpSuit
-  );
-
-  if (nonTrumpCards.length === 0) {
-    return getLowestCard(hand, trumpSuit);
-  }
-
-  return getLowestCard(nonTrumpCards, trumpSuit);
+  return _sloughCard(hand, trumpSuit);
 }
 
 export {

@@ -5,6 +5,9 @@
  * Pure Layer 1 module implementing the core bidding phase logic for Euchre.
  * Handles order up decisions, dealer discards, and trump calling in a stateless manner.
  *
+ * 8-2-25 - 100% Coverage 
+ * 
+ * 
  * @see {@link module:src/game/phases} for other game phase implementations
  * @see {@link module:src/game/logic/validation-core} for validation logic
  * @see {@link module:test/game/phases/biddingPhase.unit.test.js} for test coverage

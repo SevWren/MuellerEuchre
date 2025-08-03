@@ -116,6 +116,10 @@ export const CARD_RANKS = Object.freeze({
   TRUMP_OFFSET: 100,  // Added to base rank for trump cards
   LED_OFFSET: 50,     // Added to base rank for led suit cards (non-trump)
 
+  // Sorting ranks (for sortHand utility)
+  SORT_RANK_RIGHT_BOWER: 1000,  // Ensures right bower is highest in sort order
+  SORT_RANK_LEFT_BOWER: 900,    // Ensures left bower is second highest in sort order
+
   // Invalid card rank
   INVALID: 0
 });

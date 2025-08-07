@@ -182,3 +182,4 @@ package.json
 Testing.pdf
 jsdoc.json
 jsdoc/**
+.aiexclude

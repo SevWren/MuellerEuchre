@@ -1,16 +1,6 @@
-/**
- * @file Unit tests for the validation test utilities
- * @module test/utils/validation-test-utils.unit.test
- * @description Verifies that the test helper functions in validation-test-utils.js
- * behave as expected, ensuring they provide reliable and consistent data for other tests.
- * Gemini 2.5 Pro Fixed Failing tests
- * 
- */
-
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
-// Import all functions and constants to be tested
 import * as testUtils from './validation-test-utils.js';
 
 const {
@@ -29,24 +19,24 @@ describe('Validation Test Utilities', () => {
 
   describe('createCard()', () => {
     it('should create a card object with all required properties', () => {
-      const card = createCard('AS', SUITS.SPADES, 'A');
-      assert.deepStrictEqual(card.id, 'AS');
-      assert.deepStrictEqual(card.suit, SUITS.SPADES);
-      assert.deepStrictEqual(card.value, 'A');
+      const card = createCard('AS', SUITS.CARD_SUIT_SPADES, 'A');
+      assert.strictEqual(card.id, 'AS');
+      assert.strictEqual(card.suit, SUITS.CARD_SUIT_SPADES);
+      assert.strictEqual(card.value, 'A');
       assert.strictEqual(typeof card.isLeftBower, 'function');
       assert.strictEqual(typeof card.getEffectiveSuit, 'function');
     });
 
     it('should throw an error if id, suit, or value is missing', () => {
-      assert.throws(() => createCard(null, SUITS.SPADES, 'A'), /createCard requires id, suit, and value parameters/);
+      assert.throws(() => createCard(null, SUITS.CARD_SUIT_SPADES, 'A'), /createCard requires id, suit, and value parameters/);
       assert.throws(() => createCard('AS', null, 'A'), /createCard requires id, suit, and value parameters/);
-      assert.throws(() => createCard('AS', SUITS.SPADES, null), /createCard requires id, suit, and value parameters/);
+      assert.throws(() => createCard('AS', SUITS.CARD_SUIT_SPADES, null), /createCard requires id, suit, and value parameters/);
     });
 
     it('should have default methods that return expected values', () => {
-      const card = createCard('KC', SUITS.CLUBS, 'K');
-      assert.strictEqual(card.isLeftBower(SUITS.SPADES), false);
-      assert.strictEqual(card.getEffectiveSuit(SUITS.SPADES), SUITS.CLUBS);
+      const card = createCard('KC', SUITS.CARD_SUIT_CLUBS, 'K');
+      assert.strictEqual(card.isLeftBower(SUITS.CARD_SUIT_SPADES), false);
+      assert.strictEqual(card.getEffectiveSuit(SUITS.CARD_SUIT_SPADES), SUITS.CARD_SUIT_CLUBS);
     });
   });
 
@@ -72,17 +62,17 @@ describe('Validation Test Utilities', () => {
         counts[card.suit] = (counts[card.suit] || 0) + 1;
         return counts;
       }, {});
-      assert.strictEqual(suitCounts[SUITS.SPADES], 6);
-      assert.strictEqual(suitCounts[SUITS.HEARTS], 6);
-      assert.strictEqual(suitCounts[SUITS.DIAMONDS], 6);
-      assert.strictEqual(suitCounts[SUITS.CLUBS], 6);
+      assert.strictEqual(suitCounts[SUITS.CARD_SUIT_SPADES], 6);
+      assert.strictEqual(suitCounts[SUITS.CARD_SUIT_HEARTS], 6);
+      assert.strictEqual(suitCounts[SUITS.CARD_SUIT_DIAMONDS], 6);
+      assert.strictEqual(suitCounts[SUITS.CARD_SUIT_CLUBS], 6);
     });
   });
 
   describe('createBaseGameState()', () => {
     it('should create a game state with correct default values', () => {
       const gameState = createBaseGameState();
-      assert.strictEqual(gameState.gamePhase, GAME_PHASES.ORDER_UP_ROUND1);
+      assert.strictEqual(gameState.gamePhase, GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND1);
       assert.strictEqual(gameState.dealer, 'north');
       assert.strictEqual(gameState.currentPlayer, 'south');
       assert.deepStrictEqual(gameState.currentTrick, []);
@@ -90,19 +80,19 @@ describe('Validation Test Utilities', () => {
       assert.strictEqual(gameState.trumpSuit, null);
       assert.ok(gameState.upCard);
       assert.ok(gameState.turnCard);
-      assert.deepStrictEqual(Object.keys(gameState.players), PLAYER_ROLES);
+      assert.deepStrictEqual(Object.keys(gameState.players).sort(), [...PLAYER_ROLES].sort());
     });
 
     it('should apply overrides correctly', () => {
       const overrides = {
         gamePhase: GAME_PHASES.PLAYING,
         currentPlayer: 'west',
-        trumpSuit: SUITS.SPADES,
+        trumpSuit: SUITS.CARD_SUIT_SPADES,
       };
       const gameState = createBaseGameState(overrides);
       assert.strictEqual(gameState.gamePhase, GAME_PHASES.PLAYING);
       assert.strictEqual(gameState.currentPlayer, 'west');
-      assert.strictEqual(gameState.trumpSuit, SUITS.SPADES);
+      assert.strictEqual(gameState.trumpSuit, SUITS.CARD_SUIT_SPADES);
     });
 
     it('should handle an empty override object without errors', () => {
@@ -119,32 +109,32 @@ describe('Validation Test Utilities', () => {
 
     it('should deal cards to the specified players', () => {
       const hands = {
-        [PLAYER_ROLES[0]]: [createCard('AS', SUITS.SPADES, 'A')],
-        [PLAYER_ROLES[2]]: [createCard('KH', SUITS.HEARTS, 'K'), createCard('QH', SUITS.HEARTS, 'Q')],
+        [PLAYER_ROLES[0]]: [createCard('AS', SUITS.CARD_SUIT_SPADES, 'A')],
+        [PLAYER_ROLES[2]]: [createCard('KH', SUITS.CARD_SUIT_HEARTS, 'K'), createCard('QH', SUITS.CARD_SUIT_HEARTS, 'Q')],
       };
       const newState = dealCards(gameState, hands);
       assert.deepStrictEqual(newState.players[PLAYER_ROLES[0]].hand, hands[PLAYER_ROLES[0]]);
       assert.deepStrictEqual(newState.players[PLAYER_ROLES[2]].hand, hands[PLAYER_ROLES[2]]);
-      assert.deepStrictEqual(newState.players[PLAYER_ROLES[1]].hand, []); // Should remain empty
+      assert.deepStrictEqual(newState.players[PLAYER_ROLES[1]].hand, []);
     });
 
     it('should return a new game state object, not mutating the original', () => {
-      const hands = { [PLAYER_ROLES[0]]: [createCard('AS', SUITS.SPADES, 'A')] };
+      const hands = { [PLAYER_ROLES[0]]: [createCard('AS', SUITS.CARD_SUIT_SPADES, 'A')] };
       const newState = dealCards(gameState, hands);
       assert.notStrictEqual(newState, gameState);
       assert.notStrictEqual(newState.players, gameState.players);
-      assert.deepStrictEqual(gameState.players[PLAYER_ROLES[0]].hand, []); // Original is unchanged
+      assert.deepStrictEqual(gameState.players[PLAYER_ROLES[0]].hand, []);
     });
 
     it("should overwrite a player's existing hand", () => {
-      gameState.players[PLAYER_ROLES[0]].hand = [createCard('9C', SUITS.CLUBS, '9')];
-      const newHand = [createCard('AS', SUITS.SPADES, 'A')];
+      gameState.players[PLAYER_ROLES[0]].hand = [createCard('9C', SUITS.CARD_SUIT_CLUBS, '9')];
+      const newHand = [createCard('AS', SUITS.CARD_SUIT_SPADES, 'A')];
       const newState = dealCards(gameState, { [PLAYER_ROLES[0]]: newHand });
       assert.deepStrictEqual(newState.players[PLAYER_ROLES[0]].hand, newHand);
     });
 
     it('should throw an error if a player ID does not exist in the game state', () => {
-      const hands = { 'non-existent-player': [createCard('AS', SUITS.SPADES, 'A')] };
+      const hands = { 'non-existent-player': [createCard('AS', SUITS.CARD_SUIT_SPADES, 'A')] };
       assert.throws(() => dealCards(gameState, hands), /Player non-existent-player not found in game state/);
     });
   });

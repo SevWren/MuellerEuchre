@@ -1,3 +1,7 @@
+// TODO: Fully JSDoc
+// TODO: Improve decision making logic
+// 8-3-25 - Currently 100% Coverage
+
 import {
   isLeftBower,
   getEffectiveSuit,

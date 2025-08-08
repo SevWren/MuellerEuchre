@@ -12,6 +12,9 @@
  * Log levels can be configured via environment variables:
  * - LOG_LEVEL: Directly set Pino log level (fatal, error, warn, info, debug, trace, silent)
  * - DEBUG_LEVEL: Numeric log level using DEBUG_LEVELS constants
+ * 
+ * Near 100% Coverage
+ * 
  * @see {@link module:src/config/constants.DEBUG_LEVELS} for available log levels
  */
 
@@ -41,11 +44,16 @@ const debugLevelToPino = {
  * @param {object} [options={}] - Configuration options.
  * @param {string} [options.level='info'] - A valid Pino log level.
  * @param {boolean} [options.prettyPrint=false] - Whether to enable pretty printing.
+ * @param {string[]} [options.redact] - A list of paths to redact from the log output.
+ * @param {import('stream').Writable} [destination] - Optional stream to write logs to.
  * @returns {import('pino').Logger} A Pino logger instance.
  */
-function createLogger({ level = 'info', prettyPrint = false } = {}) {
+function createLogger({ level = 'info', prettyPrint = false, redact = [] } = {}, destination) {
   /** @type {import('pino').LoggerOptions} */
-  const loggerOptions = { level };
+  const loggerOptions = { 
+    level,
+    redact,
+   };
 
   if (prettyPrint) {
     loggerOptions.transport = {
@@ -57,7 +65,7 @@ function createLogger({ level = 'info', prettyPrint = false } = {}) {
       },
     };
   }
-  return pino(loggerOptions);
+  return pino(loggerOptions, destination);
 }
 
 /**
@@ -109,6 +117,7 @@ if (startupWarning) {
 const logger = createLogger({
   level: currentLogLevelName,
   prettyPrint: !isProduction,
+  redact: ['hand'],
 });
 
 
@@ -120,32 +129,33 @@ const logger = createLogger({
  * @param {string} level - Log level from DEBUG_LEVELS (e.g., 'LOG_LEVEL_ERROR')
  * @param {string} message - The log message
  * @param {Object} [obj] - Optional object to be logged as JSON
+ * @param {string} [context] - Optional context for the log message
  */
-function log(level, message, obj) {
+function log(level, message, obj, context) {
+  const logObject = obj ? { ...obj } : {};
+  if (context) {
+    logObject.context = context;
+  }
+
   switch (level) {
     case DEBUG_LEVELS.ERROR:
     case DEBUG_LEVELS.LOG_LEVEL_ERROR:
-      if (obj) logger.error(obj, message);
-      else logger.error(message);
+      logger.error(logObject, message);
       break;
     case DEBUG_LEVELS.INFO:
     case DEBUG_LEVELS.LOG_LEVEL_INFO:
-      if (obj) logger.info(obj, message);
-      else logger.info(message);
+      logger.info(logObject, message);
       break;
     case DEBUG_LEVELS.WARN:
     case DEBUG_LEVELS.LOG_LEVEL_WARN:
-      if (obj) logger.warn(obj, message);
-      else logger.warn(message);
+      logger.warn(logObject, message);
       break;
     case DEBUG_LEVELS.DEBUG:
     case DEBUG_LEVELS.LOG_LEVEL_DEBUG:
-      if (obj) logger.debug(obj, message);
-      else logger.debug(message);
+      logger.debug(logObject, message);
       break;
     case DEBUG_LEVELS.LOG_LEVEL_TRACE:
-      if (obj) logger.trace(obj, message);
-      else logger.trace(message);
+      logger.trace(logObject, message);
       break;
     case DEBUG_LEVELS.NONE:
     case DEBUG_LEVELS.LOG_LEVEL_SILENT:
@@ -154,15 +164,12 @@ function log(level, message, obj) {
     default:
       // Fallback for unknown log levels
       const unknownLevelMessage = `Unknown log level (${level}): ${message}`;
-      if (obj) logger.info(obj, unknownLevelMessage);
-      else logger.info(unknownLevelMessage);
+      logger.info(logObject, unknownLevelMessage);
   }
 }
 
 /**
- * Attempts to set the debug level dynamically.
- * Note: Pino's log level can only be set at initialization.
- * This logs a warning and informs the user to restart with the correct env var.
+ * Sets the debug level of the logger at runtime.
  *
  * @param {string} newLevel - The new debug level from DEBUG_LEVELS (e.g., 'LOG_LEVEL_ERROR')
  */
@@ -188,6 +195,9 @@ function setDebugLevel(newLevel) {
     `Pino logger level ('${logger.level}') is set at initialization. ` +
     'Restart with new LOG_LEVEL or DEBUG_LEVEL env var to change.'
   );
+  
+  // CORRECTED: Modify the level property of the existing logger instance.
+  logger.level = levelName;
 }
 
 
@@ -197,9 +207,9 @@ function setDebugLevel(newLevel) {
  * Exports the main logger instance, utility functions, and testable factories.
  * @type {{
  *   logger: import('pino').Logger,
- *   log: function(string, string, Object): void,
+ *   log: function(string, string, Object, string): void,
  *   setDebugLevel: function(string): void,
- *   createLogger: function(object): import('pino').Logger,
+ *   createLogger: function(object, import('stream').Writable): import('pino').Logger,
  *   getLogLevelFromEnv: function(object): {level: string, warning: string|null}
  * }}
  */

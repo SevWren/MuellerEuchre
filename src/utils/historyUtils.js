@@ -36,14 +36,14 @@ import { logger } from "./logger.js";
  * @param {string} [detailsObject.playerRole] - The role of the player performing the action.
  * @param {CardObject|string} [detailsObject.card] - The card involved in the action.
  * @returns {HistoryEntry} A structured history entry with timestamp, action, and processed details.
- * 
+ *
  * @example
  * // Create a history entry for playing a card
  * const entry = createHistoryEntry('PLAY_CARD', {
  *   playerRole: 'North',
  *   card: { id: 'AH', rank: 'Ace', suit: 'Hearts' }
  * });
- * 
+ *
  * @see {@link module:utils/logger} for logging functionality used by this function.
  * @see {@link test/utils/historyUtils.unit.test.js} for usage examples and test cases.
  */
@@ -54,32 +54,28 @@ function createHistoryEntry(actionType, detailsObject = {}) {
 
   if (typeof actionType !== "string" || actionType.trim() === "") {
     logger.warn(
-      `Invalid actionType provided to createHistoryEntry: ${actionType}`,
+      `Invalid actionType provided to createHistoryEntry: ${actionType}`
     );
     action = "UNKNOWN_ACTION";
   }
 
   if (typeof detailsObject !== "object" || detailsObject === null) {
     logger.warn(
-      `Invalid detailsObject provided for actionType "${actionType}": ${detailsObject}`,
+      `Invalid detailsObject provided for actionType "${actionType}": ${detailsObject}`
     );
     details = { originalDetails: detailsObject };
   }
 
   // Specific handling for malformed details, e.g., cardId
-  if (
-    details.card &&
-    (typeof details.card !== "object" ||
-      details.card === null ||
-      !details.card.id)
-  ) {
-    logger.warn(
-      `Malformed card object in details for actionType "${actionType}": ${JSON.stringify(details.card)}`,
-    );
-    details.cardId = "INVALID_CARD";
-    delete details.card; // Remove the malformed card object
-  } else if (details.card && details.card.id) {
-    details.cardId = details.card.id;
+  if (details.hasOwnProperty("card")) {
+    if (details.card && details.card.id) {
+      details.cardId = details.card.id;
+    } else {
+      logger.warn(
+        `Malformed card object in details for actionType "${actionType}": ${JSON.stringify(details.card)}`
+      );
+      details.cardId = "INVALID_CARD";
+    }
     delete details.card;
   }
 
@@ -92,23 +88,23 @@ function createHistoryEntry(actionType, detailsObject = {}) {
       // Ensure playerRole and cardId are present if expected for this action
       if (!details.playerRole) {
         logger.warn(
-          `Missing playerRole for PLAY_CARD action: ${JSON.stringify(detailsObject)}`,
+          `Missing playerRole for PLAY_CARD action: ${JSON.stringify(detailsObject)}`
         );
       }
       if (!details.cardId) {
         logger.warn(
-          `Missing cardId for PLAY_CARD action: ${JSON.stringify(detailsObject)}`,
+          `Missing cardId for PLAY_CARD action: ${JSON.stringify(detailsObject)}`
         );
       }
       break;
-      
+
     case "ORDER_UP":
     case "PASS":
     case "CALL_TRUMP":
       // These actions currently use the generic structure
       // Add specific validation/restructuring here if needed in the future
       break;
-      
+
     default:
       // For unknown actions, just return the generic structure
       // No special processing needed

@@ -1,82 +1,131 @@
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
-import { promises as fsPromises } from 'node:fs'; // Renamed to fsPromises
-import fs from 'node:fs'; // Added for fs.existsSync
-import { createRequire } from 'node:module';
-import os from 'node:os';
+/**
+ * @file src/utils/path-resolver.js
+ * @module utils/path-resolver
+ * @description
+ *   Provides robust path resolution utilities for the MuellerEuchre-Windsurf project,
+ *   supporting ES Modules, Node.js path aliases (from `jsconfig.json`), and cross-platform
+ *   compatibility (especially for Windows). This module is crucial for ensuring that
+ *   imports resolve correctly across different environments and for enforcing project
+ *   structure boundaries.
+ *
+ *   It handles absolute, relative, and aliased paths, with special considerations for
+ *   the test environment and security (preventing path traversal).
+ *
+ * @see {@link https://www.typescriptlang.org/docs/handbook/module-resolution.html#path-mapping}
+ * @see {@link module:src/config/constants}
+ * @see {@link module:src/utils/logger}
+ * @see {@link test/utils/path-resolver.unit.test.js}
+ */
 
-// Debug logging utility
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import { promises as fsPromises } from "node:fs";
+import fs from "node:fs";
+import { createRequire } from "node:module";
+import os from "node:os";
+import logger from "./logger.js";
+
+/**
+ * Internal debug logger for path-resolver operations.
+ * Logs messages only when `DEBUG_PATH_RESOLVER` environment variable is 'true'
+ * or when `NODE_ENV` is 'test'.
+ * @private
+ * @type {function(...any): void}
+ */
 const debug = (() => {
-  const isDebug = process.env.DEBUG_PATH_RESOLVER === 'true' || process.env.NODE_ENV === 'test';
+  const isDebug =
+    process.env.DEBUG_PATH_RESOLVER === "true" ||
+    process.env.NODE_ENV === "test";
   return (...args) => {
     if (isDebug) {
-      console.debug('[PathResolver]', ...args);
+      logger.debug({ component: "PathResolver" }, ...args);
     }
   };
 })();
 
 /**
- * @file Path resolution utility for handling path aliases consistently
- * @module utils/path-resolver
- * @description Provides centralized path resolution with support for aliases
- * defined in jsconfig.json. This utility is used by both the application
- * and test runners to ensure consistent path resolution.
- *
- * Features:
- * - Path alias resolution (e.g., @/utils/logger)
- * - Test environment detection and handling
- * - Debug logging for troubleshooting
- * - Consistent path resolution across environments
- *
- * @example
- * import { resolvePath, getTestMockPath } from '@/utils/path-resolver';
- *
- * // Resolve a path using aliases
- * const absolutePath = resolvePath('@/config/database');
- * 
- * // Get correct mock path for tests
- * const mockPath = getTestMockPath(import.meta.url, '../config/constants.js');
+ * The absolute path to the current file.
+ * @private
+ * @type {string}
  */
-
-// Get project root directory
 const __filename = fileURLToPath(import.meta.url);
+/**
+ * The directory name of the current file.
+ * @private
+ * @type {string}
+ */
 const __dirname = path.dirname(__filename);
+/**
+ * The absolute path to the project root directory.
+ * Derived by going up two levels from `src/utils/path-resolver.js`.
+ * @private
+ * @type {string}
+ */
 const PROJECT_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '..', '..'
+  "..",
+  ".."
 );
 
-// Cache for the parsed jsconfig.json
+/**
+ * Cache for the parsed `jsconfig.json` content.
+ * @private
+ * @type {object | null}
+ */
 let jsConfigCache = null;
 
-// Normalize path separators to forward slashes for consistent matching
-const normalizePath = (p) => p.replace(/\\/g, '/');
-
-// Check if a path is inside the project root
-const isPathInProjectRoot = (filePath) => {
-  const relative = path.relative(PROJECT_ROOT, filePath);
-  return !relative.startsWith('..') && !path.isAbsolute(relative);
+/**
+ * Normalizes a file path to use forward slashes, making it consistent across
+ * different operating systems (e.g., Windows vs. Linux).
+ * @private
+ * @param {string} p - The path string to normalize.
+ * @returns {string} The normalized path with forward slashes.
+ */
+const normalizePath = (p) => {
+  if (!p) return p;
+  return String(p).replace(/\\/g, '/');
 };
 
-// Cache for resolved aliases
+/**
+ * Checks if a given file path is located within the project's root directory.
+ * This is a security measure to prevent path traversal vulnerabilities.
+ * @private
+ * @param {string} filePath - The absolute path to check.
+ * @returns {boolean} `true` if the path is within the project root, `false` otherwise.
+ */
+const isPathInProjectRoot = (filePath) => {
+  const relative = path.relative(PROJECT_ROOT, filePath);
+  return !relative.startsWith("..") && !path.isAbsolute(relative);
+};
+
+/**
+ * Cache for resolved path aliases.
+ * @private
+ * @type {Map<string, string> | null}
+ */
 let aliasCache = null;
 
 /**
- * Determines if the current environment is a test environment
- * @returns {boolean} True if running in a test environment
+ * Determines if the current environment is a test environment.
+ * Checks `NODE_ENV` or common test runner environment variables.
+ * @private
+ * @returns {boolean} `true` if in a test environment, `false` otherwise.
  */
 function isTestEnvironment() {
-  return process.env.NODE_ENV === 'test' || 
-         process.env.JEST_WORKER_ID !== undefined ||
-         process.env.VITEST_WORKER_ID !== undefined ||
-         process.env.MOCHA_WORKER !== undefined;
+  return (
+    process.env.NODE_ENV === "test" ||
+    process.env.JEST_WORKER_ID !== undefined ||
+    process.env.VITEST_WORKER_ID !== undefined ||
+    process.env.MOCHA_WORKER !== undefined
+  );
 }
 
 /**
- * Helper to get the correct path for test mocks relative to the test file
- * @param {string} testFileUrl - The URL of the test file (import.meta.url)
- * @param {string} importPath - The import path from the module being tested
- * @returns {string} The correct path to use for mocking
+ * Resolves a relative import path to a project-root-relative path, specifically for test mocks.
+ * This function is used in test files to correctly resolve paths when mocking ES Modules.
+ * @param {string} testFileUrl - The `import.meta.url` of the test file.
+ * @param {string} importPath - The relative import path (e.g., `../src/module.js`).
+ * @returns {string} The resolved path relative to the project root, or the original `importPath` if not in a test environment.
  */
 export function getTestMockPath(testFileUrl, importPath) {
   if (!isTestEnvironment()) {
@@ -85,67 +134,70 @@ export function getTestMockPath(testFileUrl, importPath) {
 
   const testDir = path.dirname(fileURLToPath(testFileUrl));
   const projectRoot = findProjectRoot(__dirname);
-  
-  // If it's a relative path, resolve it relative to the test file
-  if (importPath.startsWith('.')) {
+
+  if (importPath.startsWith(".")) {
     const resolvedPath = path.resolve(testDir, importPath);
     const relativeToRoot = path.relative(projectRoot, resolvedPath);
     debug(`Resolved test mock path: ${importPath} -> ${relativeToRoot}`);
-    return relativeToRoot.replace(/\\/g, '/');
+    return relativeToRoot.replace(/\\/g, "/");
   }
-  
-  // For non-relative paths, return as-is
+
   return importPath;
 }
 
 /**
- * Finds the project root directory by looking for package.json
- * @param {string} startDir - Directory to start searching from
- * @returns {string} The project root directory
+ * Recursively searches for the project root directory by looking for `package.json`.
+ * @private
+ * @param {string} startDir - The directory to start the search from.
+ * @returns {string} The absolute path to the project root, or `process.cwd()` if not found.
  */
 function findProjectRoot(startDir) {
   let current = path.resolve(startDir);
-  
+
   while (current !== path.dirname(current)) {
-    const packagePath = path.join(current, 'package.json');
-    if (fs.existsSync(packagePath)) { // Correctly uses fs.existsSync
+    const packagePath = path.join(current, "package.json");
+    if (fs.existsSync(packagePath)) {
       return current;
     }
     current = path.dirname(current);
   }
-  
+
   return process.cwd();
 }
 
 /**
- * Clears the alias cache, forcing it to be reloaded on next access
- * This is primarily useful for testing
+ * Clears the internal alias cache, forcing `initAliasCache` to reload `jsconfig.json` on the next call.
+ * This is primarily used in test environments to ensure test isolation.
  */
 export function clearAliasCache() {
   aliasCache = null;
 }
 
 /**
- * Custom error class for path resolution errors
+ * Custom error class for path resolution failures.
+ * @class
+ * @augments {Error}
+ * @property {string} name - The name of the error, always 'PathResolutionError'.
+ * @property {string} specifier - The original path specifier that caused the error.
+ * @property {Error | null} cause - The underlying error that caused this resolution failure.
  */
 export class PathResolutionError extends Error {
   /**
-   * @param {string} message - Error message
-   * @param {string} [specifier] - The path or specifier that failed to resolve
-   * @param {Error} [cause] - The underlying error that caused this error
+   * Creates an instance of PathResolutionError.
+   * @param {string} message - A human-readable error message.
+   * @param {string} [specifier=''] - The path specifier that failed to resolve.
+   * @param {Error | null} [cause=null] - The original error that caused this resolution failure.
    */
-  constructor(message, specifier = '', cause = null) {
+  constructor(message, specifier = "", cause = null) {
     super(message);
-    this.name = 'PathResolutionError';
+    this.name = "PathResolutionError";
     this.specifier = specifier;
     this.cause = cause;
-    
-    // Maintain proper stack trace
+
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, PathResolutionError);
     }
-    
-    // Add cause to stack trace if available
+
     if (cause && cause.stack) {
       this.stack = `${this.stack}\nCaused by: ${cause.stack}`;
     }
@@ -153,79 +205,82 @@ export class PathResolutionError extends Error {
 }
 
 /**
- * Loads and parses jsconfig.json
- * @returns {Promise<Object>} The parsed jsconfig object
+ * Loads and parses the `jsconfig.json` file from the project root.
+ * Caches the result for subsequent calls. In a test environment with `global.MOCK_FS`,
+ * it reads from the mock file system instead of the actual file system.
  * @private
+ * @returns {Promise<object>} A promise that resolves to the parsed `jsconfig.json` content.
+ * @throws {PathResolutionError} If the file cannot be found, read, or is malformed.
  */
 async function loadJsConfig() {
-  const jsconfigPath = path.join(PROJECT_ROOT, 'jsconfig.json');
-  console.log(`[PATH-RESOLVER] Loading jsconfig from: ${jsconfigPath}`);
-  
+  const jsconfigPath = path.join(PROJECT_ROOT, "jsconfig.json");
+  const normalizedJsconfigPath = normalizePath(jsconfigPath);
+
   try {
     let content;
-    
-    // Check for mock file system in test environment
-    if (process.env.NODE_ENV === 'test' && global.MOCK_FS) {
-      const normalizedPath = normalizePath(jsconfigPath);
-      console.log(`[PATH-RESOLVER] Using mock file system for: ${normalizedPath}`);
-      content = global.MOCK_FS[normalizedPath];
-      
-      if (!content) {
-        throw new Error(`File not found in mock FS: ${normalizedPath}`);
+
+    if (isTestEnvironment() && global.MOCK_FS) {
+      content = global.MOCK_FS[normalizedJsconfigPath];
+      if (content === undefined) {
+        throw new Error(`File not found in mock FS: ${normalizedJsconfigPath}`);
       }
     } else {
-      // Use real file system
-      content = await fsPromises.readFile(jsconfigPath, 'utf-8'); // Uses fsPromises
+      content = await fsPromises.readFile(jsconfigPath, "utf-8");
     }
-    
-    console.log(`[PATH-RESOLVER] Successfully read jsconfig.json`);
-    const config = typeof content === 'string' ? JSON.parse(content) : content;
-    console.log(`[PATH-RESOLVER] Parsed jsconfig.json:`, JSON.stringify({
-      baseUrl: config?.compilerOptions?.baseUrl,
-      paths: Object.keys(config?.compilerOptions?.paths || {})
-    }, null, 2));
+
+    const config = typeof content === "string" ? JSON.parse(content) : content;
     return config;
   } catch (error) {
-    console.error(`[PATH-RESOLVER] Failed to load/parse jsconfig.json:`, error);
+    logger.error(
+      { err: error, path: normalizedJsconfigPath },
+      `[PATH-RESOLVER] Failed to load/parse jsconfig.json`
+    );
     throw new PathResolutionError(
       `Failed to load or parse jsconfig.json: ${error.message}`,
-      jsconfigPath,
+      normalizedJsconfigPath,
       error
     );
   }
 }
 
 /**
- * Validates the structure of the jsconfig object
- * @param {Object} config - The parsed jsconfig object
- * @throws {PathResolutionError} If the configuration is invalid
+ * Validates the structure and content of the loaded `jsconfig.json` object.
  * @private
+ * @param {object} config - The parsed `jsconfig.json` object.
+ * @throws {PathResolutionError} If the `jsconfig.json` structure is invalid or missing required properties.
  */
 function validateJsConfig(config) {
-  if (!config || typeof config !== 'object') {
-    throw new PathResolutionError('jsconfig.json must be an object');
+  if (!config || typeof config !== "object") {
+    throw new PathResolutionError("jsconfig.json must be an object");
   }
 
   const { compilerOptions } = config;
-  if (!compilerOptions || typeof compilerOptions !== 'object') {
-    throw new PathResolutionError('Missing or invalid compilerOptions in jsconfig.json');
+  if (!compilerOptions || typeof compilerOptions !== "object") {
+    throw new PathResolutionError(
+      "Missing or invalid compilerOptions in jsconfig.json"
+    );
   }
 
   const { baseUrl, paths } = compilerOptions;
-  
-  if (baseUrl && typeof baseUrl !== 'string') {
-    throw new PathResolutionError('baseUrl in compilerOptions must be a string');
+
+  if (baseUrl && typeof baseUrl !== "string") {
+    throw new PathResolutionError(
+      "baseUrl in compilerOptions must be a string"
+    );
   }
-  
-  if (paths && typeof paths !== 'object') {
-    throw new PathResolutionError('paths in compilerOptions must be an object');
+
+  if (paths && typeof paths !== "object") {
+    throw new PathResolutionError("paths in compilerOptions must be an object");
   }
 }
 
 /**
- * Initializes the alias cache by loading and processing jsconfig.json
- * @returns {Promise<Map<string, string>>} Map of aliases to their resolved paths
+ * Initializes and populates the alias cache by reading `jsconfig.json`.
+ * This function is idempotent and will only load the config once unless `clearAliasCache` is called.
+ * It resolves aliased paths to their absolute file system paths.
  * @private
+ * @returns {Promise<Map<string, string>>} A promise that resolves to a Map of aliases to their resolved paths.
+ * @throws {PathResolutionError} If `jsconfig.json` cannot be loaded, parsed, or is invalid.
  */
 async function initAliasCache() {
   if (aliasCache) {
@@ -233,86 +288,84 @@ async function initAliasCache() {
   }
 
   aliasCache = new Map();
-  
+
   try {
     const config = await loadJsConfig();
     validateJsConfig(config);
-    
-    const { baseUrl = '.', paths = {} } = config.compilerOptions;
+
+    const { baseUrl = ".", paths = {} } = config.compilerOptions;
     const basePath = path.resolve(PROJECT_ROOT, baseUrl);
-    
+
     for (const [alias, pathArray] of Object.entries(paths)) {
       try {
         if (!Array.isArray(pathArray) || pathArray.length === 0) {
           continue;
         }
-        
-        const cleanAlias = alias.replace(/[\/*]+$/, '');
-        const cleanTargetPath = pathArray[0].replace(/[\/*]+$/, '');
-        
+
+        const cleanAlias = alias.replace(/[\/*]+$/, "");
+        const cleanTargetPath = pathArray[0].replace(/[\/*]+$/, "");
+
         if (!cleanAlias || !cleanTargetPath) {
           continue;
         }
-        
+
         const resolvedPath = path.resolve(basePath, cleanTargetPath);
-        
-        // Verify the path exists
+
         try {
-          if (process.env.NODE_ENV === 'test' && global.MOCK_FS) {
-            // Check mock file system
+          if (process.env.NODE_ENV === "test" && global.MOCK_FS) {
             const normalizedPath = normalizePath(resolvedPath);
-            const pathExists = Object.keys(global.MOCK_FS).some(key => {
-              // Check for exact match or if this is a directory containing the path
-              return key === normalizedPath || 
-                     (global.MOCK_FS[key]?.isDirectory && 
-                      normalizedPath.startsWith(key + '/'));
-            });
-            
-            if (!pathExists) {
-              throw new Error('Path not found in mock FS');
+            if (!(normalizedPath in global.MOCK_FS)) {
+              throw new Error(`Path not found in mock FS: ${normalizedPath}`);
             }
           } else {
-            // Use real file system
-            await fsPromises.access(resolvedPath, fs.constants.R_OK); // Uses fsPromises
+            await fsPromises.access(resolvedPath, fs.constants.R_OK);
           }
-          
+
           aliasCache.set(cleanAlias, resolvedPath);
         } catch (accessError) {
-          console.warn(`[path-resolver] Path does not exist: ${resolvedPath} (alias: ${cleanAlias})`);
+          logger.warn(
+            { path: resolvedPath, alias: cleanAlias },
+            `[path-resolver] Path does not exist`
+          );
         }
-        
       } catch (error) {
-        console.warn(`[path-resolver] Error processing alias '${alias}':`, error.message);
+        logger.warn(
+          { alias, err: error },
+          `[path-resolver] Error processing alias`
+        );
       }
     }
-    
+
     return aliasCache;
-    
   } catch (error) {
-    aliasCache = null; // Reset cache on error
-    throw error;
+    aliasCache = null;
+    throw new PathResolutionError(
+      `Failed to initialize alias cache: ${error.message}`,
+      'jsconfig.json',
+      error
+    );
   }
 }
 
 /**
- * Resolves a path using the configured aliases
- * @param {string} specifier - The path or specifier to resolve
- * @returns {Promise<string>} The resolved absolute path
- * @throws {PathResolutionError} If the path cannot be resolved
+ * Resolves a given path specifier (absolute, relative, or aliased) to its absolute file system path.
+ * This is the primary public API for path resolution in the project.
+ * @param {string} specifier - The path string to resolve (e.g., `'/src/file.js'`, `./relative/path`, `@/aliased/path`).
+ * @param {string} [basePath=process.cwd()] - The base directory for resolving relative paths.
+ * @returns {Promise<string>} A promise that resolves to the absolute, normalized file system path.
+ * @throws {PathResolutionError} If the specifier is invalid, cannot be resolved, or attempts to escape the project root.
  */
 export async function resolvePath(specifier, basePath = process.cwd()) {
   debug(`Resolving path: ${specifier} (base: ${basePath})`);
-  
-  if (typeof specifier !== 'string' || !specifier.trim()) {
-    const error = new PathResolutionError('Invalid path specifier', specifier);
+
+  if (typeof specifier !== "string" || !specifier.trim()) {
+    const error = new PathResolutionError("Invalid path specifier", specifier);
     debug(`Path resolution error: ${error.message}`);
     throw error;
   }
 
-  // Check if the path is already absolute
   if (path.isAbsolute(specifier)) {
     const resolvedPath = path.resolve(specifier);
-    // Security check: ensure resolved path is within project root
     if (!isPathInProjectRoot(resolvedPath)) {
       throw new PathResolutionError(
         `Resolved path is outside project root: ${resolvedPath}`,
@@ -322,12 +375,10 @@ export async function resolvePath(specifier, basePath = process.cwd()) {
     return resolvedPath;
   }
 
-  // Handle relative paths
-  if (specifier.startsWith('.')) {
+  if (specifier.startsWith(".")) {
     const resolvedPath = path.resolve(basePath, specifier);
     debug(`Resolved relative path: ${specifier} -> ${resolvedPath}`);
-    
-    // Security check: ensure relative paths don't escape project root
+
     if (!isPathInProjectRoot(resolvedPath)) {
       const error = new PathResolutionError(
         `Resolved path is outside project root: ${resolvedPath}`,
@@ -336,112 +387,105 @@ export async function resolvePath(specifier, basePath = process.cwd()) {
       debug(`Security violation: ${error.message}`);
       throw error;
     }
-    
-    // In test environment, ensure the path is in a format that matches the module system's expectations
+
     if (isTestEnvironment()) {
-      const normalizedPath = path.normalize(resolvedPath).replace(/\\/g, '/');
+      const normalizedPath = path.normalize(resolvedPath).replace(/\\/g, "/");
       debug(`Normalized path for test environment: ${normalizedPath}`);
       return normalizedPath;
     }
-    
+
     return resolvedPath;
   }
 
-  // Handle URL imports (e.g., from node_modules)
-  if (!specifier.startsWith('@')) {
+  if (!specifier.startsWith("@")) {
     debug(`Returning non-aliased specifier as-is: ${specifier}`);
     return specifier;
   }
 
-  // Initialize alias cache if needed
   const aliases = await initAliasCache();
-  
-  // Find the longest matching alias
-  let bestMatch = '';
-  console.log(`Resolving specifier: ${specifier}`);
-  console.log(`Available aliases:`, Array.from(aliases.keys()));
-  
+
+  let bestMatch = "";
+
   for (const [alias] of aliases) {
     const aliasPrefix = `${alias}/`;
     const isMatch = specifier.startsWith(aliasPrefix) || specifier === alias;
-    console.log(`Checking alias '${alias}': isMatch=${isMatch}, specifier='${specifier}', aliasPrefix='${aliasPrefix}'`);
-    
-    if ((specifier.startsWith(aliasPrefix) || specifier === alias) && alias.length > bestMatch.length) {
+
+    if (
+      (specifier.startsWith(aliasPrefix) || specifier === alias) &&
+      alias.length > bestMatch.length
+    ) {
       bestMatch = alias;
-      console.log(`New best match: ${bestMatch}`);
     }
   }
-  
+
   if (!bestMatch) {
-    throw new PathResolutionError(`No matching alias found for: ${specifier}`, specifier);
-  }
-  
-  const aliasMapping = aliases.get(bestMatch);
-  const aliasPrefix = `${bestMatch}/`;
-  // Construct the full path by joining the base path with the remaining path
-  // Remove any leading ./ or ../ from the specifier
-  const relativePath = specifier.slice(aliasPrefix.length).replace(/^\.?\//, '');
-  
-  // Get the base path from the alias mapping (remove trailing /* if present)
-  const aliasBasePath = aliasMapping.replace(/\*$/, '');
-  
-  // Join the paths, ensuring we don't duplicate the project root
-  let fullPath = path.join(aliasBasePath, relativePath);
-  
-  // If the base path isn't absolute, prepend the project root
-  if (!path.isAbsolute(fullPath)) {
-    fullPath = path.join(PROJECT_ROOT, fullPath);
+    throw new PathResolutionError(
+      `No matching alias found for: ${specifier}`,
+      specifier
+    );
   }
 
-  // Add .js extension if not present
-  if (!fullPath.endsWith('.js')) {
+  const aliasMapping = aliases.get(bestMatch);
+  const aliasPrefix = `${bestMatch}/`;
+  const relativePath = specifier
+    .slice(aliasPrefix.length)
+    .replace(/^\.?\//, "");
+
+  const aliasBasePath = aliasMapping.replace(/\*$/, "");
+
+  let fullPath = normalizePath(path.join(aliasBasePath, relativePath));
+
+  if (!path.isAbsolute(fullPath)) {
+    fullPath = normalizePath(path.join(PROJECT_ROOT, fullPath));
+  }
+
+  if (!fullPath.endsWith(".js")) {
     const jsPath = `${fullPath}.js`;
-    // In tests, check if the path exists in the mock FS
-    if (process.env.NODE_ENV === 'test' || typeof global !== 'undefined' && global.MOCK_FS) {
+    if (
+      isTestEnvironment() ||
+      (typeof global !== "undefined" && global.MOCK_FS)
+    ) {
       const mockFs = global.MOCK_FS || {};
-      const normalizedJsPath = jsPath.replace(/\\/g, '/');
+      const normalizedJsPath = jsPath.replace(/\\/g, "/");
       if (mockFs[normalizedJsPath] !== undefined) {
         fullPath = jsPath;
       }
-    } 
-    // In production/development, check the actual filesystem
-    else {
+    } else {
       try {
-        await fsPromises.access(jsPath); // Uses fsPromises
+        await fsPromises.access(jsPath);
         fullPath = jsPath;
-      } catch (e) {
-        // If .js version doesn't exist, keep the original path
-      }
+      } catch (e) {}
     }
   }
 
-  // Normalize the path to handle any ../ or ./ segments
-  const normalizedPath = path.normalize(fullPath).replace(/\\/g, '/');
-  
-  // Security check: ensure the path is within the project
+  const normalizedPath = path.normalize(fullPath).replace(/\\/g, "/");
+
   if (!isPathInProjectRoot(normalizedPath)) {
     throw new PathResolutionError(
       `Resolved path is outside project root: ${normalizedPath}`,
       specifier
     );
   }
-  
+
   return normalizedPath;
 }
 
-// Initialize the cache immediately (non-blocking)
-initAliasCache().catch(error => {
-  console.error('Failed to initialize path aliases:', error);
-});
-
-// Bundle all exports into a single object for default export
+/**
+ * The main path resolver instance, providing all public path resolution utilities.
+ * @type {{
+ *   resolvePath: (specifier: string, basePath?: string) => Promise<string>,
+ *   getTestMockPath: (testFileUrl: string, importPath: string) => string,
+ *   clearAliasCache: () => void,
+ *   PathResolutionError: typeof PathResolutionError,
+ *   isTestEnvironment: () => boolean
+ * }}
+ */
 const pathResolver = {
   resolvePath,
   getTestMockPath,
   clearAliasCache,
   PathResolutionError,
-  isTestEnvironment
+  isTestEnvironment,
 };
 
-// Default export for backward compatibility
 export default pathResolver;

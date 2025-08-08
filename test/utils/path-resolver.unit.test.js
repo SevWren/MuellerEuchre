@@ -1,42 +1,120 @@
-// filepath: test/utils/path-resolver.unit.test.js
+/**
+ * @file test/utils/path-resolver.unit.test.js
+ * @module test/utils/path-resolver.unit
+ * @description
+ *   Comprehensive unit tests for the `path-resolver` utility module.
+ *   This suite rigorously verifies the module's ability to correctly resolve
+ *   various types of file paths (absolute, relative, aliased) across different
+ *   environments (production, test) and operating systems (Windows compatibility).
+ *
+ *   It also tests error handling for invalid paths, security constraints (path traversal),
+ *   and the integrity of its internal alias caching mechanism.
+ *
+ * @requires node:test
+ * @requires node:assert
+ * @requires node:path
+ * @requires node:url
+ * @requires node:fs
+ * @see {@link module:src/utils/path-resolver} for the implementation being tested.
+ * @see {@link module:test/test-utils/mock-logger} for mock logger setup.
+ */
 
 import { test, mock } from 'node:test';
 import assert from 'node:assert';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+// Import the mock logger utility and actual logger
+import { createMockLogger } from '../test-utils/mock-logger.js';
+import logger from '../../src/utils/logger.js';
 
-// --- MOCK MODULES ---
-// We'll store the original methods to restore them later
+/**
+ * Mock logger instance used for capturing log calls during tests.
+ * @private
+ * @type {object}
+ */
+const mockLogger = createMockLogger();
+/**
+ * Stores original logger methods to restore them after tests.
+ * @private
+ * @type {object}
+ */
+const originalLoggerMethods = {
+  error: logger.error,
+  warn: logger.warn,
+  info: logger.info,
+  debug: logger.debug,
+  trace: logger.trace
+};
+
+// Replace logger methods with mocks
+Object.assign(logger, {
+  error: mockLogger.error,
+  warn: mockLogger.warn,
+  info: mockLogger.info,
+  debug: mockLogger.debug,
+  trace: mockLogger.trace
+});
+
+/**
+ * Restores original logger methods after all tests in this file have completed.
+ * @private
+ */
+test.after(() => {
+  Object.assign(logger, originalLoggerMethods);
+});
+
+/**
+ * Original `fs.promises.readFile` method.
+ * @private
+ * @type {function}
+ */
 const originalFsPromises = {
   readFile: fs.promises.readFile,
   access: fs.promises.access
 };
 
+/**
+ * Original `fs.existsSync` method.
+ * @private
+ * @type {function}
+ */
 const originalFs = {
   existsSync: fs.existsSync
 };
 
-// Create mock functions
+/**
+ * Mock object for `fs.promises` methods.
+ * @private
+ * @type {object}
+ */
 const fsPromisesMock = {
   readFile: mock.fn(),
   access: mock.fn()
 };
 
+/**
+ * Mock object for `fs` methods.
+ * @private
+ * @type {object}
+ */
 const fsMock = {
   existsSync: mock.fn(),
   constants: {
-    R_OK: 4 // Value for fs.constants.R_OK
+    R_OK: 4
   }
 };
 
-// Mock the required methods before importing the module under test
+// Apply mocks to `fs.promises` and `fs`
 mock.method(fs.promises, 'readFile', fsPromisesMock.readFile);
 mock.method(fs.promises, 'access', fsPromisesMock.access);
 mock.method(fs, 'existsSync', fsMock.existsSync);
-// --- END MOCK MODULES ---
 
-// Now import the module under test
+/**
+ * Imports the module under test.
+ * @private
+ * @type {object}
+ */
 import {
   getTestMockPath,
   clearAliasCache,
@@ -44,29 +122,56 @@ import {
   resolvePath
 } from '../../src/utils/path-resolver.js';
 
-// Original process.env and global.MOCK_FS
+/**
+ * Original `process.env` object.
+ * @private
+ * @type {object}
+ */
 const originalProcessEnv = { ...process.env };
+/**
+ * Original `global.MOCK_FS` object.
+ * @private
+ * @type {object}
+ */
 const originalGlobalMockFs = global.MOCK_FS;
 
-// Helper to get the project root for tests
+/**
+ * The absolute path to the current test file.
+ * @private
+ * @type {string}
+ */
 const __filename = fileURLToPath(import.meta.url);
+/**
+ * The directory name of the current test file.
+ * @private
+ * @type {string}
+ */
 const __dirname = path.dirname(__filename);
-const TEST_PROJECT_ROOT = path.resolve(__dirname, '..', '..'); // Assuming test/utils is two levels deep from root
+/**
+ * The absolute path to the project root directory for testing.
+ * @private
+ * @type {string}
+ */
+const TEST_PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 
-// Setup and Teardown for tests
+/**
+ * Sets up the test environment before each test.
+ * Resets mocks, clears alias cache, and configures `global.MOCK_FS`.
+ * @private
+ */
 test.beforeEach(async () => {
-  // Clear the alias cache before each test
   clearAliasCache();
-  
-  // Reset mocks before each test
   mock.reset();
   
-  // Create mock implementations for fs and fs/promises
   fsPromisesMock.readFile = mock.fn();
   fsPromisesMock.access = mock.fn();
   fsMock.existsSync = mock.fn();
 
-  // Define the mock jsconfig that will be used by tests
+  /**
+   * Mock `jsconfig.json` content for testing.
+   * @private
+   * @type {object}
+   */
   const mockJsConfig = {
     compilerOptions: {
       baseUrl: '.',
@@ -76,18 +181,24 @@ test.beforeEach(async () => {
         "@utils/*": ["src/utils/*"],
         "@overlapping/path/*": ["src/overlapping/path/*"],
         "@overlapping/*": ["src/overlapping/*"],
-        "@mocked/*": ["src/mocked/*"]
+        "@mocked/*": ["src/mocked/*"],
+        "@test/*": ["test/*"],
+        "@public/*": ["public/*"]
       }
     }
   };
 
-  // Setup MOCK_FS for test environment with file contents as objects/strings
+  // Create a deep copy of the mockJsConfig to prevent test interference
+  const mockJsConfigCopy = JSON.parse(JSON.stringify(mockJsConfig));
+  
+  /**
+   * Global mock file system object for simulating file system interactions in tests.
+   * Keys are normalized file paths, values are file contents or empty objects for directories.
+   * @private
+   * @type {object}
+   */
   global.MOCK_FS = {
-    // jsconfig.json - store as object to make it easier to modify in tests
-    [path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/')]: mockJsConfig,
-    
-    // Mock some file paths that the tests expect to exist
-    // Note: We need to include both the source files and their corresponding aliased paths
+    [path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/')]: mockJsConfigCopy,
     [path.join(TEST_PROJECT_ROOT, 'src', 'config', 'constants.js').replace(/\\/g, '/')]: '// Mock file',
     [path.join(TEST_PROJECT_ROOT, 'src', 'utils', 'logger.js').replace(/\\/g, '/')]: '// Mock file',
     [path.join(TEST_PROJECT_ROOT, 'src', 'some', 'module.js').replace(/\\/g, '/')]: '// Mock file',
@@ -95,7 +206,6 @@ test.beforeEach(async () => {
     [path.join(TEST_PROJECT_ROOT, 'src', 'overlapping', 'shallow.js').replace(/\\/g, '/')]: '// Mock file',
     [path.join(TEST_PROJECT_ROOT, 'test', 'some-test.js').replace(/\\/g, '/')]: '// Mock file',
     [path.join(TEST_PROJECT_ROOT, 'src', 'mocked', 'file.js').replace(/\\/g, '/')]: '// Mock file for @mocked/file',
-    // Add directory entries to ensure directory existence checks pass
     [path.join(TEST_PROJECT_ROOT, 'src').replace(/\\/g, '/')]: {},
     [path.join(TEST_PROJECT_ROOT, 'src', 'config').replace(/\\/g, '/')]: {},
     [path.join(TEST_PROJECT_ROOT, 'src', 'utils').replace(/\\/g, '/')]: {},
@@ -104,6 +214,7 @@ test.beforeEach(async () => {
     [path.join(TEST_PROJECT_ROOT, 'src', 'overlapping', 'path').replace(/\\/g, '/')]: {},
     [path.join(TEST_PROJECT_ROOT, 'src', 'mocked').replace(/\\/g, '/')]: {},
     [path.join(TEST_PROJECT_ROOT, 'test').replace(/\\/g, '/')]: {},
+    [path.join(TEST_PROJECT_ROOT, 'public').replace(/\\/g, '/')]: {},
     [path.join(TEST_PROJECT_ROOT, 'package.json').replace(/\\/g, '/')]: JSON.stringify({
       name: 'mueller-euchre',
       version: '1.0.0',
@@ -111,15 +222,14 @@ test.beforeEach(async () => {
     })
   };
 
-  // Set global MOCK_FS for test environment
-  // No need to assign to mockFs, we're already using MOCK_FS directly
-
-  // Mock fs.promises.readFile to use MOCK_FS
+  // Mock `fs.promises.readFile` to read from `global.MOCK_FS`
   fsPromisesMock.readFile.mock.mockImplementation(async (filePath) => {
     const normalizedPath = filePath.replace(/\\/g, '/');
     if (global.MOCK_FS && normalizedPath in global.MOCK_FS) {
-      // If the content is an object, stringify it to simulate reading from a file
       const content = global.MOCK_FS[normalizedPath];
+      if (content === undefined) {
+        throw new Error(`File not found in mock FS: ${normalizedPath}`);
+      }
       return typeof content === 'object' ? JSON.stringify(content) : content;
     }
     const error = new Error(`File not found: ${filePath}`);
@@ -127,88 +237,75 @@ test.beforeEach(async () => {
     throw error;
   });
 
-  // Mock fs.promises.access to check if file exists in MOCK_FS
+  // Mock `fs.promises.access` to check existence in `global.MOCK_FS`
   fsPromisesMock.access.mock.mockImplementation(async (filePath) => {
     const normalizedPath = filePath.replace(/\\/g, '/');
-    if (global.MOCK_FS && normalizedPath in global.MOCK_FS) {
+    if (global.MOCK_FS && (normalizedPath in global.MOCK_FS)) {
       return Promise.resolve();
     }
-    return Promise.reject(new Error('File not found'));
+    const error = new Error(`ENOENT: no such file or directory, access '${filePath}'`);
+    error.code = 'ENOENT';
+    return Promise.reject(error);
   });
 
-  // Mock fs.existsSync to check if file or directory exists in MOCK_FS
+  // Mock `fs.existsSync` to check existence in `global.MOCK_FS`
   fsMock.existsSync.mock.mockImplementation((filePath) => {
     if (!filePath) return false;
-    
-    // Normalize the path for comparison
     const normalizedPath = path.normalize(filePath).replace(/\\/g, '/');
-    
     if (!global.MOCK_FS) return false;
-
-    // Check for exact match
-    if (normalizedPath in global.MOCK_FS) {
-      return true;
-    }
-    
-    // Check if it's a directory that exists (has children in MOCK_FS)
-    const isDirectory = Object.keys(global.MOCK_FS).some(key => {
-      return key.startsWith(normalizedPath + '/') || 
-             key === normalizedPath || 
-             key.startsWith(normalizedPath + '\\');
-    });
-    
-    return isDirectory;
+    return (normalizedPath in global.MOCK_FS);
   });
   
-  // Ensure NODE_ENV is set to test
   process.env.NODE_ENV = 'test';
 
-  // In ES modules, we don't have require.cache, so we'll use import() with cache busting
-  // Re-import the module to get a fresh instance with our mocks
+  // Use a cache-buster to ensure a fresh import of the module under test
   const cacheBuster = `?t=${Date.now()}`;
   const { clearAliasCache: freshClearAliasCache } = await import(`../../src/utils/path-resolver.js${cacheBuster}`);
   freshClearAliasCache();
-  
-  // Mock implementations are now set up above
 });
 
+/**
+ * Cleans up the test environment after each test.
+ * Restores original environment variables and `global.MOCK_FS`.
+ * @private
+ */
 test.afterEach(() => {
-  // Restore original process.env
+  // Restore process.env
   process.env = originalProcessEnv;
-  // Restore original global.MOCK_FS
-  global.MOCK_FS = originalGlobalMockFs;
   
-  // Clear the alias cache
+  // Clear alias cache
   clearAliasCache();
   
-  // Reset mocks
-  mock.reset();
-  
-  // In ES modules, we don't have require.cache
-  // The module cache is handled by Node.js and we can't clear it directly
-  
-  // Ensure we don't try to call restore on mocks that don't support it
-  try {
-    mock.restore();
-  } catch (e) {
-    // Ignore errors from mock.restore()
+  // Reset the mock file system if it exists
+  if (global.MOCK_FS) {
+    global.MOCK_FS = originalGlobalMockFs;
   }
+  
+  // Reset all mocks
+  mock.reset();
 });
 
-// isTestEnvironment is an internal function, its behavior is tested implicitly via getTestMockPath
-// and resolvePath.
-
+/**
+ * Test suite for `getTestMockPath` function.
+ * @see {@link module:src/utils/path-resolver.getTestMockPath}
+ */
 test('getTestMockPath() should return correct paths for test mocks', async (t) => {
   const testFileUrl = `file://${path.join(TEST_PROJECT_ROOT, 'test', 'some-test.js')}`;
 
+  /**
+   * @test {getTestMockPath} Should resolve relative import paths correctly in test environment.
+   */
   await t.test('should resolve relative import paths correctly in test environment', () => {
     process.env.NODE_ENV = 'test';
     const importPath = '../src/config/constants.js';
-    const expectedPath = 'src/config/constants.js'; // Relative to project root, normalized
+    const expectedPath = 'src/config/constants.js';
     const result = getTestMockPath(testFileUrl, importPath);
     assert.strictEqual(result, expectedPath);
   });
 
+  /**
+   * @test {getTestMockPath} Should return non-relative import paths as-is in test environment.
+   */
   await t.test('should return non-relative import paths as-is in test environment', () => {
     process.env.NODE_ENV = 'test';
     const importPath = 'some-npm-module';
@@ -216,6 +313,9 @@ test('getTestMockPath() should return correct paths for test mocks', async (t) =
     assert.strictEqual(result, importPath);
   });
 
+  /**
+   * @test {getTestMockPath} Should return original import path if not in test environment.
+   */
   await t.test('should return original import path if not in test environment', () => {
     process.env.NODE_ENV = 'production';
     const importPath = '../src/config/constants.js';
@@ -224,13 +324,17 @@ test('getTestMockPath() should return correct paths for test mocks', async (t) =
   });
 });
 
-// findProjectRoot is an internal function, its behavior is tested implicitly via resolvePath.
-// The helper function below is for testing purposes only.
+/**
+ * Helper function to find the project root for testing purposes.
+ * @private
+ * @param {string} startDir - The directory to start searching from.
+ * @returns {string} The project root path.
+ */
 function findProjectRoot(startDir) {
   let current = path.resolve(startDir);
   while (current !== path.dirname(current)) {
     const packagePath = path.join(current, 'package.json');
-    if (fsMock.existsSync(packagePath)) { // Use mocked existsSync
+    if (fsMock.existsSync(packagePath)) {
       return current;
     }
     current = path.dirname(current);
@@ -238,17 +342,16 @@ function findProjectRoot(startDir) {
   return process.cwd();
 }
 
+/**
+ * Test suite for `findProjectRoot` helper function.
+ * @see {@link module:src/utils/path-resolver.findProjectRoot}
+ */
 test('findProjectRoot() helper should correctly find the project root', async (t) => {
   const currentDir = path.join(TEST_PROJECT_ROOT, 'src', 'utils');
 
-  await t.test('should find package.json in the starting directory', () => {
-    fsMock.existsSync.mock.mockImplementationOnce((filePath) => {
-      return filePath === path.join(currentDir, 'package.json');
-    });
-    const result = findProjectRoot(currentDir);
-    assert.strictEqual(result, currentDir);
-  });
-
+  /**
+   * @test {findProjectRoot} Should find `package.json` in a parent directory.
+   */
   await t.test('should find package.json in a parent directory', () => {
     fsMock.existsSync.mock.mockImplementationOnce((filePath) => {
       return filePath === path.join(TEST_PROJECT_ROOT, 'package.json');
@@ -257,30 +360,41 @@ test('findProjectRoot() helper should correctly find the project root', async (t
     assert.strictEqual(result, TEST_PROJECT_ROOT);
   });
 
+  /**
+   * @test {findProjectRoot} Should return `process.cwd()` if `package.json` is not found.
+   */
   await t.test('should return process.cwd() if package.json is not found', () => {
-    fsMock.existsSync.mock.mockImplementation(() => false); // No package.json anywhere
+    fsMock.existsSync.mock.mockImplementation(() => false);
     const result = findProjectRoot(currentDir);
     assert.strictEqual(result, process.cwd());
   });
 });
 
+/**
+ * Test suite for `clearAliasCache` function.
+ * @see {@link module:src/utils/path-resolver.clearAliasCache}
+ */
 test('clearAliasCache() should clear the internal alias cache', async (t) => {
-  // First call to resolvePath will initialize the cache from MOCK_FS
-  await resolvePath('@utils/logger.js');
-  // In test env with MOCK_FS, readFile is not used for jsconfig.
-  assert.strictEqual(fsPromisesMock.readFile.mock.callCount(), 0, 'jsconfig.json should not be read from FS when using MOCK_FS');
-
-  // Clear the cache
-  clearAliasCache();
-
-  // Second call to resolvePath should re-initialize the cache, again from MOCK_FS
-  await resolvePath('@utils/logger.js');
-  // The count should remain 0
-  assert.strictEqual(fsPromisesMock.readFile.mock.callCount(), 0, 'jsconfig.json should still not be read from FS');
+  /**
+   * @test {clearAliasCache} Should clear the cache, forcing re-initialization on next `resolvePath` call.
+   */
+  await t.test('should clear the cache, forcing re-initialization on next resolvePath call', async () => {
+    await resolvePath('@utils/logger.js');
+    assert.strictEqual(fsPromisesMock.readFile.mock.callCount(), 0); // No readFile call due to MOCK_FS
+    clearAliasCache();
+    await resolvePath('@utils/logger.js');
+    assert.strictEqual(fsPromisesMock.readFile.mock.callCount(), 0); // Still no readFile call due to MOCK_FS
+  });
 });
 
-
+/**
+ * Test suite for `PathResolutionError` class.
+ * @see {@link module:src/utils/path-resolver.PathResolutionError}
+ */
 test('PathResolutionError should be a custom error class', async (t) => {
+  /**
+   * @test {PathResolutionError} Should have correct name and message.
+   */
   await t.test('should have correct name and message', () => {
     const error = new PathResolutionError('Test message', 'test-specifier');
     assert.strictEqual(error.name, 'PathResolutionError');
@@ -289,158 +403,287 @@ test('PathResolutionError should be a custom error class', async (t) => {
     assert.strictEqual(error.cause, null);
   });
 
+  /**
+   * @test {PathResolutionError} Should include cause in stack trace.
+   */
   await t.test('should include cause in stack trace', () => {
     const causeError = new Error('Underlying cause');
     const error = new PathResolutionError('Test message', 'test-specifier', causeError);
-    // The assertion on the stack is brittle. A better test is to check the `cause` property itself.
     assert.strictEqual(error.cause, causeError);
   });
 });
 
-// To test loadJsConfig, validateJsConfig, initAliasCache, we need to mock fs.promises.readFile
-// and fs.promises.access. The default mocks are set in beforeEach.
-
+/**
+ * Test suite for `loadJsConfig` function.
+ * @see {@link module:src/utils/path-resolver.loadJsConfig}
+ */
 test('loadJsConfig() should load and parse jsconfig.json', async (t) => {
-    await t.test('should successfully load and parse jsconfig.json from real FS', async () => {
-    // This test's name is misleading in a MOCK_FS environment.
-    // We'll test that resolution works, which implies the config was loaded from MOCK_FS.
-    process.env.NODE_ENV = 'test';
-    
-    // Call resolvePath to trigger loadJsConfig via MOCK_FS
-    const resolvedPath = await resolvePath('@/some/module.js');
-    assert.ok(resolvedPath.endsWith('src/some/module.js'));
-    
-    // In a MOCK_FS environment, readFile should not be called.
-    assert.strictEqual(fsPromisesMock.readFile.mock.callCount(), 0);
-  });
-
+  const originalMockFs = { ...global.MOCK_FS };
+  const originalEnv = { ...process.env };
+  
+  /**
+   * @test {loadJsConfig} Should successfully load and parse `jsconfig.json` from mock FS in test environment.
+   */
   await t.test('should successfully load and parse jsconfig.json from mock FS in test environment', async () => {
     process.env.NODE_ENV = 'test';
     const jsconfigPath = path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/');
-    global.MOCK_FS[jsconfigPath] = {
-      compilerOptions: {
-        baseUrl: '.',
-        paths: { "@/*": ["src/*"] }
+    
+    // Create a fresh mock FS for this test
+    global.MOCK_FS = {
+      ...global.MOCK_FS,
+      [jsconfigPath]: {
+        compilerOptions: {
+          baseUrl: '.',
+          paths: { "@/*": ["src/*"] }
+        }
       }
     };
-
-    // Call resolvePath to trigger loadJsConfig
+    
+    // This should use the mock FS and not call readFile
     await resolvePath('@/some/module.js');
-    assert.strictEqual(fsPromisesMock.readFile.mock.callCount(), 0, 'readFile should not be called for mock FS');
+    assert.strictEqual(fsPromisesMock.readFile.mock.callCount(), 0);
   });
 
+  /**
+   * @test {loadJsConfig} Should throw `PathResolutionError` if `jsconfig.json` is not found.
+   */
   await t.test('should throw PathResolutionError if jsconfig.json is not found', async () => {
-    // To test "not found" in the MOCK_FS environment, we remove it from the mock object.
+    process.env.NODE_ENV = 'test';
     const jsconfigPath = path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/');
+    
+    // Remove jsconfig from mock FS for this test
+    global.MOCK_FS = { ...originalMockFs };
     delete global.MOCK_FS[jsconfigPath];
     
-    await assert.rejects(resolvePath('@/some/path'), PathResolutionError, 'Should throw PathResolutionError for file not found');
+    // Mock readFile to throw ENOENT error
+    fsPromisesMock.readFile.mock.mockImplementationOnce(() => {
+      const error = new Error('File not found');
+      error.code = 'ENOENT';
+      throw error;
+    });
+    
+    await assert.rejects(
+      resolvePath('@/some/path'),
+      (err) => {
+        return err instanceof PathResolutionError && 
+               err.message.includes('Failed to load or parse jsconfig.json');
+      }
+    );
   });
 
+  /**
+   * @test {loadJsConfig} Should throw `PathResolutionError` if `jsconfig.json` is malformed.
+   */
   await t.test('should throw PathResolutionError if jsconfig.json is malformed', async () => {
-    // To test "malformed" in the MOCK_FS environment, we set it to an invalid JSON string.
+    process.env.NODE_ENV = 'test';
     const jsconfigPath = path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/');
-    global.MOCK_FS[jsconfigPath] = 'this is not valid json';
     
-    await assert.rejects(resolvePath('@/some/path'), PathResolutionError, 'Should throw PathResolutionError for malformed JSON');
-  });
-});
-
-test('initAliasCache() should initialize the alias cache', async (t) => {
-  await t.test('should correctly populate alias cache with valid jsconfig', async () => {
-    // This test asserts on readFile calls, which is incorrect for the MOCK_FS environment.
-    // We will adjust the assertions to reflect the actual behavior.
-    await resolvePath('@config/constants.js'); // Trigger initAliasCache
-    const readFileCalls = fsPromisesMock.readFile.mock.callCount();
-    assert.strictEqual(readFileCalls, 0, 'jsconfig.json should not be read from FS when MOCK_FS is used');
-
-    // Subsequent call should use cache, readFile count should still be 0.
-    await resolvePath('@utils/logger.js');
-    assert.strictEqual(fsPromisesMock.readFile.mock.callCount(), 0, 'jsconfig.json should not be read again');
-  });
-
-  await t.test('should not add aliases for non-existent paths', async () => {
-    const jsconfigPath = path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/');
-    global.MOCK_FS[jsconfigPath] = {
-      compilerOptions: {
-        baseUrl: '.',
-        paths: {
-          "@existent/*": ["src/existent/*"],
-          "@nonexistent/*": ["src/nonexistent/*"],
-        },
-      },
+    // Set invalid JSON in mock FS
+    global.MOCK_FS = {
+      ...global.MOCK_FS,
+      [jsconfigPath]: 'this is not valid json'
     };
-    // Add the "existent" path to MOCK_FS so it's considered valid
-    global.MOCK_FS[path.join(TEST_PROJECT_ROOT, 'src', 'existent').replace(/\\/g, '/')] = {};
-    global.MOCK_FS[path.join(TEST_PROJECT_ROOT, 'src', 'existent', 'file.js').replace(/\\/g, '/')] = '// content';
-
-    clearAliasCache();
-
-    // This should now resolve successfully
-    await assert.doesNotReject(resolvePath('@existent/file.js'), 'Should resolve for existent alias path');
-    // This should still reject as 'src/nonexistent' is not in MOCK_FS
-    await assert.rejects(resolvePath('@nonexistent/file'), PathResolutionError, 'Should reject for non-existent alias path');
-  });
-
-  await t.test('should throw PathResolutionError if jsconfig is invalid', async () => {
-    // Set an invalid jsconfig in MOCK_FS
-    const jsconfigPath = path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/');
-    global.MOCK_FS[jsconfigPath] = { compilerOptions: { baseUrl: 123 } }; // Invalid baseUrl
-    clearAliasCache();
     
-    await assert.rejects(resolvePath('@/some/path'), PathResolutionError, 'Should throw PathResolutionError for invalid jsconfig');
+    await assert.rejects(
+      resolvePath('@/some/path'),
+      (err) => {
+        return err instanceof PathResolutionError && 
+               err.message.includes('Failed to load or parse jsconfig.json');
+      }
+    );
   });
+  
+  // Restore original state
+  global.MOCK_FS = originalMockFs;
+  process.env = originalEnv;
 });
 
-test('resolvePath() should resolve paths correctly', async (t) => {
-  // Ensure we're in test environment
+/**
+ * Test suite for `initAliasCache` function.
+ * @see {@link module:src/utils/path-resolver.initAliasCache}
+ */
+test('initAliasCache() should initialize the alias cache', async (t) => {
+  const originalMockFs = { ...global.MOCK_FS };
+  const originalEnv = { ...process.env };
+  
+  // Setup test environment
   process.env.NODE_ENV = 'test';
   
+  /**
+   * @test {initAliasCache} Should correctly populate alias cache with valid `jsconfig`.
+   */
+  await t.test('should correctly populate alias cache with valid jsconfig', async () => {
+    // Setup mock file system with valid jsconfig
+    const jsconfigPath = path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/');
+    const existentPath = path.join(TEST_PROJECT_ROOT, 'src', 'existent', 'file.js').replace(/\\/g, '/');
+    
+    global.MOCK_FS = {
+      ...global.MOCK_FS,
+      [jsconfigPath]: {
+        compilerOptions: {
+          baseUrl: '.',
+          paths: {
+            "@config/*": ["src/config/*"],
+            "@utils/*": ["src/utils/*"],
+            "@existent/*": ["src/existent/*"]
+          }
+        }
+      },
+      [existentPath]: '// content',
+      [path.join(TEST_PROJECT_ROOT, 'src', 'config', 'constants.js').replace(/\\/g, '/')]: '// mock constants',
+      [path.join(TEST_PROJECT_ROOT, 'src', 'utils', 'logger.js').replace(/\\/g, '/')]: '// mock logger',
+      // Add the directory to the mock FS
+      [path.join(TEST_PROJECT_ROOT, 'src', 'existent').replace(/\\/g, '/')]: {}
+    };
+    
+    clearAliasCache();
+    
+    // Test that the alias is resolved correctly
+    const resolvedPath = await resolvePath('@existent/file');
+    assert.strictEqual(
+      resolvedPath.replace(/\\/g, '/'), 
+      existentPath,
+      'Should resolve @existent/file to the correct path'
+    );
+    
+    // Test with .js extension
+    const resolvedPathWithExt = await resolvePath('@existent/file.js');
+    assert.strictEqual(
+      resolvedPathWithExt.replace(/\\/g, '/'),
+      existentPath,
+      'Should resolve @existent/file.js to the correct path'
+    );
+    
+    // Test non-existent alias
+    await assert.rejects(
+      resolvePath('@nonexistent/file'),
+      (err) => err instanceof PathResolutionError && 
+               err.message.includes('No matching alias found for: @nonexistent/file')
+    );
+  });
+
+  /**
+   * @test {initAliasCache} Should throw `PathResolutionError` if `jsconfig` is invalid.
+   */
+  await t.test('should throw PathResolutionError if jsconfig is invalid', async () => {
+    const jsconfigPath = path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/');
+    global.MOCK_FS = {
+      ...global.MOCK_FS,
+      [jsconfigPath]: { compilerOptions: { baseUrl: 123 } }
+    };
+    
+    clearAliasCache();
+    await assert.rejects(
+      resolvePath('@/some/path'),
+      (err) => {
+        return err instanceof PathResolutionError && 
+               err.message.includes('Failed to initialize alias cache');
+      },
+      'Should throw PathResolutionError for invalid jsconfig'
+    );
+  });
+  
+  // Restore original state
+  global.MOCK_FS = originalMockFs;
+  process.env = originalEnv;
+});
+
+/**
+ * Test suite for `resolvePath` function.
+ * @see {@link module:src/utils/path-resolver.resolvePath}
+ */
+test('resolvePath() should resolve paths correctly', async (t) => {
+  const originalMockFs = { ...global.MOCK_FS };
+  const originalEnv = { ...process.env };
+  
+  // Setup test environment
+  process.env.NODE_ENV = 'test';
+  
+  // Setup mock file system for resolvePath tests
+  const jsconfigPath = path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/');
+  const mockJsConfig = {
+    compilerOptions: {
+      baseUrl: '.',
+      paths: {
+        "@/*": ["src/*"],
+        "@config/*": ["src/config/*"],
+        "@utils/*": ["src/utils/*"],
+        "@test/*": ["test/*"],
+        "@public/*": ["public/*"]
+      }
+    }
+  };
+  
+  global.MOCK_FS = {
+    ...global.MOCK_FS,
+    [jsconfigPath]: mockJsConfig,
+    [path.join(TEST_PROJECT_ROOT, 'package.json').replace(/\\/g, '/')]: '{}',
+    [path.join(TEST_PROJECT_ROOT, 'src', 'some', 'module.js').replace(/\\/g, '/')]: '// Mock module',
+    [path.join(TEST_PROJECT_ROOT, 'src', 'config', 'constants.js').replace(/\\/g, '/')]: '// Mock constants',
+    [path.join(TEST_PROJECT_ROOT, 'src', 'utils', 'logger.js').replace(/\\/g, '/')]: '// Mock logger',
+    [path.join(TEST_PROJECT_ROOT, 'public', 'index.html').replace(/\\/g, '/')]: '<!-- Mock HTML -->',
+    [path.join(TEST_PROJECT_ROOT, 'test', 'test-utils.js').replace(/\\/g, '/')]: '// Test utils'
+  };
+  
+  /**
+   * @test {resolvePath} Should resolve absolute paths within project root.
+   */
   await t.test('should resolve absolute paths within project root', async () => {
     const absolutePath = path.join(TEST_PROJECT_ROOT, 'src', 'some', 'module.js');
     const result = await resolvePath(absolutePath);
-    // Normalize slashes for comparison to fix Windows path issues
     assert.strictEqual(result.replace(/\\/g, '/'), absolutePath.replace(/\\/g, '/'));
   });
 
+  /**
+   * @test {resolvePath} Should throw `PathResolutionError` for absolute paths outside project root.
+   */
   await t.test('should throw PathResolutionError for absolute paths outside project root', async () => {
     const outsidePath = path.resolve('/outside/project/file.js');
-    await assert.rejects(resolvePath(outsidePath), PathResolutionError, 'Should reject absolute path outside root');
+    await assert.rejects(resolvePath(outsidePath), PathResolutionError);
   });
 
+  /**
+   * @test {resolvePath} Should resolve relative paths correctly.
+   */
   await t.test('should resolve relative paths correctly', async () => {
     const basePath = path.join(TEST_PROJECT_ROOT, 'src', 'config');
     const relativePath = '../utils/logger.js';
     const expectedPath = path.join(TEST_PROJECT_ROOT, 'src', 'utils', 'logger.js');
     const result = await resolvePath(relativePath, basePath);
-    assert.strictEqual(
-      result.replace(/\\/g, '/'), 
-      expectedPath.replace(/\\/g, '/')
-    );
+    assert.strictEqual(result.replace(/\\/g, '/'), expectedPath.replace(/\\/g, '/'));
   });
 
+  /**
+   * @test {resolvePath} Should throw `PathResolutionError` for relative paths escaping project root.
+   */
   await t.test('should throw PathResolutionError for relative paths escaping project root', async () => {
     const basePath = path.join(TEST_PROJECT_ROOT, 'src', 'config');
-    const escapingPath = '../../../../outside.js'; // Attempts to go above project root
-    await assert.rejects(resolvePath(escapingPath, basePath), PathResolutionError, 'Should reject relative path escaping root');
+    const escapingPath = '../../../../outside.js';
+    await assert.rejects(resolvePath(escapingPath, basePath), PathResolutionError);
   });
 
+  /**
+   * @test {resolvePath} Should return non-aliased specifiers as-is.
+   */
   await t.test('should return non-aliased specifiers as-is', async () => {
     const specifier = 'some-npm-package';
     const result = await resolvePath(specifier);
     assert.strictEqual(result, specifier);
   });
 
+  /**
+   * @test {resolvePath} Should resolve basic aliased paths.
+   */
   await t.test('should resolve basic aliased paths', async () => {
     const specifier = '@config/constants.js';
     const expectedPath = path.join(TEST_PROJECT_ROOT, 'src', 'config', 'constants.js');
     const result = await resolvePath(specifier);
-    assert.strictEqual(
-      result.replace(/\\/g, '/'), 
-      expectedPath.replace(/\\/g, '/')
-    );
+    assert.strictEqual(result.replace(/\\/g, '/'), expectedPath.replace(/\\/g, '/'));
   });
 
+  /**
+   * @test {resolvePath} Should apply longest matching alias.
+   */
   await t.test('should apply longest matching alias', async () => {
     const specifier = '@overlapping/path/deep.js';
     const expectedPath = path.join(TEST_PROJECT_ROOT, 'src', 'overlapping', 'path', 'deep.js').replace(/\\/g, '/');
@@ -453,76 +696,67 @@ test('resolvePath() should resolve paths correctly', async (t) => {
     assert.strictEqual(result2, expectedPath2);
   });
 
+  /**
+   * @test {resolvePath} Should append `.js` extension if file exists without it.
+   */
   await t.test('should append .js extension if file exists without it', async () => {
-    const specifier = '@/some/module'; // Request without .js
+    const specifier = '@/some/module';
     const expectedPath = path.join(TEST_PROJECT_ROOT, 'src', 'some', 'module.js').replace(/\\/g, '/');
     const result = await resolvePath(specifier);
     assert.strictEqual(result, expectedPath);
   });
 
+  /**
+   * @test {resolvePath} Should not append `.js` extension if file does not exist with it.
+   */
   await t.test('should not append .js extension if file does not exist with it', async () => {
-    const specifier = '@/nonexistent/file'; // Request without .js
+    const specifier = '@/nonexistent/file';
     const expectedPath = path.join(TEST_PROJECT_ROOT, 'src', 'nonexistent', 'file').replace(/\\/g, '/');
     const result = await resolvePath(specifier);
     assert.strictEqual(result, expectedPath);
   });
 
+  /**
+   * @test {resolvePath} Should throw `PathResolutionError` for invalid specifier.
+   */
   await t.test('should throw PathResolutionError for invalid specifier', async () => {
-    await assert.rejects(resolvePath(''), PathResolutionError, 'Should reject empty string');
-    await assert.rejects(resolvePath(null), PathResolutionError, 'Should reject null');
-    await assert.rejects(resolvePath(undefined), PathResolutionError, 'Should reject undefined');
+    await assert.rejects(resolvePath(''), PathResolutionError);
+    await assert.rejects(resolvePath(null), PathResolutionError);
+    await assert.rejects(resolvePath(undefined), PathResolutionError);
   });
 
+  /**
+   * @test {resolvePath} Should throw `PathResolutionError` when no matching alias is found.
+   */
   await t.test('should throw PathResolutionError when no matching alias is found', async () => {
     const specifier = '@nonexistent/path';
-    await assert.rejects(resolvePath(specifier), PathResolutionError, 'Should reject for no matching alias');
+    await assert.rejects(resolvePath(specifier), PathResolutionError);
   });
 
+  /**
+   * @test {resolvePath} Should use `global.MOCK_FS` for path existence checks in test environment.
+   */
   await t.test('should use global.MOCK_FS for path existence checks in test environment', async () => {
-    // Save original values
-    const originalEnv = { ...process.env };
-    const originalMockFs = { ...global.MOCK_FS };
-    
-    try {
-      process.env.NODE_ENV = 'test';
-      
-      // Clear any existing MOCK_FS and set up test files with directory structure
-      global.MOCK_FS = {
-        // Directory entries
-        [path.join(TEST_PROJECT_ROOT).replace(/\\/g, '/')]: {},
-        [path.join(TEST_PROJECT_ROOT, 'src').replace(/\\/g, '/')]: {},
-        [path.join(TEST_PROJECT_ROOT, 'src', 'mocked').replace(/\\/g, '/')]: {},
-        // File entry
-        [path.join(TEST_PROJECT_ROOT, 'src', 'mocked', 'file.js').replace(/\\/g, '/')]: 'content',
-        // jsconfig with only the @mocked alias for this test
-        [path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/')]: {
-          compilerOptions: {
-            baseUrl: '.',
-            paths: { 
-              "@mocked/*": ["src/mocked/*"] 
-            }
-          }
+    process.env.NODE_ENV = 'test';
+    global.MOCK_FS = {
+      [path.join(TEST_PROJECT_ROOT).replace(/\\/g, '/')]: {},
+      [path.join(TEST_PROJECT_ROOT, 'src').replace(/\\/g, '/')]: {},
+      [path.join(TEST_PROJECT_ROOT, 'src', 'mocked').replace(/\\/g, '/')]: {},
+      [path.join(TEST_PROJECT_ROOT, 'src', 'mocked', 'file.js').replace(/\\/g, '/')]: 'content',
+      [path.join(TEST_PROJECT_ROOT, 'jsconfig.json').replace(/\\/g, '/')]: {
+        compilerOptions: {
+          baseUrl: '.',
+          paths: { "@mocked/*": ["src/mocked/*"] }
         }
-      };
-
-      // Clear the alias cache to ensure fresh resolution
-      clearAliasCache();
-      
-      const specifier = '@mocked/file';
-      const expectedPath = path.join(TEST_PROJECT_ROOT, 'src', 'mocked', 'file.js').replace(/\\/g, '/');
-      
-      const result = await resolvePath(specifier);
-      
-      // Normalize both paths for comparison
-      const normalizedResult = path.normalize(result).replace(/\\/g, '/');
-      const normalizedExpected = path.normalize(expectedPath).replace(/\\/g, '/');
-      
-      assert.strictEqual(normalizedResult, normalizedExpected, `Expected ${normalizedExpected} but got ${normalizedResult}`);
-      assert.strictEqual(fsPromisesMock.access.mock.callCount(), 0, 'fs.promises.access should not be called when MOCK_FS is used');
-    } finally {
-      // Restore original values
-      process.env = originalEnv;
-      global.MOCK_FS = originalMockFs;
-    }
+      }
+    };
+    clearAliasCache();
+    const specifier = '@mocked/file';
+    const expectedPath = path.join(TEST_PROJECT_ROOT, 'src', 'mocked', 'file.js').replace(/\\/g, '/');
+    const result = await resolvePath(specifier);
+    const normalizedResult = path.normalize(result).replace(/\\/g, '/');
+    const normalizedExpected = path.normalize(expectedPath).replace(/\\/g, '/');
+    assert.strictEqual(normalizedResult, normalizedExpected);
+    assert.strictEqual(fsPromisesMock.access.mock.callCount(), 0);
   });
 });

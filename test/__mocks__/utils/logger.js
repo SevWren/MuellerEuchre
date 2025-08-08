@@ -1,56 +1,119 @@
 /**
- * @file test/__mocks__/logger.js
- * @description Mock logger for testing purposes.
- * @see src/utils/logger.js
- * @see test/game/phases/endGame.unit.test.js
+ * @file test/__mocks__/utils/logger.js
+ * @description Mock factory for the logger utility, enabling dependency injection for testing.
+ * This file re-implements the logic of `src/utils/logger.js` in a factory pattern
+ * to allow `pino`, `process`, and `console` to be mocked during tests. This is the
+ * sanctioned method for testing modules with top-level dependencies.
  */
+import { DEBUG_LEVELS } from '../../../src/config/constants.js';
 
-import { mock } from 'node:test';
+// This factory creates a testable instance of the entire logger module.
+export function createLoggerModule({ pino, process, console }) {
+  // --- Re-implementation of logger.js logic using injected dependencies ---
 
-/**
- * A mock logger object for testing purposes.
- * It provides mock functions for common logging levels and a reset method.
- * @typedef {object} MockLogger
- * @property {import('node:test').Mock<any[], any>} log - Mock function for general logging.
- * @property {import('node:test').Mock<any[], any>} error - Mock function for error logging.
- * @property {import('node:test').Mock<any[], any>} warn - Mock function for warning logging.
- * @property {import('node:test').Mock<any[], any>} info - Mock function for info logging.
- * @property {import('node:test').Mock<any[], any>} debug - Mock function for debug logging.
- * @property {function(): void} reset - Resets all mock logger calls.
- */
-const mockLogger = {
-  log: mock.fn(),
-  error: mock.fn(),
-  warn: mock.fn(),
-  info: mock.fn(),
-  debug: mock.fn(),
-  /**
-   * Resets the call history of all mock logger functions.
-   * @returns {void}
-   */
-  reset: function() {
-    this.log.mock.resetCalls();
-    this.error.mock.resetCalls();
-    this.warn.mock.resetCalls();
-    this.info.mock.resetCalls();
-    this.debug.mock.resetCalls();
+  const debugLevelToPino = {
+    [DEBUG_LEVELS.ERROR]: "error",
+    [DEBUG_LEVELS.LOG_LEVEL_ERROR]: "error",
+    [DEBUG_LEVELS.WARN]: "warn",
+    [DEBUG_LEVELS.LOG_LEVEL_WARN]: "warn",
+    [DEBUG_LEVELS.INFO]: "info",
+    [DEBUG_LEVELS.LOG_LEVEL_INFO]: "info",
+    [DEBUG_LEVELS.DEBUG]: "debug",
+    [DEBUG_LEVELS.LOG_LEVEL_DEBUG]: "debug",
+    [DEBUG_LEVELS.LOG_LEVEL_TRACE]: "trace",
+    [DEBUG_LEVELS.NONE]: "silent",
+    [DEBUG_LEVELS.LOG_LEVEL_SILENT]: "silent"
+  };
+
+  function createLogger({ level = 'info', prettyPrint = false, redact = [] } = {}, destination) {
+    const loggerOptions = { level, redact };
+    if (prettyPrint) {
+      loggerOptions.transport = { target: "pino-pretty" };
+    }
+    return pino(loggerOptions, destination);
   }
-};
 
-/**
- * The default export is the mock logger object.
- * @type {MockLogger}
- */
-export default mockLogger;
+  function getLogLevelFromEnv(env) {
+    const envLogLevel = env.LOG_LEVEL?.toLowerCase();
+    const pinoLevels = ["fatal", "error", "warn", "info", "debug", "trace", "silent"];
+    if (envLogLevel && pinoLevels.includes(envLogLevel)) {
+      return { level: envLogLevel, warning: null };
+    }
+    if (env.DEBUG_LEVEL) {
+      const mappedLevel = debugLevelToPino[env.DEBUG_LEVEL];
+      if (mappedLevel) {
+        return { level: mappedLevel, warning: null };
+      }
+      return { level: 'info', warning: `Invalid DEBUG_LEVEL: ${env.DEBUG_LEVEL}, defaulting to 'info'` };
+    }
+    return { level: 'info', warning: null };
+  }
 
-/**
- * Individual mock logger methods for named imports.
- * @type {{
- *   log: import('node:test').Mock<any[], any>,
- *   error: import('node:test').Mock<any[], any>,
- *   warn: import('node:test').Mock<any[], any>,
- *   info: import('node:test').Mock<any[], any>,
- *   debug: import('node:test').Mock<any[], any>
- * }}
- */
-export const { log, error, warn, info, debug } = mockLogger;
+  const { level: currentLogLevelName, warning: startupWarning } = getLogLevelFromEnv(process.env);
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (startupWarning) {
+    console.warn(startupWarning);
+  }
+
+  const logger = createLogger({
+    level: currentLogLevelName,
+    prettyPrint: !isProduction,
+    redact: ['hand'],
+  });
+
+  function log(level, message, obj, context) {
+    const logObject = obj ? { ...obj } : {};
+    if (context) {
+      logObject.context = context;
+    }
+    switch (level) {
+      case DEBUG_LEVELS.ERROR:
+      case DEBUG_LEVELS.LOG_LEVEL_ERROR:
+        logger.error(logObject, message);
+        break;
+      case DEBUG_LEVELS.INFO:
+      case DEBUG_LEVELS.LOG_LEVEL_INFO:
+        logger.info(logObject, message);
+        break;
+      case DEBUG_LEVELS.WARN:
+      case DEBUG_LEVELS.LOG_LEVEL_WARN:
+        logger.warn(logObject, message);
+        break;
+      case DEBUG_LEVELS.DEBUG:
+      case DEBUG_LEVELS.LOG_LEVEL_DEBUG:
+        logger.debug(logObject, message);
+        break;
+      case DEBUG_LEVELS.LOG_LEVEL_TRACE:
+        logger.trace(logObject, message);
+        break;
+      case DEBUG_LEVELS.NONE:
+      case DEBUG_LEVELS.LOG_LEVEL_SILENT:
+        break;
+      default:
+        const unknownLevelMessage = `Unknown log level (${level}): ${message}`;
+        logger.info(logObject, unknownLevelMessage);
+    }
+  }
+
+  function setDebugLevel(newLevel) {
+    const levelMap = {
+      [DEBUG_LEVELS.ERROR]: 'error',
+      [DEBUG_LEVELS.LOG_LEVEL_ERROR]: 'error',
+      [DEBUG_LEVELS.WARN]: 'warn',
+      [DEBUG_LEVELS.LOG_LEVEL_WARN]: 'warn',
+      [DEBUG_LEVELS.INFO]: 'info',
+      [DEBUG_LEVELS.LOG_LEVEL_INFO]: 'info',
+      [DEBUG_LEVELS.DEBUG]: 'debug',
+      [DEBUG_LEVELS.LOG_LEVEL_DEBUG]: 'debug',
+      [DEBUG_LEVELS.LOG_LEVEL_TRACE]: 'trace',
+      [DEBUG_LEVELS.NONE]: 'silent',
+      [DEBUG_LEVELS.LOG_LEVEL_SILENT]: 'silent'
+    };
+    const levelName = levelMap[newLevel] || 'info';
+    logger.warn(`Attempted to set debug level to ${newLevel} (${levelName}) dynamically. Pino logger level ('${logger.level}') is set at initialization. Restart with new LOG_LEVEL or DEBUG_LEVEL env var to change.`);
+    logger.level = levelName;
+  }
+
+  return { logger, log, setDebugLevel, createLogger, getLogLevelFromEnv };
+}

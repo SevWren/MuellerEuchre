@@ -1,3 +1,7 @@
+// TODO: Fully JSDoc
+// TODO: Improve decision making logic
+// 8-3-25 - Currently 100% Coverage
+
 import { describe, it, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import { CARD_SUITS, CARD_VALUES } from "../../../src/config/constants.js";

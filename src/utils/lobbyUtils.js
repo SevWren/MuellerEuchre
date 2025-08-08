@@ -18,7 +18,6 @@ import { PLAYER_ROLES, TEAMS } from "../config/constants.js";
  * This is created directly from the keys of the TEAMS constant object.
  * @typedef {keyof typeof TEAMS} TeamName
  */
-import logger from "./logger.js";
 
 /**
  * Represents the state of a player within the game.
@@ -51,36 +50,52 @@ import logger from "./logger.js";
  * @property {Object.<TeamName, TeamState>} teams - An object mapping team IDs to their TeamState.
  */
 
+// Default no-op logger for when none is provided
+const noopLogger = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  debug: () => {},
+  trace: () => {},
+  fatal: () => {},
+  child: () => noopLogger,
+  level: 'silent',
+  silent: () => {}
+};
+
 /**
- * Assigns a role to a player and updates the game state. This is a pure function.
- * @param {GameState} gameState - The current game state.
- * @param {PlayerRole} role - The role to assign.
- * @param {string} userId - The user's unique ID.
- * @param {string} playerName - The player's chosen name.
- * @param {string} socketId - The player's socket ID.
- * @returns {GameState} The modified game state.
- * @throws {EuchreError} E_INVALID_GAME_STATE if gameState or players object is invalid.
- * @throws {EuchreError} E_INVALID_ROLE if an invalid role is specified.
- * @see src/socket/handlers/lobbyHandlers.js
- * @see test/utils/lobbyUtils.unit.test.js
+ * Creates an object containing lobby utility functions with the specified logger.
+ * @param {Object} [logger] - The logger instance to use for logging. If not provided, a no-op logger will be used.
+ * @returns {Object} An object containing the lobby utility functions.
  */
-export function assignRoleToPlayer(
-  gameState,
-  role,
-  userId,
-  playerName,
-  socketId,
-) {
-  if (!gameState || !gameState.players) {
-    const error = new EuchreError(
-      'Invalid gameState or players object.',
-      'E_INVALID_GAME_STATE'
-    );
-    error.details = { gameState, role, userId };
-    throw error;
-  }
-  // Note: This check assumes PLAYER_ROLES is an array. If PLAYER_ROLES is an object
-  // as implied by the `keyof typeof` JSDoc, this check should be `!Object.values(PLAYER_ROLES).includes(role)`
+export function createLobbyUtils(logger = noopLogger) {
+  /**
+   * Assigns a role to a player and updates the game state. This is a pure function.
+   * @param {GameState} gameState - The current game state.
+   * @param {PlayerRole} role - The role to assign.
+   * @param {string} userId - The user's unique ID.
+   * @param {string} playerName - The player's chosen name.
+   * @param {string} socketId - The player's socket ID.
+   * @returns {GameState} The modified game state.
+   * @throws {EuchreError} E_INVALID_GAME_STATE if gameState or players object is invalid.
+   * @throws {EuchreError} E_INVALID_ROLE if an invalid role is specified.
+   */
+  function assignRoleToPlayer(
+    gameState,
+    role,
+    userId,
+    playerName,
+    socketId,
+  ) {
+    if (!gameState || !gameState.players) {
+      const error = new EuchreError(
+        'Invalid gameState or players object.',
+        'E_INVALID_GAME_STATE'
+      );
+      error.details = { gameState, role, userId };
+      logger.error('Invalid gameState or players object', { error });
+      throw error;
+    }
   // or `!PLAYER_ROLES[role]`. The JSDoc is updated to reflect the `keyof typeof` pattern.
   if (!PLAYER_ROLES.includes(role)) {
     const error = new EuchreError(
@@ -168,12 +183,12 @@ export function assignRoleToPlayer(
   
   // Add the role to the correct team if it's not already there
   if (!updatedTeams[playerTeamId].players.includes(role)) {
-    console.log(`Adding role ${role} to team ${playerTeamId}`);
+    logger.info(`Adding role ${role} to team ${playerTeamId}`);
     updatedTeams[playerTeamId].players.push(role);
-    console.log(`Team ${playerTeamId} players after adding role:`, 
+    logger.debug(`Team ${playerTeamId} players after adding role:`, 
       JSON.stringify(updatedTeams[playerTeamId].players, null, 2));
   } else {
-    console.log(`Role ${role} already exists in team ${playerTeamId}`);
+    logger.info(`Role ${role} already exists in team ${playerTeamId}`);
   }
 
   // Create the updated state with the new players and teams
@@ -197,14 +212,21 @@ export function assignRoleToPlayer(
  * @see src/socket/handlers/lobbyHandlers.js
  * @see test/utils/lobbyUtils.unit.test.js
  */
-export function isLobbyFull(gameState) {
-  if (!gameState || !gameState.players) return false;
-  return PLAYER_ROLES.every(
-    (role) =>
-      gameState.players[role] &&
-      gameState.players[role].isConnected &&
-      gameState.players[role].isActive, // Consider isActive for players in the current game session
-  );
+function isLobbyFull(gameState) {
+  // Handle invalid game state or missing players object
+  if (!gameState || !gameState.players) {
+    logger.warn('isLobbyFull called with invalid gameState');
+    return false;
+  }
+
+  // Check if all required player roles are filled with connected, active players
+  const allRolesFilled = Object.values(PLAYER_ROLES).every(role => {
+    const player = gameState.players[role];
+    return player && player.isConnected && player.isActive;
+  });
+  
+  logger.debug(`Lobby is ${allRolesFilled ? 'full' : 'not full'}`);
+  return allRolesFilled;
 }
 
 /**
@@ -214,18 +236,40 @@ export function isLobbyFull(gameState) {
  * @see src/socket/handlers/lobbyHandlers.js
  * @see test/utils/lobbyUtils.unit.test.js
  */
-export function getNextAvailableRole(gameState) {
-  if (!gameState || !gameState.players) return null;
-  for (const role of PLAYER_ROLES) {
-    // A slot is available if the role key doesn't exist,
-    // or if the player in that role is not connected or not active.
-    if (
+function getNextAvailableRole(gameState) {
+  if (!gameState || !gameState.players) {
+    logger.warn('getNextAvailableRole called with invalid gameState');
+    return null;
+  }
+
+  // Find the first role that doesn't have a connected, active player
+  const availableRole = Object.values(PLAYER_ROLES).find(
+    (role) =>
       !gameState.players[role] ||
       !gameState.players[role].isConnected ||
       !gameState.players[role].isActive
-    ) {
-      return role;
-    }
-  }
-  return null;
+  );
+
+  logger.debug(`Next available role: ${availableRole || 'none'}`);
+  return availableRole || null;
+}
+
+/**
+ * Gets the team for a given player role.
+ * @private
+ * @param {PlayerRole} role - The player role.
+ * @returns {TeamName} The team name.
+ */
+function getTeamForRole(role) {
+  const team = role.endsWith('_NORTH') || role.endsWith('_SOUTH') ? 'TEAM_NS' : 'TEAM_EW';
+  logger.trace(`Role ${role} is on team ${team}`);
+  return team;
+}
+
+  // Return the public API of the module
+  return {
+    assignRoleToPlayer,
+    isLobbyFull,
+    getNextAvailableRole
+  };
 }

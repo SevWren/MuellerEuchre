@@ -59,7 +59,7 @@
  * @property {Array<string>} messages - A log of game messages.
  */
 
-import { describe, it, beforeEach, afterEach } from 'node:test';
+import { describe, it, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -67,10 +67,6 @@ import { dirname, join } from 'node:path';
 // Get the current file's directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// Import the module to test
-const lobbyUtilsPath = join(__dirname, '..', '..', 'src', 'utils', 'lobbyUtils.js');
-const { assignRoleToPlayer, isLobbyFull, getNextAvailableRole } = await import('file://' + lobbyUtilsPath);
 
 // Import required utilities
 const playersPath = join(__dirname, '..', '..', 'src', 'utils', 'players.js');
@@ -80,13 +76,24 @@ const { initializePlayers, getPartner } = (await import('file://' + playersPath)
 const constantsPath = join(__dirname, '..', '..', 'src', 'config', 'constants.js');
 const { TEAMS, PLAYER_POSITIONS, PLAYER_ROLES } = await import('file://' + constantsPath);
 
-// Logger mock functions
+// Import the module under test
+import { createLobbyUtils } from '../../src/utils/lobbyUtils.js';
+
+// Create a mock logger for testing
 const mockLogger = {
   info: () => {},
   warn: () => {},
   error: () => {},
-  debug: () => {}
+  debug: () => {},
+  trace: () => {},
+  fatal: () => {},
+  child: () => mockLogger,
+  level: 'silent',
+  silent: () => {}
 };
+
+// Create an instance of the lobby utils with the mock logger
+const { assignRoleToPlayer, isLobbyFull, getNextAvailableRole } = createLobbyUtils(mockLogger);
 
 describe('Lobby Utility Functions', () => {
   /** @type {GameState} */
@@ -96,6 +103,12 @@ describe('Lobby Utility Functions', () => {
   beforeEach(async (t) => {
     // Setup mocks for logger
     mockReset = t.mock.method(console, 'log', () => {});
+    
+    // Apply the logger mock
+    mock.method(console, 'info', () => {});
+    mock.method(console, 'warn', () => {});
+    mock.method(console, 'error', () => {});
+    mock.method(console, 'debug', () => {});
     
     // Create a fresh game state for each test using initializePlayers
     baseGameState = {
@@ -774,7 +787,7 @@ describe('Lobby Utility Functions', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     // Reset mocks after each test
     if (mockReset) {
       mockReset.mock.resetCalls();

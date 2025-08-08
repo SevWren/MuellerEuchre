@@ -1,5 +1,3 @@
-// filepath: test/utils/players.unit.test.js
-
 /**
  * Unit tests for player utility functions in the Euchre Multiplayer game.
  * @module test/utils/players.unit.test
@@ -13,15 +11,25 @@
  *   - Turn progression (getNextPlayer)
  *
  * @see {@link module:src/utils/players} for the implementation being tested
- * @since 1.0.0
+ * @see {@link module:src/config/constants} for TEAMS and PLAYER_ROLES constants
+ * @see {@link module:src/utils/logger} for logging utilities
+ 
  */
 import { describe, it, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert";
 import * as loggerModule from "../../src/utils/logger.js";
 import { TEAMS, PLAYER_ROLES } from "../../src/config/constants.js";
 
-// Module under test
+/**
+ * Module under test - will be dynamically imported after mocking the logger
+ * @type {object}
+ */
 let playersUtils;
+
+/**
+ * Mock function for logger.warn - tracks calls for assertion verification
+ * @type {import('node:test').Mock}
+ */
 let loggerWarnMock;
 
 beforeEach(async () => {
@@ -41,7 +49,12 @@ afterEach(() => {
 });
 
 describe("Player Utilities", () => {
+  /**
+   * Test suite for initializePlayers() function
+   * @see {@link module:src/utils/players.initializePlayers}
+   */
   describe("initializePlayers()", () => {
+    /** @type {Object} */
     let players;
 
     beforeEach(() => {
@@ -104,8 +117,13 @@ describe("Player Utilities", () => {
     });
   });
 
+  /**
+   * Test suite for getPlayerTeam() function
+   * @see {@link module:src/utils/players.getPlayerTeam}
+   */
   describe("getPlayerTeam()", () => {
     // Test data
+    /** @type {import('../../src/utils/players').Player} */
     const validPlayerNS = {
       id: "p1",
       name: "Player NS",
@@ -239,8 +257,12 @@ describe("Player Utilities", () => {
     });
   });
 
+  /**
+   * Test suite for isTeammate() function
+   * @see {@link module:src/utils/players.isTeammate}
+   */
   describe("isTeammate()", () => {
-    // Assuming PLAYER_ROLES = ['PLAYER_SOUTH', 'PLAYER_WEST', 'PLAYER_NORTH', 'PLAYER_EAST']
+    // PLAYER_ROLES = ['PLAYER_SOUTH', 'PLAYER_WEST', 'PLAYER_NORTH', 'PLAYER_EAST']
     it("should return true for players on the same team (South and North)", () => {
       assert.strictEqual(
         playersUtils.isTeammate(PLAYER_ROLES[0], PLAYER_ROLES[2]),
@@ -306,8 +328,12 @@ describe("Player Utilities", () => {
     });
   });
 
+  /**
+   * Test suite for getPartner() function
+   * @see {@link module:src/utils/players.getPartner}
+   */
   describe("getPartner()", () => {
-    // Assuming PLAYER_ROLES = ['PLAYER_SOUTH', 'PLAYER_WEST', 'PLAYER_NORTH', 'PLAYER_EAST']
+    // PLAYER_ROLES = ['PLAYER_SOUTH', 'PLAYER_WEST', 'PLAYER_NORTH', 'PLAYER_EAST']
     it("should return the correct partner for South", () => {
       assert.strictEqual(
         playersUtils.getPartner(PLAYER_ROLES[0]),
@@ -352,7 +378,12 @@ describe("Player Utilities", () => {
     });
   });
 
+  /**
+   * Test suite for getPlayerBySocketId() function
+   * @see {@link module:src/utils/players.getPlayerBySocketId}
+   */
   describe("getPlayerBySocketId()", () => {
+    /** @type {import('../../src/game/state').GameState} */
     let mockGameState;
 
     beforeEach(() => {
@@ -428,7 +459,12 @@ describe("Player Utilities", () => {
     });
   });
 
+  /**
+   * Test suite for getRoleBySocketId() function
+   * @see {@link module:src/utils/players.getRoleBySocketId}
+   */
   describe("getRoleBySocketId()", () => {
+    /** @type {import('../../src/game/state').GameState} */
     let mockGameState;
 
     beforeEach(() => {
@@ -494,7 +530,12 @@ describe("Player Utilities", () => {
     });
   });
 
+  /**
+   * Test suite for getNextPlayer() function
+   * @see {@link module:src/utils/players.getNextPlayer}
+   */
   describe("getNextPlayer()", () => {
+    /** @type {string[]} */
     let playerSlots;
 
     beforeEach(() => {
@@ -721,6 +762,10 @@ describe("Player Utilities", () => {
       );
     });
 
+    /**
+     * Test cases for handling duplicate player roles in the playerSlots array
+     * @see {@link module:src/utils/players.getNextPlayer}
+     */
     describe("with duplicate player roles", () => {
       it("should return undefined and log a warning for duplicate roles in playerSlots", () => {
         const duplicateSlots = [...PLAYER_ROLES, PLAYER_ROLES[0]]; // Has duplicate 'PLAYER_SOUTH'
@@ -740,6 +785,10 @@ describe("Player Utilities", () => {
       });
     });
 
+    /**
+     * Test cases for handling invalid playerSlots parameter types
+     * @see {@link module:src/utils/players.getNextPlayer}
+     */
     describe("with non-array playerSlots", () => {
       it("should handle non-array playerSlots", () => {
         const result = playersUtils.getNextPlayer(PLAYER_ROLES[0], {});

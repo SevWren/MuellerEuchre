@@ -154,32 +154,61 @@ import {
  * Validates that a set of required arguments are provided.
  * 
  * This function checks that all required arguments are truthy and throws a
- * ValidationError if any are missing or invalid.
- * 
+ * ValidationError if any are missing or invalid. It's used internally by other
+ * validation functions to ensure all required parameters are provided.
+ *
  * @private
  * @memberof module:game/logic/validation
  * @param {Object.<string, *>} args - An object where keys are argument names and values are the arguments to validate.
  * @param {string} context - A string describing the validation context for the error message.
+ * @returns {void}
  * @throws {module:game/logic/validation-errors.ValidationError} If any required argument is falsy.
  *   The error will have a `message` property describing which arguments were missing or invalid.
- * @see {@link module:game/logic/validation~validatePlay}
- * @see {@link module:game/logic/validation~validateBid}
- * @see {@link module:game/logic/validation~validateDealerDiscard}
- * @see {@link module:game/logic/validation~isValidGoAlone}
+ * @see {@link module:game/logic/validation~validatePlay} For play validation
+ * @see {@link module:game/logic/validation~validateBid} For bid validation
+ * @see {@link module:game/logic/validation~validateDealerDiscard} For dealer discard validation
+ * @see {@link module:game/logic/validation~isValidGoAlone} For go-alone validation
  * 
  * @example
- * // Example usage:
+ * // Basic usage in a function
+ * function myFunction(user, options) {
+ *   // Validate required arguments
+ *   requireArgs({ user, options }, 'myFunction');
+ *   
+ *   // Function implementation...
+ * }
+ * 
+ * @example
+ * // Error handling
  * try {
- *   requireArgs({ foo: 'bar', baz: 42 }, 'myFunction');
+ *   requireArgs({ userId: null, name: 'Test' }, 'updateUser');
  * } catch (error) {
  *   console.error(error.message);
+ *   // Output: "Internal error: Missing required argument 'userId' for updateUser."
+ * }
+ * 
+ * @example
+ * // Nested property validation
+ * function processOrder(order) {
+ *   requireArgs({ 
+ *     'order.id': order?.id,
+ *     'order.customer': order?.customer 
+ *   }, 'processOrder');
+ *   
+ *   // Process the order...
  * }
  */
 function requireArgs(args, context) {
+  if (!args || typeof args !== 'object') {
+    const message = `Internal error: Invalid arguments object provided to requireArgs for ${context}.`;
+    logger.error({ args, context }, message);
+    throw new ValidationError(message);
+  }
+
   for (const [key, value] of Object.entries(args)) {
-    if (!value) {
+    if (value === undefined || value === null || value === '') {
       const message = `Internal error: Missing required argument '${key}' for ${context}.`;
-      logger.error({ missingArg: key, context }, message);
+      logger.error({ missingArg: key, context, args }, message);
       throw new ValidationError(message);
     }
   }

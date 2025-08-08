@@ -1,27 +1,76 @@
 /**
- * @file test/phases/goAlonePhase.unit.test.js
- * @module test/phases/goAlonePhase.unit
+ * @file test/game/phases/goAlonePhase.unit.test.js
+ * @module test/game/phases/goAlonePhase.unit
  * @description
- *   Unit tests for the "Go Alone" phase logic in Euchre Multiplayer.
+ *   Comprehensive unit tests for the "Go Alone" phase logic in Euchre Multiplayer.
  *   These tests verify correct validation, error handling, and state transitions
  *   when a player decides to go alone or play with a partner.
  *
- *   This test file uses Node.js's built-in test runner and assertions.
- *   All tests are focused on Layer 1 logic, not on state management or network.
+ *   This test suite focuses on Layer 1 (pure function) logic, ensuring that:
+ *   - Input validation is strict and correct
+ *   - Game state transitions follow Euchre rules
+ *   - Error conditions are properly handled
+ *   - The game state is updated correctly for both go-alone and partner play
+ *   - Game flow adheres to Euchre's turn order rules
+ *
+ *   Test Categories:
+ *   - Input Validation: Verifies proper error handling for invalid inputs
+ *   - Phase and Turn Validation: Ensures actions only occur in the correct phase and turn
+ *   - Success Paths: Tests correct state updates for valid go-alone decisions
+ *   - Turn Order: Verifies correct turn order when a partner sits out
+ *   - Message Generation: Ensures appropriate game messages are generated
+ *
+ * @see {@link module:src/game/phases/goAlonePhase} - The implementation being tested
+ * @see {@link module:test/game/phases/goAlonePhase.edge.unit.test.js} - Edge case tests
+ * @see {@link module:test/helpers/test-helpers} - Test utilities and helpers
+ * @see {@link module:src/config/constants} - Game constants and enums
+ * @see {@link module:src/game/logic/validation-errors} - Error types and validation logic
+ *
+ * @test {handleGoAloneDecision} - Tests the core decision logic for going alone
+ * @test {GameState} - Verifies state transitions and validation
+ *
+ * @example
+ * // Run all tests in this file
+ * node --test test/game/phases/goAlonePhase.unit.test.js
+ *
+ * @example
+ * // Run a specific test by name
+ * node --test --test-name-pattern="should update state correctly when player decides to go alone" test/game/phases/goAlonePhase.unit.test.js
+ *
+ * @since 1.0.0
+ * @lastModified 2025-08-07
  */
 
+/**
+ * Node.js test runner and assertion library.
+ * @see {@link https://nodejs.org/api/test.html}
+ */
 import { describe, it, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
+
+/**
+ * Node.js path and URL utilities.
+ * Used for module resolution and path manipulation.
+ * @see {@link https://nodejs.org/api/url.html}
+ * @see {@link https://nodejs.org/api/path.html}
+ */
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-// Import constants and errors
+/**
+ * Game constants and enums.
+ * @see {@link module:src/config/constants}
+ */
 import {
   GAME_PHASES,
   PLAYER_ROLES,
   TEAMS,
 } from '../../../src/config/constants.js';
 
+/**
+ * Custom error types for game validation and logic.
+ * @see {@link module:src/game/logic/validation-errors}
+ */
 import {
   ValidationError,
   InvalidPhaseError,
@@ -29,10 +78,35 @@ import {
   PhaseLogicError,
 } from '../../../src/game/logic/validation-errors.js';
 
-// Import the module under test
+/**
+ * The function under test.
+ * @see {@link module:src/game/phases/goAlonePhase}
+ */
 import { handleGoAloneDecision } from '../../../src/game/phases/goAlonePhase.js';
 
-// Helper to create a base game state for go_alone phase tests
+/**
+ * Creates a base game state for testing the go alone phase.
+ * This helper function sets up a minimal valid game state with the specified
+ * current player and trump maker, including all required player objects.
+ *
+ * @param {string} currentPlayer - The role of the current player (e.g., 'PLAYER_SOUTH')
+ * @param {string} trumpMaker - The role of the player who made the trump call
+ * @returns {Object} A complete game state object for testing
+ * @property {Object} players - Object containing all player objects
+ * @property {string} currentPlayer - The current player's role
+ * @property {string} dealer - The dealer's role
+ * @property {string} makerTeam - The team that made the trump call
+ * @property {string} playerWhoOrderedUp - The player who ordered up
+ * @property {Array} currentTrick - Empty array for the current trick
+ * @property {Object} tricksTaken - Object tracking tricks won by each team
+ * @property {Array} gameMessages - Array for game log messages
+ * @property {Object} settings - Game settings including winning score
+ * @property {string|null} leadSuit - The current lead suit (null initially)
+ *
+ * @example
+ * // Create a test state with South as current player and trump maker
+ * const testState = createGoAloneGameState('PLAYER_SOUTH', 'PLAYER_SOUTH');
+ */
 const createGoAloneGameState = (currentPlayer, trumpMaker) => ({
   gameId: "goAloneTestGame",
   gamePhase: GAME_PHASES.GAME_PHASE_GOING_ALONE_DECISION,
@@ -69,25 +143,61 @@ const createGoAloneGameState = (currentPlayer, trumpMaker) => ({
   leadSuit: null, // Should be null before play starts
 });
 
+/**
+ * Test suite for the Go Alone phase logic.
+ * Covers input validation, phase/turn validation, and success paths.
+ *
+ * @see {@link module:src/game/phases/goAlonePhase} - The implementation being tested
+ * @see {@link module:src/config/constants} - Game constants used in tests
+ * @see {@link module:test/helpers/test-helpers} - Test utilities and helpers
+ *
+ * @test {handleGoAloneDecision} - Exercises the core decision logic
+ * @test {GameState} - Verifies state transitions and validation
+ */
 describe('GoAlonePhase Logic', () => {
-  // Mock the players utility module
+  /**
+   * Mock implementation of player utility functions.
+   * @type {Object}
+   * @property {Function} getNextPlayer - Mock function to get next player in turn order
+   * @property {Function} getPartner - Mock function to get a player's partner
+   */
   const playersMock = {
     getNextPlayer: mock.fn(),
     getPartner: mock.fn(),
   };
 
-  // Set up mocks before each test
+  /**
+   * Set up test environment before each test case.
+   * Resets all mocks and configures default mock behavior.
+   *
+   * @see {@link https://nodejs.org/api/test.html#test-hooks} - Node.js test hooks
+   */
   beforeEach(() => {
-    // Reset all mocks
+    // Reset all mocks to their initial state
     mock.reset();
     
-    // Mock the players module
+    /**
+     * Mock implementation of getNextPlayer.
+     * Returns the next player in the standard Euchre turn order.
+     *
+     * @param {string} current - The current player's role
+     * @param {Array<string>} players - Array of all player roles in turn order
+     * @returns {string} The next player's role
+     */
     mock.method(playersMock, 'getNextPlayer', (current, players) => {
       const currentIndex = players.indexOf(current);
       return players[(currentIndex + 1) % players.length];
     });
     
-    mock.method(playersMock, 'getPartner', (playerId, players) => {
+    /**
+     * Mock implementation of getPartner.
+     * Returns the partner for a given player based on Euchre's standard seating.
+     *
+     * @param {string} playerId - The player's role to find partner for
+     * @param {Array} _players - Unused parameter (kept for interface compatibility)
+     * @returns {string|null} The partner's role or null if not found
+     */
+    mock.method(playersMock, 'getPartner', (playerId, _players) => {
       const partnerMap = {
         [PLAYER_ROLES[0]]: PLAYER_ROLES[2], // South's partner is North
         [PLAYER_ROLES[1]]: PLAYER_ROLES[3], // West's partner is East
@@ -98,7 +208,24 @@ describe('GoAlonePhase Logic', () => {
     });
   });
 
+  /**
+   * Tests for input validation in the go alone phase.
+   * Verifies that invalid inputs are properly rejected with appropriate errors.
+   *
+   * @see {@link module:src/game/logic/validation-errors} - Error types used in validation
+   * @see {@link module:src/game/phases/goAlonePhase~handleGoAloneDecision} - Function under test
+   *
+   * @test {handleGoAloneDecision} - Input validation
+   * @test {ValidationError} - Error handling
+   */
   describe('Input Validation', () => {
+    /**
+     * Verifies that a ValidationError is thrown when the game state is null.
+     * This ensures the function properly validates its first argument.
+     *
+     * @test {handleGoAloneDecision} - Null game state validation
+     * @test {ValidationError} - Error type verification
+     */
     it('should throw ValidationError if currentGameState is null', () => {
       assert.throws(
         () => handleGoAloneDecision(null, PLAYER_ROLES[0], true),
@@ -109,6 +236,13 @@ describe('GoAlonePhase Logic', () => {
       );
     });
 
+    /**
+     * Verifies that a ValidationError is thrown when an invalid player role is provided.
+     * Ensures only valid player roles are accepted.
+     *
+     * @test {handleGoAloneDecision} - Player role validation
+     * @test {ValidationError} - Error type verification
+     */
     it('should throw ValidationError if decidingPlayerRole is invalid', () => {
       const gameState = createGoAloneGameState(PLAYER_ROLES[0], PLAYER_ROLES[0]);
       assert.throws(
@@ -120,6 +254,13 @@ describe('GoAlonePhase Logic', () => {
       );
     });
 
+    /**
+     * Verifies that a ValidationError is thrown when wantsToGoAlone is not a boolean.
+     * Ensures type safety for the decision parameter.
+     *
+     * @test {handleGoAloneDecision} - Parameter type validation
+     * @test {ValidationError} - Error type verification
+     */
     it('should throw ValidationError if wantsToGoAlone is not boolean', () => {
       const gameState = createGoAloneGameState(PLAYER_ROLES[0], PLAYER_ROLES[0]);
       assert.throws(
@@ -132,7 +273,25 @@ describe('GoAlonePhase Logic', () => {
     });
   });
 
+  /**
+   * Tests for phase and turn validation in the go alone phase.
+   * Ensures that actions can only be taken in the correct phase and turn order.
+   *
+   * @see {@link module:src/game/phases/goAlonePhase} - Phase validation logic
+   * @see {@link module:src/config/constants#GAME_PHASES} - Game phase constants
+   *
+   * @test {handleGoAloneDecision} - Phase validation
+   * @test {InvalidPhaseError} - Error handling for incorrect phases
+   * @test {NotPlayersTurnError} - Error handling for turn order violations
+   */
   describe('Phase and Turn Validation', () => {
+    /**
+     * Verifies that a PhaseLogicError is thrown when neither playerWhoOrderedUp
+     * nor playerWhoCalledTrump is set in the game state.
+     *
+     * @test {handleGoAloneDecision} - Trump maker validation
+     * @test {PhaseLogicError} - Error type verification
+     */
     it('should throw PhaseLogicError when trump maker cannot be determined', () => {
       const gameState = createGoAloneGameState('PLAYER_SOUTH', 'PLAYER_SOUTH');
       // Remove both playerWhoOrderedUp and playerWhoCalledTrump to trigger the error
@@ -190,7 +349,36 @@ describe('GoAlonePhase Logic', () => {
     });
   });
 
+  /**
+   * Tests for successful execution paths in the go alone phase.
+   * Verifies correct state updates for both go-alone and partner play decisions.
+   *
+   * @see {@link module:src/game/phases/goAlonePhase} - Implementation being tested
+   * @see {@link module:src/config/constants#GAME_PHASES} - Game phase transitions
+   *
+   * @test {handleGoAloneDecision} - Successful state transitions
+   * @test {GameState} - State validation after successful execution
+   *
+   * @description
+   * This test suite verifies that the go alone phase correctly updates the game state
+   * for both "go alone" and "play with partner" decisions, including:
+   * - Setting the game phase to PLAYING after decision
+   * - Updating the partnerSittingOut flag when going alone
+   * - Preserving existing game state
+   * - Generating appropriate game messages
+   */ 
+   /**
+   * @see {@link module:src/game/phases/playingPhase} - Next phase after go-alone decision
+   */
   describe('Success Paths', () => {
+    /**
+     * Verifies that the game state is updated correctly when a player decides to go alone.
+     * Ensures the partner is marked as sitting out and the game phase transitions to PLAYING.
+     *
+     * @test {handleGoAloneDecision} - State update verification
+     * @test {GameState} - Phase transition validation
+     * @test {GameState} - Partner sitting out flag
+     */
     it('should update state correctly when player decides to go alone', () => {
       const trumpMaker = PLAYER_ROLES[0]; // South
       const partner = PLAYER_ROLES[2]; // North
@@ -284,6 +472,14 @@ describe('GoAlonePhase Logic', () => {
       assert.strictEqual(newState.gamePhase, GAME_PHASES.GAME_PHASE_PLAYING, 'Should advance to PLAYING phase');
     });
     
+    /**
+     * Verifies correct turn order when the first player after the dealer is the partner
+     * who is sitting out. Ensures the turn skips to the next available player.
+     *
+     * @test {handleGoAloneDecision} - Turn order handling
+     * @test {GameState} - Current player validation
+     * @test {GameState} - Turn skipping logic
+     */
     it('should handle case where first player after dealer is the partner sitting out', () => {
       // Set up a scenario where the first player after the dealer is the partner who is sitting out
       const [SOUTH, WEST, NORTH, EAST] = PLAYER_ROLES;
@@ -338,6 +534,14 @@ describe('GoAlonePhase Logic', () => {
       assert.strictEqual(newState.gamePhase, GAME_PHASES.GAME_PHASE_PLAYING, 'Should advance to PLAYING phase');
     });
 
+    /**
+     * Verifies that the turn order is not modified when the first player after the dealer
+     * is not the partner who is sitting out.
+     *
+     * @test {handleGoAloneDecision} - Turn order preservation
+     * @test {GameState} - Current player validation
+     * @test {GameState} - Turn order verification
+     */
     it('should not skip first player when they are not the partner sitting out', () => {
       // Set up a scenario where the first player is not the partner who is sitting out
       const [SOUTH, WEST, NORTH, EAST] = PLAYER_ROLES;
@@ -514,6 +718,14 @@ describe('GoAlonePhase Logic', () => {
       assert.strictEqual(newState.gamePhase, GAME_PHASES.GAME_PHASE_PLAYING, 'Should advance to PLAYING phase');
     });
 
+    /**
+     * Verifies that the correct message is generated when a player decides to play with a partner.
+     * Ensures the game state reflects the decision to play with a partner.
+     *
+     * @test {handleGoAloneDecision} - Message generation
+     * @test {GameState} - Game message validation
+     * @test {GameState} - Partner sitting out flag (should be null)
+     */
     it('should generate correct message when player decides to play with partner', () => {
       // This test covers the branch where wantsToGoAlone is false
       const [SOUTH, WEST, NORTH, EAST] = PLAYER_ROLES;
@@ -578,6 +790,14 @@ describe('GoAlonePhase Logic', () => {
       assert.strictEqual(newState.gamePhase, GAME_PHASES.GAME_PHASE_PLAYING, 'Should advance to PLAYING phase');
     });
 
+    /**
+     * Verifies that the function handles cases where player names are not available
+     * in the game state by using role names as fallbacks in messages.
+     *
+     * @test {handleGoAloneDecision} - Fallback message generation
+     * @test {GameState} - Message content validation
+     * @test {GameState} - Missing name handling
+     */
     it('should handle case when player names are not available in game state', () => {
       // This test covers the branch where player names are not available in the game state
       // and the fallback to role names is used in the game message
@@ -690,6 +910,14 @@ describe('GoAlonePhase Logic', () => {
       assert.strictEqual(newState.gamePhase, GAME_PHASES.GAME_PHASE_PLAYING, 'Should advance to PLAYING phase');
     });
 
+    /**
+     * Verifies that the first player is set correctly when a partner sits out.
+     * Ensures the turn order skips the sitting partner and proceeds to the next player.
+     *
+     * @test {handleGoAloneDecision} - Turn order with sitting partner
+     * @test {GameState} - First player validation
+     * @test {GameState} - Game message verification
+     */
     it('should correctly set the first player when partner sits out', () => {
       console.log('\n=== Starting test: should correctly set the first player when partner sits out ===');
       

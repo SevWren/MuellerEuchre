@@ -1,15 +1,22 @@
 /**
- * @file Test suite for the playing phase logic of the Euchre game.
+ * @file test/game/phases/playingPhase.unit.test.js
  * @module test/game/phases/playingPhase.unit.test
- * @description Comprehensive test suite for the Euchre game's playing phase, covering all aspects
- * of card play, trick taking, and game state management. This suite verifies the core game logic 
- * for the playing phase, including:
- * - Basic validation of card plays
- * - Enforcement of game rules (following suit, valid plays)
- * - Trick winner determination
- * - Game state transitions
- * - Edge cases and error conditions
- * - Special rules like going alone
+ * @description 
+ *   Comprehensive test suite for the Euchre game's playing phase, covering all aspects
+ *   of card play, trick taking, and game state management. This suite verifies the core game logic 
+ *   for the playing phase, including:
+ *   - Basic validation of card plays
+ *   - Enforcement of game rules (following suit, valid plays)
+ *   - Trick winner determination
+ *   - Game state transitions
+ *   - Edge cases and error conditions
+ *   - Special rules like going alone
+ *
+ *   This test suite is part of the Layer 1 (pure function) testing strategy, ensuring that:
+ *   - All game rules are correctly enforced
+ *   - State transitions are handled correctly
+ *   - Error conditions are properly identified and managed
+ *   - The game behaves as expected in all scenarios
  *
  * @see {@link module:src/game/phases/playingPhase} - The implementation being tested.
  * @see {@link module:docs/Knowledge/The Left Bowers Identity Shift.md} - Documentation on Left Bower behavior.
@@ -17,6 +24,7 @@
  * @see {@link module:docs/Knowledge/The Going Alone Gameplay and Scoring Modifiers.md} - Going alone rules.
  * @see {@link module:src/game/logic/validation-core} - Core validation logic.
  * @see {@link module:src/utils/cardUtils} - Card utilities and helpers.
+ * @see {@link module:test/helpers/test-helpers} - Test utilities and helpers
  *
  * @typedef {import('../../../src/config/constants.js').GAME_PHASES} GAME_PHASES - Game phase constants.
  * @typedef {import('../../../src/config/constants.js').CARD_SUITS} CARD_SUITS - Card suit constants.
@@ -27,6 +35,13 @@
  * @typedef {import('../../../src/game/logic/validation-errors.js').CardNotInHandError} CardNotInHandError - Card validation errors.
  * @typedef {import('../../../src/game/logic/validation-errors.js').MustFollowSuitError} MustFollowSuitError - Suit following errors.
  * @typedef {import('../../../src/game/logic/validation-errors.js').InvalidCardError} InvalidCardError - Invalid card errors.
+ *
+ * @test {createPlayingGameState} - Tests the game state factory function
+ * @test {createTestCard} - Tests the card creation utility
+ * @test {testUtils} - Tests the test utility functions
+ * @test {PlayingPhase Logic - Basic Validation} - Tests basic validation logic
+ * @test {PlayingPhase Logic - handlePlayCard} - Tests the core card playing logic
+ * @test {PlayingPhase Logic - determineTrickWinner} - Tests trick winner determination
  *
  * @example
  * // Run all tests in this file
@@ -290,7 +305,23 @@ const testUtils = {
 
 /**
  * @name PlayingPhase Logic - Basic Validation
- * @description Test suite for the basic validation logic in the playing phase.
+ * @description 
+ *   Test suite for the basic validation logic in the playing phase.
+ *   This suite verifies that the playing phase correctly enforces game rules
+ *   and validates player actions, including:
+ *   - Turn order validation
+ *   - Card ownership verification
+ *   - Basic game state validation
+ *   - Error handling for invalid moves
+ *
+ * @see {@link module:src/game/phases/playingPhase} - The implementation being tested
+ * @see {@link module:src/game/logic/validation-errors} - Error types used in validation
+ * @see {@link module:test/helpers/test-helpers} - Test utilities and helpers
+ *
+ * @test {handlePlayCard} - Tests the core card playing validation
+ * @test {NotPlayersTurnError} - Tests turn order validation
+ * @test {CardNotInHandError} - Tests card ownership validation
+ * @test {InvalidCardError} - Tests card format validation
  */
 describe('PlayingPhase Logic - Basic Validation', { concurrency: false }, () => {
   let mockServices;
@@ -424,7 +455,22 @@ describe('PlayingPhase Logic - Basic Validation', { concurrency: false }, () => 
 
 /**
  * @name PlayingPhase Logic - handlePlayCard
- * @description Test suite for the core card playing logic in the Euchre game.
+ * @description 
+ *   Test suite for the core card playing logic in the Euchre game.
+ *   This suite verifies the complete card playing flow, including:
+ *   - Valid card plays and their effects on game state
+ *   - Trick completion and scoring
+ *   - Turn progression and phase transitions
+ *   - Special cases like going alone and partner sitting out
+ *
+ * @see {@link module:src/game/phases/playingPhase.handlePlayCard} - The function being tested
+ * @see {@link module:src/config/constants.GAME_PHASES} - Game phase constants
+ * @see {@link module:test/helpers/test-helpers} - Test utilities and helpers
+ *
+ * @test {handlePlayCard} - Tests the core card playing functionality
+ * @test {PhaseLogicError} - Tests error conditions and edge cases
+ * @test {GameState} - Verifies state transitions and updates
+ * @test {Going Alone} - Tests the going alone special case
  */
 describe('PlayingPhase Logic - handlePlayCard', { concurrency: false }, () => {
   let mockServices;
@@ -645,7 +691,23 @@ describe('PlayingPhase Logic - handlePlayCard', { concurrency: false }, () => {
 
 /**
  * @name PlayingPhase Logic - determineTrickWinner
- * @description Test suite for the logic that determines the winner of a trick in Euchre.
+ * @description 
+ *   Test suite for the logic that determines the winner of a trick in Euchre.
+ *   This suite verifies that the correct player is determined as the trick winner
+ *   based on the cards played, including special cases like:
+ *   - Trump suit cards beating non-trump cards
+ *   - Left bower behavior (Jack of same color as trump)
+ *   - Following suit requirements
+ *   - High card determination within the same suit
+ *
+ * @see {@link module:src/game/phases/playingPhase.determineTrickWinner} - The function being tested
+ * @see {@link module:src/utils/cardUtils} - Card utilities for rank and suit comparison
+ * @see {@link module:docs/Knowledge/The Left Bowers Identity Shift.md} - Left bower behavior
+ *
+ * @test {determineTrickWinner} - Tests the core trick winner determination
+ * @test {Left Bower} - Tests the special case of left bower
+ * @test {Trump Cards} - Tests trump card behavior
+ * @test {Suit Following} - Tests the requirement to follow suit
  */
 describe('PlayingPhase Logic - determineTrickWinner', { concurrency: false }, () => {
   let mockServices;

@@ -1,14 +1,39 @@
+/**
+ * Unit tests for the logger utility in the Euchre Multiplayer game.
+ * @module test/utils/logger.unit.test
+ * @description
+ *   Comprehensive test suite for the logging functionality including:
+ *   - Log level determination from environment variables
+ *   - Logger creation with redaction support
+ *   - Logging at different severity levels
+ *   - Dynamic log level changes
+ *
+ * @see {@link module:src/utils/logger} for the implementation being tested
+ * @see {@link module:src/config/constants} for DEBUG_LEVELS constant
+ */
+
 import { describe, it, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
 import { DEBUG_LEVELS } from '../../src/config/constants.js';
 import { createLoggerModule } from '../__mocks__/utils/logger.js';
 
+/**
+ * Main test suite for the Logger utility.
+ * @namespace LoggerUtilityTests
+ */
 describe('Logger Utility', () => {
-  // These tests are for the pure functions which can be imported directly
+  /**
+   * Tests for pure functions that don't require module mocks.
+   * @namespace PureFunctionTests
+   */
   describe('Pure Function Tests (No Mocks)', async () => {
     const { getLogLevelFromEnv, createLogger } = await import('../../src/utils/logger.js');
 
+    /**
+     * Tests for the getLogLevelFromEnv function which determines log level from environment variables.
+     * @namespace GetLogLevelFromEnvTests
+     */
     describe('getLogLevelFromEnv', () => {
       it('should prioritize LOG_LEVEL over DEBUG_LEVEL', () => {
         const env = { LOG_LEVEL: 'error', DEBUG_LEVEL: DEBUG_LEVELS.DEBUG };
@@ -28,6 +53,10 @@ describe('Logger Utility', () => {
       });
     });
 
+    /**
+     * Tests for the createLogger factory function.
+     * @namespace CreateLoggerTests
+     */
     describe('createLogger (Factory Test)', () => {
       it('should create a logger with redaction paths', (t, done) => {
         const logObject = { hand: ['AS', 'KS'], other: 'data' };
@@ -50,10 +79,21 @@ describe('Logger Utility', () => {
     });
   });
 
+  /**
+   * Tests for module initialization and runtime behavior using mocks.
+   * @namespace ModuleBehaviorTests
+   */
   describe('Module Initialization and Runtime Behavior', () => {
+    /** @type {Object} Mock Pino logger instance */
     let mockPinoInstance;
+    
+    /** @type {import('sinon').SinonStub} Mock Pino constructor */
     let mockPino;
+    
+    /** @type {Object} Mock process.env object */
     let mockProcess;
+    
+    /** @type {Object} Mock console object */
     let mockConsole;
 
     beforeEach(() => {
@@ -82,6 +122,10 @@ describe('Logger Utility', () => {
       assert.match(warningMessage, /Invalid DEBUG_LEVEL: INVALID_LEVEL/);
     });
 
+    /**
+     * Tests for the log() function's behavior with different log levels.
+     * @namespace LogFunctionTests
+     */
     describe('log() Function', () => {
       it('should call the appropriate logger method for each level', () => {
         const { log } = createLoggerModule({ pino: mockPino, process: mockProcess, console: mockConsole });
@@ -106,6 +150,10 @@ describe('Logger Utility', () => {
       });
     });
 
+    /**
+     * Tests for the setDebugLevel() function's ability to change log levels at runtime.
+     * @namespace SetDebugLevelTests
+     */
     describe('setDebugLevel() Function', () => {
       it('should log a warning and change the logger level property', () => {
         const { logger, setDebugLevel } = createLoggerModule({ pino: mockPino, process: mockProcess, console: mockConsole });

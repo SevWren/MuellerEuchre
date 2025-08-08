@@ -1,10 +1,22 @@
-// filepath: test/utils/historyUtils.unit.test.js
-
 /**
  * @file Unit tests for the historyUtils module.
  * @module test/utils/historyUtils.unit.test
- * @see {@link module:utils/historyUtils} for the module under test.
- * @see {@link module:utils/logger} for the logger utility being mocked.
+ * @description
+ *   Comprehensive test suite for the history utility functions.
+ *   Verifies the behavior of createHistoryEntry function with various inputs,
+ *   including valid and invalid parameters, and ensures proper logging.
+ *
+ * @see {@link module:src/utils/historyUtils} for the implementation being tested
+ * @see {@link module:src/utils/logger} for the logger utility being mocked
+ * @see {@link module:src/utils/historyUtils~HistoryEntry} for the history entry type definition
+ *
+ * @example
+ * // Running the tests
+ * node --test test/utils/historyUtils.unit.test.js
+ *
+ * @example
+ * // Running with coverage report
+ * npx c8 --include="src/utils/historyUtils.js" node --test test/utils/historyUtils.unit.test.js
  */
 
 import { describe, it, beforeEach, afterEach, mock } from "node:test";
@@ -17,8 +29,14 @@ import * as logger from "../../src/utils/logger.js";
 
 /**
  * @typedef {import('../../src/utils/historyUtils.js').HistoryEntry} HistoryEntry
+ * @typedef {import('../../src/utils/historyUtils.js').CardObject} CardObject
  */
 
+/**
+ * Test suite for the history utilities module.
+ * @namespace HistoryUtilsTests
+ * @see {@link module:src/utils/historyUtils} for the implementation
+ */
 describe("historyUtils", () => {
   let createHistoryEntry;
   let warnMock;
@@ -42,7 +60,19 @@ describe("historyUtils", () => {
     mock.restoreAll();
   });
 
+  /**
+   * Test suite for the createHistoryEntry function.
+   * @namespace HistoryUtilsTests.createHistoryEntry
+   * @see {@link module:src/utils/historyUtils.createHistoryEntry}
+   */
   describe("createHistoryEntry(actionType, detailsObject)", () => {
+    /**
+     * Tests that createHistoryEntry creates a valid history entry with all required fields.
+     * @function
+     * @name should_create_a_history_entry_with_valid_actionType_and_details
+     * @memberof HistoryUtilsTests.createHistoryEntry
+     * @see {@link module:src/utils/historyUtils~HistoryEntry} for the expected return type
+     */
     it("should create a history entry with valid actionType and details", () => {
       const actionType = "PLAY_CARD";
       const details = {
@@ -61,6 +91,12 @@ describe("historyUtils", () => {
       assert.strictEqual(warnMock.mock.calls.length, 0);
     });
 
+    /**
+     * Tests that createHistoryEntry extracts cardId from card objects.
+     * @function
+     * @name should_include_cardId_in_details_if_card_object_is_present
+     * @memberof HistoryUtilsTests.createHistoryEntry
+     */
     it("should include cardId in details if card object is present", () => {
       const actionType = "PLAY_CARD";
       const details = {
@@ -74,6 +110,12 @@ describe("historyUtils", () => {
       assert.strictEqual(warnMock.mock.calls.length, 0);
     });
 
+    /**
+     * Tests that createHistoryEntry handles null detailsObject.
+     * @function
+     * @name should_handle_detailsObject_being_null
+     * @memberof HistoryUtilsTests.createHistoryEntry
+     */
     it("should handle detailsObject being null", () => {
       const actionType = "SOME_ACTION";
       const entry = createHistoryEntry(actionType, null);
@@ -84,6 +126,12 @@ describe("historyUtils", () => {
       assert.strictEqual(warnMock.mock.calls.length, 1);
     });
 
+    /**
+     * Tests that createHistoryEntry handles non-object detailsObject.
+     * @function
+     * @name should_handle_detailsObject_not_being_an_object
+     * @memberof HistoryUtilsTests.createHistoryEntry
+     */
     it("should handle detailsObject not being an object", () => {
       const actionType = "ANOTHER_ACTION";
       const details = "invalid details";
@@ -97,6 +145,12 @@ describe("historyUtils", () => {
       assert.strictEqual(warnMock.mock.calls.length, 1);
     });
 
+    /**
+     * Tests that createHistoryEntry handles null actionType.
+     * @function
+     * @name should_handle_invalid_actionType_null
+     * @memberof HistoryUtilsTests.createHistoryEntry
+     */
     it("should handle invalid actionType (null)", () => {
       const details = { some: "detail" };
       const entry = createHistoryEntry(null, details);

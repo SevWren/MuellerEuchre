@@ -1,4 +1,34 @@
-// filepath: test/game/logic/validation-errors.unit.test.js
+/**
+ * @file test/game/logic/validation-errors.unit.test.js
+ * @module test/game/logic/validation-errors.unit.test
+ * @description
+ *   Comprehensive unit tests for custom error classes used throughout the Euchre game.
+ *   This file verifies the behavior of all custom error types defined in
+ *   `src/game/logic/validation-errors.js`.
+ *
+ * ## Test Coverage
+ * - Base `ValidationError` class functionality
+ * - Game-specific error types:
+ *   - `NotPlayersTurnError`: When a player attempts to act out of turn
+ *   - `InvalidPhaseError`: For actions attempted in the wrong game phase
+ *   - `CardNotInHandError`: When a player attempts to play a card they don't have
+ *   - `MustFollowSuitError`: For violations of the follow-suit rule
+ *   - `InvalidBidError`: For invalid bidding actions
+ *   - `InvalidDiscardError`: For invalid card discards
+ *   - `PhaseLogicError`: For general phase-related logic errors
+ *   - `InvalidGoAloneError`: For invalid go-alone declarations
+ *   - `InvalidCardError`: For invalid card operations
+ *
+ * ## Test Approach
+ * Each error class is tested for:
+ * - Correct inheritance (all errors extend `ValidationError`)
+ * - Proper `name` property
+ * - Accurate error messages
+ * - Correct storage of additional error-specific properties
+ *
+ * @see {@link module:src/game/logic/validation-errors} The module being tested
+ * @see {@link .windsurf/rules/jsdoc.md} For JSDoc standards
+ */
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {

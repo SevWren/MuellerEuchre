@@ -2,20 +2,80 @@
  * @file test/game/phases/goAlonePhase.edge.unit.test.js
  * @module test/game/phases/goAlonePhase.edge.unit
  * @description
- *   Edge case tests for the "Go Alone" phase logic in Euchre Multiplayer.
- *   These tests target specific branches not covered by the main test file.
+ *   Comprehensive edge case tests for the "Go Alone" phase logic in Euchre Multiplayer.
+ *   These tests specifically target error conditions, boundary cases, and unusual scenarios
+ *   that might not be covered in the main test suite.
+ *
+ *   Test Categories:
+ *   - Player Object Edge Cases: Tests handling of malformed or missing player data
+ *   - Game Message Edge Cases: Tests behavior with missing or malformed game messages
+ *
+ *   Key Test Scenarios:
+ *   - Handling of undefined/missing player names
+ *   - Missing or null player objects
+ *   - Undefined or malformed game message arrays
+ *   - Preservation of existing game state
+ *
+ * @see {@link module:src/game/phases/goAlonePhase} - The implementation being tested
+ * @see {@link module:test/game/phases/goAlonePhase.unit.test.js} - Main test suite for goAlonePhase
+ * @see {@link module:test/helpers/test-helpers} - Test utilities and helpers
+ * @see {@link module:.windsurf/rules/jsdoc.md} - JSDoc style guide
+ *
+ * @test {handleGoAloneDecision} - Tests edge cases in the go alone decision logic
+ * @test {GameState} - Verifies state transitions and validation in edge scenarios
+ *
+ * @example
+ * // Run all edge case tests
+ * node --test test/game/phases/goAlonePhase.edge.unit.test.js
+ *
+ * @example
+ * // Run a specific test
+ * node --test --test-name-pattern="should handle undefined player names" test/game/phases/goAlonePhase.edge.unit.test.js
+ *
+ * @since 1.0.0
+ * @lastModified 2025-08-07
  */
 
+/**
+ * Node.js test runner and assertion library.
+ * @see {@link https://nodejs.org/api/test.html}
+ */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+/**
+ * Game constants and phase logic.
+ * @see {@link module:src/config/constants}
+ */
 import {
   GAME_PHASES,
   PLAYER_ROLES,
   TEAMS
 } from '../../../src/config/constants.js';
+
+/**
+ * The function under test.
+ * @see {@link module:src/game/phases/goAlonePhase}
+ */
 import { handleGoAloneDecision } from '../../../src/game/phases/goAlonePhase.js';
 
-// Helper function to create a minimal valid game state for edge case testing
+/**
+ * Creates a minimal valid game state for testing edge cases in the go alone phase.
+ * This helper function sets up a basic game state with the specified dealer and trump maker,
+ * including all required player objects and game phase information.
+ *
+ * @param {string} dealer - The player role (e.g., 'PLAYER_NORTH') who is the dealer
+ * @param {string} trumpMaker - The player role who made the trump call
+ * @returns {Object} A game state object with the specified dealer and trump maker
+ * @property {Object} players - Object containing player information
+ * @property {string} dealer - The dealer's role
+ * @property {string} playerWhoCalledTrump - The player who called trump
+ * @property {string} [gamePhase] - The current game phase (optional)
+ * @property {string} [makerTeam] - The team that made the trump call (optional)
+ *
+ * @example
+ * // Create a test state with North as dealer and East as trump maker
+ * const testState = createEdgeCaseState('PLAYER_NORTH', 'PLAYER_EAST');
+ */
 function createEdgeCaseState(dealer, trumpMaker) {
   // Create a complete set of players
   const players = {};
@@ -58,8 +118,23 @@ function createEdgeCaseState(dealer, trumpMaker) {
   };
 };
 
+/**
+ * Main test suite for Go Alone phase edge cases.
+ * Focuses on testing error conditions and boundary cases not covered in the main test suite.
+ * @see {@link module:test/game/phases/goAlonePhase.edge.unit}
+ */
 describe('GoAlonePhase Edge Cases', () => {
+  /**
+   * Tests related to handling various player object edge cases.
+   * Verifies behavior with malformed or incomplete player data.
+   * @see {@link module:src/game/phases/goAlonePhase~handleGoAloneDecision}
+   */
   describe('Player Object Edge Cases', () => {
+    /**
+     * Verifies that the system handles undefined player names correctly
+     * when a player chooses to go alone.
+     * @test {handleGoAloneDecision} - Player name handling
+     */
     it('should handle undefined player names when going alone', () => {
       const [SOUTH, NORTH] = PLAYER_ROLES;
       const gameState = createEdgeCaseState(SOUTH, SOUTH);
@@ -75,6 +150,11 @@ describe('GoAlonePhase Edge Cases', () => {
       assert.match(message, /NORTH sits out/);
     });
     
+    /**
+     * Verifies that the system handles undefined player names correctly
+     * when playing with a partner.
+     * @test {handleGoAloneDecision} - Player name handling
+     */
     it('should handle undefined player names when playing with partner', () => {
       const [SOUTH] = PLAYER_ROLES;
       const gameState = createEdgeCaseState(SOUTH, SOUTH);
@@ -87,6 +167,10 @@ describe('GoAlonePhase Edge Cases', () => {
       assert.match(message, new RegExp(`${SOUTH} chooses to play with a partner`));
     });
     
+    /**
+     * Verifies that the system handles missing player names correctly.
+     * @test {handleGoAloneDecision} - Player name handling
+     */
     it('should handle missing player name in players object', () => {
       const [SOUTH] = PLAYER_ROLES;
       const gameState = createEdgeCaseState(SOUTH, SOUTH);
@@ -99,6 +183,10 @@ describe('GoAlonePhase Edge Cases', () => {
       assert.match(message, new RegExp(`${SOUTH} is going alone!`));
     });
 
+    /**
+     * Verifies that the system handles missing partner objects correctly.
+     * @test {handleGoAloneDecision} - Partner handling
+     */
     it('should handle missing partner in players object', () => {
       const [SOUTH, , NORTH] = PLAYER_ROLES;
       const gameState = createEdgeCaseState(SOUTH, SOUTH);
@@ -111,6 +199,10 @@ describe('GoAlonePhase Edge Cases', () => {
       assert.match(message, /Partner sits out/);
     });
 
+    /**
+     * Verifies that the system handles an empty players object correctly.
+     * @test {handleGoAloneDecision} - Players object handling
+     */
     it('should handle empty players object', () => {
       const [SOUTH] = PLAYER_ROLES;
       const gameState = createEdgeCaseState(SOUTH, SOUTH);
@@ -121,6 +213,10 @@ describe('GoAlonePhase Edge Cases', () => {
       assert.match(message, new RegExp(`${SOUTH} is going alone!`));
     });
 
+    /**
+     * Verifies that the system throws a ValidationError when players is null.
+     * @test {handleGoAloneDecision} - Error handling
+     */
     it('should throw ValidationError when players object is null', () => {
       const [SOUTH] = PLAYER_ROLES;
       const gameState = createEdgeCaseState(SOUTH, SOUTH);
@@ -136,7 +232,16 @@ describe('GoAlonePhase Edge Cases', () => {
     });
   });
 
+  /**
+   * Tests related to game message handling edge cases.
+   * Verifies proper handling of missing or malformed message arrays.
+   * @see {@link module:src/game/phases/goAlonePhase~handleGoAloneDecision}
+   */
   describe('Game Message Edge Cases', () => {
+    /**
+     * Verifies that the system handles a missing gameMessages array correctly.
+     * @test {handleGoAloneDecision} - Game messages handling
+     */
     it('should handle missing gameMessages array', () => {
       const [SOUTH] = PLAYER_ROLES;
       const gameState = createEdgeCaseState(SOUTH, SOUTH);
@@ -155,6 +260,10 @@ describe('GoAlonePhase Edge Cases', () => {
       assert.strictEqual(newState.partnerSittingOut, 'PLAYER_NORTH', 'Should set partnerSittingOut to NORTH');
     });
 
+    /**
+     * Verifies that existing game messages are preserved when new ones are added.
+     * @test {handleGoAloneDecision} - Game messages handling
+     */
     it('should preserve existing game messages', () => {
       const [SOUTH] = PLAYER_ROLES;
       const gameState = createEdgeCaseState(SOUTH, SOUTH);
@@ -183,6 +292,10 @@ describe('GoAlonePhase Edge Cases', () => {
       assert.strictEqual(newState.partnerSittingOut, null, 'Should not set partnerSittingOut');
     });
     
+    /**
+     * Verifies that the correct message is generated when playing with a partner.
+     * @test {handleGoAloneDecision} - Message generation
+     */
     it('should generate correct message when playing with partner', () => {
       const [SOUTH] = PLAYER_ROLES;
       const gameState = createEdgeCaseState(SOUTH, SOUTH);

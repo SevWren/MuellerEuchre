@@ -3,17 +3,25 @@
  * @module test/utils/cardUtils.unit.test
  * @description
  *   Comprehensive test suite for card utility functions using node:test and node:assert.
- *   Tests cover all functionality from src/utils/cardUtils.js including card creation,
- *   validation, and game-specific card logic like bower identification and hand sorting.
+ *   Tests cover all functionality from src/utils/cardUtils.js including:
+ *   - Card creation and validation
+ *   - Card ID conversion (to/from string)
+ *   - Bower identification (Left/Right)
+ *   - Card ranking and sorting
+ *   - Suit and value validation
  *
  * @see {@link module:src/utils/cardUtils} for the implementation being tested
  * @see {@link module:test/__mocks__/cardUtils} for mock implementations used in testing
  * @see {@link module:src/config/constants} for game constants used in testing
- * @since 1.0.0
+ * @see {@link module:src/game/logic/validation-errors} for custom error types
  *
  * @example
- * // Running the tests
+ * // Run all tests
  * node --test test/utils/cardUtils.unit.test.js
+ *
+ * @example
+ * // Run a specific test
+ * node --test --test-name-pattern="should convert a card with value and suit to correct ID" test/utils/cardUtils.unit.test.js
  */
 
 import { describe, it } from 'node:test';
@@ -26,7 +34,11 @@ import assert from 'node:assert/strict';
 import * as cardUtils from '../../src/utils/cardUtils.js';
 import { InvalidCardError } from '../../src/game/logic/validation-errors.js';
 
-// Import game constants for testing
+/**
+ * Game constants imported for testing.
+ * Contains SUITS, VALUES, and other card-related constants.
+ * @type {Object}
+ */
 const constants = await import('../../src/config/constants.js');
 
 /**
@@ -48,6 +60,7 @@ const VALUES = [...constants.VALUES];
 describe('Card Utility Functions', () => {
   /**
    * Test suite for the areSameColor function.
+   * Verifies that card suit colors are correctly identified as matching.
    * @namespace CardUtilityTests.areSameColor
    * @see {@link module:src/utils/cardUtils.areSameColor}
    */
@@ -77,6 +90,7 @@ describe('Card Utility Functions', () => {
 
   /**
    * Test suite for the cardToId function.
+   * Validates conversion of card objects to their string ID representations.
    * @namespace CardUtilityTests.cardToId
    * @see {@link module:src/utils/cardUtils.cardToId}
    */
@@ -224,8 +238,10 @@ describe('Card Utility Functions', () => {
 
   /**
    * Test suite for the idToCard function.
+   * Validates conversion of string IDs to card objects.
    * @namespace CardUtilityTests.idToCard
    * @see {@link module:src/utils/cardUtils.idToCard}
+   * @see {@link module:src/game/logic/validation-errors.InvalidCardError}
    */
   describe('idToCard', () => {
     it('should throw InvalidCardError for null or undefined input', () => {
@@ -440,6 +456,7 @@ describe('Card Utility Functions', () => {
 
   /**
    * Test suite for the isRightBower function.
+   * Validates identification of the Right Bower (Jack of the trump suit).
    * @namespace CardUtilityTests.isRightBower
    * @see {@link module:src/utils/cardUtils.isRightBower}
    */
@@ -593,8 +610,10 @@ describe('Card Utility Functions', () => {
 
   /**
    * Test suite for the isLeftBower function.
+   * Validates identification of the Left Bower (Jack of the same color as trump).
    * @namespace CardUtilityTests.isLeftBower
    * @see {@link module:src/utils/cardUtils.isLeftBower}
+   * @see {@link module:src/utils/cardUtils.isRightBower}
    */
   describe('isLeftBower', () => {
     it('should identify Left Bower for all suit combinations', () => {
@@ -746,6 +765,13 @@ describe('Card Utility Functions', () => {
    * Test suite for the getCardRank function.
    * @namespace CardUtilityTests.getCardRank
    * @see {@link module:src/utils/cardUtils.getCardRank}
+   */
+  /**
+   * Test suite for the getCardRank function.
+   * Validates card ranking logic considering trump and led suit.
+   * @namespace CardUtilityTests.getCardRank
+   * @see {@link module:src/utils/cardUtils.getCardRank}
+   * @see {@link MEMORY[34e30ce2-e42b-49e8-9164-83867b1ce86c]} for ranking rules
    */
   describe('getCardRank', () => {
     it('should handle errors during suit normalization', () => {
@@ -900,6 +926,13 @@ describe('Card Utility Functions', () => {
    * Test suite for the sortHand function.
    * @namespace CardUtilityTests.sortHand
    * @see {@link module:src/utils/cardUtils.sortHand}
+   */
+  /**
+   * Test suite for the sortHand function.
+   * Validates card sorting behavior with various trump suits and edge cases.
+   * @namespace CardUtilityTests.sortHand
+   * @see {@link module:src/utils/cardUtils.sortHand}
+   * @see {@link MEMORY[34e30ce2-e42b-49e8-9164-83867b1ce86c]} for sorting rules
    */
   describe('sortHand', () => {
     // Test cards for sorting

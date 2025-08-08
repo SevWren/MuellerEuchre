@@ -2,27 +2,34 @@
  * @file test/game/phases/scoringPhase.unit.test.js
  * @module test/game/phases/scoringPhase.unit
  * @description
- *   Unit tests for the scoring phase logic of the Euchre Multiplayer game.
- *   These tests validate the core scoring mechanics, including:
- *   - Basic score calculation for makers and defenders
- *   - March (all 5 tricks) scoring
- *   - Euchre (defenders win) scoring
- *   - Going alone bonuses
- *   - Game over detection
- *   - Score tracking and state transitions
- *   - 7-23 100% Passing
+ *   Comprehensive unit tests for the scoring phase logic of the Euchre Multiplayer game.
+ *   These tests validate all aspects of the scoring system, including standard scoring,
+ *   special cases, and edge conditions.
  *
- * @see {@link module:src/game/phases/scoringPhase.js} for the implementation under test
- * @see {@link docs/Rules of Euchre.md} for game rules
- * @see {@link docs/Scoring Rules.md} for detailed scoring rules
- * @see {@link module:src/config/constants}
- * @see {@link module:src/game/logic/validation-errors}
- * @see {@link module:src/utils/players}
- * @see {@link module:src/utils/logger}
+ * @test {calculateAndApplyScore} Tests for the main scoring function
+ * @test {gameState} Tests for game state transitions during scoring
+ * @test {scoringRules} Tests for all scoring rules and edge cases
+*   - 7-23 100% Passing
+ *
+ * @see {@link module:src/game/phases/scoringPhase.js} The implementation under test
+ * @see {@link docs/Rules of Euchre.md} Comprehensive game rules documentation
+ * @see {@link docs/Scoring Rules.md} Detailed scoring rules and examples
+ * @see {@link module:src/config/constants} Game constants and enums
+ * @see {@link module:src/game/logic/validation-errors} Error types used in validation
+ * @see {@link module:src/utils/players} Player and team utilities
+ * @see {@link module:src/utils/logger} Logging utilities
  *
  * @example
  * // Run all scoring phase tests
  * node --test test/game/phases/scoringPhase.unit.test.js
+ *
+ * @example
+ * // Run a specific test by name pattern
+ * node --test --test-name-pattern="should correctly score when makers win 3 tricks" test/game/phases/scoringPhase.unit.test.js
+ *
+ * @example
+ * // Debug a specific test
+ * node --inspect-brk --test --test-name-pattern="should handle game over condition" test/game/phases/scoringPhase.unit.test.js
  */
 
 // Node.js built-in modules
@@ -74,24 +81,54 @@ const mockLogger = {
 };
 
 /**
- * Represents a playing card.
+ * Represents a standard playing card in the game.
  * @typedef {object} Card
  * @property {string} suit - The suit of the card (e.g., 'hearts', 'diamonds').
- * @property {string} value - The value of the card (e.g., '9', 'J', 'Q', 'K', 'A').
+ * @property {string} value - The face value of the card (e.g., '9', 'J', 'Q', 'K', 'A').
  * @property {string} [id] - Optional unique identifier for the card.
+ * @property {string} [name] - Optional human-readable name of the card.
+ *
+ * @example
+ * const aceOfSpades = {
+ *   suit: 'spades',
+ *   value: 'A',
+ *   id: 'AS',
+ *   name: 'Ace of Spades'
+ * };
+ *
+ * @see {@link module:src/config/constants.CARD_VALUES} for valid card values
+ * @see {@link module:src/config/constants.CARD_SUITS} for valid card suits
  */
 
 /**
- * Represents a single player within the game state.
+ * Represents a player in the Euchre game.
  * @typedef {object} Player
- * @property {string} id - The unique identifier for the player's session or account.
+ * @property {string} id - Unique identifier for the player's session or account.
  * @property {string} name - The player's display name.
  * @property {keyof typeof PLAYER_ROLES} role - The player's assigned role (e.g., 'PLAYER_SOUTH').
  * @property {keyof typeof TEAMS} teamId - The ID of the team the player belongs to (e.g., 'TEAM_NS').
- * @property {Card[]} hand - An array of card objects in the player's hand.
- * @property {boolean} isConnected - The player's current connection status.
- * @property {number} [score] - The player's current score (or their team's score).
- * @property {number} [tricksWonThisHand] - The number of tricks won by this player in the current hand.
+ * @property {Card[]} hand - Array of card objects in the player's hand.
+ * @property {boolean} isConnected - Whether the player is currently connected.
+ * @property {number} [score] - The player's current score (or team's score if tracking by team).
+ * @property {number} [tricksWonThisHand] - Number of tricks won by this player in the current hand.
+ *
+ * @example
+ * const player = {
+ *   id: 'player-123',
+ *   name: 'Alice',
+ *   role: 'PLAYER_SOUTH',
+ *   teamId: 'TEAM_NS',
+ *   hand: [
+ *     { suit: 'hearts', value: 'A', id: 'AH' },
+ *     { suit: 'spades', value: '9', id: '9S' }
+ *   ],
+ *   isConnected: true,
+ *   score: 3,
+ *   tricksWonThisHand: 2
+ * };
+ *
+ * @see {@link module:src/config/constants.PLAYER_ROLES} for valid player roles
+ * @see {@link module:src/config/constants.TEAMS} for valid team identifiers
  */
 
 /**
@@ -222,6 +259,37 @@ const createScoringGameState = () => ({
 /**
  * Test suite for the scoring phase logic.
  *
+ * @test {calculateAndApplyScore} Core scoring functionality
+ * @test {gameState} State transitions during scoring
+ * @test {scoringRules} Validation of scoring rules
+ *
+ * @description
+ * This test suite verifies the behavior of the scoring phase in the Euchre game.
+ * It covers various scenarios including:
+ * - Normal scoring for makers and defenders
+ * - March (all 5 tricks) scoring
+ * - Euchre (defenders win) scoring
+ * - Going alone bonuses
+ * - Game over detection and state transitions
+ * - Edge cases and error conditions
+ *
+ * @see {@link module:src/game/phases/scoringPhase} Implementation being tested
+ * @see {@link docs/Scoring Rules.md} Detailed scoring rules
+ *
+ * @example
+ * // Example test case structure
+ * describe('ScoringPhase Logic', () => {
+ *   it('should score 1 point when makers win 3-4 tricks', () => {
+ *     // Test implementation
+ *   });
+ * });
+ */
+
+/**
+ * @test {calculateAndApplyScore} Core scoring functionality
+ * @test {gameState} State transitions during scoring
+ * @test {scoringRules} Validation of scoring rules
+ *
  * @description
  * This suite tests the core functionality of the scoring phase, including:
  * - Basic score calculation for makers and defenders
@@ -233,6 +301,21 @@ const createScoringGameState = () => ({
  * @see {@link module:src/game/phases/scoringPhase.js} for the implementation under test
  * @see {@link TestGameState} for the test data structure
  * @see {@link createScoringGameState} for the test helper function
+ * @see {@link module:src/config/constants} for game constants
+ * @see {@link module:src/game/logic/validation-errors} for error types
+ *
+ * @example
+ * // Example of a test case structure
+ * it('should handle basic scoring', async () => {
+ *   const gameState = createScoringGameState();
+ *   gameState.makerTeam = TEAMS.TEAM_NS;
+ *   gameState.tricksTaken = { [TEAMS.TEAM_NS]: 3, [TEAMS.TEAM_EW]: 2 };
+ *   
+ *   const result = await calculateAndApplyScore(gameState);
+ *   
+ *   assert.strictEqual(result.teamScores[TEAMS.TEAM_NS], 1);
+ *   assert.strictEqual(result.teamScores[TEAMS.TEAM_EW], 0);
+ * });
  */
 describe("ScoringPhase Logic", () => {
   /**
@@ -315,6 +398,15 @@ describe("ScoringPhase Logic", () => {
    *     message: /called inappropriately during GAME_PHASE_PLAYING/i
    *   }
    * );
+   *
+   * @see {@link module:src/game/logic/validation-errors.InvalidPhaseError} for error details
+   * @see {@link module:src/config/constants.GAME_PHASES} for valid game phases
+   * @see {@link createScoringGameState} for creating test game states
+   *
+   * @testcaseid SCOR-001
+   * @testtype unit
+   * @testcategory validation
+   * @testpriority high
    */
   it("should throw InvalidPhaseError if not in SCORING phase", async () => {
     const gameState = {
@@ -380,6 +472,31 @@ describe("ScoringPhase Logic", () => {
    *
    * @type {Array<object>}
    * @property {string} name - Descriptive name of the test scenario
+   * @property {Object} setup - Configuration for the test scenario
+   * @property {number} setup.makerTricks - Number of tricks won by the maker team
+   * @property {number} setup.defenderTricks - Number of tricks won by the defender team
+   * @property {boolean} [setup.goingAlone] - Whether a player is going alone
+   * @property {Object} expected - Expected results
+   * @property {Object} expected.scores - Expected scores after the hand
+   * @property {number} expected.scores.maker - Expected score for the maker team
+   * @property {number} expected.scores.defender - Expected score for the defender team
+   * @property {string} [expected.message] - Expected game message
+   * @property {boolean} [expected.gameOver] - Whether the game should be over
+   * @property {string} [expected.winner] - The winning team if the game is over
+   *
+   * @see {@link module:src/game/phases/scoringPhase} for implementation details
+   * @see {@link createScoringGameState} for creating test game states
+   *
+   * @example
+   * {
+   *   name: 'makers win 3 tricks',
+   *   setup: { makerTricks: 3, defenderTricks: 2 },
+   *   expected: {
+   *     scores: { maker: 1, defender: 0 },
+   *     message: 'Makers score 1 point',
+   *     gameOver: false
+   *   }
+   * }
    * @property {Object.<keyof typeof TEAMS, number>} tricksByTeam - Object mapping team IDs to number of tricks taken
    * @property {keyof typeof TEAMS} makerTeam - The team that made the trump
    * @property {boolean} alone - Whether the maker is going alone

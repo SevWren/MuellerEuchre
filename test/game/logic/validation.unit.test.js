@@ -1,11 +1,46 @@
 /**
- * @file Unit tests for the Euchre game validation logic
+ * @file test/game/logic/validation.unit.test.js
  * @module test/game/logic/validation.unit.test
- * @description Comprehensive test suite for validating core game rules in Euchre.
+ * @description
+ *   Comprehensive test suite for the core validation logic in the Euchre game.
+ *   This file contains unit tests for the validation functions defined in
+ *   `src/game/logic/validation-core.js`.
  *
- * 7-22-25 100% Passing
+ * ## Test Coverage
+ * - Bidding validation in both Round 1 and Round 2
+ * - Dealer discard validation
+ * - Error handling for invalid game states and inputs
+ * - Turn order enforcement
+ * - Card validation and hand management
+ * - Game phase transitions
  *
- * Tests use Node's built-in test runner and assertion library.
+ * ## Test Setup
+ * - Uses a mock logger to verify logging behavior
+ * - Sets up base game states for different scenarios
+ * - Tests both positive and negative test cases
+ * - Verifies proper error types and messages
+ *
+ * ## Key Features Tested
+ * - `validateBid`: Validates player bids in both rounds
+ * - `validateDealerDiscard`: Validates dealer's card discards
+ * - Error handling for various edge cases
+ * - Logging behavior for debugging and monitoring
+ *
+ * @see {@link module:src/game/logic/validation-core} For the implementation being tested
+ * @see {@link module:src/game/logic/validation-errors} For custom error types
+ * @see {@link module:src/config/constants} For game constants and enums
+ * @see {@link .windsurf/rules/jsdoc.md} For JSDoc standards
+ *
+ * @example
+ * // Example test case for bid validation
+ * describe('Bid Validation', () => {
+ *   it('should validate a bid in Round 1', () => {
+ *     // Test implementation
+ *   });
+ * });
+ *
+ * @lastUpdated 2025-07-22
+ * @testStatus 100% Passing
  */
 
 import { describe, it, before, after, afterEach, beforeEach, mock } from 'node:test';

@@ -2,36 +2,75 @@
  * @file test/game/phases/endGame.unit.test.js
  * @module test/game/phases/endGame.unit
  * @description
- *   Unit tests for the end-game logic of the Euchre Multiplayer game.
- *   These tests cover score calculation, game over detection, match statistics,
- *   and new game initialization.
+ *   Comprehensive unit tests for the end-game logic of the Euchre Multiplayer game.
+ *   These tests validate the core functionality of the end-game phase, including:
+ *   - Score calculation and point distribution
+ *   - Game over detection and winning conditions
+ *   - Match statistics tracking and persistence
+ *   - New game initialization and state reset
+ *   - Edge cases and error handling
  *
- *   Key Test Areas:
- *   - Score calculation at end of hand
- *   - Game over detection when winning score is reached
- *   - Match statistics tracking
- *   - New game initialization
+ *   Test Organization:
+ *   - handleEndOfHand: Tests for end-of-hand scoring and state transitions
+ *   - checkGameOver: Tests for game over detection and winner determination
+ *   - startNewGame: Tests for proper game reset and initialization
  *
- * @see src/game/phases/endGame.js
- * @see test/game/logic/validation.unit.test.js
- * @see test/utils/idGenerator.unit.test.js
+ * @see {@link module:src/game/phases/endGame}
+ * @see {@link module:test/helpers/test-helpers}
+ * @see {@link module:test/game/logic/validation.unit.test.js}
+ * @see {@link module:test/utils/idGenerator.unit.test.js}
+ * @see {@link module:.windsurf/rules/jsdoc.md}
+ *
+ * @example
+ * // Run all tests in this file
+ * node --test test/game/phases/endGame.unit.test.js
+ *
+ * @example
+ * // Run a specific test case
+ * node --test --test-name-pattern="should detect when a team has won" test/game/phases/endGame.unit.test.js
+ *
+ * @since 1.0.0
+ * @lastModified 2025-08-07
  */
 
 import assert from 'node:assert/strict';
 import { describe, it, before, after, afterEach, beforeEach, mock } from 'node:test';
 
-// Import the project's mock logger utility
+/**
+ * Mock logger for testing purposes.
+ * Tracks all logged messages for verification in tests.
+ * @type {Object}
+ * @property {Function} info - Logs an info message
+ * @property {Function} warn - Logs a warning message
+ * @property {Function} error - Logs an error message
+ * @property {Function} reset - Clears all logged messages
+ * @property {Function} assertLogged - Verifies if a message was logged
+ * @see {@link module:test/test-utils/mock-logger}
+ */
 import { createMockLogger } from '../../test-utils/mock-logger.js';
-
-// Create a mock logger
 const mockLogger = createMockLogger();
 
-// Import the module under test using dynamic import with cache busting
+/**
+ * Module under test and its exports.
+ * @type {Object}
+ * @property {Function} checkGameOver - Checks if the game is over
+ * @property {Function} startNewGame - Initializes a new game
+ * @property {Function} handleEndOfHand - Processes end-of-hand logic
+ * @property {Function} getOpponentTeam - Gets the opponent team for a given team
+ */
 let endGameModule;
 let createEndGameModule;
 let checkGameOver, startNewGame, handleEndOfHand, getOpponentTeam;
 
-// Load the module before tests run
+/**
+ * Loads the endGame module before any tests run.
+ * Uses dynamic import with cache busting to ensure fresh imports.
+ * Sets up a custom logger to capture log messages during tests.
+ * @async
+ * @function
+ * @throws {Error} If module loading fails
+ * @see {@link module:src/game/phases/endGame}
+ */
 before(async () => {
   try {
     // Use a cache-busting query parameter to ensure fresh import
@@ -65,7 +104,11 @@ before(async () => {
   }
 });
 
-// Import constants and test utilities
+/**
+ * Game constants and test utilities.
+ * @see {@link module:src/config/constants}
+ * @see {@link module:test/helpers/test-helpers}
+ */
 import { GAME_PHASES, PLAYER_ROLES, TEAMS, WINNING_SCORE, DEBUG_LEVELS } from '../../../src/config/constants.js';
 import { createBaseGameState, withTestState } from '../../../test/helpers/test-helpers.js';
 
@@ -138,26 +181,42 @@ const createTestGameState = () => ({
   gameOver: false, // Explicitly initialize gameOver flag to false
 });
 
-// --- Test Suite ---
-
+/**
+ * Test suite for the end game phase logic.
+ * Covers all aspects of game completion, scoring, and new game initialization.
+ * @see {@link module:src/game/phases/endGame}
+ */
 describe('End Game Phase Logic', () => {
+  /** @type {Object} The current game state being tested */
   let gameState;
 
-  // Setup before each test
+  /**
+   * Sets up a fresh test environment before each test case.
+   * - Resets the mock logger
+   * - Creates a new game state
+   * - Ensures test isolation
+   * @function
+   */
   beforeEach(() => {
-    // Reset the mock logger before each test
     mockLogger.reset();
-    
-    // Create a fresh game state for each test
     gameState = createTestGameState();
   });
 
-  // Cleanup after all tests
+  /**
+   * Cleans up after all tests have run.
+   * Restores any mocked functions to their original implementations.
+   * @function
+   */
   after(() => {
-    // Restore all mocks
     mock.restoreAll();
   });
   
+  /**
+   * Test suite for the handleEndOfHand function.
+   * Validates scoring, game state transitions, and message generation
+   * at the end of a hand.
+   * @see {@link module:src/game/phases/endGame.handleEndOfHand}
+   */
   describe('handleEndOfHand', () => {
     it('should update scores correctly when winning score is not reached', () => {
       gameState.makerTeam = TEAMS.NS;
@@ -232,6 +291,12 @@ describe('End Game Phase Logic', () => {
     });
   });
 
+  /**
+   * Test suite for the checkGameOver function.
+   * Validates game over detection, winner determination, and
+   * match statistics updates.
+   * @see {@link module:src/game/phases/endGame.checkGameOver}
+   */
   describe('checkGameOver', () => {
     it("should detect when a team has won and update state", async () => {
       // Use the test helper to create a consistent test state
@@ -313,6 +378,12 @@ describe('End Game Phase Logic', () => {
     });
   });
 
+  /**
+   * Test suite for the startNewGame function.
+   * Validates game state reset and proper initialization
+   * of a new game session.
+   * @see {@link module:src/game/phases/endGame.startNewGame}
+   */
   describe('startNewGame', () => {
     it("should reset the game state for a new game session", () => {
       const completedGame = {

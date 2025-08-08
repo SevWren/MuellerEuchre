@@ -4,37 +4,71 @@
  * @description Contains all game-wide constants including card values, suits, game phases,
  * player roles, teams, and socket event names. These constants are used throughout the application
  * to maintain consistency and avoid magic strings/numbers.
- *
+ * 
+ * THIS FILE IS A SINGLE SOURCE OF TRUTH
+ * NO ONE SHOULD UNDER ANY CIRCUMSTANCES WHATSOEVER EVER MODIFY THIS FILE
+ * 
  * All constants use a prefix pattern (e.g., CARD_, GAME_, PLAYER_) to ensure uniqueness
  * and prevent naming conflicts across the application.
  *
  * @example
  * import { CARD_SUITS, CARD_VALUES, GAME_PHASES } from '@/config/constants';
  *
- * @see {@link module:src/utils/cardUtils} - For card-related utility functions
- * @see {@link module:src/utils/deck} - For deck management and card operations
- * @see {@link module:src/utils/logger} - For application logging utilities
- * @see {@link module:src/utils/players} - For player management utilities
- * @see {@link module:src/utils/lobbyUtils} - For lobby management utilities
- * @see {@link module:src/socket/handlers/playingHandlers} - For game playing socket handlers
- * @see {@link module:src/socket/handlers/playerConnectionHandlers} - For player connection handlers
- * @see {@link module:src/socket/handlers/lobbyHandlers} - For lobby management socket handlers
- * @see {@link module:src/socket/handlers/gameOverHandlers} - For game over state handlers
- * @see {@link module:src/socket/handlers/biddingHandlers} - For bidding phase socket handlers
- * @see {@link module:src/game/state} - For core game state management
- * @see {@link module:src/game/phases/startNewHandPhase} - For new hand initialization
- * @see {@link module:src/game/phases/scoringPhase} - For game scoring logic
- * @see {@link module:src/game/phases/playingPhase} - For main game playing logic
- * @see {@link module:src/game/phases/lobbyPhase} - For lobby management
- * @see {@link module:src/game/phases/goAlonePhase} - For "going alone" game logic
- * @see {@link module:src/game/phases/endGame} - For game conclusion handling
- * @see {@link module:src/game/phases/biddingPhase} - For bidding phase logic
- * @see {@link module:src/game/logic/validation-core} - For core game validation rules
+ * @see {@link module:src/game/logic/aiLogic} - For AI decision-making logic.
+ * @see {@link module:src/game/logic/validation-core} - For core game validation rules.
+ * @see {@link module:src/game/phases/biddingPhase} - For bidding phase logic.
+ * @see {@link module:src/game/phases/endGame} - For game conclusion handling.
+ * @see {@link module:src/game/phases/goAlonePhase} - For "going alone" game logic.
+ * @see {@link module:src/game/phases/lobbyPhase} - For lobby management.
+ * @see {@link module:src/game/phases/playingPhase} - For main game playing logic.
+ * @see {@link module:src/game/phases/scoringPhase} - For game scoring logic.
+ * @see {@link module:src/game/phases/startNewHandPhase} - For new hand initialization.
+ * @see {@link module:src/game/state} - For core game state management.
+ * @see {@link module:src/socket/handlers/biddingHandlers} - For bidding phase socket handlers.
+ * @see {@link module:src/socket/handlers/gameOverHandlers} - For game over state handlers.
+ * @see {@link module:src/socket/handlers/lobbyHandlers} - For lobby management socket handlers.
+ * @see {@link module:src/socket/handlers/playerConnectionHandlers} - For player connection handlers.
+ * @see {@link module:src/socket/handlers/playingHandlers} - For game playing socket handlers.
+ * @see {@link module:src/utils/cardUtils} - For card-related utility functions.
+ * @see {@link module:src/utils/deck} - For deck management and card operations.
+ * @see {@link module:src/utils/lobbyUtils} - For lobby management utilities.
+ * @see {@link module:src/utils/logger} - For application logging utilities.
+ * @see {@link module:src/utils/players} - For player management utilities.
+ * @see {@link module:src/utils/statsUtils} - For game statistics calculation.
+ * @see {@link module:test/config/constants.unit.test} - For unit tests of this constants file.
+ * @see {@link module:test/game/logic/aiLogic.unit.test} - For AI logic unit tests.
+ * @see {@link module:test/game/logic/validatePlay.edge.unit.test} - For edge case tests of play validation.
+ * @see {@link module:test/game/logic/validation.GoAlone.unit.test} - For "go alone" validation unit tests.
+ * @see {@link module:test/game/logic/validation.unit.test} - For core validation unit tests.
+ * @see {@link module:test/game/phases/biddingPhase.unit.test} - For bidding phase unit tests.
+ * @see {@link module:test/game/phases/dealer_rotation_fix.unit.test} - For dealer rotation logic unit tests.
+ * @see {@link module:test/game/phases/endGame.unit.test} - For end game phase unit tests.
+ * @see {@link module:test/game/phases/goAlonePhase.edge.unit.test} - For edge case tests of the "go alone" phase.
+ * @see {@link module:test/game/phases/goAlonePhase.unit.test} - For "go alone" phase unit tests.
+ * @see {@link module:test/game/phases/lobbyPhase.unit.test} - For lobby phase unit tests.
+ * @see {@link module:test/game/phases/playingPhase.unit.test} - For playing phase unit tests.
+ * @see {@link module:test/game/phases/scoringPhase.unit.test} - For scoring phase unit tests.
+ * @see {@link module:test/game/phases/startNewHandPhase.unit.test} - For new hand initialization unit tests.
+ * @see {@link module:test/helpers/test-helpers} - For primary test helper utilities.
+ * @see {@link module:test/helpers/test-helpers.unit.test} - For unit tests of the test helpers.
+ * @see {@link module:test/utils/cardUtils.unit.test} - For card utility unit tests.
+ * @see {@link module:test/utils/deck.unit.test} - For deck utility unit tests.
+ * @see {@link module:test/utils/errorUtils.unit.test} - For error utility unit tests.
+ * @see {@link module:test/utils/logger.unit.test} - For logger utility unit tests.
+ * @see {@link module:test/utils/players.unit.test} - For player utility unit tests.
+ * @see {@link module:test/utils/statsUtils.unit.test} - For statistics utility unit tests.
+ * @see {@link module:test/utils/testMocks} - For general test mocks.
+ * @see {@link module:test/utils/validation-test-utils} - For validation-specific test utilities.
+ * @see {@link module:test/__mocks__/game/phases/biddingPhase} - For mock bidding phase logic.
+ * @see {@link module:test/__mocks__/utils/cardUtils} - For mock card utility logic.
+ * @see {@link module:test/__mocks__/utils/deck} - For mock deck utility logic.
+ * @see {@link module:test/__mocks__/utils/logger} - For mock logger implementation.
+ * @see {@link module:test/__mocks__/utils/players} - For mock player utility logic.
+ * @see {@link module:test/__mocks__/utils/players.unit.test} - For unit tests of the players mock.
  */
 /**
  * Enumeration of card suits in Euchre.
  * @readonly
- * @enum {string}
  * @property {string} CARD_SUIT_HEARTS - Hearts suit (♥)
  * @property {string} CARD_SUIT_DIAMONDS - Diamonds suit (♦)
  * @property {string} CARD_SUIT_CLUBS - Clubs suit (♣)
@@ -77,7 +111,6 @@ export const VALUES = CARD_VALUES;
  * Special values are used for bowers (trump Jacks). These are used by `getCardRank()` for
  * consistent card comparison.
  * @readonly
- * @enum {number}
  * @property {number} CARD_RANK_RIGHT_BOWER - Rank for the Jack of the trump suit (highest card).
  * @property {number} CARD_RANK_LEFT_BOWER - Rank for the Jack of the same color as trump (second highest).
  * @property {number} CARD_RANK_ACE - Rank for a standard Ace.
@@ -127,7 +160,6 @@ export const CARD_RANKS = Object.freeze({
 /**
  * Player bid decisions during the bidding phases.
  * @readonly
- * @enum {string}
  * @property {string} BID_DECISION_ORDER_UP - Player orders the dealer to pick up the turn card.
  * @property {string} BID_DECISION_PASS - Player passes their turn to bid.
  * @property {string} BID_DECISION_CALL_TRUMP - Player calls a suit for trump in the second round.
@@ -147,7 +179,6 @@ export const BID_DECISIONS = Object.freeze({
 /**
  * Logging levels for the application.
  * @readonly
- * @enum {string}
  * @property {string} LOG_LEVEL_ERROR - Critical errors that cause the app to fail.
  * @property {string} LOG_LEVEL_WARN - Non-critical issues that should be addressed.
  * @property {string} LOG_LEVEL_INFO - General information about application flow.
@@ -178,7 +209,6 @@ export const DEBUG_LEVELS = LOG_LEVELS;
 /**
  * Local storage keys for persisting game state.
  * @readonly
- * @enum {string}
  * @property {string} STORAGE_KEY_GAME_STATE - Key for the current game state.
  * @property {string} STORAGE_KEY_PLAYER_ID - Key for the local player ID.
  * @property {string} STORAGE_KEY_PLAYER_NAME - Key for the player's chosen name.
@@ -201,7 +231,6 @@ export const STORAGE_KEYS = Object.freeze({
 /**
  * Socket.io event names used for game communication.
  * @readonly
- * @enum {string}
  * @property {string} GAME_EVENT_STATE_UPDATE - Server sends a full game state update to clients.
  * @property {string} GAME_EVENT_REQUEST_STATE - Client requests a full game state from the server.
  * @property {string} GAME_EVENT_PLAYER_ACTION - A generic player action (bid, play card, etc.).
@@ -254,7 +283,6 @@ export const GAME_EVENTS = Object.freeze({
 /**
  * Game phase states.
  * @readonly
- * @enum {string}
  * @property {string} GAME_PHASE_LOBBY - Initial phase where players join before the game starts.
  * @property {string} GAME_PHASE_DEALING - Phase where cards are being dealt to players.
  * @property {string} GAME_PHASE_ORDER_UP_ROUND1 - First bidding round for selecting trump.
@@ -279,6 +307,7 @@ export const GAME_PHASES = Object.freeze({
   GAME_PHASE_LOBBY: 'GAME_PHASE_LOBBY', // Initial phase where players join before the game starts
   GAME_PHASE_DEALING: 'GAME_PHASE_DEALING', // Phase where cards are being dealt to players
   GAME_PHASE_ORDER_UP_ROUND1: 'GAME_PHASE_ORDER_UP_ROUND1', // First bidding round for selecting trump
+  GAME_PHASE_DEALER_DISCARD: 'GAME_PHASE_DEALER_DISCARD',
   GAME_PHASE_ORDER_UP_ROUND2: 'GAME_PHASE_ORDER_UP_ROUND2', // Second bidding round if first round passes
   GAME_PHASE_GOING_ALONE_DECISION: 'GAME_PHASE_GOING_ALONE_DECISION', // Phase where maker decides to play alone
   GAME_PHASE_PLAYING: 'GAME_PHASE_PLAYING', // Main gameplay phase where tricks are played
@@ -307,7 +336,6 @@ export const PLAYER_ROLES = Object.freeze([...PLAYER_ROLES_ARRAY]);
 /**
  * Individual player position constants for easier reference.
  * @readonly
- * @enum {string}
  * @property {string} PLAYER_SOUTH - The South player position.
  * @property {string} PLAYER_WEST - The West player position.
  * @property {string} PLAYER_NORTH - The North player position.
@@ -330,7 +358,6 @@ export const PLAYER_POSITIONS = Object.freeze({
 /**
  * Team identifiers for Euchre (North/South vs East/West).
  * @readonly
- * @enum {string}
  * @property {string} TEAM_NS - North/South team.
  * @property {string} TEAM_EW - East/West team.
  */

@@ -3,12 +3,36 @@
  * @module test/game/logic/validatePlay.edge.unit.test
  * @description
  *   Edge case tests for the Euchre game validation logic.
- *   This file tests src\game\logic\validation-core.js.
- *   These tests target specific branches not covered by the main test file.
- * @see {@link module:src/game/logic/validation-core}
- * @see {@link module:src/utils/cardUtils}
- * @see {@link .windsurf/rules/jsdoc.md}
- * @see {@link .windsurf/rules/jsdoc-see.md}
+ *   This file specifically tests the `validatePlay` function from 
+ *   `src/game/logic/validation-core.js`, focusing on edge cases and error conditions
+ *   that might not be covered in the main test suite.
+ *
+ * ## Test Categories
+ * - Left Bower Behavior: Tests special handling of the Left Bower card
+ * - Leading Card Scenarios: Tests validation when a player leads a trick
+ * - Error Handling: Tests various error conditions and validations
+ * - Edge Cases: Tests boundary conditions and unusual scenarios
+ *
+ * ## Key Tested Functionality
+ * - Correct identification of the Left Bower's effective suit
+ * - Proper validation of card plays when leading a trick
+ * - Comprehensive error handling for invalid game states and inputs
+ * - Validation of the "follow suit" rule with special card combinations
+ *
+ * @see {@link module:src/game/logic/validation-core} For the implementation being tested
+ * @see {@link module:src/utils/cardUtils} For card utility functions
+ * @see {@link module:src/config/constants} For game constants and enums
+ * @see {@link module:src/game/logic/validation-errors} For custom error types
+ * @see {@link .windsurf/rules/jsdoc.md} For JSDoc standards
+ * @see {@link .windsurf/rules/jsdoc-see.md} For @see tag guidelines
+ *
+ * @example
+ * // Example test case structure
+ * describe('Left Bower Behavior', () => {
+ *   it('should identify the led suit as trump when the Left Bower is led', () => {
+ *     // Test implementation
+ *   });
+ * });
  */
 
 import { describe, it, beforeEach, afterEach, mock } from 'node:test';

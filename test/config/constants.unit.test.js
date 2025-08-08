@@ -8,7 +8,8 @@
  *
  * @see {@link module:src/config/constants} for the constants being tested
  * @see {@link module:test/__mocks__/constants} for mock implementations used in testing
- * @since 1.0.0
+ * 
+ * 
  * 
  * @example
  * // Running the tests

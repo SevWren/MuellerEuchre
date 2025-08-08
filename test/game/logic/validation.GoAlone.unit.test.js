@@ -1,28 +1,80 @@
 /**
- * @file Unit tests for the isValidGoAlone validation function
+ * @file test/game/logic/validation.GoAlone.unit.test.js
  * @module test/game/logic/validation.GoAlone.unit.test
- * @description Tests for validating go-alone declarations in Euchre.
+ * @description
+ *   Comprehensive unit tests for the `isValidGoAlone` validation function in Euchre.
+ *   This file verifies the validation logic for go-alone declarations in the Euchre game.
  *
- * This test suite verifies the following validation logic:
- * - Valid go-alone declarations
- * - Invalid player roles
- * - Incorrect game phases
- * - Turn order enforcement
- * - Winning bidder validation
- * - Player data validation
- * - Edge cases and error conditions
+ * ## Test Coverage
+ * - Valid go-alone declarations under correct conditions
+ * - Error handling for invalid scenarios:
+ *   - Invalid or missing player roles
+ *   - Incorrect game phase (not GOING_ALONE_DECISION)
+ *   - Turn order violations
+ *   - Non-winning bidder attempting to go alone
+ *   - Missing or invalid player data
+ *   - Duplicate go-alone declarations
+ * - Edge cases and boundary conditions
+ * - Logging behavior for both success and error cases
+ *
+ * ## Test Setup
+ * - Uses a mock logger to verify logging behavior
+ * - Sets up a base game state for valid go-alone scenarios
+ * - Tests both positive and negative test cases
+ * - Verifies proper error types and messages
+ *
+ * @see {@link module:src/game/logic/validation-core} For the implementation being tested
+ * @see {@link module:src/game/logic/validation-errors} For custom error types
+ * @see {@link module:src/config/constants} For game constants and enums
+ * @see {@link .windsurf/rules/jsdoc.md} For JSDoc standards
+ *
+ * @example
+ * // Example of a valid go-alone test case
+ * it('should return true for a valid go-alone declaration', () => {
+ *   const result = isValidGoAlone(baseGameState, PLAYER_ROLES[0]);
+ *   assert.strictEqual(result, true);
+ * });
+ *
+ * @example
+ * // Example of an invalid go-alone test case
+ * it('should throw InvalidPhaseError when not in GO_ALONE_DECISION phase', () => {
+ *   const invalidPhaseState = { ...baseGameState, gamePhase: GAME_PHASES.PLAYING };
+ *   assert.throws(
+ *     () => isValidGoAlone(invalidPhaseState, PLAYER_ROLES[0]),
+ *     { name: 'InvalidPhaseError' }
+ *   );
+ * });
+ *
  */
 
+/**
+ * Node.js test runner and assertion library imports.
+ * @see {@link https://nodejs.org/api/test.html} Node.js test runner documentation
+ * @see {@link https://nodejs.org/api/assert.html} Node.js assert module documentation
+ */
 import { describe, it, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-// First, import the mock logger utility and create a mock logger
+/**
+ * Test utilities and mock logger setup.
+ * @see {@link module:test/test-utils/mock-logger} For mock logger implementation
+ */
 import { createMockLogger } from '../../test-utils/mock-logger.js';
 
-// Create a mock logger instance
+/**
+ * Mock logger instance used to verify logging behavior in tests.
+ * @type {Object}
+ * @property {Function} info - Mock function for info level logs
+ * @property {Function} warn - Mock function for warn level logs
+ * @property {Function} error - Mock function for error level logs
+ * @property {Function} debug - Mock function for debug level logs
+ */
 const mockLogger = createMockLogger();
 
-// Mock the logger module before importing the module under test
+/**
+ * Application logger module that will be mocked for testing.
+ * @see {@link module:src/utils/logger} For the actual logger implementation
+ */
 import logger from '../../../src/utils/logger.js';
 
 // Replace logger methods with our mocks
@@ -33,11 +85,18 @@ Object.defineProperties(logger, {
   debug: { value: mockLogger.debug, configurable: true }
 });
 
-// Now import the module under test
+/**
+ * Dynamically import the validation module to ensure proper mocking of dependencies.
+ * @see {@link module:src/game/logic/validation-core} For the implementation being tested
+ */
 const validation = await import('../../../src/game/logic/validation-core.js');
 const { isValidGoAlone } = validation;
 
-// Import constants and errors
+/**
+ * Game constants and error types used in tests.
+ * @see {@link module:src/config/constants} For game constants
+ * @see {@link module:src/game/logic/validation-errors} For custom error types
+ */
 import { GAME_PHASES, PLAYER_ROLES, SUITS, TEAMS } from '../../../src/config/constants.js';
 import {
   ValidationError,
@@ -46,14 +105,39 @@ import {
   InvalidGoAloneError
 } from '../../../src/game/logic/validation-errors.js';
 
+/**
+ * Test suite for the `isValidGoAlone` validation function.
+ * @see {@link module:src/game/logic/validation-core.isValidGoAlone}
+ */
 describe('Validation Logic - isValidGoAlone', () => {
+  /**
+   * Base game state used for testing go-alone validation.
+   * @type {Object}
+   * @property {string} gamePhase - Current game phase
+   * @property {string} currentPlayer - Current player's role
+   * @property {string} winningBidder - Role of the winning bidder
+   * @property {Object} players - Map of player roles to player objects
+   * @property {number} round - Current round number
+   * @property {number} trickCount - Number of tricks completed
+   * @property {Object} currentTrick - Current trick information
+   * @property {Array} deck - Game deck
+   * @property {string} trumpSuit - Current trump suit
+   * @property {string} leader - Current trick leader
+   * @property {string|null} winningTeam - Currently winning team
+   * @property {Object} scores - Team scores
+   * @property {Array} gameHistory - History of game actions
+   */
   let baseGameState;
   
+  /**
+   * Setup function that runs before each test case.
+   * Resets all mocks and initializes a fresh game state.
+   */
   beforeEach(() => {
-    // Reset all mocks
+    // Reset all mocks to ensure test isolation
     mock.reset();
     
-    // Reset the mock logger by creating a new instance
+    // Create a fresh mock logger instance to ensure clean state
     const freshMock = createMockLogger();
     
     // Update the logger methods with fresh mocks
@@ -87,15 +171,28 @@ describe('Validation Logic - isValidGoAlone', () => {
     };
   });
 
+  /**
+   * Cleanup function that runs after each test case.
+   * Restores all mocks to their original state.
+   */
   afterEach(() => {
     mock.restoreAll();
   });
 
+  /**
+   * Tests that a valid go-alone declaration returns true.
+   * Verifies that when all conditions are met (correct phase, player's turn,
+   * winning bidder, etc.), the validation passes.
+   */
   it('should return true for a valid go-alone declaration', () => {
     const result = isValidGoAlone(baseGameState, PLAYER_ROLES[0]);
     assert.strictEqual(result, true);
   });
 
+  /**
+   * Tests that an invalid player role throws a ValidationError.
+   * Verifies proper error handling when an unrecognized player role is provided.
+   */
   it('should throw ValidationError for invalid player role', () => {
     assert.throws(
       () => isValidGoAlone(baseGameState, "invalid_role"),
@@ -107,6 +204,10 @@ describe('Validation Logic - isValidGoAlone', () => {
     );
   });
 
+  /**
+   * Tests that a missing game state throws a ValidationError.
+   * Verifies proper error handling when the game state is null or undefined.
+   */
   it('should throw ValidationError for missing game state', () => {
     assert.throws(
       () => isValidGoAlone(null, PLAYER_ROLES[0]),
@@ -118,6 +219,10 @@ describe('Validation Logic - isValidGoAlone', () => {
     );
   });
 
+  /**
+   * Tests that an InvalidPhaseError is thrown when not in the GO_ALONE_DECISION phase.
+   * Verifies that the validation enforces the correct game phase for go-alone declarations.
+   */
   it('should throw InvalidPhaseError when not in GO_ALONE_DECISION phase', () => {
     const invalidPhaseState = { ...baseGameState, gamePhase: GAME_PHASES.PLAYING };
     assert.throws(
@@ -130,6 +235,10 @@ describe('Validation Logic - isValidGoAlone', () => {
     );
   });
 
+  /**
+   * Tests that a NotPlayersTurnError is thrown when it's not the player's turn.
+   * Verifies that only the current player can declare to go alone.
+   */
   it('should throw NotPlayersTurnError when not the current player\'s turn', () => {
     const notPlayersTurnState = { ...baseGameState, currentPlayer: PLAYER_ROLES[1] };
     assert.throws(
@@ -142,6 +251,10 @@ describe('Validation Logic - isValidGoAlone', () => {
     );
   });
 
+  /**
+   * Tests that an InvalidGoAloneError is thrown when a non-winning bidder attempts to go alone.
+   * Verifies that only the winning bidder can declare to go alone.
+   */
   it('should throw InvalidGoAloneError when player is not the winning bidder', () => {
     const notBidderState = { ...baseGameState, winningBidder: PLAYER_ROLES[1] };
     assert.throws(
@@ -154,6 +267,10 @@ describe('Validation Logic - isValidGoAlone', () => {
     );
   });
 
+  /**
+   * Tests that an InvalidGoAloneError is thrown when player data is missing from the game state.
+   * Verifies proper error handling for invalid or missing player data.
+   */
   it('should throw InvalidGoAloneError when player data is missing', () => {
     const missingPlayerState = {
       ...baseGameState,
@@ -169,6 +286,10 @@ describe('Validation Logic - isValidGoAlone', () => {
     );
   });
 
+  /**
+   * Tests that an InvalidGoAloneError is thrown when a player attempts to go alone again.
+   * Verifies that a player cannot make multiple go-alone declarations.
+   */
   it('should throw InvalidGoAloneError when go-alone decision was already made', () => {
     const alreadyDecidedState = {
       ...baseGameState,
@@ -187,6 +308,10 @@ describe('Validation Logic - isValidGoAlone', () => {
     );
   });
 
+  /**
+   * Tests that the validation works with a minimal valid game state.
+   * Verifies that only the essential properties are required for a valid go-alone declaration.
+   */
   it('should handle edge case with minimal valid game state', () => {
     const minimalState = {
       gamePhase: GAME_PHASES.GOING_ALONE_DECISION,
@@ -200,6 +325,10 @@ describe('Validation Logic - isValidGoAlone', () => {
     assert.strictEqual(result, true, 'Expected valid go-alone with minimal state');
   });
 
+  /**
+   * Tests that successful validation logs appropriate debug information.
+   * Verifies both the content and structure of debug logs for successful validations.
+   */
   it('should log debug information for successful validation', () => {
     // Ensure the game state is in the correct phase
     const testState = {
@@ -242,6 +371,10 @@ describe('Validation Logic - isValidGoAlone', () => {
     );
   });
 
+  /**
+   * Tests that validation failures log appropriate error information.
+   * Verifies both the content and structure of error logs for failed validations.
+   */
   it('should log error when validation fails', () => {
     // Create a state with an invalid phase for going alone
     const invalidState = { 

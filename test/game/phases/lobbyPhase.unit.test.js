@@ -1,7 +1,27 @@
 /**
- * Unit tests for the Lobby Phase game logic.
+ * @file test/game/phases/lobbyPhase.unit.test.js
  * @module test/game/phases/lobbyPhase.unit.test
- * @see {@link module:src/game/phases/lobbyPhase} for the implementation being tested
+ * @description
+ *   Comprehensive unit tests for the Lobby Phase logic in Euchre Multiplayer.
+ *   These tests verify the game initialization flow, player connection handling,
+ *   and validation of game start conditions.
+ *
+ *   This test suite focuses on Layer 1 (pure function) logic, ensuring that:
+ *   - Input validation is strict and correct
+ *   - Game state transitions follow Euchre rules
+ *   - Error conditions are properly handled
+ *   - The game state is updated correctly when starting a new game
+ *
+ * @see {@link module:src/game/phases/lobbyPhase} - The implementation being tested
+ * @see {@link module:test/helpers/test-helpers} - Test utilities and helpers
+ * @see {@link module:src/config/constants} - Game constants used in tests
+ *
+ * @test {attemptToStartGame} - Tests the core logic for starting a game from the lobby
+ * @test {GameState} - Verifies state transitions and validation
+ *
+ * @example
+ * // Run these specific tests
+ * node --test test/game/phases/lobbyPhase.unit.test.js
  */
 
 import { describe, it, beforeEach, afterEach, mock } from 'node:test';
@@ -19,17 +39,25 @@ import {
 } from '../../../src/game/logic/validation-errors.js';
 
 /**
- * Creates a mock game state for testing the lobby phase.
+ * Creates a mock game state for testing the lobby phase with customizable parameters.
+ * This helper function generates a complete game state object that can be used for testing
+ * various lobby phase scenarios, including different player counts and game phases.
  *
- * @param {string} [phase=GAME_PHASES.LOBBY] - The game phase to set.
- * @param {number} [connectedPlayerCount=4] - Number of connected players to simulate.
+ * @param {string} [phase=GAME_PHASES.LOBBY] - The game phase to set (defaults to LOBBY).
+ * @param {number} [connectedPlayerCount=4] - Number of connected players to simulate (1-4).
  * @returns {Object} A mock game state object with the specified phase and players.
- * @property {string} gameId - The game identifier.
- * @property {string} gamePhase - The current game phase.
- * @property {Object} players - Object mapping player roles to player objects.
- * @property {Array} gameMessages - Array of game messages.
- * @property {string} dealer - The dealer's player role.
- * @see {@link module:src/config/constants} for GAME_PHASES and PLAYER_ROLES
+ * @property {string} gameId - Unique identifier for the game (e.g., 'lobbyTestGame').
+ * @property {string} gamePhase - The current game phase from GAME_PHASES.
+ * @property {Object} players - Object mapping player roles (from PLAYER_ROLES) to player objects.
+ * @property {Array} gameMessages - Array of game log messages.
+ * @property {string} dealer - The dealer's player role (defaults to first PLAYER_ROLES entry).
+ *
+ * @example
+ * // Create a lobby state with 3 connected players
+ * const state = createLobbyGameState(GAME_PHASES.LOBBY, 3);
+ *
+ * @see {@link module:src/config/constants} - For GAME_PHASES and PLAYER_ROLES constants
+ * @see {@link module:test/helpers/test-helpers} - For additional test utilities
  */
 const createLobbyGameState = (
   phase = GAME_PHASES.LOBBY,
@@ -58,16 +86,32 @@ const createLobbyGameState = (
 
 /**
  * Test suite for the Lobby Phase logic.
- * @see {@link module:src/game/phases/lobbyPhase}
+ * Covers validation, error conditions, and successful game start scenarios.
+ *
+ * @see {@link module:src/game/phases/lobbyPhase} - The implementation being tested
+ * @see {@link module:src/game/logic/validation-errors} - Error types used in validation
+ * @see {@link module:test/helpers/test-helpers} - Test utilities and helpers
+ *
+ * @test {attemptToStartGame} - Tests the core function for starting a game from the lobby
+ * @test {GameState} - Verifies state transitions and validation
  */
 describe('LobbyPhase Logic', () => {
   let attemptToStartGame;
   
   /**
    * Setup before each test case.
-   * - Mocks the logger methods
-   * - Dynamically imports the module under test
-   * @see {@link module:node:test} for mocking utilities
+   * - Mocks the logger methods to prevent actual logging during tests
+   * - Dynamically imports the module under test to ensure fresh state
+   * - Sets up test fixtures and mocks
+   *
+   * @see {@link module:node:test} - For mocking utilities
+   * @see {@link module:src/utils/logger} - The logger being mocked
+   *
+   * @example
+   * // Example of test setup in a test case
+   * it('should handle test case', () => {
+   *   // Test implementation
+   * });
    */
   beforeEach(async () => {
     // Mock the logger methods
@@ -83,7 +127,10 @@ describe('LobbyPhase Logic', () => {
 
   /**
    * Cleanup after each test case.
-   * Restores all mocks to their original state.
+   * Restores all mocks to their original state to prevent test pollution.
+   * This ensures that each test runs in complete isolation.
+   *
+   * @see {@link module:node:test/mock} - For mock restoration functionality
    */
   afterEach(() => {
     // Restore all mocks
@@ -91,8 +138,12 @@ describe('LobbyPhase Logic', () => {
   });
 
   /**
-   * Test validation of input arguments.
-   * @see {@link module:src/game/logic/validation-errors.ValidationError}
+   * Test suite for input validation in the lobby phase.
+   * Verifies that the function properly validates its inputs and rejects invalid ones
+   * with appropriate error messages.
+   *
+   * @see {@link module:src/game/logic/validation-errors.ValidationError} - Error type for validation failures
+   * @see {@link module:src/game/phases/lobbyPhase.attemptToStartGame} - Function being tested
    */
   describe('Input Validation', () => {
     it('should throw ValidationError if currentGameState is null', () => {
@@ -118,8 +169,13 @@ describe('LobbyPhase Logic', () => {
   });
 
   /**
-   * Test phase and player count validation.
-   * @see {@link module:src/game/logic/validation-errors.InvalidPhaseError}
+   * Test suite for phase and player count validation.
+   * Ensures that the game can only be started with valid player counts
+   * and from the correct game phase.
+   *
+   * @see {@link module:src/game/logic/validation-errors.InvalidPhaseError} - Error for invalid phase transitions
+   * @see {@link module:src/game/logic/validation-errors.PhaseLogicError} - Error for game logic violations
+   * @see {@link module:src/config/constants.GAME_PHASES} - Game phase constants
    */
   describe('Phase and Player Validation', () => {
     it('should throw InvalidPhaseError if game is not in LOBBY phase', () => {
@@ -148,8 +204,13 @@ describe('LobbyPhase Logic', () => {
   });
 
   /**
-   * Test successful game start scenarios.
-   * @see {@link module:src/game/phases/lobbyPhase.attemptToStartGame}
+   * Test suite for successful game start scenarios.
+   * Verifies that the game correctly transitions from the lobby to the dealing phase
+   * when all conditions are met.
+   *
+   * @see {@link module:src/game/phases/lobbyPhase.attemptToStartGame} - Function being tested
+   * @see {@link module:src/config/constants.GAME_PHASES} - For DEALING phase constant
+   * @see {@link module:test/helpers/test-helpers} - For test utilities
    */
   describe('Success Paths', () => {
     it('should successfully transition to DEALING phase with 4 connected players', () => {

@@ -1,0 +1,358 @@
+import { describe, it, beforeEach, afterEach, mock } from "node:test";
+import assert from "node:assert/strict";
+import {
+  GAME_PHASES,
+  PLAYER_ROLES,
+  CARD_SUITS as SUITS,
+  CARD_VALUES as VALUES,
+  BID_DECISIONS,
+} from "../../../src/config/constants.js";
+import * as validation from "../../../src/game/logic/validation-core.js";
+import logger from "../../../src/utils/logger.js";
+import {
+  ValidationError,
+  InvalidPhaseError,
+  NotPlayersTurnError,
+  CardNotInHandError,
+  InvalidBidError,
+  InvalidDiscardError,
+} from "../../../src/game/logic/validation-errors.js";
+import { setupTestState } from "../../helpers/test-helpers.js";
+
+describe("Validation Tests", () => {
+  let mockLoggerWarn;
+
+  beforeEach(() => {
+    mockLoggerWarn = mock.method(logger, "warn", () => {});
+    mock.method(logger, "error", () => {});
+    mock.method(logger, "info", () => {});
+    mock.method(logger, "debug", () => {});
+  });
+
+  afterEach(() => {
+    mock.restoreAll();
+  });
+
+  describe("Validation Logic - validateBid", () => {
+    const { validateBid } = validation;
+
+    it("should throw ValidationError if gameState is missing", () => {
+      assert.throws(() => validateBid(null, PLAYER_ROLES[0], "pass"), {
+        name: "ValidationError",
+        message: /Missing required argument 'gameState'/,
+      });
+    });
+
+    it("should throw ValidationError if playerRole is missing", () => {
+      const { gameState } = setupTestState({
+        phase: GAME_PHASES.ORDER_UP_ROUND1,
+      });
+      assert.throws(() => validateBid(gameState, null, "pass"), {
+        name: "ValidationError",
+        message: /Missing required argument 'playerRole'/,
+      });
+    });
+
+    it("should throw ValidationError if decision is missing", () => {
+      const { gameState } = setupTestState({
+        phase: GAME_PHASES.ORDER_UP_ROUND1,
+      });
+      assert.throws(() => validateBid(gameState, PLAYER_ROLES[0], null), {
+        name: "ValidationError",
+        message: /Missing required argument 'decision'/,
+      });
+    });
+
+    it("should throw NotPlayersTurnError if it is not the current player's turn", () => {
+      const { gameState } = setupTestState({
+        phase: GAME_PHASES.ORDER_UP_ROUND1,
+        stateOverrides: { currentPlayer: PLAYER_ROLES[1] },
+      });
+      assert.throws(
+        () => validateBid(gameState, PLAYER_ROLES[0], "pass"),
+        (err) => err instanceof NotPlayersTurnError
+      );
+    });
+
+    it("should throw InvalidPhaseError if bidding is attempted outside bidding phases", () => {
+      const { gameState } = setupTestState({ phase: GAME_PHASES.PLAYING });
+      assert.throws(
+        () => validateBid(gameState, gameState.currentPlayer, "pass"),
+        (err) => err instanceof InvalidPhaseError
+      );
+    });
+
+    describe("Round 1 Bidding (ORDER_UP_ROUND1)", () => {
+      it('should allow "orderUp" and "pass" decisions', () => {
+        const { gameState } = setupTestState({
+          phase: GAME_PHASES.ORDER_UP_ROUND1,
+        });
+        assert.strictEqual(
+          validateBid(
+            gameState,
+            gameState.currentPlayer,
+            BID_DECISIONS.ORDER_UP
+          ),
+          true
+        );
+        assert.strictEqual(
+          validateBid(gameState, gameState.currentPlayer, BID_DECISIONS.PASS),
+          true
+        );
+      });
+
+      it('should throw InvalidBidError for "callTrump" decision', () => {
+        const { gameState } = setupTestState({
+          phase: GAME_PHASES.ORDER_UP_ROUND1,
+        });
+        assert.throws(
+          () =>
+            validateBid(
+              gameState,
+              gameState.currentPlayer,
+              BID_DECISIONS.CALL_TRUMP
+            ),
+          (err) => err instanceof InvalidBidError
+        );
+      });
+    });
+
+    describe("Round 2 Bidding (ORDER_UP_ROUND2)", () => {
+      it('should allow "callTrump" with a valid, non-turned-down suit', () => {
+        const { gameState } = setupTestState({
+          phase: GAME_PHASES.ORDER_UP_ROUND2,
+          stateOverrides: { turnCard: { suit: SUITS.SPADES } },
+        });
+        assert.strictEqual(
+          validateBid(
+            gameState,
+            gameState.currentPlayer,
+            BID_DECISIONS.CALL_TRUMP,
+            SUITS.HEARTS
+          ),
+          true
+        );
+      });
+
+      it('should throw InvalidBidError for "callTrump" with the turned-down suit', () => {
+        const { gameState } = setupTestState({
+          phase: GAME_PHASES.ORDER_UP_ROUND2,
+          stateOverrides: { turnCard: { suit: SUITS.SPADES } },
+        });
+        assert.throws(
+          () =>
+            validateBid(
+              gameState,
+              gameState.currentPlayer,
+              BID_DECISIONS.CALL_TRUMP,
+              SUITS.SPADES
+            ),
+          (err) =>
+            err instanceof InvalidBidError &&
+            err.message.includes("Cannot call the suit that was turned down")
+        );
+      });
+
+      it('should throw InvalidBidError for "callTrump" with a null or invalid suit', () => {
+        const { gameState } = setupTestState({
+          phase: GAME_PHASES.ORDER_UP_ROUND2,
+        });
+        assert.throws(
+          () =>
+            validateBid(
+              gameState,
+              gameState.currentPlayer,
+              BID_DECISIONS.CALL_TRUMP,
+              null
+            ),
+          (err) =>
+            err instanceof InvalidBidError &&
+            err.message.includes("Invalid suit provided")
+        );
+        assert.throws(
+          () =>
+            validateBid(
+              gameState,
+              gameState.currentPlayer,
+              BID_DECISIONS.CALL_TRUMP,
+              "invalid_suit"
+            ),
+          (err) =>
+            err instanceof InvalidBidError &&
+            err.message.includes("Invalid suit provided")
+        );
+      });
+
+      it('should throw InvalidBidError for "stick the dealer" (BUG IDENTIFICATION)', () => {
+        const dealer = PLAYER_ROLES[3];
+        const { gameState } = setupTestState({
+          phase: GAME_PHASES.ORDER_UP_ROUND2,
+          dealer: dealer,
+          stateOverrides: {
+            currentPlayer: dealer,
+            bids: [
+              { round: 2, playerRole: PLAYER_ROLES[0], decision: "pass" },
+              { round: 2, playerRole: PLAYER_ROLES[1], decision: "pass" },
+              { round: 2, playerRole: PLAYER_ROLES[2], decision: "pass" },
+            ],
+          },
+        });
+
+        assert.throws(
+          () => validateBid(gameState, dealer, "pass"),
+          (err) =>
+            err instanceof InvalidBidError &&
+            err.message.includes("Dealer must call a suit"),
+          "This test correctly fails because the code enforces 'Stick the Dealer', which contradicts the project rules."
+        );
+      });
+    });
+  });
+
+  describe("Validation Logic - validateDealerDiscard", () => {
+    const { validateDealerDiscard } = validation;
+    const dealerRole = PLAYER_ROLES[0];
+
+    it("should throw ValidationError if cardToDiscard.id is missing", () => {
+      const { gameState } = setupTestState({
+        phase: GAME_PHASES.GAME_PHASE_DEALER_DISCARD,
+        dealer: dealerRole,
+      });
+      const dealerHand = gameState.players[dealerRole].hand;
+      assert.throws(
+        () => validateDealerDiscard(gameState, dealerRole, {}, dealerHand),
+        (err) =>
+          err instanceof ValidationError &&
+          err.message.includes("cardToDiscard.id")
+      );
+    });
+
+    it("should throw InvalidPhaseError if not in DEALER_DISCARD phase", () => {
+      const { gameState } = setupTestState({
+        phase: GAME_PHASES.PLAYING,
+        dealer: dealerRole,
+      });
+      const dealerHand = gameState.players[dealerRole].hand;
+      const cardToDiscard = dealerHand[0];
+      assert.throws(
+        () =>
+          validateDealerDiscard(
+            gameState,
+            dealerRole,
+            cardToDiscard,
+            dealerHand
+          ),
+        (err) => err instanceof InvalidPhaseError
+      );
+    });
+
+    it("should throw NotPlayersTurnError if playerRole is not the dealer", () => {
+      const nonDealerRole = PLAYER_ROLES[1];
+      const { gameState } = setupTestState({
+        phase: GAME_PHASES.GAME_PHASE_DEALER_DISCARD,
+        dealer: dealerRole,
+      });
+      const dealerHand = gameState.players[dealerRole].hand;
+      const cardToDiscard = dealerHand[0];
+      assert.throws(
+        () =>
+          validateDealerDiscard(
+            gameState,
+            nonDealerRole,
+            cardToDiscard,
+            dealerHand
+          ),
+        (err) => err instanceof NotPlayersTurnError
+      );
+    });
+
+    it("should throw CardNotInHandError if cardToDiscard is not in dealerHand", () => {
+      const { gameState } = setupTestState({
+        phase: GAME_PHASES.GAME_PHASE_DEALER_DISCARD,
+        dealer: dealerRole,
+      });
+      const dealerHand = gameState.players[dealerRole].hand;
+      const cardNotInHand = {
+        id: "XX",
+        suit: SUITS.CLUBS,
+        value: VALUES.QUEEN,
+      };
+      assert.throws(
+        () =>
+          validateDealerDiscard(
+            gameState,
+            dealerRole,
+            cardNotInHand,
+            dealerHand
+          ),
+        (err) => err instanceof CardNotInHandError
+      );
+    });
+
+    it("should throw InvalidDiscardError if trying to discard the turn card", () => {
+      const { gameState } = setupTestState({
+        phase: GAME_PHASES.GAME_PHASE_DEALER_DISCARD,
+        dealer: dealerRole,
+        stateOverrides: {
+          currentPlayer: dealerRole,
+          turnCard: { id: "AC", suit: SUITS.CLUBS, value: "A" },
+        },
+      });
+      const dealerHand = [
+        ...gameState.players[dealerRole].hand,
+        gameState.turnCard,
+      ];
+      const turnCard = gameState.turnCard;
+      assert.throws(
+        () =>
+          validateDealerDiscard(gameState, dealerRole, turnCard, dealerHand),
+        (err) =>
+          err instanceof InvalidDiscardError &&
+          err.message.includes("Cannot discard the turn card")
+      );
+    });
+
+    it("should return true for a valid discard scenario", () => {
+      const { gameState } = setupTestState({
+        phase: GAME_PHASES.GAME_PHASE_DEALER_DISCARD,
+        dealer: dealerRole,
+        stateOverrides: {
+          currentPlayer: dealerRole,
+          turnCard: { id: "AC", suit: SUITS.CLUBS, value: "A" },
+        },
+      });
+      const dealerHand = [
+        ...gameState.players[dealerRole].hand,
+        gameState.turnCard,
+      ];
+      const cardToDiscard = dealerHand[0];
+      assert.strictEqual(
+        validateDealerDiscard(gameState, dealerRole, cardToDiscard, dealerHand),
+        true
+      );
+    });
+
+    it("should log a warning but return true if dealer's hand size is not 6", () => {
+      const { gameState } = setupTestState({
+        phase: GAME_PHASES.GAME_PHASE_DEALER_DISCARD,
+        dealer: dealerRole,
+        stateOverrides: {
+          currentPlayer: dealerRole,
+          turnCard: { id: "AC", suit: SUITS.CLUBS, value: "A" },
+        },
+      });
+      const shortHand = gameState.players[dealerRole].hand.slice(0, 4);
+      const cardFromShortHand = shortHand[0];
+      const result = validateDealerDiscard(
+        gameState,
+        dealerRole,
+        cardFromShortHand,
+        shortHand
+      );
+      assert.strictEqual(result, true);
+      assert.strictEqual(mockLoggerWarn.mock.callCount(), 1);
+      const [logContext] = mockLoggerWarn.mock.calls[0].arguments;
+      assert.strictEqual(logContext.handSize, 4);
+    });
+  });
+});

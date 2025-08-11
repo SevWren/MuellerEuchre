@@ -7,7 +7,7 @@
  * this file ia A AUTHORITATIVE SOURCE OF TRUTH. DO NOT MODIFY IT!
  */
 
-import { mock, beforeEach, afterEach } from 'node:test';
+import { mock, beforeEach, afterEach } from "node:test";
 import {
   PLAYER_ROLES as APP_PLAYER_ROLES,
   PLAYER_POSITIONS,
@@ -15,7 +15,7 @@ import {
   VALUES,
   TEAMS,
   GAME_PHASES,
-} from '../../src/config/constants.js';
+} from "../../src/config/constants.js";
 
 /**
  * A type representing one of the valid player role strings.
@@ -62,7 +62,6 @@ import {
  * @property {object} teamScores - A map of team IDs to their total game score.
  */
 
-
 // --- Test Environment Setup and Cleanup ---
 const cleanupCallbacks = [];
 const mockTracker = new WeakMap(); // Maps mock functions to their original implementations or reset logic
@@ -88,10 +87,15 @@ function onCleanup(fn) {
  * @returns {Function} The tracked mock function.
  */
 function trackMock(mockFn) {
-  if (typeof mockFn.mock === 'object' && typeof mockFn.mock.resetCalls === 'function') {
+  if (
+    typeof mockFn.mock === "object" &&
+    typeof mockFn.mock.resetCalls === "function"
+  ) {
     onCleanup(() => mockFn.mock.resetCalls());
   } else {
-    console.warn('trackMock received a function that does not appear to be a node:test mock. It will not be automatically reset.');
+    console.warn(
+      "trackMock received a function that does not appear to be a node:test mock. It will not be automatically reset."
+    );
   }
   return mockFn;
 }
@@ -105,21 +109,23 @@ function createTestContext() {
   const contextMocks = [];
 
   onCleanup(() => {
-    contextCleanups.forEach(fn => fn());
-    contextMocks.forEach(mockFn => {
-      if (typeof mockFn.mock === 'object' && typeof mockFn.mock.resetCalls === 'function') {
+    contextCleanups.forEach((fn) => fn());
+    contextMocks.forEach((mockFn) => {
+      if (
+        typeof mockFn.mock === "object" &&
+        typeof mockFn.mock.resetCalls === "function"
+      ) {
         mockFn.mock.resetCalls();
       }
     });
   });
 
   return {
-
-/**
- * Tracks a mock within this context for automatic reset.
- * @param {Function} mockFn - The mock function to track.
- * @returns {Function} The tracked mock function.
- */
+    /**
+     * Tracks a mock within this context for automatic reset.
+     * @param {Function} mockFn - The mock function to track.
+     * @returns {Function} The tracked mock function.
+     */
 
     track: (mockFn) => {
       contextMocks.push(mockFn);
@@ -131,7 +137,7 @@ function createTestContext() {
      */
     onCleanup: (fn) => {
       contextCleanups.push(fn);
-    }
+    },
   };
 }
 
@@ -153,7 +159,7 @@ function setupTestEnvironment() {
       try {
         cleanup();
       } catch (error) {
-        console.error('Error during test cleanup:', error);
+        console.error("Error during test cleanup:", error);
       }
     }
   });
@@ -175,7 +181,7 @@ function withTestState(options = {}) {
 
 // --- ID Generation for Deterministic Tests ---
 let testIdCounter = 0;
-const getTestId = (prefix = 'id') => `${prefix}-${testIdCounter++}`;
+const getTestId = (prefix = "id") => `${prefix}-${testIdCounter++}`;
 
 /**
  * Resets the deterministic ID counter to 0.
@@ -183,11 +189,13 @@ const getTestId = (prefix = 'id') => `${prefix}-${testIdCounter++}`;
  * in your test setup to ensure test isolation and prevent test order dependency.
  */
 
-const resetTestIdCounter = () => { testIdCounter = 0; };
+const resetTestIdCounter = () => {
+  testIdCounter = 0;
+};
 
 // --- Card and Deck Creation ---
 const fullDeck = createDeck();
-const cardMap = new Map(fullDeck.map(c => [c.id, c]));
+const cardMap = new Map(fullDeck.map((c) => [c.id, c]));
 
 /**
  * Creates a realistic mock card object.
@@ -200,11 +208,23 @@ function createMockCard(suit, value) {
   if (!Object.values(SUITS).includes(suit) || !VALUES.includes(value)) {
     throw new Error(`Invalid card created: ${value} of ${suit}`);
   }
-  const suitChar = suit.split('_').pop().charAt(0);
-  const valueChar = value === '10' ? '10' : value.charAt(0);
-  const suitName = suit.split('_').pop().toLowerCase();
-  const valueName = { '9': 'Nine', '10': 'Ten', J: 'Jack', Q: 'Queen', K: 'King', A: 'Ace' }[value];
-  return { id: `${valueChar}${suitChar}`, suit, value, name: `${valueName} of ${suitName.charAt(0).toUpperCase() + suitName.slice(1)}s` };
+  const suitChar = suit.split("_").pop().charAt(0);
+  const valueChar = value === "10" ? "10" : value.charAt(0);
+  const suitName = suit.split("_").pop().toLowerCase();
+  const valueName = {
+    9: "Nine",
+    10: "Ten",
+    J: "Jack",
+    Q: "Queen",
+    K: "King",
+    A: "Ace",
+  }[value];
+  return {
+    id: `${valueChar}${suitChar}`,
+    suit,
+    value,
+    name: `${valueName} of ${suitName.charAt(0).toUpperCase() + suitName.slice(1)}s`,
+  };
 }
 
 /**
@@ -215,11 +235,15 @@ function createMockCard(suit, value) {
  */
 
 function createCards(cardIdString) {
-    if (typeof cardIdString !== 'string') throw new TypeError('cardIdString must be a string.');
-    const ids = cardIdString.split(',').map(id => id.trim().toUpperCase());
-    const uniqueIds = new Set(ids);
-    if (uniqueIds.size !== ids.length) throw new Error(`Invalid hand: Duplicate card IDs found in string "${cardIdString}"`);
-    return ids.map(id => getCard(id));
+  if (typeof cardIdString !== "string")
+    throw new TypeError("cardIdString must be a string.");
+  const ids = cardIdString.split(",").map((id) => id.trim().toUpperCase());
+  const uniqueIds = new Set(ids);
+  if (uniqueIds.size !== ids.length)
+    throw new Error(
+      `Invalid hand: Duplicate card IDs found in string "${cardIdString}"`
+    );
+  return ids.map((id) => getCard(id));
 }
 
 /**
@@ -229,9 +253,10 @@ function createCards(cardIdString) {
  */
 
 function getCard(cardId) {
-    const card = cardMap.get(cardId.toUpperCase());
-    if (!card) throw new Error(`Card with ID "${cardId}" not found in standard deck.`);
-    return card;
+  const card = cardMap.get(cardId.toUpperCase());
+  if (!card)
+    throw new Error(`Card with ID "${cardId}" not found in standard deck.`);
+  return card;
 }
 
 /**
@@ -241,7 +266,9 @@ function getCard(cardId) {
 
 function createDeck() {
   const deck = [];
-  const canonicalSuits = Object.values(SUITS).filter((s) => s.startsWith('CARD_SUIT_'));
+  const canonicalSuits = Object.values(SUITS).filter((s) =>
+    s.startsWith("CARD_SUIT_")
+  );
   const uniqueSuits = [...new Set(canonicalSuits)];
   for (const suit of uniqueSuits) {
     for (const value of VALUES) {
@@ -259,19 +286,21 @@ function createDeck() {
  */
 
 function shuffleDeterministic(deck, seed = 12345) {
-    const newDeck = [...deck];
-    let m = newDeck.length, t, i;
-    const random = () => {
-        seed = (seed * 9301 + 49297) % 233280;
-        return seed / 233280;
-    };
-    while (m) {
-        i = Math.floor(random() * m--);
-        t = newDeck[m];
-        newDeck[m] = newDeck[i];
-        newDeck[i] = t;
-    }
-    return newDeck;
+  const newDeck = [...deck];
+  let m = newDeck.length,
+    t,
+    i;
+  const random = () => {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+  while (m) {
+    i = Math.floor(random() * m--);
+    t = newDeck[m];
+    newDeck[m] = newDeck[i];
+    newDeck[i] = t;
+  }
+  return newDeck;
 }
 
 //#---------------------------------------#
@@ -285,10 +314,24 @@ function shuffleDeterministic(deck, seed = 12345) {
  * @returns {Player} A complete player object.
  */
 function createMockPlayer(role, overrides = {}) {
-  if (!APP_PLAYER_ROLES.includes(role)) throw new Error(`Invalid player role: ${role}`);
-  const teamId = APP_PLAYER_ROLES.indexOf(role) % 2 === 0 ? TEAMS.TEAM_NS : TEAMS.TEAM_EW;
-  const roleName = role.split('_').pop();
-  return { id: role, name: roleName.charAt(0).toUpperCase() + roleName.slice(1).toLowerCase(), role, teamId, hand: [], tricksWonThisHand: 0, isReady: false, isConnected: true, isActive: true, socketId: `socket-${role}`, ...overrides };
+  if (!APP_PLAYER_ROLES.includes(role))
+    throw new Error(`Invalid player role: ${role}`);
+  const teamId =
+    APP_PLAYER_ROLES.indexOf(role) % 2 === 0 ? TEAMS.TEAM_NS : TEAMS.TEAM_EW;
+  const roleName = role.split("_").pop();
+  return {
+    id: role,
+    name: roleName.charAt(0).toUpperCase() + roleName.slice(1).toLowerCase(),
+    role,
+    teamId,
+    hand: [],
+    tricksWonThisHand: 0,
+    isReady: false,
+    isConnected: true,
+    isActive: true,
+    socketId: `socket-${role}`,
+    ...overrides,
+  };
 }
 
 /**
@@ -298,9 +341,37 @@ function createMockPlayer(role, overrides = {}) {
  */
 function createBaseGameState(overrides = {}) {
   const [P1, P2, P3, P4] = APP_PLAYER_ROLES;
-  const defaultState = { gameId: getTestId('game'), gamePhase: GAME_PHASES.LOBBY, players: { [P1]: createMockPlayer(P1), [P2]: createMockPlayer(P2), [P3]: createMockPlayer(P3), [P4]: createMockPlayer(P4) }, dealer: P1, currentPlayer: P1, turnCard: null, kitty: [], trumpSuit: null, makerTeam: null, currentTrick: [], tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }, teamScores: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }, scores: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }, bids: [], gameMessages: [], version: '1.0.0', ...overrides };
-  if (overrides.teamScores) defaultState.scores = { ...defaultState.scores, ...overrides.teamScores };
-  else if (overrides.scores) defaultState.teamScores = { ...defaultState.teamScores, ...overrides.scores };
+  const defaultState = {
+    gameId: getTestId("game"),
+    gamePhase: GAME_PHASES.LOBBY,
+    players: {
+      [P1]: createMockPlayer(P1),
+      [P2]: createMockPlayer(P2),
+      [P3]: createMockPlayer(P3),
+      [P4]: createMockPlayer(P4),
+    },
+    dealer: P1,
+    currentPlayer: P1,
+    turnCard: null,
+    kitty: [],
+    trumpSuit: null,
+    makerTeam: null,
+    currentTrick: [],
+    tricksTaken: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
+    teamScores: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
+    scores: { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 },
+    bids: [],
+    gameMessages: [],
+    version: "1.0.0",
+    ...overrides,
+  };
+  if (overrides.teamScores)
+    defaultState.scores = { ...defaultState.scores, ...overrides.teamScores };
+  else if (overrides.scores)
+    defaultState.teamScores = {
+      ...defaultState.teamScores,
+      ...overrides.scores,
+    };
   return defaultState;
 }
 
@@ -321,67 +392,125 @@ function createBaseGameState(overrides = {}) {
  */
 
 function setupTestState(options = {}) {
-    const { phase = GAME_PHASES.ORDER_UP_ROUND1, dealer = APP_PLAYER_ROLES[0], enforceStateConsistency = true, handOverrides = {}, trickOverrides = [], stateOverrides = {} } = options;
-    let state = createBaseGameState({ dealer });
-    const deck = shuffleDeterministic(createDeck());
-    const dealtCards = new Set();
-    APP_PLAYER_ROLES.forEach(role => {
-        if (handOverrides[role]) {
-            state.players[role].hand = handOverrides[role];
-            handOverrides[role].forEach(card => dealtCards.add(card.id));
-        }
-    });
-    const remainingDeck = deck.filter(card => !dealtCards.has(card.id));
-    APP_PLAYER_ROLES.forEach(role => {
-        while (state.players[role].hand.length < 5) {
-            if (remainingDeck.length === 0) throw new Error("Deck exhausted during test setup.");
-            state.players[role].hand.push(remainingDeck.pop());
-        }
-    });
-    state.kitty = remainingDeck;
-    state.turnCard = state.kitty.pop();
-    state.currentPlayer = APP_PLAYER_ROLES[(APP_PLAYER_ROLES.indexOf(dealer) + 1) % 4];
-    state.gamePhase = GAME_PHASES.ORDER_UP_ROUND1;
-
-    const advanceToPhase = (targetPhase) => {
-        if (state.gamePhase === targetPhase) return;
-        if (targetPhase === GAME_PHASES.ORDER_UP_ROUND2) {
-            state.bids = APP_PLAYER_ROLES.map(role => ({ round: 1, playerRole: role, decision: 'pass' }));
-            state.gamePhase = GAME_PHASES.ORDER_UP_ROUND2;
-        }
-        if (targetPhase === GAME_PHASES.DEALER_DISCARD) {
-            state.winningBidder = state.currentPlayer; state.makerTeam = state.players[state.currentPlayer].teamId; state.trumpSuit = state.turnCard.suit; state.players[dealer].hand.push(state.turnCard); state.turnCard = null; state.gamePhase = GAME_PHASES.DEALER_DISCARD; state.currentPlayer = dealer;
-        }
-        if (targetPhase === GAME_PHASES.GOING_ALONE_DECISION) {
-            state.winningBidder = state.currentPlayer; state.makerTeam = state.players[state.currentPlayer].teamId; state.trumpSuit = state.turnCard.suit; state.players[dealer].hand.push(state.turnCard); state.players[dealer].hand.shift(); state.turnCard = null; state.gamePhase = GAME_PHASES.GOING_ALONE_DECISION; state.currentPlayer = state.winningBidder;
-        }
-        if (targetPhase === GAME_PHASES.PLAYING) {
-            state.winningBidder = state.currentPlayer; state.makerTeam = state.players[state.currentPlayer].teamId; state.trumpSuit = state.turnCard.suit; state.players[dealer].hand.push(state.turnCard); state.players[dealer].hand.shift(); state.turnCard = null; state.gamePhase = GAME_PHASES.PLAYING; state.currentPlayer = APP_PLAYER_ROLES[(APP_PLAYER_ROLES.indexOf(dealer) + 1) % 4];
-        }
-    };
-    advanceToPhase(phase);
-
-    if (phase === GAME_PHASES.PLAYING && trickOverrides.length > 0) {
-        state.currentTrick = trickOverrides;
-        if (enforceStateConsistency) {
-            state.ledSuit = trickOverrides[0].card.suit;
-            trickOverrides.forEach(played => {
-                const player = state.players[played.playedBy];
-                if (player) player.hand = player.hand.filter(card => card.id !== played.card.id);
-            });
-        }
-        const lastPlayerInTrick = trickOverrides[trickOverrides.length - 1].playedBy;
-        const lastPlayerIndex = APP_PLAYER_ROLES.indexOf(lastPlayerInTrick);
-        state.currentPlayer = APP_PLAYER_ROLES[(lastPlayerIndex + 1) % 4];
+  const {
+    phase = GAME_PHASES.ORDER_UP_ROUND1,
+    dealer = APP_PLAYER_ROLES[0],
+    enforceStateConsistency = true,
+    handOverrides = {},
+    trickOverrides = [],
+    stateOverrides = {},
+  } = options;
+  let state = createBaseGameState({ dealer });
+  const deck = shuffleDeterministic(createDeck());
+  const dealtCards = new Set();
+  APP_PLAYER_ROLES.forEach((role) => {
+    if (handOverrides[role]) {
+      state.players[role].hand = handOverrides[role];
+      handOverrides[role].forEach((card) => dealtCards.add(card.id));
     }
-    
-    if (state.gamePhase !== phase && phase !== GAME_PHASES.LOBBY) {
-        throw new Error(`Could not advance test state to the requested phase: "${phase}". Current phase is "${state.gamePhase}".`);
+  });
+  const remainingDeck = deck.filter((card) => !dealtCards.has(card.id));
+  APP_PLAYER_ROLES.forEach((role) => {
+    while (state.players[role].hand.length < 5) {
+      if (remainingDeck.length === 0)
+        throw new Error("Deck exhausted during test setup.");
+      state.players[role].hand.push(remainingDeck.pop());
     }
+  });
+  state.kitty = remainingDeck;
+  state.turnCard = state.kitty.pop();
+  state.currentPlayer =
+    APP_PLAYER_ROLES[(APP_PLAYER_ROLES.indexOf(dealer) + 1) % 4];
+  state.gamePhase = GAME_PHASES.ORDER_UP_ROUND1;
 
-    Object.assign(state, stateOverrides);
-    const playerHand = state.players[state.currentPlayer]?.hand || [];
-    return { gameState: state, playerHand };
+  //updated to use the new correct correct, modern, prefixed version code
+  const advanceToPhase = (targetPhase) => {
+    if (state.gamePhase === targetPhase) return;
+    if (targetPhase === GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2) {
+      state.bids = APP_PLAYER_ROLES.map((role) => ({
+        round: 1,
+        playerRole: role,
+        decision: "pass",
+      }));
+      state.gamePhase = GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2;
+    }
+    if (targetPhase === GAME_PHASES.GAME_PHASE_DEALER_DISCARD) {
+      state.winningBidder = state.currentPlayer;
+      state.makerTeam = state.players[state.currentPlayer].teamId;
+      state.trumpSuit = state.turnCard.suit;
+      state.players[dealer].hand.push(state.turnCard);
+      state.turnCard = null;
+      state.gamePhase = GAME_PHASES.GAME_PHASE_DEALER_DISCARD;
+      state.currentPlayer = dealer;
+    }
+    if (targetPhase === GAME_PHASES.GAME_PHASE_GOING_ALONE_DECISION) {
+      state.winningBidder = state.currentPlayer;
+      state.makerTeam = state.players[state.currentPlayer].teamId;
+      state.trumpSuit = state.turnCard.suit;
+      state.players[dealer].hand.push(state.turnCard);
+      state.players[dealer].hand.shift();
+      state.turnCard = null;
+      state.gamePhase = GAME_PHASES.GAME_PHASE_GOING_ALONE_DECISION;
+      state.currentPlayer = state.winningBidder;
+    }
+    if (targetPhase === GAME_PHASES.GAME_PHASE_PLAYING) {
+      state.winningBidder = state.currentPlayer;
+      state.makerTeam = state.players[state.currentPlayer].teamId;
+      state.trumpSuit = state.turnCard.suit;
+      state.players[dealer].hand.push(state.turnCard);
+      state.players[dealer].hand.shift();
+      state.turnCard = null;
+      state.gamePhase = GAME_PHASES.GAME_PHASE_PLAYING;
+      state.currentPlayer =
+        APP_PLAYER_ROLES[(APP_PLAYER_ROLES.indexOf(dealer) + 1) % 4];
+    }
+  };
+
+  //const advanceToPhase = (targetPhase) => {
+  //    if (state.gamePhase === targetPhase) return;
+  //    if (targetPhase === GAME_PHASES.ORDER_UP_ROUND2) {
+  //        state.bids = APP_PLAYER_ROLES.map(role => ({ round: 1, playerRole: role, decision: 'pass' }));
+  //        state.gamePhase = GAME_PHASES.ORDER_UP_ROUND2;
+  //    }
+  //    if (targetPhase === GAME_PHASES.DEALER_DISCARD) {
+  //        state.winningBidder = state.currentPlayer; state.makerTeam = state.players[state.currentPlayer].teamId; state.trumpSuit = state.turnCard.suit; state.players[dealer].hand.push(state.turnCard); state.turnCard = null; state.gamePhase = GAME_PHASES.DEALER_DISCARD; state.currentPlayer = dealer;
+  //    }
+  //    if (targetPhase === GAME_PHASES.GOING_ALONE_DECISION) {
+  //        state.winningBidder = state.currentPlayer; state.makerTeam = state.players[state.currentPlayer].teamId; state.trumpSuit = state.turnCard.suit; state.players[dealer].hand.push(state.turnCard); state.players[dealer].hand.shift(); state.turnCard = null; state.gamePhase = GAME_PHASES.GOING_ALONE_DECISION; state.currentPlayer = state.winningBidder;
+  //    }
+  //    if (targetPhase === GAME_PHASES.PLAYING) {
+  //        state.winningBidder = state.currentPlayer; state.makerTeam = state.players[state.currentPlayer].teamId; state.trumpSuit = state.turnCard.suit; state.players[dealer].hand.push(state.turnCard); state.players[dealer].hand.shift(); state.turnCard = null; state.gamePhase = GAME_PHASES.PLAYING; state.currentPlayer = APP_PLAYER_ROLES[(APP_PLAYER_ROLES.indexOf(dealer) + 1) % 4];
+  //    }
+  //};
+  advanceToPhase(phase);
+
+  if (phase === GAME_PHASES.PLAYING && trickOverrides.length > 0) {
+    state.currentTrick = trickOverrides;
+    if (enforceStateConsistency) {
+      state.ledSuit = trickOverrides[0].card.suit;
+      trickOverrides.forEach((played) => {
+        const player = state.players[played.playedBy];
+        if (player)
+          player.hand = player.hand.filter(
+            (card) => card.id !== played.card.id
+          );
+      });
+    }
+    const lastPlayerInTrick =
+      trickOverrides[trickOverrides.length - 1].playedBy;
+    const lastPlayerIndex = APP_PLAYER_ROLES.indexOf(lastPlayerInTrick);
+    state.currentPlayer = APP_PLAYER_ROLES[(lastPlayerIndex + 1) % 4];
+  }
+
+  if (state.gamePhase !== phase && phase !== GAME_PHASES.LOBBY) {
+    throw new Error(
+      `Could not advance test state to the requested phase: "${phase}". Current phase is "${state.gamePhase}".`
+    );
+  }
+
+  Object.assign(state, stateOverrides);
+  const playerHand = state.players[state.currentPlayer]?.hand || [];
+  return { gameState: state, playerHand };
 }
 
 /**
@@ -395,12 +524,28 @@ function setupTestState(options = {}) {
  */
 
 function setupCompletedHandState(options) {
-    const { makerTeam, tricksWonByMaker, goingAlone = false, stateOverrides = {} } = options;
-    if (!makerTeam || tricksWonByMaker < 0 || tricksWonByMaker > 5) throw new Error("Invalid options for setupCompletedHandState.");
-    const opponentTeam = makerTeam === TEAMS.TEAM_NS ? TEAMS.TEAM_EW : TEAMS.TEAM_NS;
-    const tricksWonByOpponent = 5 - tricksWonByMaker;
-    const state = createBaseGameState({ gamePhase: GAME_PHASES.SCORING, makerTeam, goingAlone, tricksTaken: { [makerTeam]: tricksWonByMaker, [opponentTeam]: tricksWonByOpponent, }, ...stateOverrides });
-    return state;
+  const {
+    makerTeam,
+    tricksWonByMaker,
+    goingAlone = false,
+    stateOverrides = {},
+  } = options;
+  if (!makerTeam || tricksWonByMaker < 0 || tricksWonByMaker > 5)
+    throw new Error("Invalid options for setupCompletedHandState.");
+  const opponentTeam =
+    makerTeam === TEAMS.TEAM_NS ? TEAMS.TEAM_EW : TEAMS.TEAM_NS;
+  const tricksWonByOpponent = 5 - tricksWonByMaker;
+  const state = createBaseGameState({
+    gamePhase: GAME_PHASES.SCORING,
+    makerTeam,
+    goingAlone,
+    tricksTaken: {
+      [makerTeam]: tricksWonByMaker,
+      [opponentTeam]: tricksWonByOpponent,
+    },
+    ...stateOverrides,
+  });
+  return state;
 }
 
 /**
@@ -413,32 +558,50 @@ function setupCompletedHandState(options) {
  */
 
 function setupSocketTest(options = {}) {
-    const gameState = options.gameState || createBaseGameState();
-    const socketId = options.socketId || 'socket-p1';
-    const playerRole = options.playerRole || Object.values(gameState.players).find(p => p.socketId === socketId)?.role;
+  const gameState = options.gameState || createBaseGameState();
+  const socketId = options.socketId || "socket-p1";
+  const playerRole =
+    options.playerRole ||
+    Object.values(gameState.players).find((p) => p.socketId === socketId)?.role;
 
-    if (!playerRole) {
-        throw new Error(`Failed to setup socket test: Could not find a player with socketId "${socketId}" in the provided gameState.`);
-    }
+  if (!playerRole) {
+    throw new Error(
+      `Failed to setup socket test: Could not find a player with socketId "${socketId}" in the provided gameState.`
+    );
+  }
 
-    const mockSocket = { id: socketId, emit: mock.fn(), join: mock.fn(), leave: mock.fn(), on: mock.fn(), getHandler: (event) => mockSocket.on.mock.calls.find(c => c.arguments[0] === event)?.arguments[1], };
-    
-    // Create a mock for the emit function that will be returned by io.to()
-    const mockEmit = mock.fn();
-    
-    // Create a mock for the object returned by io.to()
-    const mockToReturn = { emit: mockEmit };
-    
-    // Create the mock for io.to() that returns our mock object
-    const mockTo = mock.fn(() => mockToReturn);
-    
-    // Create the mock io object with our tracked mocks
-    const mockIo = { to: mockTo };
-    
-    // For backward compatibility, add the emitSpy to the mockIo object
-    mockIo.emitSpy = mockEmit;
-    const mockGameRepository = { getGame: mock.fn(async (gameId) => (gameId === gameState.gameId ? gameState : null)), updateGame: mock.fn(async (gameId, state) => state), };
-    return { mockSocket, mockIo, mockGameRepository, playerRole, gameState };
+  const mockSocket = {
+    id: socketId,
+    emit: mock.fn(),
+    join: mock.fn(),
+    leave: mock.fn(),
+    on: mock.fn(),
+    getHandler: (event) =>
+      mockSocket.on.mock.calls.find((c) => c.arguments[0] === event)
+        ?.arguments[1],
+  };
+
+  // Create a mock for the emit function that will be returned by io.to()
+  const mockEmit = mock.fn();
+
+  // Create a mock for the object returned by io.to()
+  const mockToReturn = { emit: mockEmit };
+
+  // Create the mock for io.to() that returns our mock object
+  const mockTo = mock.fn(() => mockToReturn);
+
+  // Create the mock io object with our tracked mocks
+  const mockIo = { to: mockTo };
+
+  // For backward compatibility, add the emitSpy to the mockIo object
+  mockIo.emitSpy = mockEmit;
+  const mockGameRepository = {
+    getGame: mock.fn(async (gameId) =>
+      gameId === gameState.gameId ? gameState : null
+    ),
+    updateGame: mock.fn(async (gameId, state) => state),
+  };
+  return { mockSocket, mockIo, mockGameRepository, playerRole, gameState };
 }
 
 const PLAYER_ROLES = APP_PLAYER_ROLES;

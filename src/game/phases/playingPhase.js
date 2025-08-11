@@ -15,11 +15,8 @@
  * @see {@link module:src/game/logic/validation-errors}
  * @see {@link module:src/utils/players}
  * @see {@link module:src/utils/cardUtils}
+ * @see {@link module:test/game/phases/playingPhase.unit.test.js}
  */
-
-// =============================================================================
-// Type Definitions for JSDoc
-// =============================================================================
 
 import {
   GAME_PHASES,
@@ -85,31 +82,31 @@ import {
  * @property {PlayerRole|null} [playerWhoOrderedUp] - The player who ordered up.
  * @property {PlayerRole|null} [playerWhoCalledTrump] - The player who called trump.
  * @property {PlayerRole|null} [playerGoingAlone] - The player who went alone.
- * @property {Array<object>} [messages] - Log of game events and messages.
- * @property {object} [scores] - Current scores for each team.
+ * @property {Array<object>} [gameMessages] - Log of game events and messages.
+ * @property {object} [teamScores] - Current scores for each team.
  * @property {object} [previousTricksTaken] - Tricks taken in the previous hand.
  * @property {Card|null} [lastTrickWinningCard] - The winning card of the last trick.
  * @property {PlayerRole|null} [lastTrickWinner] - The player who won the last trick.
  * @property {TeamName|null} [lastTrickWinningTeam] - The team that won the last trick.
  * @property {Array<object>} [lastTrick] - The cards played in the last trick.
+ * @property {string} [message] - A descriptive message about the last action.
  */
-
-// =============================================================================
-// Internal Helper Functions
-// =============================================================================
 
 /**
  * Creates a deep clone of the game state to ensure immutability.
+ * Uses `structuredClone` if available, otherwise falls back to `JSON.parse(JSON.stringify())`.
  * @private
  * @param {GameState} state - The game state to clone.
  * @returns {GameState} A new, deep copy of the game state.
- * @throws {Error} If the state cannot be cloned.
+ * @throws {Error} If the state cannot be cloned by either method.
  */
 function deepCloneState(state) {
   try {
-    return structuredClone
-      ? structuredClone(state)
-      : JSON.parse(JSON.stringify(state));
+    if (typeof structuredClone === 'function') {
+      return structuredClone(state);
+    } else {
+      return JSON.parse(JSON.stringify(state));
+    }
   } catch (error) {
     throw new Error("Failed to clone game state", { cause: error });
   }
@@ -130,10 +127,6 @@ function validatePlayer(gameState, playerRole) {
   return gameState.players[playerRole];
 }
 
-// =============================================================================
-// Public API Functions
-// =============================================================================
-
 /**
  * Handles a player playing a card. Validates the play, updates the current trick,
  * determines the next player, and transitions to scoring if the hand is over.
@@ -153,7 +146,6 @@ function validatePlayer(gameState, playerRole) {
  * @throws {MustFollowSuitError} If player fails to follow suit (from `this.validatePlay`).
  * @see {@link module:src/socket/handlers/playingHandlers}
  * @see {@link module:test/game/phases/playingPhase.unit.test.js}
- * @see {@link docs/refactoring_Playing_Phase_And_playing_phase_test_task_guide.md}
  * @see {@link docs/Knowledge/The Going Alone Gameplay and Scoring Modifiers.md}
  */
 function handlePlayCard(gameState, playerRole, cardPlayed) {

@@ -7,8 +7,8 @@
  *   including valid and invalid translation keys, placeholder replacements,
  *   and error handling.
  *
- * @see {@link module:src/utils/i18n} for the implementation being tested
- * @see {@link module:src/utils/logger} for the logger utility being mocked
+ * @see {@link module:src/utils/i18n.js} for the implementation being tested
+ * @see {@link module:src/utils/logger.js} for the logger utility being mocked
  * @see {@link module:src/config/locales/en.json} for the translation messages
  *
  * @example
@@ -34,7 +34,7 @@ const mockLogger = {
 /**
  * Test suite for the i18n utility module.
  * @namespace I18nUtilityTests
- * @see {@link module:src/utils/i18n} for the implementation
+ * @see {@link module:src/utils/i18n.js} for the implementation
  */
 describe('i18n Utility', () => {
   let t; // This will hold the function from the dynamically imported module

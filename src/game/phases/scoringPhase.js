@@ -162,9 +162,9 @@ async function calculateAndApplyScore(gameState) {
   newGameState.tricksTaken = { [TEAMS.TEAM_NS]: 0, [TEAMS.TEAM_EW]: 0 }; // Reset for next hand
   newGameState.currentTrick = [];
 
-  logger.info(
-    `[Game ID: ${gameId}] Scoring complete. ${message}. Scores: NS ${newGameState.teamScores[TEAMS.TEAM_NS]}, EW ${newGameState.teamScores[TEAMS.TEAM_EW]}`
-  );
+  //logger.info(
+  //  `[Game ID: ${gameId}] Scoring complete. ${message}. Scores: NS ${newGameState.teamScores[TEAMS.TEAM_NS]}, EW ${newGameState.teamScores[TEAMS.TEAM_EW]}`
+  //);
 
   return checkGameOver(newGameState);
 }
@@ -194,9 +194,11 @@ function checkGameOver(gameState) {
     newGameState.winningTeam = winningTeam;
     newGameState.currentPlayer = null;
     newGameState.message = `${newGameState.message} ${gameOverMessagePart}`;
-    logger.info(
-      `[Game ID: ${gameId}] Game over. Winner: ${winningTeam}. ${gameOverMessagePart}`
-    );
+
+    //uncomment to enable debug info to terminal
+    //logger.info(
+    //  `[Game ID: ${gameId}] Game over. Winner: ${winningTeam}. ${gameOverMessagePart}`
+    //);
   } else {
     const nextDealerRole = getNextPlayer(currentDealer, PLAYER_ROLES);
     const transitionMessage = `Hand scored. Next hand starting. New dealer: ${nextDealerRole}. Current scores: Team NS ${nsScore}, Team EW ${ewScore}.`;
@@ -215,9 +217,11 @@ function checkGameOver(gameState) {
     newGameState.turnCard = null;
     newGameState.leadSuit = null;
     newGameState.message = `${newGameState.message} ${transitionMessage}`;
-    logger.info(
-      `[Game ID: ${gameId}] Hand scored. Transitioning to DEALING. New dealer: ${nextDealerRole}.`
-    );
+
+    //uncomment to enable debug info to terminal
+    //logger.info(
+    //  `[Game ID: ${gameId}] Hand scored. Transitioning to DEALING. New dealer: ${nextDealerRole}.`
+    //);
   }
   return newGameState;
 }

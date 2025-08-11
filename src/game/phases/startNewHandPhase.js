@@ -213,7 +213,17 @@ function startNewHand(currentGameState) {
 
     // 6. Determine the first bidder (left of dealer)
     // The player to the left of the dealer bids first
-    const firstBidder = getNextPlayer(newDealer, activePlayers);
+    let firstBidder = getNextPlayer(newDealer, PLAYER_ROLES);
+
+    // If the next player is not active, find the next active one in turn order.
+    let attempts = 0; // Safeguard against infinite loops
+    while (
+      !activePlayers.includes(firstBidder) &&
+      attempts < PLAYER_ROLES.length
+    ) {
+      firstBidder = getNextPlayer(firstBidder, PLAYER_ROLES);
+      attempts++;
+    }
 
     // 7. Reset state for the new hand and set phase to bidding
     // This creates a fresh state object with all hand-specific properties reset

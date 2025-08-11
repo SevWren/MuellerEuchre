@@ -18,7 +18,6 @@
  *
  * @see src/utils/cardUtils.js For card evaluation, ranking, and hand management
  * @see src/game/phases/startNewHandPhase.js For deck creation during hand initialization
- * @since 1.0.0
  */
 
 import { CARD_SUITS, CARD_VALUES } from "../config/constants.js";
@@ -30,6 +29,10 @@ import {
   SUIT_TO_NAME_MAP,
   SUIT_CONSTANT_TO_NAME_MAP
 } from "./cardUtils.js";
+
+//Remove Import: import { SUIT_TO_CHAR_MAP, VALUE_TO_CHAR_MAP, VALUE_TO_NAME_MAP, SUIT_TO_NAME_MAP, SUIT_CONSTANT_TO_NAME_MAP } from "./cardUtils.js";
+//Add Import: import { SUIT_TO_CHAR_MAP, VALUE_TO_CHAR_MAP, VALUE_TO_NAME_MAP, SUIT_TO_NAME_MAP, SUIT_CONSTANT_TO_NAME_MAP } from "./cardFormatUtils.js";
+//Note: The cardToId import was removed from this file in a previous refactor, so no other changes are needed.
 
 // ===== Helper Functions =====
 

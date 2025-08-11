@@ -1,3 +1,7 @@
+// File is generating terminal pollution
+// is not a layer 1 file so we need to temporarily
+// at least prohibit terminal spam in this file
+
 /**
  * Game logic specific to the LOBBY phase.
  * @module game/phases/lobbyPhase
@@ -135,10 +139,12 @@ export function attemptToStartGame(currentGameState, requestingPlayerRole) {
   // Initialize/reset other relevant fields for a new game start
   // currentPlayer will be set by the DEALING phase itself (startNewHand).
   // For now, just ensure phase transition.
-  logger.info(
-    { gameId: newState.gameId, newPhase: newState.gamePhase },
-    "Game successfully transitioned to DEALING phase."
-  );
+  
+    //uncomment to enable debug info to terminal  
+  //logger.info(
+  //  { gameId: newState.gameId, newPhase: newState.gamePhase },
+  //  "Game successfully transitioned to DEALING phase."
+  //);
   return {
     success: true,
     updatedGameState: newState,

@@ -160,7 +160,6 @@ index.js
 docs/Daily_Logs
 docs/Debug_Logs
 Integrate with External Tools via Tasks.md
-package.json
 .gitignore
 .augment/rules/imported/always-logging-and-error-handling-everywhere.md
 .augment/rules/imported/analyze.md

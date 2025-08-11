@@ -69,5 +69,5 @@
     "public/js/**/*.js",
     "**/cypress",
     "**/e2e"
-    ]
+  ]
 }

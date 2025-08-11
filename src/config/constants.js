@@ -4,10 +4,10 @@
  * @description Contains all game-wide constants including card values, suits, game phases,
  * player roles, teams, and socket event names. These constants are used throughout the application
  * to maintain consistency and avoid magic strings/numbers.
- * 
+ *
  * THIS FILE IS A SINGLE SOURCE OF TRUTH
  * NO ONE SHOULD UNDER ANY CIRCUMSTANCES WHATSOEVER EVER MODIFY THIS FILE
- * 
+ *
  * All constants use a prefix pattern (e.g., CARD_, GAME_, PLAYER_) to ensure uniqueness
  * and prevent naming conflicts across the application.
  *
@@ -77,16 +77,16 @@
 
 export const CARD_SUITS = Object.freeze({
   // Original exports for backward compatibility
-  HEARTS: 'CARD_SUIT_HEARTS',
-  DIAMONDS: 'CARD_SUIT_DIAMONDS',
-  CLUBS: 'CARD_SUIT_CLUBS',
-  SPADES: 'CARD_SUIT_SPADES',
+  HEARTS: "CARD_SUIT_HEARTS",
+  DIAMONDS: "CARD_SUIT_DIAMONDS",
+  CLUBS: "CARD_SUIT_CLUBS",
+  SPADES: "CARD_SUIT_SPADES",
 
   // New prefixed versions (preferred)
-  CARD_SUIT_HEARTS: 'CARD_SUIT_HEARTS',
-  CARD_SUIT_DIAMONDS: 'CARD_SUIT_DIAMONDS',
-  CARD_SUIT_CLUBS: 'CARD_SUIT_CLUBS',
-  CARD_SUIT_SPADES: 'CARD_SUIT_SPADES'
+  CARD_SUIT_HEARTS: "CARD_SUIT_HEARTS",
+  CARD_SUIT_DIAMONDS: "CARD_SUIT_DIAMONDS",
+  CARD_SUIT_CLUBS: "CARD_SUIT_CLUBS",
+  CARD_SUIT_SPADES: "CARD_SUIT_SPADES",
 });
 
 // Maintain original export for backward compatibility
@@ -137,24 +137,24 @@ export const CARD_RANKS = Object.freeze({
 
   // New prefixed versions (preferred)
   CARD_RANK_RIGHT_BOWER: 150, // Jack of trump suit (highest card)
-  CARD_RANK_LEFT_BOWER: 100,  // Jack of same color as trump (second highest)
-  CARD_RANK_ACE: 14,          // Standard high card
+  CARD_RANK_LEFT_BOWER: 100, // Jack of same color as trump (second highest)
+  CARD_RANK_ACE: 14, // Standard high card
   CARD_RANK_KING: 13,
   CARD_RANK_QUEEN: 12,
-  CARD_RANK_JACK: 11,         // Non-bower Non-Trump Jack
+  CARD_RANK_JACK: 11, // Non-bower Non-Trump Jack
   CARD_RANK_TEN: 10,
-  CARD_RANK_NINE: 9,          // Lowest standard card
+  CARD_RANK_NINE: 9, // Lowest standard card
 
   // Card rank offsets
-  TRUMP_OFFSET: 100,  // Added to base rank for trump cards
-  LED_OFFSET: 50,     // Added to base rank for led suit cards (non-trump)
+  TRUMP_OFFSET: 100, // Added to base rank for trump cards
+  LED_OFFSET: 50, // Added to base rank for led suit cards (non-trump)
 
   // Sorting ranks (for sortHand utility)
-  SORT_RANK_RIGHT_BOWER: 1000,  // Ensures right bower is highest in sort order
-  SORT_RANK_LEFT_BOWER: 900,    // Ensures left bower is second highest in sort order
+  SORT_RANK_RIGHT_BOWER: 1000, // Ensures right bower is highest in sort order
+  SORT_RANK_LEFT_BOWER: 900, // Ensures left bower is second highest in sort order
 
   // Invalid card rank
-  INVALID: 0
+  INVALID: 0,
 });
 
 /**
@@ -166,14 +166,14 @@ export const CARD_RANKS = Object.freeze({
  */
 export const BID_DECISIONS = Object.freeze({
   // Original values for backward compatibility
-  ORDER_UP: 'orderUp',
-  PASS: 'pass',
-  CALL_TRUMP: 'callTrump',
+  ORDER_UP: "orderUp",
+  PASS: "pass",
+  CALL_TRUMP: "callTrump",
 
   // New prefixed versions (preferred)
-  BID_DECISION_ORDER_UP: 'orderUp',
-  BID_DECISION_PASS: 'pass',
-  BID_DECISION_CALL_TRUMP: 'callTrump',
+  BID_DECISION_ORDER_UP: "orderUp",
+  BID_DECISION_PASS: "pass",
+  BID_DECISION_CALL_TRUMP: "callTrump",
 });
 
 /**
@@ -187,20 +187,20 @@ export const BID_DECISIONS = Object.freeze({
  */
 export const LOG_LEVELS = Object.freeze({
   // Original exports for backward compatibility
-  ERROR: 'LOG_LEVEL_ERROR',
-  WARN: 'LOG_LEVEL_WARN',
-  INFO: 'LOG_LEVEL_INFO',
-  DEBUG: 'LOG_LEVEL_DEBUG',
-  TRACE: 'LOG_LEVEL_TRACE',
-  NONE: 'LOG_LEVEL_SILENT',
+  ERROR: "LOG_LEVEL_ERROR",
+  WARN: "LOG_LEVEL_WARN",
+  INFO: "LOG_LEVEL_INFO",
+  DEBUG: "LOG_LEVEL_DEBUG",
+  TRACE: "LOG_LEVEL_TRACE",
+  NONE: "LOG_LEVEL_SILENT",
 
   // New prefixed versions (preferred)
-  LOG_LEVEL_ERROR: 'LOG_LEVEL_ERROR', // Critical errors that cause the app to fail
-  LOG_LEVEL_WARN: 'LOG_LEVEL_WARN',   // Non-critical issues that should be addressed
-  LOG_LEVEL_INFO: 'LOG_LEVEL_INFO',   // General information about application flow
-  LOG_LEVEL_DEBUG: 'LOG_LEVEL_DEBUG', // Detailed debugging information
-  LOG_LEVEL_TRACE: 'LOG_LEVEL_TRACE', // Very detailed logging for specific debugging
-  LOG_LEVEL_SILENT: 'LOG_LEVEL_SILENT' // No logging at all
+  LOG_LEVEL_ERROR: "LOG_LEVEL_ERROR", // Critical errors that cause the app to fail
+  LOG_LEVEL_WARN: "LOG_LEVEL_WARN", // Non-critical issues that should be addressed
+  LOG_LEVEL_INFO: "LOG_LEVEL_INFO", // General information about application flow
+  LOG_LEVEL_DEBUG: "LOG_LEVEL_DEBUG", // Detailed debugging information
+  LOG_LEVEL_TRACE: "LOG_LEVEL_TRACE", // Very detailed logging for specific debugging
+  LOG_LEVEL_SILENT: "LOG_LEVEL_SILENT", // No logging at all
 });
 
 // Maintain original export for backward compatibility
@@ -216,16 +216,16 @@ export const DEBUG_LEVELS = LOG_LEVELS;
  */
 export const STORAGE_KEYS = Object.freeze({
   // Original exports for backward compatibility
-  GAME_STATE: 'STORAGE_KEY_GAME_STATE',
-  PLAYER_ID: 'STORAGE_KEY_PLAYER_ID',
-  PLAYER_NAME: 'STORAGE_KEY_PLAYER_NAME',
-  GAME_SETTINGS: 'STORAGE_KEY_GAME_SETTINGS',
+  GAME_STATE: "STORAGE_KEY_GAME_STATE",
+  PLAYER_ID: "STORAGE_KEY_PLAYER_ID",
+  PLAYER_NAME: "STORAGE_KEY_PLAYER_NAME",
+  GAME_SETTINGS: "STORAGE_KEY_GAME_SETTINGS",
 
   // New prefixed versions (preferred)
-  STORAGE_KEY_GAME_STATE: 'STORAGE_KEY_GAME_STATE',    // Current game state
-  STORAGE_KEY_PLAYER_ID: 'STORAGE_KEY_PLAYER_ID',      // Local player ID
-  STORAGE_KEY_PLAYER_NAME: 'STORAGE_KEY_PLAYER_NAME',  // Player's chosen name
-  STORAGE_KEY_GAME_SETTINGS: 'STORAGE_KEY_GAME_SETTINGS' // Game settings/preferences
+  STORAGE_KEY_GAME_STATE: "STORAGE_KEY_GAME_STATE", // Current game state
+  STORAGE_KEY_PLAYER_ID: "STORAGE_KEY_PLAYER_ID", // Local player ID
+  STORAGE_KEY_PLAYER_NAME: "STORAGE_KEY_PLAYER_NAME", // Player's chosen name
+  STORAGE_KEY_GAME_SETTINGS: "STORAGE_KEY_GAME_SETTINGS", // Game settings/preferences
 });
 
 /**
@@ -247,8 +247,8 @@ export const STORAGE_KEYS = Object.freeze({
  */
 export const GAME_EVENTS = Object.freeze({
   // Original exports for backward compatibility
-  STATE_UPDATE: 'GAME_EVENT_STATE_UPDATE',
-  REQUEST_FULL_STATE: 'GAME_EVENT_REQUEST_STATE',
+  STATE_UPDATE: "GAME_EVENT_STATE_UPDATE",
+  REQUEST_FULL_STATE: "GAME_EVENT_REQUEST_STATE",
   PLAY_CARD: "play_card",
   ACTION_ORDER_UP_DECISION: "action_order_up_decision",
   ACTION_DEALER_DISCARD: "action_dealer_discard",
@@ -268,16 +268,16 @@ export const GAME_EVENTS = Object.freeze({
   ERROR: "generic_error",
 
   // New prefixed versions (preferred)
-  GAME_EVENT_STATE_UPDATE: 'GAME_EVENT_STATE_UPDATE', // Full game state update from server
-  GAME_EVENT_REQUEST_STATE: 'GAME_EVENT_REQUEST_STATE', // Client request for full state
-  GAME_EVENT_PLAYER_ACTION: 'GAME_EVENT_PLAYER_ACTION', // Player action (bid, play card, etc.)
-  GAME_EVENT_CHAT_MESSAGE: 'GAME_EVENT_CHAT_MESSAGE', // In-game chat message
-  GAME_EVENT_PLAYER_JOIN: 'GAME_EVENT_PLAYER_JOIN', // New player joins the game
-  GAME_EVENT_PLAYER_LEAVE: 'GAME_EVENT_PLAYER_LEAVE', // Player leaves the game
-  GAME_EVENT_GAME_OVER: 'GAME_EVENT_GAME_OVER', // Game has ended
-  GAME_STATE_UPDATED: 'GAME_STATE_UPDATED', // Game state has been updated
-  ACTION_GO_ALONE_DECISION: 'ACTION_GO_ALONE_DECISION', // Player makes a go alone decision
-  GO_ALONE_DECISION_PROCESSED: 'GO_ALONE_DECISION_PROCESSED' // Go alone decision has been processed
+  GAME_EVENT_STATE_UPDATE: "GAME_EVENT_STATE_UPDATE", // Full game state update from server
+  GAME_EVENT_REQUEST_STATE: "GAME_EVENT_REQUEST_STATE", // Client request for full state
+  GAME_EVENT_PLAYER_ACTION: "GAME_EVENT_PLAYER_ACTION", // Player action (bid, play card, etc.)
+  GAME_EVENT_CHAT_MESSAGE: "GAME_EVENT_CHAT_MESSAGE", // In-game chat message
+  GAME_EVENT_PLAYER_JOIN: "GAME_EVENT_PLAYER_JOIN", // New player joins the game
+  GAME_EVENT_PLAYER_LEAVE: "GAME_EVENT_PLAYER_LEAVE", // Player leaves the game
+  GAME_EVENT_GAME_OVER: "GAME_EVENT_GAME_OVER", // Game has ended
+  GAME_STATE_UPDATED: "GAME_STATE_UPDATED", // Game state has been updated
+  ACTION_GO_ALONE_DECISION: "ACTION_GO_ALONE_DECISION", // Player makes a go alone decision
+  GO_ALONE_DECISION_PROCESSED: "GO_ALONE_DECISION_PROCESSED", // Go alone decision has been processed
 });
 
 /**
@@ -294,25 +294,26 @@ export const GAME_EVENTS = Object.freeze({
  */
 export const GAME_PHASES = Object.freeze({
   // Original exports for backward compatibility
-  LOBBY: 'GAME_PHASE_LOBBY',
-  DEALING: 'GAME_PHASE_DEALING',
-  ORDER_UP_ROUND1: 'GAME_PHASE_ORDER_UP_ROUND1',
-  ORDER_UP_ROUND2: 'GAME_PHASE_ORDER_UP_ROUND2',
-  GOING_ALONE_DECISION: 'GAME_PHASE_GOING_ALONE_DECISION',
-  PLAYING: 'GAME_PHASE_PLAYING',
-  SCORING: 'GAME_PHASE_SCORING',
-  GAME_OVER: 'GAME_PHASE_GAME_OVER',
+  LOBBY: "GAME_PHASE_LOBBY",
+  DEALING: "GAME_PHASE_DEALING",
+  ORDER_UP_ROUND1: "GAME_PHASE_ORDER_UP_ROUND1",
+  ORDER_UP_ROUND2: "GAME_PHASE_ORDER_UP_ROUND2",
+  GOING_ALONE_DECISION: "GAME_PHASE_GOING_ALONE_DECISION",
+  PLAYING: "GAME_PHASE_PLAYING",
+  SCORING: "GAME_PHASE_SCORING",
+  GAME_OVER: "GAME_PHASE_GAME_OVER",
+  DEALER_DISCARD: `DEALER_DISCARD`,
 
   // New prefixed versions (preferred)
-  GAME_PHASE_LOBBY: 'GAME_PHASE_LOBBY', // Initial phase where players join before the game starts
-  GAME_PHASE_DEALING: 'GAME_PHASE_DEALING', // Phase where cards are being dealt to players
-  GAME_PHASE_ORDER_UP_ROUND1: 'GAME_PHASE_ORDER_UP_ROUND1', // First bidding round for selecting trump
-  GAME_PHASE_DEALER_DISCARD: 'GAME_PHASE_DEALER_DISCARD',
-  GAME_PHASE_ORDER_UP_ROUND2: 'GAME_PHASE_ORDER_UP_ROUND2', // Second bidding round if first round passes
-  GAME_PHASE_GOING_ALONE_DECISION: 'GAME_PHASE_GOING_ALONE_DECISION', // Phase where maker decides to play alone
-  GAME_PHASE_PLAYING: 'GAME_PHASE_PLAYING', // Main gameplay phase where tricks are played
-  GAME_PHASE_SCORING: 'GAME_PHASE_SCORING', // Phase where hand results are calculated
-  GAME_PHASE_GAME_OVER: 'GAME_PHASE_GAME_OVER' // Final phase when game ends
+  GAME_PHASE_LOBBY: "GAME_PHASE_LOBBY", // Initial phase where players join before the game starts
+  GAME_PHASE_DEALING: "GAME_PHASE_DEALING", // Phase where cards are being dealt to players
+  GAME_PHASE_ORDER_UP_ROUND1: "GAME_PHASE_ORDER_UP_ROUND1", // First bidding round for selecting trump
+  GAME_PHASE_DEALER_DISCARD: "GAME_PHASE_DEALER_DISCARD",
+  GAME_PHASE_ORDER_UP_ROUND2: "GAME_PHASE_ORDER_UP_ROUND2", // Second bidding round if first round passes
+  GAME_PHASE_GOING_ALONE_DECISION: "GAME_PHASE_GOING_ALONE_DECISION", // Phase where maker decides to play alone
+  GAME_PHASE_PLAYING: "GAME_PHASE_PLAYING", // Main gameplay phase where tricks are played
+  GAME_PHASE_SCORING: "GAME_PHASE_SCORING", // Phase where hand results are calculated
+  GAME_PHASE_GAME_OVER: "GAME_PHASE_GAME_OVER", // Final phase when game ends
 });
 
 /**
@@ -324,10 +325,10 @@ export const GAME_PHASES = Object.freeze({
  * // Team EW: PLAYER_ROLES[1] and PLAYER_ROLES[3] (PLAYER_WEST and PLAYER_EAST)
  */
 const PLAYER_ROLES_ARRAY = [
-  'PLAYER_SOUTH',
-  'PLAYER_WEST',
-  'PLAYER_NORTH',
-  'PLAYER_EAST'
+  "PLAYER_SOUTH",
+  "PLAYER_WEST",
+  "PLAYER_NORTH",
+  "PLAYER_EAST",
 ];
 
 // Export as read-only view of the array
@@ -343,16 +344,16 @@ export const PLAYER_ROLES = Object.freeze([...PLAYER_ROLES_ARRAY]);
  */
 export const PLAYER_POSITIONS = Object.freeze({
   // Original values for backward compatibility
-  SOUTH: 'PLAYER_SOUTH',
-  WEST: 'PLAYER_WEST',
-  NORTH: 'PLAYER_NORTH',
-  EAST: 'PLAYER_EAST',
+  SOUTH: "PLAYER_SOUTH",
+  WEST: "PLAYER_WEST",
+  NORTH: "PLAYER_NORTH",
+  EAST: "PLAYER_EAST",
 
   // New prefixed versions (preferred)
-  PLAYER_SOUTH: 'PLAYER_SOUTH',
-  PLAYER_WEST: 'PLAYER_WEST',
-  PLAYER_NORTH: 'PLAYER_NORTH',
-  PLAYER_EAST: 'PLAYER_EAST'
+  PLAYER_SOUTH: "PLAYER_SOUTH",
+  PLAYER_WEST: "PLAYER_WEST",
+  PLAYER_NORTH: "PLAYER_NORTH",
+  PLAYER_EAST: "PLAYER_EAST",
 });
 
 /**
@@ -363,12 +364,12 @@ export const PLAYER_POSITIONS = Object.freeze({
  */
 export const TEAMS = Object.freeze({
   // Original values for backward compatibility
-  NS: 'TEAM_NS',
-  EW: 'TEAM_EW',
+  NS: "TEAM_NS",
+  EW: "TEAM_EW",
 
   // New prefixed versions (preferred)
-  TEAM_NS: 'TEAM_NS', // North/South team
-  TEAM_EW: 'TEAM_EW'  // East/West team
+  TEAM_NS: "TEAM_NS", // North/South team
+  TEAM_EW: "TEAM_EW", // East/West team
 });
 
 /**

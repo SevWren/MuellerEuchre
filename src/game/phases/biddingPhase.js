@@ -1,23 +1,13 @@
-/**
- * @file src/game/phases/biddingPhase.js
- * @module game/phases/biddingPhase
- * @description
- * Pure Layer 1 module implementing the core bidding phase logic for Euchre.
- * Handles order up decisions, dealer discards, and trump calling in a stateless manner.
- *
- * 8-2-25 - 100% Coverage 
- * 
- * 
- * @see {@link module:src/game/phases} for other game phase implementations
- * @see {@link module:src/game/logic/validation-core} for validation logic
- * @see {@link module:test/game/phases/biddingPhase.unit.test.js} for test coverage
- */
-
 import logger from "../../utils/logger.js";
 import { GAME_PHASES, PLAYER_ROLES } from "../../config/constants.js";
 import { getNextPlayer } from "../../utils/players.js";
 import { cardToId } from "../../utils/cardUtils.js";
-import { PhaseLogicError, CardNotInHandError, InvalidPhaseError, InvalidBidError } from "../logic/validation-errors.js";
+import {
+  PhaseLogicError,
+  CardNotInHandError,
+  InvalidPhaseError,
+  InvalidBidError,
+} from "../logic/validation-errors.js";
 
 /**
  * @typedef {import('../../game/state.js').GameState} GameState
@@ -75,12 +65,16 @@ function handleOrderUpDecision(currentGameState, playerRole, wantsToOrderUp) {
     currentGameState,
     playerRole,
     wantsToOrderUp ? "orderUp" : "pass",
-    null,
+    null
   );
 
   const newState = structuredClone(currentGameState);
 
-  const newBid = { round: 1, playerRole, decision: wantsToOrderUp ? "orderUp" : "pass" };
+  const newBid = {
+    round: 1,
+    playerRole,
+    decision: wantsToOrderUp ? "orderUp" : "pass",
+  };
   newState.bids = [...(newState.bids || []), newBid];
 
   let messageText = `${newState.players[playerRole]?.name || playerRole} `;
@@ -94,26 +88,27 @@ function handleOrderUpDecision(currentGameState, playerRole, wantsToOrderUp) {
     if (!makerTeam) {
       logger.error(
         { gameId: newState.gameId, playerRole },
-        "Could not determine team for ordering player in handleOrderUpDecision.",
+        "Could not determine team for ordering player in handleOrderUpDecision."
       );
       throw new PhaseLogicError(
-        "Player team could not be determined for ordering up.",
+        "Player team could not be determined for ordering up."
       );
     }
-    
+
     newState.trumpSuit = newState.turnCard.suit;
     newState.playerWhoOrderedUp = playerRole;
     newState.makerTeam = makerTeam;
-    newState.gamePhase = GAME_PHASES.DEALER_DISCARD;
+    newState.gamePhase = GAME_PHASES.GAME_PHASE_DEALER_DISCARD;
     newState.currentPlayer = newState.dealer;
   } else {
     messageText += "passed.";
     const nextBidder = getNextPlayer(playerRole, PLAYER_ROLES);
 
     if (nextBidder === getNextPlayer(newState.dealer, PLAYER_ROLES)) {
-      messageText += " All players passed in round 1. Moving to round 2 bidding.";
+      messageText +=
+        " All players passed in round 1. Moving to round 2 bidding.";
       newState.roundNumber = 2;
-      newState.gamePhase = GAME_PHASES.ORDER_UP_ROUND2;
+      newState.gamePhase = GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2;
       newState.currentPlayer = getNextPlayer(newState.dealer, PLAYER_ROLES);
     } else {
       newState.currentPlayer = nextBidder;
@@ -169,16 +164,20 @@ function handleOrderUpDecision(currentGameState, playerRole, wantsToOrderUp) {
 function handleDealerDiscard(currentGameState, dealerRole, cardToDiscardId) {
   const dealerHand = currentGameState.players[dealerRole]?.hand || [];
   const cardToDiscardObject = dealerHand.find(
-    (card) => card.id === cardToDiscardId,
+    (card) => card.id === cardToDiscardId
   );
 
   if (!cardToDiscardObject) {
     logger.error(
-      { gameId: currentGameState.gameId, dealerHandAttempted: dealerHand, cardToDiscardId },
-      "Card to discard (by ID) not found in dealer's hand.",
+      {
+        gameId: currentGameState.gameId,
+        dealerHandAttempted: dealerHand,
+        cardToDiscardId,
+      },
+      "Card to discard (by ID) not found in dealer's hand."
     );
     throw new CardNotInHandError(
-      `Card ${cardToDiscardId} not found in dealer's hand.`,
+      `Card ${cardToDiscardId} not found in dealer's hand.`
     );
   }
 
@@ -186,28 +185,31 @@ function handleDealerDiscard(currentGameState, dealerRole, cardToDiscardId) {
     currentGameState,
     dealerRole,
     cardToDiscardObject,
-    dealerHand,
+    dealerHand
   );
 
   const turnCard = currentGameState.turnCard;
   if (!turnCard) {
-    throw new PhaseLogicError("Cannot discard: turn card is missing from game state.");
+    throw new PhaseLogicError(
+      "Cannot discard: turn card is missing from game state."
+    );
   }
 
   const newState = structuredClone(currentGameState);
 
   const newDealerHand = newState.players[dealerRole].hand.filter(
-    (card) => card.id !== cardToDiscardId,
+    (card) => card.id !== cardToDiscardId
   );
   newState.players[dealerRole].hand = newDealerHand;
 
   const messageText = `${newState.players[dealerRole]?.name || dealerRole} picked up the ${cardToId(turnCard)} and discarded ${cardToId(cardToDiscardObject)}.`;
-  
-  const goAloneDecider = newState.playerWhoOrderedUp || newState.playerWhoCalledTrump;
+
+  const goAloneDecider =
+    newState.playerWhoOrderedUp || newState.playerWhoCalledTrump;
   newState.turnCard = null;
-  newState.gamePhase = GAME_PHASES.GOING_ALONE_DECISION;
+  newState.gamePhase = GAME_PHASES.GAME_PHASE_GOING_ALONE_DECISION;
   newState.currentPlayer = goAloneDecider;
-  
+
   const newMessage = {
     type: "bidding",
     text: messageText,
@@ -259,25 +261,32 @@ function handleDealerDiscard(currentGameState, dealerRole, cardToDiscardId) {
  *   console.error('Call failed:', error.message);
  * }
  */
-function handleCallTrumpDecision(currentGameState, playerRole, wantsToCall, suitCalled = null) {
-  if (currentGameState.gamePhase !== GAME_PHASES.ORDER_UP_ROUND2) {
+function handleCallTrumpDecision(
+  currentGameState,
+  playerRole,
+  wantsToCall,
+  suitCalled = null
+) {
+  if (currentGameState.gamePhase !== GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2) {
     throw new InvalidPhaseError(
-      'callTrump decision',
+      "callTrump decision",
       currentGameState.gamePhase,
-      [GAME_PHASES.ORDER_UP_ROUND2]
+      [GAME_PHASES.GAME_PHASE_ORDER_UP_ROUND2]
     );
   }
 
   const player = currentGameState.players[playerRole];
   if (!player || (!player.teamId && !player.team)) {
-    throw new InvalidBidError(`Could not determine team for player ${playerRole}.`);
+    throw new InvalidBidError(
+      `Could not determine team for player ${playerRole}.`
+    );
   }
 
   this.validateBid(
     currentGameState,
     playerRole,
     wantsToCall ? "callTrump" : "pass",
-    suitCalled,
+    suitCalled
   );
 
   const newState = structuredClone(currentGameState);
@@ -299,13 +308,13 @@ function handleCallTrumpDecision(currentGameState, playerRole, wantsToCall, suit
     newState.trumpSuit = suitCalled;
     newState.playerWhoCalledTrump = playerRole;
     newState.makerTeam = makerTeam;
-    newState.gamePhase = GAME_PHASES.GOING_ALONE_DECISION;
+    newState.gamePhase = GAME_PHASES.GAME_PHASE_GOING_ALONE_DECISION;
     newState.currentPlayer = playerRole;
   } else {
     messageText += "passed.";
     if (playerRole === newState.dealer) {
       messageText += " All players passed in round 2. Misdeal.";
-      newState.gamePhase = GAME_PHASES.DEALING;
+      newState.gamePhase = GAME_PHASES.GAME_PHASE_DEALING;
       newState.currentPlayer = getNextPlayer(newState.dealer, PLAYER_ROLES);
       newState.turnCard = null;
       newState.trumpSuit = null;
@@ -328,8 +337,4 @@ function handleCallTrumpDecision(currentGameState, playerRole, wantsToCall, suit
   return newState;
 }
 
-export {
-  handleOrderUpDecision,
-  handleDealerDiscard,
-  handleCallTrumpDecision,
-};
+export { handleOrderUpDecision, handleDealerDiscard, handleCallTrumpDecision };

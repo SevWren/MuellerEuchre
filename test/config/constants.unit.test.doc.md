@@ -93,18 +93,18 @@ node --test test/config/constants.unit.test.js
 
 ## Dependencies
 
-- **node:test**: The built-in Node.js test runner
-- **node:assert/strict**: For assertions
-- **src/config/constants.js**: The module under test
+- **`node:test`**: The built-in Node.js test runner.
+- **`node:assert/strict`**: The library used for all assertions.
+- **`src/config/constants.js`**: The source module under test.
 
 ## Maintenance
 
 When adding new constants to `constants.js`:
 
-1. Add corresponding test cases to verify the new constants
-2. Update this documentation to reflect any new test sections
-3. Ensure backward compatibility tests are added if applicable
-4. Run the tests to verify everything still passes
+1. Add corresponding test cases to verify the new constants.
+2. Update this documentation to reflect any new test sections.
+3. Ensure backward compatibility tests are added if applicable.
+4. Run the tests to verify everything still passes.
 
 ## Test Output
 
@@ -112,6 +112,6 @@ Successful test output will show all test suites passing with a summary of the n
 
 ## See Also
 
-- [Constants Implementation](../src/config/constants.js)
-- [Testing Guidelines](../../docs/TESTING.md)
-- [Layer 1 Purity Rules](../../docs/layer-1-purity-rules.md)
+- **Source Code:** `src/config/constants.js`
+- **Project Testing Rules:** `docs/Test Helpers and Utilities.md`
+- **Architectural Rules:** `docs/Layer1_Purity_Rules.md`

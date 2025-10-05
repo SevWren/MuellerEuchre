@@ -4,11 +4,16 @@
   "description": "Multiplayer Euchre Game Server",
   "type": "module",
   "main": "src/server.js",
+  "imports": {
+    "@/*": "./src/*",
+    "@test/*": "./test/*",
+    "@public/*": "./public/*"
+  },
   "engines": {
     "node": ">=v20.1.0"
   },
   "scripts": {
-    "test": "node Scripts/run-layer1-tests.js",
+    "test": "node --test --test-reporter=spec test/config/ test/game/logic/ test/game/phases/ test/utils/ test/helpers/",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test:file": "node --test --test-reporter=spec",

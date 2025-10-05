@@ -10,12 +10,11 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
     "types": ["node"],
     "paths": {
-      "@/*": ["src/*"],
-      "@test/*": ["test/*"],
-      "@public/*": ["public/*"]
+      "@/*": ["./src/*"],
+      "@test/*": ["./test/*"],
+      "@public/*": ["./public/*"]
     }
   },
   "exclude": [

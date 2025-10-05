@@ -1,18 +1,18 @@
 /**
- * @file Unit tests for game constants
+ * @file test/config/constants.unit.test.js
  * @module test/config/constants.unit.test
  * @description
- *   Comprehensive test suite for game constants defined in src/config/constants.js.
- *   Ensures all constants are properly defined, have expected values, and maintain
- *   consistency across the application.
+ *   Comprehensive test suite for the game constants defined in `src/config/constants.js`.
+ *   This suite verifies that all exported constant objects and values are correctly defined,
+ *   immutable where expected (`Object.freeze`), and that backward-compatibility aliases
+ *   (e.g., `SUITS` for `CARD_SUITS`) are maintained. It serves as the authoritative
+ *   specification for the structure of the constants module.
  *
- * @see {@link module:src/config/constants} for the constants being tested
- * @see {@link module:test/__mocks__/constants} for mock implementations used in testing
- * 
- * 
- * 
+ * @see {@link module:src/config/constants} for the source module being tested.
+ * @see {@link file://./test/config/constants.unit.test.doc.md} for detailed documentation of this test file.
+ *
  * @example
- * // Running the tests
+ * // To run these tests directly from the command line:
  * node --test test/config/constants.unit.test.js
  */
 
@@ -23,12 +23,12 @@ import assert from 'node:assert/strict';
 import * as constants from '../../src/config/constants.js';
 
 /**
- * Test suite for game constants.
+ * @description Groups all tests related to the constants defined in `src/config/constants.js`.
  * @namespace ConstantsTests
  */
 describe('Game Constants', () => {
   /**
-   * Test suite for CARD_SUITS constant.
+   * @description Tests the `CARD_SUITS` constant object, ensuring it contains all four unique card suits and that the `SUITS` alias is maintained for backward compatibility.
    * @namespace ConstantsTests.CARD_SUITS
    */
   describe('CARD_SUITS', () => {
@@ -65,7 +65,7 @@ describe('Game Constants', () => {
   });
 
   /**
-   * Test suite for CARD_VALUES constant.
+   * @description Tests the `CARD_VALUES` constant array, verifying it contains the correct six card values in the specified order and maintains the `VALUES` alias.
    * @namespace ConstantsTests.CARD_VALUES
    */
   describe('CARD_VALUES', () => {
@@ -96,7 +96,7 @@ describe('Game Constants', () => {
   });
 
   /**
-   * Test suite for CARD_RANKS constant.
+   * @description Tests the `CARD_RANKS` constant object, verifying all numeric rank values and special offsets.
    * @namespace ConstantsTests.CARD_RANKS
    */
   describe('CARD_RANKS', () => {
@@ -147,7 +147,7 @@ describe('Game Constants', () => {
   });
 
   /**
-   * Test suite for BID_DECISIONS constant.
+   * @description Tests the `BID_DECISIONS` constant object for bidding actions.
    * @namespace ConstantsTests.BID_DECISIONS
    */
   describe('BID_DECISIONS', () => {
@@ -171,7 +171,7 @@ describe('Game Constants', () => {
   });
 
   /**
-   * Test suite for LOG_LEVELS constant.
+   * @description Tests the `LOG_LEVELS` constant object and its `DEBUG_LEVELS` alias.
    * @namespace ConstantsTests.LOG_LEVELS
    */
   describe('LOG_LEVELS', () => {
@@ -207,7 +207,7 @@ describe('Game Constants', () => {
   });
 
   /**
-   * Test suite for STORAGE_KEYS constant.
+   * @description Tests the `STORAGE_KEYS` constant object for local storage keys.
    * @namespace ConstantsTests.STORAGE_KEYS
    */
   describe('STORAGE_KEYS', () => {
@@ -233,7 +233,7 @@ describe('Game Constants', () => {
   });
 
   /**
-   * Test suite for GAME_EVENTS constant.
+   * @description Tests the `GAME_EVENTS` constant object for socket event names.
    * @namespace ConstantsTests.GAME_EVENTS
    */
   describe('GAME_EVENTS', () => {
@@ -277,7 +277,7 @@ describe('Game Constants', () => {
   });
 
   /**
-   * Test suite for GAME_PHASES constant.
+   * @description Tests the `GAME_PHASES` constant object for game state machine phases.
    * @namespace ConstantsTests.GAME_PHASES
    */
   describe('GAME_PHASES', () => {
@@ -311,7 +311,7 @@ describe('Game Constants', () => {
   });
 
   /**
-   * Test suite for PLAYER_ROLES constant.
+   * @description Tests the `PLAYER_ROLES` constant array for player seating positions.
    * @namespace ConstantsTests.PLAYER_ROLES
    */
   describe('PLAYER_ROLES', () => {
@@ -341,7 +341,7 @@ describe('Game Constants', () => {
   });
 
   /**
-   * Test suite for PLAYER_POSITIONS constant.
+   * @description Tests the `PLAYER_POSITIONS` constant object, which provides convenient aliases for roles.
    * @namespace ConstantsTests.PLAYER_POSITIONS
    */
   describe('PLAYER_POSITIONS', () => {
@@ -367,7 +367,7 @@ describe('Game Constants', () => {
   });
 
   /**
-   * Test suite for TEAMS constant.
+   * @description Tests the `TEAMS` constant object for team identifiers.
    * @namespace ConstantsTests.TEAMS
    */
   describe('TEAMS', () => {
@@ -389,7 +389,7 @@ describe('Game Constants', () => {
   });
 
   /**
-   * Test suite for WINNING_SCORE constant.
+   * @description Tests the `WINNING_SCORE` constant value.
    * @namespace ConstantsTests.WINNING_SCORE
    */
   describe('WINNING_SCORE', () => {

@@ -112,3 +112,45 @@ This single source of truth provides a powerful tool for debugging:
 *   **Implementation:** [`src/config/constants.js`](../../src/config/constants.js)
 *   **Utility Functions:** [`src/utils/players.js`](../../src/utils/players.js)
 *   **Related Concept:** [`The Fixed Seating and Partnership Logic`](./The_Fixed_Seating_and_Partnership_Logic.md)
+---
+
+## 6. Special Cases and Advanced Logic
+
+### The "Go Alone" Special Case: Skipping a Player
+
+The turn order logic has a critical exception: when a player "goes alone." In this scenario, the partner of the lone player sits out for the entire hand and does not participate in bidding or playing cards.
+
+The getNextPlayer() function is explicitly designed to handle this special case.
+
+\\\javascript
+// src/utils/players.js
+function getNextPlayer(
+  currentPlayerRole,
+  playerSlots = PLAYER_ROLES,
+  goingAlone = false,
+  partnerSittingOut = null,
+) {
+  // ... index calculation ...
+  let nextPlayer = playerSlots[nextIndex];
+
+  // If going alone, and the next player is the one sitting out, skip them.
+  if (goingAlone && partnerSittingOut && nextPlayer === partnerSittingOut) {
+    nextIndex = (nextIndex + 1) % playerSlots.length;
+    nextPlayer = playerSlots[nextIndex];
+  }
+
+  return nextPlayer;
+}
+\\\
+
+As shown in the implementation, the function checks the goingAlone and partnerSittingOut flags from the gameState. If the next player in the standard rotation is the one sitting out, the function performs the rotation logic a second time to skip them and pass the turn to the following player.
+
+**Example Turn Order (South Goes Alone):**
+*   **Maker:** PLAYER_SOUTH
+*   **Partner Sitting Out:** PLAYER_NORTH
+*   **Standard Order:** South ? West ? North ? East
+*   **Modified "Go Alone" Order:** South ? West ? **(skip North)** ? East ? South...
+
+This conditional logic ensures that the turn flow remains correct during a "loner" hand.
+
+---

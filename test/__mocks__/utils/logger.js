@@ -5,7 +5,7 @@
  * to allow `pino`, `process`, and `console` to be mocked during tests. This is the
  * sanctioned method for testing modules with top-level dependencies.
  */
-import { DEBUG_LEVELS } from '../../../src/config/constants.js';
+import { DEBUG_LEVELS } from "../../../src/config/constants.js";
 
 // This factory creates a testable instance of the entire logger module.
 export function createLoggerModule({ pino, process, console }) {
@@ -22,20 +22,39 @@ export function createLoggerModule({ pino, process, console }) {
     [DEBUG_LEVELS.LOG_LEVEL_DEBUG]: "debug",
     [DEBUG_LEVELS.LOG_LEVEL_TRACE]: "trace",
     [DEBUG_LEVELS.NONE]: "silent",
-    [DEBUG_LEVELS.LOG_LEVEL_SILENT]: "silent"
+    [DEBUG_LEVELS.LOG_LEVEL_SILENT]: "silent",
   };
 
-  function createLogger({ level = 'info', prettyPrint = false, redact = [] } = {}, destination) {
+  function createLogger(
+    { level = "info", prettyPrint = false, redact = [] } = {},
+    destination
+  ) {
     const loggerOptions = { level, redact };
     if (prettyPrint) {
-      loggerOptions.transport = { target: "pino-pretty" };
+      // CORRECTED: This now matches the real implementation in src/utils/logger.js
+      loggerOptions.transport = {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          translateTime: "SYS:yyyy-mm-dd HH:MM:ss",
+          ignore: "pid,hostname",
+        },
+      };
     }
     return pino(loggerOptions, destination);
   }
 
   function getLogLevelFromEnv(env) {
     const envLogLevel = env.LOG_LEVEL?.toLowerCase();
-    const pinoLevels = ["fatal", "error", "warn", "info", "debug", "trace", "silent"];
+    const pinoLevels = [
+      "fatal",
+      "error",
+      "warn",
+      "info",
+      "debug",
+      "trace",
+      "silent",
+    ];
     if (envLogLevel && pinoLevels.includes(envLogLevel)) {
       return { level: envLogLevel, warning: null };
     }
@@ -44,13 +63,17 @@ export function createLoggerModule({ pino, process, console }) {
       if (mappedLevel) {
         return { level: mappedLevel, warning: null };
       }
-      return { level: 'info', warning: `Invalid DEBUG_LEVEL: ${env.DEBUG_LEVEL}, defaulting to 'info'` };
+      return {
+        level: "info",
+        warning: `Invalid DEBUG_LEVEL: ${env.DEBUG_LEVEL}, defaulting to 'info'`,
+      };
     }
-    return { level: 'info', warning: null };
+    return { level: "info", warning: null };
   }
 
-  const { level: currentLogLevelName, warning: startupWarning } = getLogLevelFromEnv(process.env);
-  const isProduction = process.env.NODE_ENV === 'production';
+  const { level: currentLogLevelName, warning: startupWarning } =
+    getLogLevelFromEnv(process.env);
+  const isProduction = process.env.NODE_ENV === "production";
 
   if (startupWarning) {
     console.warn(startupWarning);
@@ -59,7 +82,7 @@ export function createLoggerModule({ pino, process, console }) {
   const logger = createLogger({
     level: currentLogLevelName,
     prettyPrint: !isProduction,
-    redact: ['hand'],
+    redact: ["hand"],
   });
 
   function log(level, message, obj, context) {
@@ -98,20 +121,22 @@ export function createLoggerModule({ pino, process, console }) {
 
   function setDebugLevel(newLevel) {
     const levelMap = {
-      [DEBUG_LEVELS.ERROR]: 'error',
-      [DEBUG_LEVELS.LOG_LEVEL_ERROR]: 'error',
-      [DEBUG_LEVELS.WARN]: 'warn',
-      [DEBUG_LEVELS.LOG_LEVEL_WARN]: 'warn',
-      [DEBUG_LEVELS.INFO]: 'info',
-      [DEBUG_LEVELS.LOG_LEVEL_INFO]: 'info',
-      [DEBUG_LEVELS.DEBUG]: 'debug',
-      [DEBUG_LEVELS.LOG_LEVEL_DEBUG]: 'debug',
-      [DEBUG_LEVELS.LOG_LEVEL_TRACE]: 'trace',
-      [DEBUG_LEVELS.NONE]: 'silent',
-      [DEBUG_LEVELS.LOG_LEVEL_SILENT]: 'silent'
+      [DEBUG_LEVELS.ERROR]: "error",
+      [DEBUG_LEVELS.LOG_LEVEL_ERROR]: "error",
+      [DEBUG_LEVELS.WARN]: "warn",
+      [DEBUG_LEVELS.LOG_LEVEL_WARN]: "warn",
+      [DEBUG_LEVELS.INFO]: "info",
+      [DEBUG_LEVELS.LOG_LEVEL_INFO]: "info",
+      [DEBUG_LEVELS.DEBUG]: "debug",
+      [DEBUG_LEVELS.LOG_LEVEL_DEBUG]: "debug",
+      [DEBUG_LEVELS.LOG_LEVEL_TRACE]: "trace",
+      [DEBUG_LEVELS.NONE]: "silent",
+      [DEBUG_LEVELS.LOG_LEVEL_SILENT]: "silent",
     };
-    const levelName = levelMap[newLevel] || 'info';
-    logger.warn(`Attempted to set debug level to ${newLevel} (${levelName}) dynamically. Pino logger level ('${logger.level}') is set at initialization. Restart with new LOG_LEVEL or DEBUG_LEVEL env var to change.`);
+    const levelName = levelMap[newLevel] || "info";
+    logger.warn(
+      `Attempted to set debug level to ${newLevel} (${levelName}) dynamically. Pino logger level ('${logger.level}') is set at initialization. Restart with new LOG_LEVEL or DEBUG_LEVEL env var to change.`
+    );
     logger.level = levelName;
   }
 

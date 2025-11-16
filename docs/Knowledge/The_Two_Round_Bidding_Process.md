@@ -25,7 +25,7 @@ At the start of a hand, a single card is turned face-up from the top of the rema
 During this phase, each player, in turn, must make a choice regarding the `turnCard`.
 
 *   **Available Actions:**
-    *   **"Order Up"**: The player accepts the `turnCard`'s suit as trump for their team. This immediately ends the bidding phase. The dealer must then pick up the `turnCard` and discard another card from their hand.
+    *   **"Order Up"**: The player accepts the `turnCard`'s suit as trump for their team. This concludes the first round of bidding and initiates the next phase of the game. The game transitions to the `DEALER_DISCARD` phase, where the dealer must pick up the `turnCard` and discard another card. Following the discard, the game enters the `GOING_ALONE_DECISION` phase.
     *   **"Pass"**: The player declines to make the `turnCard`'s suit trump. The decision then passes to the next player in clockwise order.
 
 *   **Phase Logic (`src/game/phases/biddingPhase.js`)**: This round is governed by the `handleOrderUpDecision()` function.

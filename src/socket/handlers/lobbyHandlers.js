@@ -1,3 +1,10 @@
+/*
+TODO: This entire file needs to be refactored to adhere to the layered architecture.
+The logic for joining games, assigning roles, and starting games should be moved
+to pure functions in Layer 1 (e.g., lobbyUtils.js) and state updates should be
+handled by the state manager in Layer 2 (state.js). This handler should be a
+thin wrapper that calls those functions.
+
 /**
  * Socket event handlers for the LOBBY game phase.
  * @module socket/handlers/lobbyHandlers
@@ -521,3 +528,4 @@ export function registerLobbyHandlers(socket, io) {
     }
   });
 }
+*/

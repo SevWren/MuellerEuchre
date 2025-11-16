@@ -11,7 +11,8 @@ import { Server as SocketIOServer } from "socket.io"; // Renamed to avoid confli
 
 import logger from "./utils/logger.js";
 import { initializeSocket } from "./socket/index.js";
-// import { getGameState, resetFullGame } from './game/state.js'; // Not strictly needed at server init if state.js self-initializes
+import { gameRepository } from "./db/gameRepository.js";
+import { hydrateGames } from "./game/state.js";
 
 // ES Module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -25,7 +26,7 @@ const httpServer = http.createServer(app);
 app.use(express.json()); // For parsing application/json
 
 // Serve static files from the 'public' directory
-const publicDirectoryPath = path.join(__dirname, "..", "public"); // Assumes server.js is in src/, public/ is at root
+const publicDirectoryPath = path.join(__dirname, "..", "public");
 logger.info(`Serving static files from: ${publicDirectoryPath}`);
 app.use(express.static(publicDirectoryPath));
 
@@ -41,25 +42,47 @@ app.get("/api/status", (req, res) => {
 const io = initializeSocket(httpServer);
 logger.info("Socket.IO initialized.");
 
-// Start the server
-httpServer.listen(PORT, () => {
-  logger.info(`Server listening on port ${PORT}`);
-  logger.info(`Access the game at http://localhost:${PORT}`);
-});
+/**
+ * Starts the server, including database connection and state hydration.
+ */
+async function startServer() {
+  try {
+    // Connect to the database
+    await gameRepository.connect();
 
-// Graceful shutdown handler (basic)
+    // Find all active games and hydrate the in-memory state
+    const activeGames = await gameRepository.findAllActiveGames();
+    if (activeGames && activeGames.length > 0) {
+      hydrateGames(activeGames);
+    } else {
+      logger.info("No active games found in the database to hydrate.");
+    }
+
+    // Start the server
+    httpServer.listen(PORT, () => {
+      logger.info(`Server listening on port ${PORT}`);
+      logger.info(`Access the game at http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    logger.error({ err: error }, "Failed to start server.");
+    process.exit(1);
+  }
+}
+
+// Graceful shutdown handler
 const signals = ["SIGINT", "SIGTERM", "SIGQUIT"];
 signals.forEach((signal) => {
-  process.on(signal, () => {
+  process.on(signal, async () => {
     logger.info(`
 ${signal} received. Shutting down gracefully...`);
-    httpServer.close(() => {
+    httpServer.close(async () => {
       logger.info("HTTP server closed.");
-      // io.close(); // Close Socket.IO connections if necessary (Socket.IO v3+ handles this with httpServer.close())
-      // Add any other cleanup here (e.g., database connections)
+      await gameRepository.disconnect();
       process.exit(0);
     });
   });
 });
+
+startServer();
 
 export default httpServer; // Export for potential testing or programmatic use

@@ -270,11 +270,39 @@ function listActiveGames() {
   return Array.from(activeGames.keys());
 }
 
+/**
+ * Hydrates the in-memory store with games from the database.
+ * This is intended to be called on server startup to recover active games.
+ * @param {GameState[]} games - An array of game state objects from the database.
+ */
+function hydrateGames(games) {
+  if (!Array.isArray(games)) {
+    logger.error({ games }, "hydrateGames received non-array input.");
+    return;
+  }
+
+  let hydratedCount = 0;
+  for (const game of games) {
+    if (game && game.gameId) {
+      const frozenState = Object.freeze(game);
+      activeGames.set(game.gameId, frozenState);
+      hydratedCount++;
+    } else {
+      logger.warn({ game }, "Skipped hydrating invalid game object from database.");
+    }
+  }
+
+  if (hydratedCount > 0) {
+    logger.info(`Successfully hydrated ${hydratedCount} active games into memory.`);
+  }
+}
+
 // Export all functions at the end of the file
 export {
   createGameState,
   getGameState,
   updateGameState,
   removeGameState,
-  listActiveGames
+  listActiveGames,
+  hydrateGames
 };

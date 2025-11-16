@@ -14,9 +14,7 @@
         *   **0.3: Architectural Mandate Adherence (Layer 1):**
             *   Verification through manual code review and/or automated LLM audits (NFR6.4) that Layer 1 modules strictly adhere to purity (no side effects, no mutation of global/shared state), statelessness, and no I/O operations (NFR6.1).
             *   Ensure errors are *thrown* as specific `src/game/logic/errors.js` instances.
-        *   **0.4: `esmock` Standardization Completion:**
-            *   All Layer 1 unit tests (`test/game/logic/`, `test/game/phases/`, `test/utils/`) utilize `esmock_wrapper.js` for mocking dependencies, replacing any deprecated mocking patterns. This ensures cross-platform compatibility and consistent test setup as per `docs/esmock_fix_and_prevention_plan.md`.
-        *   **0.5: Clean Test Suite:**
+        *   **0.4: Clean Test Suite:**
             *   All Layer 1 unit tests pass consistently (`npm run test:coverage_layer1`), ensuring no intermittent failures or environmental dependencies.
     *   **Value:** Provides a fully validated, reliable, and immutable core game logic foundation; critical prerequisite for all subsequent development; enables efficient AI-assisted development by ensuring clean context.
 
@@ -89,7 +87,7 @@
             *   After any `JOIN_GAME` or `PLAYER_DISCONNECTED` event, broadcast the updated `gameState` to all clients in the specific `gameId` room using `io.to(gameId).emit(GAME_EVENTS.STATE_UPDATE, updatedGameState)` (FR4).
             *   Ensure sensitive data (like other players' hands) is *not* included in the `STATE_UPDATE` for non-owning clients (NFR5.3).
         *   **2.6: Lobby Full & Game Start Transition:**
-            *   If `isLobbyFull` returns `true` after a player joins, automatically transition the `gamePhase` to `GAME_PHASES.DEALING` (`src/game/phases/lobbyPhase.js` - `attemptToStartGame`).
+            *   If `isLobbyFull` returns `true` after a player joins, automatically transition the `gamePhase` to `GAME_PHASES.DEALING` ((`attemptToStartGame`)).
             *   Persist this phase change to MongoDB.
         *   **2.7: Player Reconnection Handling (`src/socket/handlers/playerConnectionHandlers.js`):**
             *   Implement `GAME_EVENTS.ACTION_REJOIN_GAME` handler.

@@ -26,7 +26,7 @@ Cards belonging to the trump suit are the most powerful cards in the hand. This 
 The internal ranking *within the trump suit* is unique:
 
 1.  **Right Bower**: The Jack of the trump suit. (Highest card in the game).
-2.  **Left Bower**: The Jack of the same color as the trump suit. (Second highest card).
+2.  **Left Bower**: The Jack of the same color as the trump suit. It **adopts the trump suit as its effective suit** for the duration of the hand, regardless of its printed suit. This is critical for the 'must follow suit' rule. (Second highest card in the game).
 3.  **Ace** of trump.
 4.  **King** of trump.
 5.  **Queen** of trump.
@@ -51,32 +51,32 @@ Cards that are neither trump nor of the led suit have no power to win a trick.
 
 ## 3. The `getCardRank` Function: A Programmatic Model
 
-The project's logic for this hierarchy is centralized in the `getCardRank` function, located in `src/utils/deck.js`. This function assigns a numerical score to a card based on the current `trumpSuit` and `ledSuit`.
+The project's logic for this hierarchy is centralized in the `getCardRank` function, located in `src/utils/cardUtils.js`. This function assigns a numerical score to a card based on the current `trumpSuit`.
 
-The function uses offsets to ensure the three tiers are respected:
+The function uses offsets to ensure the tiers are respected:
 
-*   **`CARD_RANKS.TRUMP_OFFSET` (e.g., +100):** A large value added to trump cards to ensure they outrank all non-trump cards.
-*   **`CARD_RANKS.LED_OFFSET` (e.g., +50):** A medium value added to cards of the led suit (that are not trump) to ensure they outrank off-suit cards.
-*   **Base Rank (9-14):** The card's natural value (Ace = 14, King = 13, etc.).
+*   **Right Bower:** A fixed value of **100**.
+*   **Left Bower:** A fixed value of **90**.
+*   **Other Trump Cards:** A **+50** offset is added to their base rank.
+*   **Non-Trump Cards:** Receive only their base rank (1-6).
 
 ### Example `getCardRank` Evaluation
 
 **Scenario:**
 *   **Trump Suit:** Spades (♠)
-*   **Led Suit:** Hearts (♥)
 
 | Card Played | Suit | Value | Context | Rank Calculation | Final Rank |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **J♠** | Spades | Jack | **Right Bower** | `CARD_RANK_RIGHT_BOWER` | **150** |
-| **J♣** | Clubs | Jack | **Left Bower** | `CARD_RANK_LEFT_BOWER` | **100** |
-| **A♠** | Spades | Ace | Trump Suit | `14 (Ace) + 100 (Trump)` | **114** |
-| **9♠** | Spades | Nine | Trump Suit | `9 (Nine) + 100 (Trump)` | **109** |
-| **A♥** | Hearts | Ace | Led Suit | `14 (Ace) + 50 (Led)` | **64** |
-| **K♥** | Hearts | King | Led Suit | `13 (King) + 50 (Led)` | **63** |
-| **A♦** | Diamonds | Ace | Off-Suit | `14 (Ace)` | **14** |
-| **K♦** | Diamonds | King | Off-Suit | `13 (King)` | **13** |
+| **J♠** | Spades | Jack | **Right Bower** | `(Fixed Value)` | **100** |
+| **J♣** | Clubs | Jack | **Left Bower** | `(Fixed Value)` | **90** |
+| **A♠** | Spades | Ace | Trump Suit | `6 (Ace) + 50 (Trump)` | **56** |
+| **9♠** | Spades | Nine | Trump Suit | `1 (Nine) + 50 (Trump)` | **51** |
+| **A♥** | Hearts | Ace | Off-Suit | `6 (Ace)` | **6** |
+| **K♥** | Hearts | King | Off-Suit | `5 (King)` | **5** |
+| **A♦** | Diamonds | Ace | Off-Suit | `6 (Ace)` | **6** |
+| **K♦** | Diamonds | King | Off-Suit | `5 (King)` | **5** |
 
-As shown, any trump card (rank > 100) will beat any led-suit card (rank > 50), which will in turn beat any off-suit card (rank < 20).
+As shown, the Bowers have unique high values. Any other trump card (rank > 50) will beat any non-trump card (rank < 7). Unlike the led suit, off-suit cards are not given a special offset, but they are still outranked by trump cards.
 
 ---
 
@@ -84,7 +84,7 @@ As shown, any trump card (rank > 100) will beat any led-suit card (rank > 50), w
 
 This ranking hierarchy is the foundation for several key game components:
 
-*   **`determineTrickWinner` (`playingPhase.js`):** This function's primary job is to iterate through the four cards in a completed trick, call `getCardRank` on each one, and identify the card with the highest returned value. The player who played that card is the winner.
+*   **`determineTrickWinner` (`playingPhase.js`):** This function's primary job is to iterate through the four cards in a completed trick, call `getCardRank` on each one (providing the current `trumpSuit`), and identify the card with the highest returned value. The player who played that card is the winner.
 
 *   **`aiLogic.js`:** Any competent AI must understand this hierarchy to make intelligent plays.
     *   **Leading a Trick:** An AI might lead with a high off-suit Ace, hoping to win if no one has that suit to trump.

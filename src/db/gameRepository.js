@@ -246,6 +246,31 @@ export class GameRepository {
   }
 
   /**
+   * Finds all active (not game-over) games.
+   * @returns {Promise<Array>} List of all active games.
+   */
+  async findAllActiveGames() {
+    if (!this.connected) {
+      throw new Error("Not connected to database");
+    }
+
+    try {
+      return await this.collection
+        .find({
+          gameOver: { $ne: true },
+        })
+        .sort({ updatedAt: -1 })
+        .toArray();
+    } catch (error) {
+      logger.error(
+        { err: error },
+        `Error finding all active games: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Closes the database connection
    * @returns {Promise<void>}
    */

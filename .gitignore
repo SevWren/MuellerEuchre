@@ -124,7 +124,7 @@ digest.txt
 
 #LLM Related CodeEditorIndependant files
 .kilocode
-.kilocodemodes/*
+.kilocodemodes/
 .kilocodemodes*
 
 
@@ -156,7 +156,7 @@ docs/Daily_Logs/
 docs/Debug_Logs/
 Testing.pdf
 jsdoc.json
-jsdoc/**
+jsdoc/
 contradictions_to_address.md
 checkpoint-test.txt
 *.copy
@@ -169,9 +169,8 @@ WFGY
 .geminiignore
 GEMINI.md
 geminiignore.txt
-
-docs/Prompts/*
 muellerEuchre_EntireCodebase.txt
+docs/Prompts/
 
 #tools - these are usually system specific
 tools/

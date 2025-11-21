@@ -98,6 +98,8 @@ archived/
 archived_files_for_rewrite/
 main_branch_test_log.txt
 ToBeArchived/
+ToBeArchived*
+ToBeArchived/*
 server3_migration_audit.md
 resolve_assertion_errors_plan.md
 test_results.txt
@@ -177,4 +179,4 @@ tools/
 
 *.reference
 *.reference*
-docs/archive/
+docs/archive/".windsurf/" 

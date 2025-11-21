@@ -24,6 +24,8 @@ The project follows a strict layered architecture to ensure modularity, maintain
 - **Layer 3: Network API (Socket Handlers)**
   - **Responsibility:** A thin communication layer for input validation and action dispatching. No complex game logic.
   - **Includes:** Socket.IO initialization and all specific socket event handlers (`src/socket/handlers/`).
+  - **Constraints:**
+    - The Validation Firewall: Layer 3 MUST strictly validate and sanitize all client payload data using src/game/logic/validation-core.js before passing that data to Layer 1 functions. Raw user input is never trusted and never touches the core logic directly.
 
 - **Layer 4: Client Services/UI**
   - **Responsibility:** Consumes server state and interacts with the network layer.

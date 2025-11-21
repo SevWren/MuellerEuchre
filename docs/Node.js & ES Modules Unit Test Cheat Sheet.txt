@@ -1,6 +1,6 @@
 ## Node.js & ES Modules Unit Test Cheat Sheet (`node:test`)
 
-This cheat sheet is the authoritative guide for writing unit tests for the Mueller Euchre project. It reflects the established, battle-hardened procedures documented across the repository.
+This document is a quick-reference guide for writing unit tests for the Mueller Euchre project. For in-depth explanations, patterns, and the philosophy behind these rules, consult the project's primary testing guide: **The Unabridged Mueller Euchre Debugging Bible.md**.
 
 ### 1. File Structure & Imports
 
@@ -79,89 +79,51 @@ This cheat sheet is the authoritative guide for writing unit tests for the Muell
 
 ### 4. Test Lifecycle Hooks
 
-*   **`beforeEach(async () => { ... })`:** Runs before each `it` block. Use this to reset state and mocks.
-*   **`afterEach(() => { ... })`:** Runs after each `it` block. Use this for cleanup.
-*   **Canonical Pattern for Test Isolation:** Every test file for a stateful or complex module should follow this structure to ensure complete isolation between tests.
+*   `beforeEach(async () => { ... })`:** Runs before each `it` block. Use to reset state and mocks.
+*   `afterEach(() => { ... })`:** Runs after each `it` block. Use for cleanup, especially `mock.reset()`.
+
+*   **Pattern for Test Isolation (NOT for Mocking):** For stateful modules, you can use dynamic `import()` inside `beforeEach` to get a fresh, uncached instance of the module for each test. This prevents state from leaking between tests.
 
     ```javascript
-    let moduleUnderTest; // e.g., calculateAndApplyScore
+    let moduleUnderTest;
 
     beforeEach(async () => {
-      // 1. Dynamically import the module under test for a fresh instance.
-      // This defeats Node's module cache and prevents state leakage between tests.
+      // This dynamic import ensures a clean module instance for each test run.
+      // This is for ISOLATION, not for mocking dependencies.
       const module = await import(modulePath); // modulePath from Section 1
-      moduleUnderTest = module.calculateAndApplyScore;
-
-      // 2. (If needed) Mock global objects like console.
+      moduleUnderTest = module.someFunction;
     });
 
     afterEach(() => {
-      // 1. Reset all mocks created with `node:test`'s `mock` API.
-      mock.reset();
-
-      // 2. (If needed) Restore original global objects.
+      mock.reset(); // Resets all mocks.
     });
     ```
 
-### 5. Mocking and Isolation
+### 5. Mocking Dependencies
 
-*   **The Core Commandment: Thou Shalt Not Attempt to Mutate Imports.** ES Module bindings are read-only. Any attempt to overwrite an imported function will fail. The project's solution is **always** Dependency Injection.
+*   **The Core Commandment: Use Dependency Injection.** Because ES Module imports are read-only, you cannot directly mock them. The only approved method is to refactor the source code so that dependencies are injected. For a full explanation, see **The Unabridged Mueller Euchre Debugging Bible.md**.
 
-*   **Pattern A: Dependency Injection via `this` Context (`.call`)**
-    *   **Use Case:** For pure Layer 1 functions that have been refactored to remove direct `import` statements for their dependencies.
-    *   **Method:** The function uses `this.dependencyName` instead of a direct import. In the test, you create a mock "service" object and use `Function.prototype.call` to set `this` to your mock object.
+*   **WARNING: DO NOT USE DYNAMIC IMPORT FOR MOCKING.** Attempting to use dynamic `import()` to overwrite or spy on a module's functions is an anti-pattern and is forbidden in this project.
+
+*   **Pattern A: Injection via `this` Context (`.call`)**
+    *   **Use Case:** Ideal for pure, single functions.
+    *   **Method:** The function-under-test is refactored to accept its dependencies via `this`. The test then uses `.call()` to supply a mock context. See the "Debugging Bible" for a detailed example.
 
     ```javascript
-    // In src/game/phases/biddingPhase.js:
-    // export function handleOrderUpDecision(gameState, player) {
-    //   const { isValid } = this.validateBid(gameState, player, 'orderUp'); // No import!
-    //   // ...
-    // }
-
-    // In test/game/phases/biddingPhase.unit.test.js:
-    import { handleOrderUpDecision } from '../../../src/game/phases/biddingPhase.js';
-
-    it('should call the injected validateBid function', (t) => {
-      // 1. Create the mock service object for this test's context.
-      const mockServices = {
-        validateBid: t.mock.fn(() => ({ isValid: true })),
-      };
-
-      // 2. Execute the function, setting `this` to our mockServices.
-      handleOrderUpDecision.call(mockServices, gameState, player);
-
-      // 3. Assert the mock was called.
-      assert.strictEqual(mockServices.validateBid.mock.callCount(), 1);
-    });
+    // In the test:
+    const mockServices = { dependencyToMock: t.mock.fn() };
+    functionUnderTest.call(mockServices, arg1, arg2);
     ```
 
-*   **Pattern B: Dependency Injection via Factory Functions (`__mocks__`)**
-    *   **Use Case:** For complex modules where refactoring with `.call()` is cumbersome, or for modules that are already designed with a factory pattern.
-    *   **Method:** A mock version of the module is created in `test/__mocks__/`. This mock exports a `create...` factory function that accepts its dependencies as an object.
+*   **Pattern B: Injection via Factory Functions**
+    *   **Use Case:** For more complex modules or classes.
+    *   **Method:** The module is refactored to export a factory function that takes dependencies as an argument and returns the module's public API.
 
     ```javascript
-    // In test/__mocks__/utils/players.js
-    // export function createPlayerUtils({ getPartner = realGetPartner } = {}) {
-    //   return { getPartner };
-    // }
-
-    // In a test file:
-    import { createStartNewHand } from '../__mocks__/startNewHandPhase.js';
-
-    it('should use the mocked createDeck function', () => {
-      // 1. Define the mock dependencies.
-      const mockDependencies = {
-        createDeck: mock.fn(() => [/* predictable mock deck */]),
-        shuffleDeck: (deck) => deck, // Pass-through shuffle
-      };
-
-      // 2. Create a testable instance of the function with mocks injected.
-      const startNewHand = createStartNewHand(mockDependencies);
-
-      // 3. Act and Assert.
-      const newState = startNewHand(createBaseGameState());
-      assert.strictEqual(mockDependencies.createDeck.mock.callCount(), 1);
-    });
+    // In the test:
+    const mockDependencies = { createDeck: mock.fn() };
+    const testInstance = createModule(mockDependencies);
+    testInstance.doSomething();
     ```
 
 ### 6. Test Design Principles

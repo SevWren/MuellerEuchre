@@ -111,7 +111,6 @@ This single source of truth provides a powerful tool for debugging:
 ### See Also:
 *   **Implementation:** [`src/config/constants.js`](../../src/config/constants.js)
 *   **Utility Functions:** [`src/utils/players.js`](../../src/utils/players.js)
-*   **Related Concept:** [`The Fixed Seating and Partnership Logic`](./The_Fixed_Seating_and_Partnership_Logic.md)
 ---
 
 ## 6. Special Cases and Advanced Logic

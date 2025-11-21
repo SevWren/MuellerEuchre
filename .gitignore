@@ -157,7 +157,7 @@ docs/Debug_Logs/
 Testing.pdf
 jsdoc.json
 jsdoc/
-contradictions_to_address.md
+#contradictions_to_address.md
 checkpoint-test.txt
 *.copy
 *copy*.*
@@ -174,3 +174,7 @@ docs/Prompts/
 
 #tools - these are usually system specific
 tools/
+
+*.reference
+*.reference*
+docs/archive/

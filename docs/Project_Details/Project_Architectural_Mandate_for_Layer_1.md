@@ -11,7 +11,6 @@ The project follows a strict layered architecture to ensure modularity, maintain
 - **Layer 1: Core Logic & Utilities**
   - **Responsibility:** Pure, stateless functions. No side effects, I/O, or state mutation.
   - **Includes:** Game rules (`src/game/logic/validation-core.js`), state-transition functions (`src/game/phases/*.js`), card mechanics (`src/utils/cardUtils.js`), player utilities (`src/utils/players.js`), core constants (`src/config/constants.js`), and other utilities.
-    - **Note:** While this layer is overwhelmingly pure, `src/game/phases/lobbyPhase.js` contains some stateful logic for game setup and is a known exception.
   - **Constraints:**
     - **Purity:** All functions in this layer MUST be pure. Their output depends solely on their inputs, and they produce NO side effects.
     - **Statelessness:** MUST NOT hold or mutate any mutable state (e.g., global `gameState` variables, direct database references, or network connections).

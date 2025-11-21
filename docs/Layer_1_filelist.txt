@@ -13,7 +13,7 @@ Layer 1 ("Core Game Logic & Utilities (Pure Functions)" that are deterministic, 
 6.  `src/game/phases/biddingPhase.js` - Bidding logic (pure)
 7.  `src/game/phases/endGame.js` - End game logic (pure)
 8.  `src/game/phases/goAlonePhase.js` - Go alone logic (pure)
-9.  `src/game/phases/lobbyPhase.js` - Lobby and game setup logic (NOTE: contains stateful operations, exception to purity rule)
+9.  `src/game/phases/lobbyPhase.js` - Lobby and game setup logic (pure)
 10. `src/game/phases/playingPhase.js` - Core game play logic (pure)
 11. `src/game/phases/scoringPhase.js` - Score calculation (pure)
 12. `src/game/phases/startNewHandPhase.js` - Hand initialization (pure)

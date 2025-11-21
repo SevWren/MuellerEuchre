@@ -2,7 +2,7 @@
 
 name: Code Coverage with Coveralls
 
-# UPDATE HERE: Add your specific branch to the list
+# Run on pushes and PRs to specific branches
 on:
   push:
     branches: 
@@ -31,13 +31,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Ensure this script exists in your package.json and runs c8
       - name: Generate coverage report
         run: npm run test:coverage
 
       - name: Upload coverage to Coveralls
         uses: coverallsapp/github-action@v2
+        # Pass the Coveralls token as an environment variable if needed
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         with:
+          # This token is strictly for the Action to talk to GitHub API
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          repo-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          # Path to the coverage file
           file: ./coverage/lcov.info

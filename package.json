@@ -13,7 +13,8 @@
     "node": ">=v20.1.0"
   },
   "scripts": {
-    "test": "node --test --test-reporter=spec test/config/ test/game/logic/ test/game/phases/ test/utils/ test/helpers/",
+    "test": "node --test --test-reporter=spec test/config/**/*.js test/game/*.js test/game/logic/**/*.js test/game/phases/**/*.js test/utils/**/*.js test/helpers/**/*.js test/socket/**/*.js test/db/**/*.js test/__mocks__/**/*.js",
+    "testold": "node --test --test-reporter=spec test/config/**/*.js test/game/*.js test/game/logic/**/*.js test/game/phases/**/*.js test/utils/**/*.js test/helpers/**/*.js",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test:file": "node --test --test-reporter=spec",
@@ -72,6 +73,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "chai": "^6.2.1",
     "express": "5.1.0",
     "mongodb": "^6.16.0",
     "nanoid": "^5.1.5",
@@ -97,7 +99,7 @@
     "pino-pretty": "^10.3.1",
     "prettier": "^3.1.0",
     "rimraf": "^5.0.10",
-    "socket.io-client": "^4.7.2",
+    "socket.io-client": "^4.8.1",
     "supertest": "^6.3.3"
   }
 }

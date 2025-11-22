@@ -180,3 +180,5 @@ tools/
 *.reference
 *.reference*
 docs/archive/".windsurf/" 
+docs/archive
+docs/archive*

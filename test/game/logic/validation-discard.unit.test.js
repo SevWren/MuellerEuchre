@@ -12,6 +12,7 @@ import { describe, it, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import * as validation from '../../../src/game/logic/validation-core.js';
 import logger from '../../../src/utils/logger.js';
+//
 import {
   createMockLogger,
   createDiscardGameState,
@@ -27,6 +28,10 @@ import {
   InvalidDiscardError,
 } from './validation-shared-setup.js';
 
+/**
+ * Test suite for the `validateDealerDiscard` function.
+ * @namespace ValidationLogic_validateDealerDiscard
+ */
 describe("Validation Logic - validateDealerDiscard", () => {
   let validateDealerDiscard;
   let mockLogger;

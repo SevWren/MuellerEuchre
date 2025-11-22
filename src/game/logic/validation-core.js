@@ -410,50 +410,6 @@ function getEffectiveSuit(card, trumpSuit) {
  * @see {@link module:config/constants.PLAYER_ROLES} For valid player roles
  * @see {@link module:config/constants.SUITS} For valid suit constants
  *
- * @example
- * import { validatePlay } from './game/logic/validation';
- * import { GAME_PHASES, PLAYER_ROLES, SUITS } from './config/constants';
- *
- * // Valid play - following suit
- * const gameState = {
- *   gamePhase: GAME_PHASES.PLAYING,
- *   currentPlayer: PLAYER_ROLES.NORTH,
- *   currentTrick: [{
- *     card: { id: '10H', suit: SUITS.CARD_SUIT_HEARTS, value: '10' },
- *     player: PLAYER_ROLES.EAST
- *   }],
- *   trumpSuit: SUITS.CARD_SUIT_SPADES,
- *   players: {
- *     [PLAYER_ROLES.NORTH]: { hand: [] },
- *     [PLAYER_ROLES.EAST]: { hand: [] },
- *     [PLAYER_ROLES.SOUTH]: { hand: [] },
- *     [PLAYER_ROLES.WEST]: { hand: [] }
- *   }
- * };
- *
- * const hand = [
- *   { id: 'KH', suit: SUITS.CARD_SUIT_HEARTS, value: 'K' },
- *   { id: '9D', suit: SUITS.CARD_SUIT_DIAMONDS, value: '9' }
- * ];
- *
- * try {
- *   const isValid = validatePlay(gameState, hand, hand[0], PLAYER_ROLES.NORTH);
- *   console.log('Play is valid:', isValid); // true
- * } catch (error) {
- *   console.error('Validation failed:', error.message);
- * }
- *
- * @example
- * // Invalid play - not following suit
- * try {
- *   validatePlay(gameState, hand, hand[1], PLAYER_ROLES.NORTH);
- * } catch (error) {
- *   if (error.name === 'MustFollowSuitError') {
- *     console.error(`Must follow suit: ${error.requiredSuit}`);
- *     console.error(`Played suit: ${error.playedSuit}`);
- *   }
- *   throw error;
- * }
  */
 function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
   try {
@@ -482,12 +438,7 @@ function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
         "GENERIC_VALIDATION_ERROR"
       );
     }
-    if (!cardToPlay.id) {
-      throw new ValidationError(
-        "cardToPlay.id is required",
-        "GENERIC_VALIDATION_ERROR"
-      );
-    }
+    validateCardObject(cardToPlay);
 
     // Validate game phase
     if (gameState.gamePhase !== GAME_PHASES.PLAYING) {
@@ -502,12 +453,7 @@ function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
       throw new NotPlayersTurnError(playerRole, gameState.currentPlayer);
     }
 
-    const cardInHand = playerHand.find((c) => c.id === cardToPlay.id);
-    if (!cardInHand) {
-      throw new CardNotInHandError(
-        `Card ${cardToPlay.id} is not in ${playerRole}'s hand.`
-      );
-    }
+    validateCardInHand({ hand: playerHand, id: playerRole }, cardToPlay);
 
     const { currentTrick, trumpSuit } = gameState;
     const ledCard =
@@ -586,107 +532,6 @@ function validatePlay(gameState, playerHand, cardToPlay, playerRole) {
  * @throws {module:game/logic/validation-errors.InvalidBidError} If the bid violates game rules.
  *   The error will have a `message` property describing the specific violation.
  *   May include additional context like `phase`, `decision`, and `suit`.
- * @see {@link module:config/constants.BID_DECISIONS} For valid bid decisions
- * @see {@link module:config/constants.GAME_PHASES} For valid game phases
- * @see {@link module:config/constants.SUITS} For valid suit constants
- * @see {@link module:config/constants.PLAYER_ROLES} For valid player roles
- * @see {@link module:game/logic/validation~validatePlay} For card play validation
- * @see {@link module:config/constants.BID_DECISIONS} For valid bid decisions
- * @see {@link module:config/constants.GAME_PHASES} For valid game phases
- * @see {@link module:config/constants.SUITS} For valid suit constants
- * @see {@link module:config/constants.PLAYER_ROLES} For valid player roles
- * @see {@link module:game/logic/validation~validatePlay} For card play validation
- *
- * @example
- * import { validateBid } from './game/logic/validation';
- * import { GAME_PHASES, PLAYER_ROLES, BID_DECISIONS, SUITS } from './config/constants';
- *
- * // Valid round 1 bid (ORDER_UP)
- * const gameState = {
- *   gamePhase: GAME_PHASES.ORDER_UP_ROUND1,
- *   currentPlayer: PLAYER_ROLES.EAST,
- *   dealer: PLAYER_ROLES.SOUTH,
- *   turnCard: { suit: SUITS.CARD_SUIT_HEARTS, value: '9' },
- *   bids: [],
- *   players: {
- *     [PLAYER_ROLES.NORTH]: {},
- *     [PLAYER_ROLES.EAST]: {},
- *     [PLAYER_ROLES.SOUTH]: {},
- *     [PLAYER_ROLES.WEST]: {}
- *   }
- * };
- *
- * // Valid bid - player orders up the turn card
- * try {
- *   const isValid = validateBid(gameState, PLAYER_ROLES.EAST, BID_DECISIONS.ORDER_UP);
- *   console.log('Bid is valid:', isValid); // true
- * } catch (error) {
- *   console.error('Bid validation failed:', error.message);
- * }
- *
- * @example
- * // Invalid - not player's turn
- * try {
- *   validateBid(
- *     { ...gameState, currentPlayer: PLAYER_ROLES.NORTH },
- *     PLAYER_ROLES.EAST,
- *     BID_DECISIONS.ORDER_UP
- *   );
- * } catch (error) {
- *   if (error.name === 'NotPlayersTurnError') {
- *     console.error(`It's ${error.currentPlayer}'s turn, not ${error.attemptedPlayer}'s`);
- *   }
- *   throw error;
- * }
- *
- * @example
- * // Valid round 2 bid (CALL_TRUMP)
- * const round2State = {
- *   gamePhase: GAME_PHASES.ORDER_UP_ROUND2,
- *   currentPlayer: PLAYER_ROLES.WEST,
- *   dealer: PLAYER_ROLES.SOUTH,
- *   turnCard: { suit: SUITS.CARD_SUIT_HEARTS, value: '9' },
- *   bids: [
- *     { player: PLAYER_ROLES.EAST, decision: BID_DECISIONS.PASS },
- *     { player: PLAYER_ROLES.SOUTH, decision: BID_DECISIONS.PASS }
- *   ],
- *   players: {
- *     [PLAYER_ROLES.NORTH]: {},
- *     [PLAYER_ROLES.EAST]: {},
- *     [PLAYER_ROLES.SOUTH]: {},
- *     [PLAYER_ROLES.WEST]: {}
- *   }
- * };
- *
- * // Valid bid - player calls a trump suit
- * try {
- *   const isValid = validateBid(
- *     round2State,
- *     PLAYER_ROLES.WEST,
- *     BID_DECISIONS.CALL_TRUMP,
- *     SUITS.CARD_SUIT_SPADES
- *   );
- *   console.log('Trump call is valid:', isValid); // true
- * } catch (error) {
- *   console.error('Trump call validation failed:', error.message);
- * }
- *
- * @example
- * // Invalid - cannot call the turned-down suit in round 2
- * try {
- *   validateBid(
- *     round2State,
- *     PLAYER_ROLES.WEST,
- *     BID_DECISIONS.CALL_TRUMP,
- *     SUITS.CARD_SUIT_HEARTS // Same as turned-down card
- *   );
- * } catch (error) {
- *   if (error.name === 'InvalidBidError') {
- *     console.error('Invalid bid:', error.message);
- *     console.error('Turned down suit:', round2State.turnCard.suit);
- *   }
- *   throw error;
- * }
  */
 function validateBid(gameState, playerRole, decision, suit = null) {
   requireArgs({ gameState, playerRole, decision }, "bid validation");
@@ -778,129 +623,8 @@ function validateBid(gameState, playerRole, decision, suit = null) {
  * @throws {module:game/logic/validation-errors.InvalidDiscardError} If the dealer tries to discard the turn card.
  *   The error will have a `message` property and may include `cardId`.
  * @see {@link module:config/constants.GAME_PHASES} For valid game phases
- * @see {@link module:config/constants.PLAYER_ROLES} For valid player roles
  * @see {@link module:game/logic/validation~validatePlay} For card play validation
  * @see {@link module:game/logic/validation~validateBid} For bid validation
- *
- * @example
- * // Example usage in the dealer discard phase
- * const gameState = {
- *   gamePhase: GAME_PHASES.DEALER_DISCARD,
- *   currentPlayer: PLAYER_ROLES.SOUTH,
- *   dealer: PLAYER_ROLES.SOUTH,
- *   turnCard: { id: '9H-turn', suit: SUITS.CARD_SUIT_HEARTS, value: '9' },
- *   players: {
- *     [PLAYER_ROLES.SOUTH]: { hand: [] },
- *     [PLAYER_ROLES.WEST]: { hand: [] },
- *     [PLAYER_ROLES.NORTH]: { hand: [] },
- *     [PLAYER_ROLES.EAST]: { hand: [] }
- *   }
- * };
- *
- * const dealerHand = [
- *   { id: '10H', suit: SUITS.CARD_SUIT_HEARTS, value: '10' },
- *   { id: 'JD', suit: SUITS.CARD_SUIT_DIAMONDS, value: 'J' },
- *   { id: 'QC', suit: SUITS.CARD_SUIT_CLUBS, value: 'Q' },
- *   { id: 'KS', suit: SUITS.CARD_SUIT_SPADES, value: 'K' },
- *   { id: 'AH', suit: SUITS.CARD_SUIT_HEARTS, value: 'A' },
- *   { id: '9D', suit: SUITS.CARD_SUIT_DIAMONDS, value: '9' },
- *   gameState.turnCard // The dealer picks up the turn card (now has 7 cards)
- * ];
- *
- * // Valid discard - dealer discards a non-turn card
- * try {
- *   const cardToDiscard = dealerHand[1]; // JD
- *   const isValid = validateDealerDiscard(
- *     gameState,
- *     PLAYER_ROLES.SOUTH,
- *     cardToDiscard,
- *     dealerHand
- *   );
- *   console.log('Discard is valid:', isValid); // true
- * } catch (error) {
- *   console.error('Discard validation failed:', error.message);
- * }
- * @see {@link module:config/constants.GAME_PHASES} For valid game phases
- * @see {@link module:config/constants.PLAYER_ROLES} For valid player roles
- * @see {@link module:game/logic/validation~validatePlay} For card play validation
- *
- * @example
- * import { validateDealerDiscard } from './game/logic/validation';
- * import { GAME_PHASES, PLAYER_ROLES, SUITS } from './config/constants';
- *
- * // Valid discard - dealer discards a card from their hand
- * const gameState = {
- *   gamePhase: GAME_PHASES.DEALER_DISCARD,
- *   currentPlayer: PLAYER_ROLES.SOUTH,
- *   dealer: PLAYER_ROLES.SOUTH,
- *   turnCard: {
- *     id: '9H-turn',
- *     suit: SUITS.CARD_SUIT_HEARTS,
- *     value: '9'
- *   },
- *   players: {
- *     [PLAYER_ROLES.SOUTH]: { hand: [] },
- *     [PLAYER_ROLES.WEST]: { hand: [] },
- *     [PLAYER_ROLES.NORTH]: { hand: [] },
- *     [PLAYER_ROLES.EAST]: { hand: [] }
- *   }
- * };
- *
- * const dealerHand = [
- *   { id: '10H', suit: SUITS.CARD_SUIT_HEARTS, value: '10' },
- *   { id: 'JD', suit: SUITS.CARD_SUIT_DIAMONDS, value: 'J' },
- *   { id: 'QC', suit: SUITS.CARD_SUIT_CLUBS, value: 'Q' },
- *   { id: 'KS', suit: SUITS.CARD_SUIT_SPADES, value: 'K' },
- *   { id: 'AH', suit: SUITS.CARD_SUIT_HEARTS, value: 'A' },
- *   { id: '9D', suit: SUITS.CARD_SUIT_DIAMONDS, value: '9' },
- *   gameState.turnCard // The dealer picks up the turn card (now has 7 cards)
- * ];
- *
- * // Valid discard - dealer discards a non-turn card
- * try {
- *   const cardToDiscard = dealerHand[1]; // JD
- *   const isValid = validateDealerDiscard(
- *     gameState,
- *     PLAYER_ROLES.SOUTH,
- *     cardToDiscard,
- *     dealerHand
- *   );
- *   console.log('Discard is valid:', isValid); // true
- * } catch (error) {
- *   console.error('Discard validation failed:', error.message);
- * }
- *
- * @example
- * // Invalid - not the dealer's turn
- * try {
- *   validateDealerDiscard(
- *     { ...gameState, currentPlayer: PLAYER_ROLES.NORTH },
- *     PLAYER_ROLES.SOUTH,
- *     dealerHand[0],
- *     dealerHand
- *   );
- * } catch (error) {
- *   if (error.name === 'NotPlayersTurnError') {
- *     console.error(`It's ${error.currentPlayer}'s turn, not ${error.attemptedPlayer}'s`);
- *   }
- *   throw error;
- * }
- *
- * @example
- * // Invalid - trying to discard the turn card
- * try {
- *   validateDealerDiscard(
- *     gameState,
- *     PLAYER_ROLES.SOUTH,
- *     gameState.turnCard, // The turn card
- *     dealerHand
- *   );
- * } catch (error) {
- *   if (error.name === 'InvalidDiscardError') {
- *     console.error('Cannot discard turn card:', error.message);
- *   }
- *   throw error;
- * }
  */
 function validateDealerDiscard(
   gameState,
@@ -913,6 +637,7 @@ function validateDealerDiscard(
     "discard validation"
   );
   requireArgs({ "cardToDiscard.id": cardToDiscard.id }, "discard validation");
+  validateCardObject(cardToDiscard);
 
   // Validate phase
   if (gameState.gamePhase !== GAME_PHASES.DEALER_DISCARD) {
@@ -933,13 +658,7 @@ function validateDealerDiscard(
   }
 
   // Validate card is in player's hand
-  const cardInHand = playerHand.some((card) => card.id === cardToDiscard.id);
-  if (!cardInHand) {
-    const error = new CardNotInHandError();
-    error.cardId = cardToDiscard.id;
-    error.playerHandIds = playerHand.map((card) => card.id);
-    throw error;
-  }
+  validateCardInHand({ hand: playerHand, id: playerRole }, cardToDiscard);
 
   // The check for playerHand.length !== 6 remains a logger.warn as per instructions,
   // as it's more of a state sanity check than a direct validation of the discard action itself.
@@ -979,61 +698,8 @@ function validateDealerDiscard(
  * @throws {module:game/logic/validation-errors.InvalidGoAloneError} If the player cannot go alone for other reasons.
  *   The error will have a `message` property describing why the go-alone is invalid.
  *   May include additional context like `playerRole` and `winningBidder`.
- * @see {@link module:config/constants.GAME_PHASES} For valid game phases
- * @see {@link module:config/constants.PLAYER_ROLES} For valid player roles
+ * @see {@link module:con ig/constants.GAME_PHASES} For valid game phases
  * @see {@link module:game/logic/validation~validateBid} For bid validation
- * @see {@link module:game/logic/validation~validatePlay} For card play validation
- *
- * @example
- * // Valid go-alone declaration
- * const gameState = {
- *   gamePhase: GAME_PHASES.GOING_ALONE_DECISION,
- *   currentPlayer: PLAYER_ROLES.SOUTH,
- *   winningBidder: PLAYER_ROLES.SOUTH,
- *   players: {
- *     [PLAYER_ROLES.SOUTH]: { name: 'Player 1', hand: [] },
- *     [PLAYER_ROLES.NORTH]: { name: 'Player 2', hand: [] },
- *     [PLAYER_ROLES.EAST]: { name: 'Player 3', hand: [] },
- *     [PLAYER_ROLES.WEST]: { name: 'Player 4', hand: [] }
- *   }
- * };
- *
- * try {
- *   const canGoAlone = isValidGoAlone(gameState, PLAYER_ROLES.SOUTH);
- *   console.log('Can go alone:', canGoAlone); // true
- * } catch (error) {
- *   console.error('Go-alone validation failed:', error.message);
- * }
- *
- * @example
- * // Invalid - not the winning bidder
- * try {
- *   isValidGoAlone(
- *     { ...gameState, winningBidder: PLAYER_ROLES.EAST },
- *     PLAYER_ROLES.SOUTH
- *   );
- * } catch (error) {
- *   if (error.name === 'InvalidGoAloneError') {
- *     console.error('Cannot go alone:', error.message);
- *     console.error('Winning bidder:', error.winningBidder);
- *   }
- *   throw error;
- * }
- *
- * @example
- * // Invalid - wrong game phase
- * try {
- *   isValidGoAlone(
- *     { ...gameState, gamePhase: GAME_PHASES.PLAYING },
- *     PLAYER_ROLES.SOUTH
- *   );
- * } catch (error) {
- *   if (error.name === 'InvalidPhaseError') {
- *     console.error('Invalid phase for go-alone:', error.currentPhase);
- *     console.error('Expected phase:', error.allowedPhases);
- *   }
- *   throw error;
- * }
  */
 function isValidGoAlone(gameState, playerRole) {
   // Input validation

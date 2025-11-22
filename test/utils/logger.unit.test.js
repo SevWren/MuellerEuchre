@@ -400,6 +400,19 @@ describe("Logger Utility (Integration with Real Module)", () => {
         realLoggerModule.log("UNKNOWN_LEVEL", "unknown level message");
       });
     });
+
+    it("should handle context object in integration", () => {
+      assert.doesNotThrow(() => {
+        realLoggerModule.log(DEBUG_LEVELS.INFO, "message with context", { data: 1 }, "test-context");
+      });
+    });
+
+    it("should handle explicit SILENT level in integration", () => {
+      assert.doesNotThrow(() => {
+        realLoggerModule.log(DEBUG_LEVELS.NONE, "should not log");
+        realLoggerModule.log(DEBUG_LEVELS.LOG_LEVEL_SILENT, "should not log");
+      });
+    });
   });
 
   describe("setDebugLevel (Real)", () => {

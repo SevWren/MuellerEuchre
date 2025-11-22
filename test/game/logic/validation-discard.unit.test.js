@@ -92,7 +92,7 @@ describe("Validation Logic - validateDealerDiscard", () => {
     });
 
     dealerHand = createCards("AH,KH,QH,JH,10H,9H");
-    cardToDiscard = { id: '9H' };
+    cardToDiscard = { id: '9H', suit: SUITS.HEARTS, value: '9' };
   });
 
   afterEach(() => {

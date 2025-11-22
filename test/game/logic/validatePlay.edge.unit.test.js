@@ -54,8 +54,12 @@ import {
 import { validatePlay, getEffectiveSuit } from '../../../src/game/logic/validation-core.js';
 import { isLeftBower } from '../../../src/utils/cardUtils.js';
 
-// Use prefixed constants directly for clarity
-const { JACK, ACE, KING } = CARD_VALUES;
+// Use string literals for card values
+const JACK = 'J';
+const ACE = 'A';
+const KING = 'K';
+const QUEEN = 'Q';
+const NINE = '9';
 
 // --- Test Helper Functions ---
 

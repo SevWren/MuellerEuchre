@@ -10,7 +10,7 @@ This document is the single source of truth for mapping the application's featur
 | Feature / Concept | Key Source File(s) | Key Test File(s) | Implementation Notes |
 | :--- | :--- | :--- | :--- |
 | **Layer 1 Purity Mandate** | `src/game/logic/`, `src/game/phases/`, `src/utils/` | `test/game/logic/`, `test/game/phases/`, `test/utils/` | The foundational principle. All functions in these directories must be pure, stateless, and have no I/O. They take a state and return a **new** state. Errors are **thrown**, not handled. See `docs/Layer1_Purity_Rules.md`. |
-| **Layer 2 State Management** | `src/game/state.js` | `test/game/state/state.unit.test.js` | The conceptual plan for this layer is in `docs/Layer_2_Blueprint.md`. The implementation in `state.js` centralizes in-memory state, enforcing immutability. |
+| **Layer 2 State Management** | `src/game/state.js` | `test/game/state/state.unit.test.js` | The conceptual plan for this layer is in `docs/Project_Details/state.js_Architectural_and_Functional_Specifications.md`. The implementation in `state.js` centralizes in-memory state, enforcing immutability. |
 | **Constants & Immutability** | `src/config/constants.js` | `test/config/constants.unit.test.js` | The single source for all game enums (phases, suits, roles). `Object.freeze()` is mandatory to ensure runtime immutability as per `docs/MandateforImplementingObjectFreeze.md`. |
 
 ## Fundamental Game Rules & Data

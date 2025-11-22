@@ -48,10 +48,12 @@ Each priority related to Layer 1 development MUST strictly adhere to the Core Ar
 
 **2. Develop Unit Tests for Core Logic (Playing Phase)**
 
-- **Layer 1 Tests (`test/game/logic/validation.unit.test.js`, `test/game/phases/playingPhase.unit.test.js`):**
+- **Layer 1 Tests:**
+  - **Validation Tests:** `test/game/logic/validation-play.unit.test.js` (card play validation)
+  - **Phase Tests:** `test/game/phases/playingPhase.unit.test.js` (phase logic)
   - **Goal:** Achieve high confidence in the card-playing mechanics (`validatePlay`, `determineTrickWinner`, `handlePlayCard`).
   - **Implementation:**
-    - Write comprehensive unit tests that target the pure logic functions in `src/game/logic/validation.js` and `src/game/phases/playingPhase.js` in strict isolation.
+    - Write comprehensive unit tests that target the pure logic functions in `src/game/logic/validation-core.js` and `src/game/phases/playingPhase.js` in strict isolation.
     - Provide mocked inputs (e.g., mock `gameState` objects, mock player hands) and assert the precise return values or the specific errors thrown.
     - Ensure that mocking of internal dependencies (e.g., `src/utils/deck.js`, `src/utils/players.js` for `playingPhase.js`) is done using `node:test`, NEVER esmock NEVER sinon NEVER chai NEVER jest.
 

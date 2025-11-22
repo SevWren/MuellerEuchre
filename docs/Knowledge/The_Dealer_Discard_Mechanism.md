@@ -1,5 +1,3 @@
-# `docs/The_Dealer_Discard_Mechanism.md`
-
 # The Dealer Discard Mechanism
 
 ## 1. Core Concept: "Picking It Up"
@@ -77,11 +75,37 @@ Once the discard is validated, the `handleDealerDiscard()` function (located in 
 
 ---
 
-## 3. Implications for Development and Debugging
+## 3. Unit Tests
 
-1.  **Temporary 6-Card Hand:** The dealer's hand briefly contains six cards. Any logic that strictly validates for a 5-card hand must be aware of this temporary exception during the `DEALER_DISCARD` phase. The test file `test/game/logic/validation.unit.test.js` includes a check that logs a warning if the dealer's hand *doesn't* have 6 cards at the moment of validation.
+Comprehensive unit tests for dealer discard validation are located in:
+
+**Test File:** `test/game/logic/validation-discard.unit.test.js`
+
+These tests verify all validation scenarios including:
+- Argument validation (gameState, playerRole, cardToDiscard, dealerHand)
+- Phase validation (DEALER_DISCARD phase required)
+- Turn validation (dealer's turn, current player check)
+- Card validation (card in hand, turn card restrictions)
+- 6-card hand warning (logs warning if dealer's hand doesn't have exactly 6 cards)
+
+The test suite includes specific tests for:
+- Preventing the discard of the turn card (upcard)
+- Validating the dealer's hand size
+- Ensuring proper phase and turn order
+- Verifying all error types are thrown correctly
+
+---
+
+## 4. Implications for Development and Debugging
+
+1.  **Temporary 6-Card Hand:** The dealer's hand briefly contains six cards. Any logic that strictly validates for a 5-card hand must be aware of this temporary exception during the `DEALER_DISCARD` phase. The test file `test/game/logic/validation-discard.unit.test.js` includes a check that logs a warning if the dealer's hand *doesn't* have 6 cards at the moment of validation.
+
 2.  **`turnCard` is Immutable:** The rule against discarding the `turnCard` is a core part of Euchre. A bug where this is allowed would be a critical failure of the `validateDealerDiscard` function. When debugging a discard issue, this should be the first rule to check.
+
 3.  **Source of Truth:**
     *   **Is this discard allowed?** This is answered by `validateDealerDiscard()` in `validation-core.js`.
     *   **What happens after a legal discard?** This is answered by `handleDealerDiscard()` in `biddingPhase.js`.
+
 4.  **File Naming Anomaly:** It is important to note that the `handleDealerDiscard` logic, despite relating to the `DEALER_DISCARD` phase, is located within the `biddingPhase.js` module. This is a structural choice in the codebase that developers and the LLM must be aware of to locate the correct source file.
+
+5.  **Test File Refactoring:** As of the recent refactoring (November 2025), validation tests have been split into focused files. The monolithic `validation.unit.test.js` has been archived, and dealer discard tests are now in `validation-discard.unit.test.js` for improved maintainability.

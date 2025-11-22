@@ -44,12 +44,12 @@ The application is built on a strict 5-layer architecture to ensure separation o
 -   **Layer 5: Persistence**
     -   **Responsibility:** Handles all communication with the database (MongoDB).
     -   **Key Module:** `src/db/gameRepository.js`.
-    -   **Functionality:** Provides an abstraction layer for database operations (`createGame`, `getGame`, `updateGame`, `findAllActiveGames`). It is the only module that directly interacts with the database.
+    -   **Functionality:** Provides an abstraction layer for database operations (`updateGame` (with upsert), `getGame`, `findAllActiveGames`). It is the only module that directly interacts with the database.
 
 ## 🚀 Quick Start
 
 1.  **Prerequisites:**
-    -   Node.js (v18.x or later recommended)
+    -   Node.js (v20.1.0 or later)
     -   MongoDB running on the default port (`mongodb://localhost:27017`)
 
 2.  **Clone the repository:**
@@ -96,6 +96,13 @@ The project uses the native **`node:test`** framework for unit and integration t
     ```bash
     node --test test/utils/deck.unit.test.js
     ```
+
+## 📜 Development Conventions
+
+-   **Linting and Formatting:** The project uses ESLint and Prettier for code quality and consistency.
+    -   `npm run lint`: Check for linting errors.
+    -   `npm run lint:fix`: Automatically fix linting errors.
+    -   `npm run prettier`: Format code with Prettier.
 
 ## 🤝 Contributing
 

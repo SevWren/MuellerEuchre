@@ -338,3 +338,77 @@ describe("Logger Utility (Unit Tests with Mock Factory)", () => {
     });
   });
 });
+
+describe("Logger Utility (Integration with Real Module)", () => {
+  let realLoggerModule;
+
+  beforeEach(async () => {
+    // We import the real module here. Note that top-level code runs only once.
+    realLoggerModule = await import("../../src/utils/logger.js");
+  });
+
+  it("should export expected functions", () => {
+    assert.ok(realLoggerModule.logger);
+    assert.ok(realLoggerModule.log);
+    assert.ok(realLoggerModule.setDebugLevel);
+    assert.ok(realLoggerModule.createLogger);
+    assert.ok(realLoggerModule.getLogLevelFromEnv);
+  });
+
+  describe("getLogLevelFromEnv (Real)", () => {
+    it("should return info by default", () => {
+      const { level } = realLoggerModule.getLogLevelFromEnv({});
+      assert.strictEqual(level, "info");
+    });
+
+    it("should parse LOG_LEVEL", () => {
+      const { level } = realLoggerModule.getLogLevelFromEnv({ LOG_LEVEL: "warn" });
+      assert.strictEqual(level, "warn");
+    });
+
+    it("should handle invalid DEBUG_LEVEL", () => {
+      const { warning } = realLoggerModule.getLogLevelFromEnv({ DEBUG_LEVEL: "INVALID" });
+      assert.match(warning, /Invalid DEBUG_LEVEL/);
+    });
+  });
+
+  describe("createLogger (Real)", () => {
+    it("should write to destination stream", (t, done) => {
+      const stream = new Writable({
+        write(chunk, encoding, callback) {
+          const log = JSON.parse(chunk.toString());
+          assert.strictEqual(log.msg, "test message");
+          callback();
+          done();
+        },
+      });
+
+      const logger = realLoggerModule.createLogger({ level: "info" }, stream);
+      logger.info("test message");
+    });
+  });
+
+  describe("log (Real)", () => {
+    it("should execute without error for all levels", () => {
+      assert.doesNotThrow(() => {
+        realLoggerModule.log(DEBUG_LEVELS.INFO, "info message");
+        realLoggerModule.log(DEBUG_LEVELS.ERROR, "error message");
+        realLoggerModule.log(DEBUG_LEVELS.WARN, "warn message");
+        realLoggerModule.log(DEBUG_LEVELS.DEBUG, "debug message");
+        realLoggerModule.log(DEBUG_LEVELS.TRACE, "trace message");
+        realLoggerModule.log(DEBUG_LEVELS.SILENT, "silent message");
+        realLoggerModule.log("UNKNOWN_LEVEL", "unknown level message");
+      });
+    });
+  });
+
+  describe("setDebugLevel (Real)", () => {
+    it("should execute without error", () => {
+      assert.doesNotThrow(() => {
+        realLoggerModule.setDebugLevel(DEBUG_LEVELS.DEBUG);
+        // Reset to info to not affect other tests if they ran after (though this is the last test)
+        realLoggerModule.setDebugLevel(DEBUG_LEVELS.INFO);
+      });
+    });
+  });
+});

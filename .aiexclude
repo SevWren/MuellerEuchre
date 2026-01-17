@@ -21,8 +21,8 @@ pids
 *.pid.lock
 
 # VS Code
-.vscode/
-.idea/
+#.vscode/
+#.idea/
 
 #backup files
 *.backup
@@ -82,6 +82,8 @@ ENVIRONMENT_INSTABILITY.MD
 
 #Archive
 archived
+ToBeArchived/
+gitingest-me.bat
 archived_files_for_rewrite/
 main_branch_test_log.txt
 server3_migration_audit.md
@@ -187,7 +189,7 @@ jsdoc/**
 .git/
 .github/
 .husky/
-.windsurf/
-.vscode/
+#.windsurf/
+#.vscode/
 .kilocode/
 docs/archive/

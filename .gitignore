@@ -176,9 +176,12 @@ docs/Prompts/
 
 #tools - these are usually system specific
 tools/
-
 *.reference
 *.reference*
 docs/archive/".windsurf/" 
 docs/archive
 docs/archive*
+gitingest-me.bat
+gemini-cli-mass-changes.txt
+Mueller-Euchre-TodoList.txt
+thurs_fri_work.md

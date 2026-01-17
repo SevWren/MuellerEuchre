@@ -341,11 +341,10 @@ function createHandleEndOfHand(log) {
       1,
       `[handleEndOfHand] New score for ${scoringTeam}: ${updatedState.scores[scoringTeam]}`,
     );
-  } else {
-    // This case should ideally not be reached if logic is correct (a team always scores)
+    updatedState.scores[scoringTeam] = currentScore + points;
     log(
       1,
-      `[handleEndOfHand] No team scored points this hand. makerTricks: ${makerTricks}, makerTeam: ${makerTeam}`,
+      `[handleEndOfHand] New score for ${scoringTeam}: ${updatedState.scores[scoringTeam]}`,
     );
   }
 

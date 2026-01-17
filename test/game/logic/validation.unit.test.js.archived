@@ -68,46 +68,26 @@ import {
 // Import the real logger so we can restore it later
 import * as realLogger from '../../../src/utils/logger.js';
 
-/**
- * Stores calls made to the mock logger functions.
- * @type {Array<object>}
- * @see test/game/logic/validation.unit.test.js:mockLogger
- */
+//Stores calls made to the mock logger functions.
+//@type {Array<object>}
+//@see test/game/logic/validation.unit.test.js:mockLogger
 const loggerCalls = [];
 
-/**
- * Resets the `loggerCalls` array, clearing all logged calls.
- * @returns {void}
- * @see test/game/logic/validation.unit.test.js:loggerCalls
- */
+//Resets the `loggerCalls` array, clearing all logged calls.
+//@returns {void}
+//@see test/game/logic/validation.unit.test.js:loggerCalls
 function resetLoggerCalls() {
   loggerCalls.length = 0;
 }
 
-/**
- * Retrieves logged calls, optionally filtered by log level.
- * @param {string} [level] - The log level to filter by (e.g., 'info', 'warn', 'error', 'debug').
- * @returns {Array<object>} An array of logged call objects.
- * @see test/game/logic/validation.unit.test.js:loggerCalls
- */
+// Retrieves logged calls, optionally filtered by level.
 function getLoggerCalls(level) {
   return level
     ? loggerCalls.filter(call => call.level === level)
     : [...loggerCalls];
 }
 
-/**
- * A mock logger object that captures log calls for testing purposes.
- * Each logging method (`info`, `warn`, `error`, `debug`) is a `mock.fn` that records its arguments.
- * @property {function} info - Mock function for info level logging.
- * @property {function} warn - Mock function for warn level logging.
- * @property {function} error - Mock function for error level logging.
- * @property {function} debug - Mock function for debug level logging.
- * @property {function(): void} reset - Resets all captured log calls.
- * @property {function(string): Array<object>} getCalls - Retrieves captured log calls, optionally filtered by level.
- * @see src/utils/logger.js
- * @see test/game/logic/validation.unit.test.js:loggerCalls
- */
+// A mock logger object capturing log calls for testing purposes.
 const mockLogger = {
   info: mock.fn((...args) => {
     const context = args.length > 1 ? args[0] : {};
@@ -153,15 +133,15 @@ const mockLogger = {
   getCalls: getLoggerCalls
 };
 
-/**
- * Stores the original logger methods to be restored after tests.
- * @type {object}
- * @property {function} info - Original info method.
- * @property {function} warn - Original warn method.
- * @property {function} error - Original error method.
- * @property {function} debug - Original debug method.
- * @see src/utils/logger.js
- */
+
+ //Stores the original logger methods to be restored after tests.
+ //@type {object}
+ //@property {function} info - Original info method.
+ //@property {function} warn - Original warn method.
+ //@property {function} error - Original error method.
+ //@property {function} debug - Original debug method.
+ //@see src/utils/logger.js
+
 const originalLogger = {
   info: realLogger.logger.info,
   warn: realLogger.logger.warn,
@@ -169,22 +149,15 @@ const originalLogger = {
   debug: realLogger.logger.debug
 };
 
-/**
- * Creates a mock deck utility object with specific card-related functions.
- * This mock is used to control the behavior of `isLeftBower` and `areSameColor`
- * within tests without relying on the actual `deck.js` implementation.
- * @returns {object} A mock object containing `isLeftBower` and `areSameColor` functions.
- * @see src/game/logic/deck.js
- */
+//Creates a mock deck utility object with specific card-related functions.
+//This mock is used to control the behavior of `isLeftBower` and `areSameColor`
+//within tests without relying on the actual `deck.js` implementation.
+//@returns {object} A mock object containing `isLeftBower` and `areSameColor` functions.
+//@see src/game/logic/deck.js
+
 function createMockDeck() {
   return {
-    /**
-     * Mocks the `isLeftBower` function.
-     * @param {object} card - The card object to check.
-     * @param {string} trumpSuit - The current trump suit.
-     * @returns {boolean} True if the card is the left bower for the given trump suit, false otherwise.
-     * @see src/game/logic/deck.js:isLeftBower
-     */
+    // Mocks the `isLeftBower` function.
     isLeftBower: (card, trumpSuit) => {
       if (!card || card.value !== VALUES.JACK) return false;
       if (trumpSuit === SUITS.SPADES && card.suit === SUITS.CLUBS) return true;
@@ -193,13 +166,7 @@ function createMockDeck() {
       if (trumpSuit === SUITS.DIAMONDS && card.suit === SUITS.HEARTS) return true;
       return false;
     },
-    /**
-     * Mocks the `areSameColor` function.
-     * @param {string} suit1 - The first suit.
-     * @param {string} suit2 - The second suit.
-     * @returns {boolean} True if the two suits are of the same color (red/black), false otherwise.
-     * @see src/game/logic/deck.js:areSameColor
-     */
+    // Mocks the `areSameColor` function.
     areSameColor: (suit1, suit2) => {
       const colors = {
         [SUITS.SPADES]: 'black',
@@ -215,13 +182,7 @@ function createMockDeck() {
 // Create and initialize mocks
 const mockDeck = createMockDeck();
 
-/**
- * Setup hook to replace the real logger methods with mock logger methods before all tests in this file.
- * @see https://nodejs.org/docs/latest/api/test.html#beforefn-options
- * @see src/utils/logger.js
- * @see test/game/logic/validation.unit.test.js:mockLogger
- * @see test/game/logic/validation.unit.test.js:originalLogger
- */
+// Setup hook to replace the real logger methods with mock logger methods before all tests in this file.
 before(() => {
   // Replace the real logger methods with our mocks
   realLogger.logger.info = mockLogger.info;
@@ -230,12 +191,8 @@ before(() => {
   realLogger.logger.debug = mockLogger.debug;
 });
 
-/**
- * Teardown hook to restore the original logger methods after all tests in this file have completed.
- * @see https://nodejs.org/docs/latest/api/test.html#afterfn-options
- * @see src/utils/logger.js
- * @see test/game/logic/validation.unit.test.js:originalLogger
- */
+//Teardown hook to restore the original logger methods after all tests in this file have completed.
+
 after(() => {
   // Restore the original logger methods
   realLogger.logger.info = originalLogger.info;
@@ -244,27 +201,14 @@ after(() => {
   realLogger.logger.debug = originalLogger.debug;
 });
 
-/**
- * Hook to reset logger calls before each individual test.
- * @see https://nodejs.org/docs/latest/api/test.html#beforeeachfn-options
- * @see test/game/logic/validation.unit.test.js:mockLogger
- */
+// Hook to reset logger calls before each individual test.
 beforeEach(() => {
   mockLogger.reset();
 });
 
-/**
- * Main test suite for validation logic.
- * @see https://nodejs.org/docs/latest/api/test.html#describename-fn-options
- * @see src/game/logic/validation-core.js
- */
+// Main test suite for validation logic.
 describe('Validation Tests', () => {
-  /**
-   * Setup hook to mock the logger methods within this test suite's scope.
-   * @see https://nodejs.org/docs/latest/api/test.html#beforefn-options
-   * @see src/utils/logger.js
-   * @see test/game/logic/validation.unit.test.js:mockLogger
-   */
+  // Setup hook to mock the logger methods within this test suite's scope.
   before(() => {
     mock.method(logger, 'info', mockLogger.info);
     mock.method(logger, 'warn', mockLogger.warn);
@@ -272,47 +216,27 @@ describe('Validation Tests', () => {
     mock.method(logger, 'debug', mockLogger.debug);
   });
 
-  /**
-   * Hook to reset all mocks and logger calls before each test within this suite.
-   * @see https://nodejs.org/docs/latest/api/test.html#beforeeachfn-options
-   * @see test/game/logic/validation.unit.test.js:mockLogger
-   */
+   //Hook to reset all mocks and logger calls before each test within this suite.
+   //@see test/game/logic/validation.unit.test.js:mockLogger
+
   beforeEach(() => {
     mock.restoreAll();
     mockLogger.reset();
   });
 
-  /**
-   * Teardown hook to restore all mocks after all tests in this suite have completed.
-   * @see https://nodejs.org/docs/latest/api/test.html#afterfn-options
-   */
+  // Teardown hook to restore all mocks after all tests in this suite have completed.
   after(() => {
     mock.restoreAll();
   });
 
-  /**
-   * Test suite for `validateBid` function.
-   * @see https://nodejs.org/docs/latest/api/test.html#describename-fn-options
-   * @see src/game/logic/validation-core.js:validateBid
-   */
+  // Test suite for `validateBid` function.
   describe('Validation Logic - validateBid', () => {
-    /**
-     * Reference to the `validateBid` function under test.
-     * @type {function}
-     * @see src/game/logic/validation-core.js:validateBid
-     */
+    // Reference to the `validateBid` function under test. @type {function} @see src/game/logic/validation-core.js:validateBid
     let validateBid;
-    /**
-     * Base game state object for bid validation tests.
-     * @type {object}
-     */
+    // Base game state object for bid validation tests.
     let baseBidGameState;
 
-    /**
-     * Setup hook to initialize `validateBid` and `baseBidGameState` before each test in this suite.
-     * @see https://nodejs.org/docs/latest/api/test.html#beforeeachfn-options
-     * @see src/game/logic/validation-core.js:validateBid
-     */
+    // Setup hook to initialize `validateBid` and `baseBidGameState` before each test.
     beforeEach(() => {
       validateBid = validation.validateBid;
 
@@ -327,11 +251,7 @@ describe('Validation Tests', () => {
     };
   });
 
-  /**
-   * Teardown hook to reset all mocks and logger calls after each test in this suite.
-   * @see https://nodejs.org/docs/latest/api/test.html#aftereachfn-options
-   * @see test/game/logic/validation.unit.test.js:mockLogger
-   */
+  // Teardown hook to reset all mocks and logger calls after each test in this suite.
   afterEach(() => {
     // Reset all mocks
     mock.restoreAll();
@@ -342,11 +262,7 @@ describe('Validation Tests', () => {
     resetLoggerCalls();
   });
 
-  /**
-   * Test case: Should throw ValidationError if `gameState` is missing.
-   * @see src/game/logic/validation-core.js:validateBid
-   * @see src/game/logic/validation-errors.js:ValidationError
-   */
+  // Test case: Should throw ValidationError if `gameState` is missing.
   it("should throw ValidationError if gameState is missing", () => {
     assert.throws(
       () => validateBid(null, PLAYER_ROLES[0], "pass"),
@@ -357,11 +273,7 @@ describe('Validation Tests', () => {
     );
   });
 
-  /**
-   * Test case: Should throw ValidationError if `playerRole` is missing.
-   * @see src/game/logic/validation-core.js:validateBid
-   * @see src/game/logic/validation-errors.js:ValidationError
-   */
+  // Test case: Should throw ValidationError if `playerRole` is missing.
   it("should throw ValidationError if playerRole is missing", () => {
     assert.throws(
       () => validateBid(baseBidGameState, null, "pass"),
@@ -372,11 +284,7 @@ describe('Validation Tests', () => {
     );
   });
 
-  /**
-   * Test case: Should throw ValidationError if `decision` is missing.
-   * @see src/game/logic/validation-core.js:validateBid
-   * @see src/game/logic/validation-errors.js:ValidationError
-   */
+  // Test case: Should throw ValidationError if `decision` is missing.
   it("should throw ValidationError if decision is missing", () => {
     assert.throws(
       () => validateBid(baseBidGameState, PLAYER_ROLES[0], null),
@@ -387,11 +295,7 @@ describe('Validation Tests', () => {
     );
   });
 
-  /**
-   * Test case: Should throw ValidationError if `playerRole` is invalid.
-   * @see src/game/logic/validation-core.js:validateBid
-   * @see src/game/logic/validation-errors.js:ValidationError
-   */
+  // Test case: Should throw ValidationError if `playerRole` is invalid.
   it("should throw ValidationError if playerRole is invalid", () => {
     assert.throws(
       () => validateBid(baseBidGameState, "invalidRole", "pass"),
@@ -402,11 +306,7 @@ describe('Validation Tests', () => {
     );
   });
 
-  /**
-   * Test case: Should throw NotPlayersTurnError if it is not the current player's turn.
-   * @see src/game/logic/validation-core.js:validateBid
-   * @see src/game/logic/validation-errors.js:NotPlayersTurnError
-   */
+  // Test case: Should throw NotPlayersTurnError if it is not the current player's turn.
   it("should throw NotPlayersTurnError if it is not the current player's turn", () => {
     const gameState = {
       ...baseBidGameState,
@@ -422,11 +322,7 @@ describe('Validation Tests', () => {
     );
   });
 
-  /**
-   * Test case: Should throw InvalidPhaseError if bidding is attempted outside bidding phases
-   * @see src/game/logic/validation-core.js:validateBid
-   * @see src/game/logic/validation-errors.js:InvalidPhaseError
-   */
+  // Test case: Should throw InvalidPhaseError if bidding is attempted outside bidding phases
   it("should throw InvalidPhaseError if bidding is attempted outside bidding phases", () => {
     const gameState = {
       ...baseBidGameState,
@@ -446,23 +342,14 @@ describe('Validation Tests', () => {
     );
   });
 
-  /**
-   * Test suite for Round 1 Bidding (`ORDER_UP_ROUND1`) scenarios.
-   * @see https://nodejs.org/docs/latest/api/test.html#describename-fn-options
-   */
+  // Test suite for Round 1 Bidding (`ORDER_UP_ROUND1`) scenarios.
   describe("Round 1 Bidding (ORDER_UP_ROUND1)", () => {
-    /**
-     * Setup hook to set the game phase to `ORDER_UP_ROUND1` before all tests in this suite.
-     * @see https://nodejs.org/docs/latest/api/test.html#beforefn-options
-     */
+    // Setup hook to set the game phase to `ORDER_UP_ROUND1` before all tests in this suite.
     before(() => {
       baseBidGameState.gamePhase = GAME_PHASES.ORDER_UP_ROUND1;
     });
 
-    /**
-     * Test case: Should allow "orderUp" decision in Round 1.
-     * @see src/game/logic/validation-core.js:validateBid
-     */
+    // Test case: Should allow "orderUp" decision in Round 1.
     it('should allow "orderUp" decision', () => {
       assert.doesNotThrow(
         () => validateBid(baseBidGameState, PLAYER_ROLES[0], "orderUp")
@@ -473,10 +360,7 @@ describe('Validation Tests', () => {
       );
     });
 
-    /**
-     * Test case: Should allow "pass" decision in Round 1.
-     * @see src/game/logic/validation-core.js:validateBid
-     */
+    // Test case: Should allow "pass" decision in Round 1.
     it('should allow "pass" decision', () => {
       assert.doesNotThrow(
         () => validateBid(baseBidGameState, PLAYER_ROLES[0], "pass")
@@ -487,11 +371,7 @@ describe('Validation Tests', () => {
       );
     });
 
-    /**
-     * Test case: Should throw InvalidBidError for "callTrump" decision in Round 1.
-     * @see src/game/logic/validation-core.js:validateBid
-     * @see src/game/logic/validation-errors.js:InvalidBidError
-     */
+    // Test case: Should throw InvalidBidError for "callTrump" decision in Round 1.
     it('should throw InvalidBidError for "callTrump" decision', () => {
       assert.throws(
         () => validateBid(baseBidGameState, PLAYER_ROLES[0], "callTrump"),
@@ -502,11 +382,7 @@ describe('Validation Tests', () => {
       );
     });
 
-    /**
-     * Test case: Should throw InvalidBidError for other invalid decisions in Round 1.
-     * @see src/game/logic/validation-core.js:validateBid
-     * @see src/game/logic/validation-errors.js:InvalidBidError
-     */
+    // Test case: Should throw InvalidBidError for other invalid decisions in Round 1.
     it("should throw InvalidBidError for other invalid decisions", () => {
       assert.throws(
         () => validateBid(baseBidGameState, PLAYER_ROLES[0], "invalidDecision"),
@@ -517,10 +393,7 @@ describe('Validation Tests', () => {
       );
     });
 
-    /**
-     * Test case: Should allow dealer to "orderUp" (accept turn card) in Round 1.
-     * @see src/game/logic/validation-core.js:validateBid
-     */
+    // Test case: Should allow dealer to "orderUp" (accept turn card) in Round 1.
     it('should allow dealer to "orderUp" (accept turn card)', () => {
       const dealerGameState = {
         ...baseBidGameState,
@@ -532,10 +405,7 @@ describe('Validation Tests', () => {
       );
     });
 
-    /**
-     * Test case: Should allow dealer to "pass" in Round 1.
-     * @see src/game/logic/validation-core.js:validateBid
-     */
+    // Test case: Should allow dealer to "pass" in Round 1.
     it('should allow dealer to "pass"', () => {
       const dealerGameState = {
         ...baseBidGameState,
@@ -548,15 +418,9 @@ describe('Validation Tests', () => {
     });
   });
 
-  /**
-   * Test suite for Round 2 Bidding (`ORDER_UP_ROUND2`) scenarios.
-   * @see https://nodejs.org/docs/latest/api/test.html#describename-fn-options
-   */
+  // Test suite for Round 2 Bidding (`ORDER_UP_ROUND2`) scenarios.
   describe("Round 2 Bidding (ORDER_UP_ROUND2)", () => {
-    /**
-     * Setup hook to configure `baseBidGameState` for `ORDER_UP_ROUND2` before all tests in this suite.
-     * @see https://nodejs.org/docs/latest/api/test.html#beforefn-options
-     */
+    // Setup hook to configure `baseBidGameState` for `ORDER_UP_ROUND2` before all tests in this suite.
     before(() => {
       baseBidGameState.gamePhase = GAME_PHASES.ORDER_UP_ROUND2;
       baseBidGameState.turnCard = {
@@ -572,10 +436,7 @@ describe('Validation Tests', () => {
       ];
     });
 
-    /**
-     * Test case: Should allow "callTrump" decision with a valid suit (not the turned down suit) in Round 2.  
-     * @see src/game/logic/validation-core.js:validateBid
-     */
+    // Test case: Should allow "callTrump" decision with a valid suit (not the turned down suit) in Round 2.
     it('should allow "callTrump" decision with a valid suit (not the turned down suit)', () => {
       // Create a test-specific game state to ensure clean setup
       const testGameState = {
@@ -603,10 +464,7 @@ describe('Validation Tests', () => {
       );
     });
 
-    /**
-     * Test case: Should allow "pass" decision (if not stick the dealer) in Round 2.
-     * @see src/game/logic/validation-core.js:validateBid
-     */
+    // Test case: Should allow "pass" decision (if not stick the dealer) in Round 2.
     it('should allow "pass" decision (if not stick the dealer)', () => {
       assert.doesNotThrow(
         () => validateBid(baseBidGameState, PLAYER_ROLES[0], "pass")
@@ -617,11 +475,7 @@ describe('Validation Tests', () => {
       );
     });
 
-    /**
-     * Test case: Should throw InvalidBidError for "orderUp" decision in Round 2.
-     * @see src/game/logic/validation-core.js:validateBid
-     * @see src/game/logic/validation-errors.js:InvalidBidError
-     */
+    // Test case: Should throw InvalidBidError for "orderUp" decision in Round 2.
     it('should throw InvalidBidError for "orderUp" decision in ORDER_UP_ROUND2', () => {
       // Create a test-specific game state for ORDER_UP_ROUND2
       const testGameState = {
@@ -646,12 +500,7 @@ describe('Validation Tests', () => {
       );
     });
 
-    /**
-     * Test case: Should throw InvalidBidError for "callTrump" with an invalid suit string in Round 2.
-  
-     * @see src/game/logic/validation-core.js:validateBid
-     * @see src/game/logic/validation-errors.js:InvalidBidError
-     */
+    // Test case: Should throw InvalidBidError for "callTrump" with an invalid suit string in Round 2.
     it('should throw InvalidBidError for "callTrump" with an invalid suit string', () => {
       // Create a test-specific game state to ensure clean setup
       const testGameState = {
@@ -676,11 +525,7 @@ describe('Validation Tests', () => {
       );
     });
 
-    /**
-     * Test case: Should throw InvalidBidError for "callTrump" with no suit in Round 1 (as it's not allowed).
-     * @see src/game/logic/validation-core.js:validateBid
-     * @see src/game/logic/validation-errors.js:InvalidBidError
-     */
+    // Test case: Should throw InvalidBidError for "callTrump" with no suit in Round 1 (as it's not allowed).
     it('should throw InvalidBidError for "callTrump" with no suit', () => {
       // Create a test-specific game state for ORDER_UP_ROUND1
       const testGameState = {
@@ -699,11 +544,7 @@ describe('Validation Tests', () => {
       );
     });
 
-    /**
-     * Test case: Should throw InvalidBidError for "callTrump" with the turned down suit in Round 2.
-     * @see src/game/logic/validation-core.js:validateBid
-     * @see src/game/logic/validation-errors.js:InvalidBidError
-     */
+    // Test case: Should throw InvalidBidError for "callTrump" with the turned down suit in Round 2.
     it('should throw InvalidBidError for "callTrump" with the turned down suit', () => {
       // Create a new game state with ORDER_UP_ROUND2 phase for this specific test
       const round2GameState = {
@@ -733,148 +574,19 @@ describe('Validation Tests', () => {
   });
 });
 
-/**
- * Test suite for `validateDealerDiscard` function.
- * @see https://nodejs.org/docs/latest/api/test.html#describename-fn-options
- * @see src/game/logic/validation-core.js:validateDealerDiscard
- */
-describe("Validation Logic - validateDealerDiscard", () => {
-  /**
-   * Reference to the `validateDealerDiscard` function under test.
-   * @type {function}
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   */
-  let validateDealerDiscard;
-  /**
-   * Base game state object for dealer discard validation tests.
-   * @type {object}
-   */
-  let baseDiscardGameState;
-  /**
-   * The dealer's hand for testing.
-   * @type {Array<object>}
-   */
-  let dealerHand;
-  /**
-   * The card intended to be discarded by the dealer.
-   * @type {object}
-   */
-  let cardToDiscard;
-  /**
-   * The player role of the dealer.
-   * @type {string}
-   */
-  const dealerRole = PLAYER_ROLES[0];
+// Test suite for `getEffectiveSuit` function.
+describe("Validation Logic - getEffectiveSuit", () => {
+  let getEffectiveSuit;
 
-  /**
-   * Setup hook to initialize test environment before each test in this suite.
-   * Resets mocks, re-applies mock logger, and sets up fresh test data.
-   * @see https://nodejs.org/docs/latest/api/test.html#beforeeachfn-options
-   * @see test/game/logic/validation.unit.test.js:mockLogger
-   */
   beforeEach(() => {
-    // Reset all mocks before each test
+    getEffectiveSuit = validation.getEffectiveSuit;
     mock.restoreAll();
     mockLogger.reset();
-
-    // Re-apply the mock logger methods
-    mock.method(logger, 'info', mockLogger.info);
     mock.method(logger, 'warn', mockLogger.warn);
-    mock.method(logger, 'error', mockLogger.error);
-    mock.method(logger, 'debug', mockLogger.debug);
-
-    // Reset the validateDealerDiscard reference
-    validateDealerDiscard = validation.validateDealerDiscard;
-
-    // Setup fresh test data
-    baseDiscardGameState = {
-      gamePhase: GAME_PHASES.DEALER_DISCARD,
-      currentPlayer: dealerRole,
-      dealer: dealerRole,
-      dealerDiscard: null,
-      currentTrick: [],
-      gameId: "test-discard-game",
-    };
-
-    dealerHand = [
-      { id: 'AH', suit: 'HEARTS', value: 'ACE' },
-      { id: 'KH', suit: 'HEARTS', value: 'KING' },
-      { id: 'QH', suit: 'HEARTS', value: 'QUEEN' },
-      { id: 'JH', suit: 'HEARTS', value: 'JACK' },
-      { id: '10H', suit: 'HEARTS', value: '10' },
-      { id: '9H', suit: 'HEARTS', value: '9' },
-    ];
-
-    cardToDiscard = { id: '9H' };
   });
 
-  /**
-   * Teardown hook to clean up after each test in this suite.
-   * @see https://nodejs.org/docs/latest/api/test.html#aftereachfn-options
-   * @see test/game/logic/validation.unit.test.js:mockLogger
-   */
-  afterEach(() => {
-    mock.restoreAll();
-    mockLogger.reset();
-  });
-
-  /**
-   * Setup hook to reset mock logger and initialize `validateDealerDiscard` and test data before all tests in this suite.
-   * Note: This `before` block seems to duplicate some setup from `beforeEach`.
-   * It's generally better to use `beforeEach` for test data setup to ensure isolation.
-   * @see https://nodejs.org/docs/latest/api/test.html#beforefn-options
-   * @see test/game/logic/validation.unit.test.js:mockLogger
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   */
-  before(() => {
-    // Reset mock logger
-    resetLoggerCalls();
-    mockLogger.info.mock.resetCalls();
-    mockLogger.warn.mock.resetCalls();
-    mockLogger.error.mock.resetCalls();
-    mockLogger.debug.mock.resetCalls();
-
-    // Get the validateDealerDiscard function
-    validateDealerDiscard = validation.validateDealerDiscard;
-
-    dealerHand = [
-      { id: "AC", suit: SUITS.CLUBS, value: VALUES.ACE },
-      { id: "KC", suit: SUITS.CLUBS, value: VALUES.KING },
-      cardToDiscard,
-      { id: "AS", suit: SUITS.SPADES, value: VALUES.ACE },
-      { id: "KS", suit: SUITS.SPADES, value: VALUES.KING },
-      { id: "JD", suit: SUITS.DIAMONDS, value: VALUES.JACK },
-    ];
-
-    baseDiscardGameState = {
-      gamePhase: GAME_PHASES.DEALER_DISCARD,
-      dealer: dealerRole,
-      currentPlayer: dealerRole,
-      gameId: "test-discard-game",
-    };
-  });
-
-  /**
-   * Teardown hook to reset all mocks and logger calls after each test in this suite.
-   * @see https://nodejs.org/docs/latest/api/test.html#aftereachfn-options
-   * @see test/game/logic/validation.unit.test.js:mockLogger
-   */
-  afterEach(() => {
-    // Reset all mocks
-    mock.restoreAll();
-    mockLogger.info.mock.resetCalls();
-    mockLogger.warn.mock.resetCalls();
-    mockLogger.error.mock.resetCalls();
-    mockLogger.debug.mock.resetCalls();
-    resetLoggerCalls();
-  });
-
-  /**
-   * Test case: Should throw ValidationError if `gameState` is missing for dealer discard validation.
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   * @see src/game/logic/validation-errors.js:ValidationError
-   */
-  it("should throw ValidationError if gameState is missing", () => {
+  it("should return null if card is null", () => {
+    assert.strictEqual(getEffectiveSuit(null, SUITS.HEARTS), null);
     assert.throws(
       () => validateDealerDiscard(null, 'north', { id: 'test' }, []),
       {
@@ -885,11 +597,9 @@ describe("Validation Logic - validateDealerDiscard", () => {
     );
   });
 
-  /**
-   * Test case: Should throw ValidationError if `playerRole` is missing for dealer discard validation.
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   * @see src/game/logic/validation-errors.js:ValidationError
-   */
+  //Test case: Should throw ValidationError if `playerRole` is missing for dealer discard validation.
+  //@see src/game/logic/validation-core.js:validateDealerDiscard
+  //@see src/game/logic/validation-errors.js:ValidationError
   it("should throw ValidationError if playerRole is missing", () => {
     assert.throws(
       () => validateDealerDiscard(
@@ -906,11 +616,9 @@ describe("Validation Logic - validateDealerDiscard", () => {
     );
   });
 
-  /**
-   * Test case: Should throw ValidationError if `cardToDiscard` is missing for dealer discard validation.
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   * @see src/game/logic/validation-errors.js:ValidationError
-   */
+  //Test case: Should throw ValidationError if `cardToDiscard` is missing for dealer discard validation.
+  //@see src/game/logic/validation-core.js:validateDealerDiscard
+  //@see src/game/logic/validation-errors.js:ValidationError
   it("should throw ValidationError if cardToDiscard is missing", () => {
     assert.throws(
       () => validation.validateDealerDiscard(
@@ -927,11 +635,9 @@ describe("Validation Logic - validateDealerDiscard", () => {
     );
   });
 
-  /**
-   * Test case: Should throw ValidationError if `dealerHand` is missing for dealer discard validation.
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   * @see src/game/logic/validation-errors.js:ValidationError
-   */
+  //Test case: Should throw ValidationError if `dealerHand` is missing for dealer discard validation.
+  //@see src/game/logic/validation-core.js:validateDealerDiscard
+  //@see src/game/logic/validation-errors.js:ValidationError
   it("should throw ValidationError if dealerHand is missing", () => {
     assert.throws(
       () => validation.validateDealerDiscard(
@@ -948,11 +654,9 @@ describe("Validation Logic - validateDealerDiscard", () => {
     );
   });
 
-  /**
-   * Test case: Should throw ValidationError if `cardToDiscard.id` is missing for dealer discard validation.
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   * @see src/game/logic/validation-errors.js:ValidationError
-   */
+  //Test case: Should throw ValidationError if `cardToDiscard.id` is missing for dealer discard validation.
+  //@see src/game/logic/validation-core.js:validateDealerDiscard
+  //@see src/game/logic/validation-errors.js:ValidationError
   it("should throw ValidationError if cardToDiscard.id is missing", () => {
     assert.throws(
       () => validation.validateDealerDiscard(
@@ -969,11 +673,9 @@ describe("Validation Logic - validateDealerDiscard", () => {
     );
   });
 
-  /**
-   * Test case: Should throw InvalidPhaseError if not in `DEALER_DISCARD` phase.
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   * @see src/game/logic/validation-errors.js:InvalidPhaseError
-   */
+  //Test case: Should throw InvalidPhaseError if not in `DEALER_DISCARD` phase.
+  //@see src/game/logic/validation-core.js:validateDealerDiscard
+  //@see src/game/logic/validation-errors.js:InvalidPhaseError
   it("should throw InvalidPhaseError if not in DEALER_DISCARD phase", () => {
     // Create a test-specific game state with a valid phase that's not DEALER_DISCARD
     const invalidPhaseState = {
@@ -1005,11 +707,9 @@ describe("Validation Logic - validateDealerDiscard", () => {
     );
   });
 
-  /**
-   * Test case: Should throw NotPlayersTurnError if `playerRole` is not the dealer.
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   * @see src/game/logic/validation-errors.js:NotPlayersTurnError
-   */
+  //Test case: Should throw NotPlayersTurnError if `playerRole` is not the dealer.
+  //@see src/game/logic/validation-core.js:validateDealerDiscard
+  //@see src/game/logic/validation-errors.js:NotPlayersTurnError
   it("should throw NotPlayersTurnError if playerRole is not the dealer", () => {
     const nonDealerRole = PLAYER_ROLES[1];
     const gameState = {
@@ -1033,11 +733,9 @@ describe("Validation Logic - validateDealerDiscard", () => {
     );
   });
 
-  /**
-   * Test case: Should throw NotPlayersTurnError if it is not the current player's turn (even if player is dealer).
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   * @see src/game/logic/validation-errors.js:NotPlayersTurnError
-   */
+  //Test case: Should throw NotPlayersTurnError if it is not the current player's turn (even if player is dealer).
+  //@see src/game/logic/validation-core.js:validateDealerDiscard
+  //@see src/game/logic/validation-errors.js:NotPlayersTurnError
   it("should throw NotPlayersTurnError if it is not the current player's turn (even if player is dealer)", () => {
     const notPlayersTurnState = {
       ...baseDiscardGameState,
@@ -1054,11 +752,9 @@ describe("Validation Logic - validateDealerDiscard", () => {
     );
   });
 
-  /**
-   * Test case: Should throw CardNotInHandError if `cardToDiscard` is not in `dealerHand`.
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   * @see src/game/logic/validation-errors.js:CardNotInHandError
-   */
+  //Test case: Should throw CardNotInHandError if `cardToDiscard` is not in `dealerHand`.
+  //@see src/game/logic/validation-core.js:validateDealerDiscard
+  //@see src/game/logic/validation-errors.js:CardNotInHandError
   it("should throw CardNotInHandError if cardToDiscard is not in dealerHand", () => {
     const cardNotInHand = { id: "QC", suit: SUITS.CLUBS, value: VALUES.QUEEN };
     assert.throws(
@@ -1072,21 +768,17 @@ describe("Validation Logic - validateDealerDiscard", () => {
     );
   });
 
-  /**
-   * Test case: Should return true for a valid discard scenario.
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   */
+  //Test case: Should return true for a valid discard scenario.
+  //@see src/game/logic/validation-core.js:validateDealerDiscard
   it("should return true for a valid discard scenario", () => {
     assert.doesNotThrow(
       () => validateDealerDiscard(baseDiscardGameState, dealerRole, cardToDiscard, dealerHand)
     );
   });
 
-  /**
-   * Test case: Should log a warning if dealer's hand does not have 6 cards.
-   * @see src/game/logic/validation-core.js:validateDealerDiscard
-   * @see src/utils/logger.js
-   */
+  //Test case: Should log a warning if dealer's hand does not have 6 cards.
+  //@see src/game/logic/validation-core.js:validateDealerDiscard
+  //@see src/utils/logger.js
   it("should log a warning if dealer's hand does not have 6 cards", () => {
     // Create a deep copy of the game state to avoid modifying the original
     const shortHandGameState = {
@@ -1154,6 +846,142 @@ describe("Validation Logic - validateDealerDiscard", () => {
       warning.message,
       /Dealer's hand does not have 6 cards at the point of discard validation\./,
       'Should log the correct warning message'
+    );
+  });
+
+  //Test case: Should throw InvalidDiscardError if dealer tries to discard the turn card.
+  //@see src/game/logic/validation-core.js:validateDealerDiscard
+  //@see src/game/logic/validation-errors.js:InvalidDiscardError
+  it("should throw InvalidDiscardError if dealer tries to discard the turn card", () => {
+    const turnCard = { id: "9H", suit: SUITS.HEARTS, value: "9" };
+    const gameStateWithTurnCard = {
+      ...baseDiscardGameState,
+      turnCard: turnCard,
+    };
+    
+    // Dealer hand must contain the turn card for this test to reach the specific check
+    const dealerHandWithTurnCard = [...dealerHand, turnCard];
+
+    assert.throws(
+      () => validateDealerDiscard(
+        gameStateWithTurnCard,
+        dealerRole,
+        turnCard,
+        dealerHandWithTurnCard
+      ),
+      {
+        name: 'InvalidDiscardError',
+        message: 'Cannot discard the turn card (upcard).'
+      }
+    );
+  });
+});
+
+//Test suite for `isValidGoAlone` function.
+//@see src/game/logic/validation-core.js:isValidGoAlone
+describe("Validation Logic - isValidGoAlone", () => {
+  let isValidGoAlone;
+  let baseGoAloneState;
+  const playerRole = PLAYER_ROLES[0];
+
+  beforeEach(() => {
+    isValidGoAlone = validation.isValidGoAlone;
+    mock.restoreAll();
+    mockLogger.reset();
+    
+    // Re-apply mocks
+    mock.method(logger, 'info', mockLogger.info);
+    mock.method(logger, 'warn', mockLogger.warn);
+    mock.method(logger, 'error', mockLogger.error);
+    mock.method(logger, 'debug', mockLogger.debug);
+
+    baseGoAloneState = {
+      gamePhase: GAME_PHASES.GOING_ALONE_DECISION,
+      currentPlayer: playerRole,
+      winningBidder: playerRole,
+      players: {
+        [PLAYER_ROLES[0]]: { name: "P1" },
+        [PLAYER_ROLES[1]]: { name: "P2" },
+        [PLAYER_ROLES[2]]: { name: "P3" },
+        [PLAYER_ROLES[3]]: { name: "P4" },
+      },
+      gameId: "test-go-alone-game",
+    };
+  });
+
+  it("should return true for valid go-alone declaration", () => {
+    assert.strictEqual(isValidGoAlone(baseGoAloneState, playerRole), true);
+    
+    // Verify debug log
+    const debugCalls = loggerCalls.filter(call => call.level === 'debug');
+    assert.strictEqual(debugCalls.length, 1);
+    assert.match(debugCalls[0].message, /Go-alone validation successful/);
+  });
+
+  it("should throw ValidationError if arguments are missing", () => {
+    assert.throws(
+      () => isValidGoAlone(null, playerRole),
+      { name: 'ValidationError' }
+    );
+  });
+
+  it("should throw InvalidPhaseError if not in GOING_ALONE_DECISION phase", () => {
+    const invalidState = { ...baseGoAloneState, gamePhase: GAME_PHASES.PLAYING };
+    assert.throws(
+      () => isValidGoAlone(invalidState, playerRole),
+      { name: 'InvalidPhaseError' }
+    );
+    
+    // Verify error log
+    const errorCalls = loggerCalls.filter(call => call.level === 'error');
+    assert.strictEqual(errorCalls.length, 1);
+    assert.match(errorCalls[0].message, /Invalid phase for go-alone/);
+  });
+
+  it("should throw NotPlayersTurnError if not player's turn", () => {
+    const invalidState = { ...baseGoAloneState, currentPlayer: PLAYER_ROLES[1] };
+    assert.throws(
+      () => isValidGoAlone(invalidState, playerRole),
+      { name: 'NotPlayersTurnError' }
+    );
+  });
+
+  it("should throw InvalidGoAloneError if player is not winning bidder", () => {
+    const invalidState = { ...baseGoAloneState, winningBidder: PLAYER_ROLES[1] };
+    assert.throws(
+      () => isValidGoAlone(invalidState, playerRole),
+      { 
+        name: 'InvalidGoAloneError',
+        message: 'Only the winning bidder can declare to go alone'
+      }
+    );
+  });
+
+  it("should throw InvalidGoAloneError if player not found in game", () => {
+    const invalidState = { ...baseGoAloneState, players: {} };
+    assert.throws(
+      () => isValidGoAlone(invalidState, playerRole),
+      { 
+        name: 'InvalidGoAloneError',
+        message: /not found in game state/
+      }
+    );
+  });
+
+  it("should throw InvalidGoAloneError if player already made decision", () => {
+    const invalidState = {
+      ...baseGoAloneState,
+      players: {
+        ...baseGoAloneState.players,
+        [playerRole]: { ...baseGoAloneState.players[playerRole], isGoingAlone: false }
+      }
+    };
+    assert.throws(
+      () => isValidGoAlone(invalidState, playerRole),
+      { 
+        name: 'InvalidGoAloneError',
+        message: /already made their go-alone decision/
+      }
     );
   });
 });

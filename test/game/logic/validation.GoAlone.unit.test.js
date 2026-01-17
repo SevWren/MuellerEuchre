@@ -47,34 +47,14 @@
  *
  */
 
-/**
- * Node.js test runner and assertion library imports.
- * @see {@link https://nodejs.org/api/test.html} Node.js test runner documentation
- * @see {@link https://nodejs.org/api/assert.html} Node.js assert module documentation
- */
 import { describe, it, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
-
-/**
- * Test utilities and mock logger setup.
- * @see {@link module:test/test-utils/mock-logger} For mock logger implementation
- */
 import { createMockLogger } from '../../test-utils/mock-logger.js';
 
-/**
- * Mock logger instance used to verify logging behavior in tests.
- * @type {Object}
- * @property {Function} info - Mock function for info level logs
- * @property {Function} warn - Mock function for warn level logs
- * @property {Function} error - Mock function for error level logs
- * @property {Function} debug - Mock function for debug level logs
- */
+// Mock logger instance used to verify logging behavior in tests.
 const mockLogger = createMockLogger();
 
-/**
- * Application logger module that will be mocked for testing.
- * @see {@link module:src/utils/logger} For the actual logger implementation
- */
+// Application logger module that will be mocked for testing. See src/utils/logger for the actual logger implementation.
 import logger from '../../../src/utils/logger.js';
 
 // Replace logger methods with our mocks
@@ -129,10 +109,8 @@ describe('Validation Logic - isValidGoAlone', () => {
    */
   let baseGameState;
   
-  /**
-   * Setup function that runs before each test case.
-   * Resets all mocks and initializes a fresh game state.
-   */
+  
+  //Setup function that runs before each test case. Resets all mocks and initializes a fresh game state.
   beforeEach(() => {
     // Reset all mocks to ensure test isolation
     mock.reset();
@@ -353,21 +331,21 @@ describe('Validation Logic - isValidGoAlone', () => {
     const [firstCall] = logger.debug.mock.calls;
     const [firstArg, secondArg] = firstCall.arguments;
     
-    // Verify debug call arguments
+    // Verify debug call arguments (logger uses (context, message) format)
     assert.strictEqual(
-      firstArg, 
+      secondArg, 
       'Go-alone validation successful', 
       'Expected debug message to match'
     );
     assert.strictEqual(
-      secondArg.playerRole, 
+      firstArg.playerRole, 
       PLAYER_ROLES[0], 
-      'Expected playerRole in debug info'
+      'Expected playerRole in debug context'
     );
     assert.strictEqual(
-      secondArg.gamePhase, 
+      firstArg.gamePhase, 
       GAME_PHASES.GOING_ALONE_DECISION, 
-      'Expected gamePhase in debug info'
+      'Expected gamePhase in debug context'
     );
   });
 
@@ -407,26 +385,26 @@ describe('Validation Logic - isValidGoAlone', () => {
     const [firstCall] = logger.error.mock.calls;
     const [firstArg, secondArg] = firstCall.arguments;
     
-    // Verify error call arguments
+    // Verify error call arguments (logger uses (context, message) format)
     assert.strictEqual(
-      firstArg,
+      secondArg,
       'Invalid phase for go-alone',
       'Expected error message to match'
     );
     assert.strictEqual(
-      secondArg.playerRole,
+      firstArg.playerRole,
       PLAYER_ROLES[0],
-      'Expected playerRole in error info'
+      'Expected playerRole in error context'
     );
     assert.strictEqual(
-      secondArg.gamePhase,
+      firstArg.gamePhase,
       GAME_PHASES.PLAYING,
-      'Expected gamePhase in error info'
+      'Expected gamePhase in error context'
     );
     assert.strictEqual(
-      secondArg.expectedPhase,
+      firstArg.expectedPhase,
       'GO_ALONE_DECISION',
-      'Expected expectedPhase in error info'
+      'Expected expectedPhase in error context'
     );
   });
 });

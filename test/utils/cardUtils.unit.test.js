@@ -1,6 +1,4 @@
-/**
- * test/utils/cardUtils.unit.test.js
- */
+// test/utils/cardUtils.unit.test.js
 
 import { describe, it, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
@@ -297,6 +295,10 @@ describe("Card Utility Functions", () => {
       }
     });
 
+    it("throws InvalidCardError when card value is empty string", () => {
+      assert.throws(() => cardUtils.cardToId({ suit: SUITS.CARD_SUIT_HEARTS, value: "" }), InvalidCardError);
+    });
+
     it("idToCard accepts 'T' or '10' forms and throws on bad input", () => {
       assert.throws(() => cardUtils.idToCard(null), InvalidCardError);
       assert.throws(() => cardUtils.idToCard(123), InvalidCardError);
@@ -319,6 +321,12 @@ describe("Card Utility Functions", () => {
       assert.deepStrictEqual(card, {
         suit: SUITS.CARD_SUIT_HEARTS,
         value: "9",
+      });
+
+      const card10 = cardUtils.idToCard("10H");
+      assert.deepStrictEqual(card10, {
+        suit: SUITS.CARD_SUIT_HEARTS,
+        value: "10",
       });
     });
 
@@ -362,6 +370,8 @@ describe("Card Utility Functions", () => {
       assert.strictEqual(cardUtils.getBaseRankValue("10"), 2);
       assert.strictEqual(cardUtils.getBaseRankValue("9"), 1);
       assert.throws(() => cardUtils.getBaseRankValue("X"), InvalidCardError);
+      assert.throws(() => cardUtils.getBaseRankValue(null), InvalidCardError);
+      assert.throws(() => cardUtils.getBaseRankValue(undefined), InvalidCardError);
     });
 
     it("getCardRank follows Euchre rules", () => {
@@ -441,6 +451,17 @@ describe("Card Utility Functions", () => {
           sorted.map((c) => c.id),
           ["JH", "JD", "AH", "KH", "AC", "KS"]
         );
+      });
+
+      it("sorts cards of same rank by suit char ascending", () => {
+        const trump = SUITS.CARD_SUIT_HEARTS;
+        // Both Ace of Clubs and Ace of Spades have rank 6 (base rank)
+        const aceClubs = { suit: SUITS.CARD_SUIT_CLUBS, value: "A", id: "AC" };
+        const aceSpades = { suit: SUITS.CARD_SUIT_SPADES, value: "A", id: "AS" };
+        
+        // 'C' comes before 'S'
+        const result = cardUtils.sortHand([aceSpades, aceClubs], trump);
+        assert.deepStrictEqual(result.map(c => c.id), ["AC", "AS"]);
       });
 
       it("places invalid objects at the end", () => {
